@@ -137,6 +137,50 @@
                     </div>
                 </div>
 
+                <!-- Company Info (NEW) -->
+                @if(auth()->user()->company)
+                <div class="bg-gradient-to-br from-teal-50 to-blue-50 rounded-2xl p-6 mb-6 border border-teal-200">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-teal-500 rounded-xl flex items-center justify-center mr-4">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-900">Entreprise associée</h2>
+                            <p class="text-sm text-gray-600">Informations de votre entreprise</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Nom:</span>
+                            <span class="font-bold text-gray-900">{{ auth()->user()->company->name }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">SIRET:</span>
+                            <span class="font-semibold text-gray-900">{{ auth()->user()->company->siret }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Secteur:</span>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
+                                {{ auth()->user()->company->sector }}
+                            </span>
+                        </div>
+                        @if(auth()->user()->company->website)
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Site web:</span>
+                            <a href="{{ auth()->user()->company->website }}" target="_blank" class="text-teal-600 hover:text-teal-700 font-medium text-sm flex items-center">
+                                {{ Str::limit(auth()->user()->company->website, 30) }}
+                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                </svg>
+                            </a>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+                @endif
+
                 <!-- Next Steps -->
                 <div class="bg-teal-50 rounded-2xl p-6 mb-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-3">Prochaines étapes</h3>
@@ -167,19 +211,32 @@
                             @endif
                         </li>
                         <li class="flex items-start">
+                            @if(auth()->user()->company)
+                            <svg class="w-5 h-5 text-teal-500 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="text-gray-700">Entreprise associée ✓</span>
+                            @else
                             <svg class="w-5 h-5 text-gray-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"></path>
                             </svg>
-                            <span class="text-gray-600">Créer votre entreprise</span>
+                            <span class="text-gray-600">Créer ou rejoindre une entreprise</span>
+                            @endif
                         </li>
                     </ul>
                 </div>
 
                 <!-- Action Buttons -->
                 <div class="flex gap-4">
+                    @if(!auth()->user()->company)
                     <a href="{{ route('company.create') }}" class="flex-1 bg-gradient-to-r from-teal-500 to-teal-600 text-white text-center font-semibold py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl">
                         Créer mon entreprise
                     </a>
+                    @else
+                    <a href="#" class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-center font-semibold py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl">
+                        Gérer mon entreprise
+                    </a>
+                    @endif
                     <form action="{{ route('logout') }}" method="POST" class="flex-1">
                         @csrf
                         <button type="submit" class="w-full bg-gray-100 text-gray-700 font-semibold py-4 rounded-xl transition-all duration-300 hover:bg-gray-200 border border-gray-200">
