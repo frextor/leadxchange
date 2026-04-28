@@ -46,6 +46,11 @@ Route::middleware('auth')->group(function () {
         return view('dashboard');
     })->name('dashboard');
 
+    // Dashboard
+    Route::get('/home', function () {
+        return view('dashboard');
+    })->name('dashboard');
+
     // Company Routes
     Route::get('/company/create', [CompanyController::class, 'create'])->name('company.create');
     Route::get('/company/search', [CompanyController::class, 'search'])->name('company.search');
