@@ -3,11 +3,28 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\AuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * LoginController (WEB - REFACTORED)
+ * 
+ * Thin controller for web interface.
+ * Uses AuthService for business logic if needed.
+ */
 class LoginController extends Controller
 {
+    protected AuthService $authService;
+
+    /**
+     * Inject AuthService.
+     */
+    public function __construct(AuthService $authService)
+    {
+        $this->authService = $authService;
+    }
+
     /**
      * Show the login form.
      */

@@ -1,254 +1,156 @@
-<!DOCTYPE html>
-<html lang="fr">
+@extends('layouts.dashboard')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - LeadXchange</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
+@section('title', 'Dashboard - LeadXchange')
 
-<body class="bg-gray-50">
+@section('content')
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Welcome Section -->
+    <div class="bg-white rounded-2xl shadow-sm p-6 sm:p-8 mb-8">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+            Hi {{ auth()->user()->first_name }}! 👋
+        </h1>
+        <p class="text-gray-600">What would you like to do today?</p>
+    </div>
 
-    <div class="min-h-screen flex items-center justify-center p-4">
-        <div class="max-w-2xl w-full">
-
-            <!-- Success Message -->
-            @if(session('success'))
-            <div class="bg-green-50 border-l-4 border-green-500 p-6 rounded-lg shadow-lg mb-8">
-                <div class="flex items-center">
-                    <svg class="w-8 h-8 text-green-500 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <div>
-                        <h3 class="text-lg font-semibold text-green-800">Succès !</h3>
-                        <p class="text-green-700">{{ session('success') }}</p>
-                    </div>
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-2xl shadow-sm p-6 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm mb-1">Connections</p>
+                    <p class="text-3xl font-bold text-gray-900">42</p>
+                    <p class="text-green-600 text-sm mt-2">
+                        <i class="fas fa-arrow-up mr-1"></i>+12% this month
+                    </p>
+                </div>
+                <div class="w-14 h-14 bg-gradient-to-br from-teal-100 to-teal-200 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-users text-teal-600 text-2xl"></i>
                 </div>
             </div>
-            @endif
+        </div>
 
-            <!-- Info Message -->
-            @if(session('info'))
-            <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg shadow-lg mb-8">
-                <div class="flex items-center">
-                    <svg class="w-8 h-8 text-blue-500 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <div>
-                        <h3 class="text-lg font-semibold text-blue-800">Information</h3>
-                        <p class="text-blue-700">{{ session('info') }}</p>
-                    </div>
+        <div class="bg-white rounded-2xl shadow-sm p-6 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm mb-1">Messages</p>
+                    <p class="text-3xl font-bold text-gray-900">12</p>
+                    <p class="text-blue-600 text-sm mt-2">
+                        <i class="fas fa-circle mr-1 text-xs"></i>3 unread
+                    </p>
+                </div>
+                <div class="w-14 h-14 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-envelope text-blue-600 text-2xl"></i>
                 </div>
             </div>
-            @endif
+        </div>
 
-            <!-- Error Message -->
-            @if(session('error'))
-            <div class="bg-red-50 border-l-4 border-red-500 p-6 rounded-lg shadow-lg mb-8">
-                <div class="flex items-center">
-                    <svg class="w-8 h-8 text-red-500 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <div>
-                        <h3 class="text-lg font-semibold text-red-800">Erreur</h3>
-                        <p class="text-red-700">{{ session('error') }}</p>
-                    </div>
+        <div class="bg-white rounded-2xl shadow-sm p-6 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm mb-1">Leads</p>
+                    <p class="text-3xl font-bold text-gray-900">8</p>
+                    <p class="text-purple-600 text-sm mt-2">
+                        <i class="fas fa-arrow-up mr-1"></i>2 new today
+                    </p>
+                </div>
+                <div class="w-14 h-14 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-chart-line text-purple-600 text-2xl"></i>
                 </div>
             </div>
-            @endif
-
-            <!-- Email Verification Notice -->
-            @if(!auth()->user()->hasVerifiedEmail())
-            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded-lg shadow-lg mb-8">
-                <div class="flex items-start">
-                    <svg class="w-8 h-8 text-yellow-500 mr-4 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                    </svg>
-                    <div class="flex-1">
-                        <h3 class="text-lg font-semibold text-yellow-800 mb-2">Vérifiez votre email</h3>
-                        <p class="text-yellow-700 mb-4">
-                            Un email de vérification a été envoyé à <strong>{{ auth()->user()->email }}</strong>.
-                            Veuillez cliquer sur le lien dans l'email pour vérifier votre compte.
-                        </p>
-                        <form action="{{ route('verification.send') }}" method="POST" class="inline">
-                            @csrf
-                            <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded transition-colors">
-                                Renvoyer l'email
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            @endif
-
-            <!-- Welcome Card -->
-            <div class="bg-white rounded-3xl shadow-xl p-8">
-                <div class="text-center mb-8">
-                    <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-teal-400 to-teal-600 rounded-2xl mb-4">
-                        <span class="text-white text-3xl font-bold">LX</span>
-                    </div>
-                    <h1 class="text-3xl font-bold text-gray-900 mb-2">Bienvenue, {{ auth()->user()->first_name }} !</h1>
-                    <p class="text-gray-600">Votre compte a été créé avec succès</p>
-                </div>
-
-                <!-- User Info -->
-                <div class="bg-gray-50 rounded-2xl p-6 mb-6">
-                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Informations du compte</h2>
-                    <div class="space-y-3">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Nom complet:</span>
-                            <span class="font-semibold text-gray-900">{{ auth()->user()->first_name }} {{ auth()->user()->last_name }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Email:</span>
-                            <span class="font-semibold text-gray-900">{{ auth()->user()->email }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Email vérifié:</span>
-                            @if(auth()->user()->hasVerifiedEmail())
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
-                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                Vérifié
-                            </span>
-                            @else
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
-                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                                </svg>
-                                En attente
-                            </span>
-                            @endif
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Ville:</span>
-                            <span class="font-semibold text-gray-900">{{ auth()->user()->city_living }}</span>
-                        </div>
-                        @if(auth()->user()->subscription)
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Plan:</span>
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-teal-100 text-teal-800">
-                                {{ ucfirst(auth()->user()->subscription->plan->name) }}
-                            </span>
-                        </div>
-                        @endif
-                    </div>
-                </div>
-
-                <!-- Company Info (NEW) -->
-                @if(auth()->user()->company)
-                <div class="bg-gradient-to-br from-teal-50 to-blue-50 rounded-2xl p-6 mb-6 border border-teal-200">
-                    <div class="flex items-center mb-4">
-                        <div class="w-12 h-12 bg-teal-500 rounded-xl flex items-center justify-center mr-4">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <h2 class="text-lg font-semibold text-gray-900">Entreprise associée</h2>
-                            <p class="text-sm text-gray-600">Informations de votre entreprise</p>
-                        </div>
-                    </div>
-                    <div class="space-y-3">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Nom:</span>
-                            <span class="font-bold text-gray-900">{{ auth()->user()->company->name }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">SIRET:</span>
-                            <span class="font-semibold text-gray-900">{{ auth()->user()->company->siret }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Secteur:</span>
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
-                                {{ auth()->user()->company->sector }}
-                            </span>
-                        </div>
-                        @if(auth()->user()->company->website)
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Site web:</span>
-                            <a href="{{ auth()->user()->company->website }}" target="_blank" class="text-teal-600 hover:text-teal-700 font-medium text-sm flex items-center">
-                                {{ Str::limit(auth()->user()->company->website, 30) }}
-                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                                </svg>
-                            </a>
-                        </div>
-                        @endif
-                    </div>
-                </div>
-                @endif
-
-                <!-- Next Steps -->
-                <div class="bg-teal-50 rounded-2xl p-6 mb-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Prochaines étapes</h3>
-                    <ul class="space-y-2">
-                        <li class="flex items-start">
-                            <svg class="w-5 h-5 text-teal-500 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                            </svg>
-                            <span class="text-gray-700">Compte créé avec succès ✓</span>
-                        </li>
-                        <li class="flex items-start">
-                            <svg class="w-5 h-5 text-teal-500 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                            </svg>
-                            <span class="text-gray-700">Profil complété ✓</span>
-                        </li>
-                        <li class="flex items-start">
-                            @if(auth()->user()->hasVerifiedEmail())
-                            <svg class="w-5 h-5 text-teal-500 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                            </svg>
-                            <span class="text-gray-700">Email vérifié ✓</span>
-                            @else
-                            <svg class="w-5 h-5 text-gray-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"></path>
-                            </svg>
-                            <span class="text-gray-600">Vérifier votre email</span>
-                            @endif
-                        </li>
-                        <li class="flex items-start">
-                            @if(auth()->user()->company)
-                            <svg class="w-5 h-5 text-teal-500 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                            </svg>
-                            <span class="text-gray-700">Entreprise associée ✓</span>
-                            @else
-                            <svg class="w-5 h-5 text-gray-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"></path>
-                            </svg>
-                            <span class="text-gray-600">Créer ou rejoindre une entreprise</span>
-                            @endif
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="flex gap-4">
-                    @if(!auth()->user()->company)
-                    <a href="{{ route('company.create') }}" class="flex-1 bg-gradient-to-r from-teal-500 to-teal-600 text-white text-center font-semibold py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl">
-                        Créer mon entreprise
-                    </a>
-                    @else
-                    <a href="#" class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-center font-semibold py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl">
-                        Gérer mon entreprise
-                    </a>
-                    @endif
-                    <form action="{{ route('logout') }}" method="POST" class="flex-1">
-                        @csrf
-                        <button type="submit" class="w-full bg-gray-100 text-gray-700 font-semibold py-4 rounded-xl transition-all duration-300 hover:bg-gray-200 border border-gray-200">
-                            Déconnexion
-                        </button>
-                    </form>
-                </div>
-            </div>
-
         </div>
     </div>
 
-</body>
+    <!-- Quick Actions & Recent Activity -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-2xl shadow-sm p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-bolt text-yellow-500 mr-2"></i>
+                Quick Actions
+            </h2>
+            <div class="space-y-3">
+                <a href="{{ route('connections.index') }}" class="flex items-center p-4 bg-gradient-to-r from-teal-50 to-teal-100 rounded-xl hover:from-teal-100 hover:to-teal-200 transition group">
+                    <div class="w-12 h-12 bg-teal-500 rounded-lg flex items-center justify-center shadow-sm group-hover:scale-110 transition">
+                        <i class="fas fa-user-plus text-white text-xl"></i>
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <p class="font-semibold text-gray-900">Find Connections</p>
+                        <p class="text-sm text-gray-600">Expand your network</p>
+                    </div>
+                    <i class="fas fa-arrow-right text-teal-600 group-hover:translate-x-1 transition"></i>
+                </a>
 
-</html>
+                <a href="#" class="flex items-center p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl hover:from-blue-100 hover:to-blue-200 transition group">
+                    <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center shadow-sm group-hover:scale-110 transition">
+                        <i class="fas fa-plus text-white text-xl"></i>
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <p class="font-semibold text-gray-900">Create Lead</p>
+                        <p class="text-sm text-gray-600">Add a new opportunity</p>
+                    </div>
+                    <i class="fas fa-arrow-right text-blue-600 group-hover:translate-x-1 transition"></i>
+                </a>
+
+                <a href="#" class="flex items-center p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl hover:from-purple-100 hover:to-purple-200 transition group">
+                    <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center shadow-sm group-hover:scale-110 transition">
+                        <i class="fas fa-paper-plane text-white text-xl"></i>
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <p class="font-semibold text-gray-900">Send Message</p>
+                        <p class="text-sm text-gray-600">Reach out to contacts</p>
+                    </div>
+                    <i class="fas fa-arrow-right text-purple-600 group-hover:translate-x-1 transition"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-white rounded-2xl shadow-sm p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-clock text-gray-500 mr-2"></i>
+                Recent Activity
+            </h2>
+            <div class="space-y-4">
+                <div class="flex items-start space-x-3 pb-4 border-b border-gray-100">
+                    <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-check text-white"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-gray-900">Connection accepted</p>
+                        <p class="text-sm text-gray-600">You're now connected with John Doe</p>
+                        <p class="text-xs text-gray-400 mt-1">2 hours ago</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start space-x-3 pb-4 border-b border-gray-100">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-envelope text-white"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-gray-900">New message received</p>
+                        <p class="text-sm text-gray-600">Sarah sent you a message</p>
+                        <p class="text-xs text-gray-400 mt-1">5 hours ago</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-star text-white"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-gray-900">New lead added</p>
+                        <p class="text-sm text-gray-600">Tech Solutions Inc. - $15,000</p>
+                        <p class="text-xs text-gray-400 mt-1">Yesterday</p>
+                    </div>
+                </div>
+            </div>
+
+            <a href="#" class="block mt-6 text-center text-sm text-teal-600 hover:text-teal-700 font-semibold">
+                View all activity →
+            </a>
+        </div>
+    </div>
+</div>
+@endsection

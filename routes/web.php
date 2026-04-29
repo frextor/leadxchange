@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CompanyController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ConnectionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -58,4 +59,15 @@ Route::middleware('auth')->group(function () {
 
     // Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+});
+
+
+Route::middleware('auth')->group(function () {
+    Route::prefix('connections')->name('connections.')->group(function () {
+        Route::get('/', [ConnectionController::class, 'index'])->name('index');
+        Route::post('/', [ConnectionController::class, 'store'])->name('store');
+        Route::post('/{id}/accept', [ConnectionController::class, 'accept'])->name('accept');
+        Route::post('/{id}/reject', [ConnectionController::class, 'reject'])->name('reject');
+        Route::delete('/{id}', [ConnectionController::class, 'destroy'])->name('destroy');
+    });
 });
