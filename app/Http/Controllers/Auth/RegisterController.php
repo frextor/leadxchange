@@ -3,18 +3,28 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Plan;
-use App\Models\Subscription;
-use App\Models\User;
-use Illuminate\Auth\Events\Registered;
+use App\Services\AuthService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth as AuthFacade;
 
+/**
+ * RegisterController (WEB - REFACTORED)
+ * 
+ * Thin controller for web interface.
+ * Uses AuthService for business logic.
+ */
 class RegisterController extends Controller
 {
+    protected AuthService $authService;
+
+    /**
+     * Inject AuthService.
+     */
+    public function __construct(AuthService $authService)
+    {
+        $this->authService = $authService;
+    }
+
     /**
      * Show the registration form.
      */
@@ -28,11 +38,6 @@ class RegisterController extends Controller
      */
     public function register(Request $request)
     {
-        // Log the incoming request data for debugging
-        Log::info('Registration attempt', [
-            'data' => $request->except('password', 'password_confirmation')
-        ]);
-
         // Validate all fields from both steps
         $validated = $request->validate([
             // Step 1: Account Information
@@ -65,61 +70,25 @@ class RegisterController extends Controller
             'terms.accepted' => 'Vous devez accepter les conditions.',
         ]);
 
-        DB::beginTransaction();
-
         try {
-            // Create user
-            $user = User::create([
-                'first_name' => $validated['first_name'],
-                'last_name' => $validated['last_name'],
-                'email' => $validated['email'],
-                'password' => Hash::make($validated['password']),
+            // Service handles ALL business logic
+            $user = $this->authService->register($validated);
+
+            // Update profile (step 2 data)
+            $user = $this->authService->updateProfile($user, [
                 'gender' => $validated['gender'],
                 'city_birth' => $validated['city_birth'],
                 'city_living' => $validated['city_living'],
                 'birthday' => $validated['birthday'],
-                'role' => 'user',
-                'onboarding_completed' => false,
             ]);
 
-            Log::info('User created successfully', ['user_id' => $user->id]);
-
-            // Fire the registered event for email verification
-            event(new Registered($user));
-
-            // Assign basic plan
-            $basicPlan = Plan::where('name', 'basic')->first();
-
-            if ($basicPlan) {
-                Subscription::create([
-                    'user_id' => $user->id,
-                    'plan_id' => $basicPlan->id,
-                    'status' => 'active',
-                    'trial_ends_at' => now()->addDays(14),
-                ]);
-                Log::info('Basic plan assigned', ['user_id' => $user->id]);
-            } else {
-                Log::warning('Basic plan not found in database');
-            }
-
-            DB::commit();
-
             // Log the user in
-            Auth::login($user);
-
-            Log::info('User logged in successfully', ['user_id' => $user->id]);
+            AuthFacade::login($user);
 
             // Redirect with success message to dashboard
             return redirect()->route('dashboard')
-                ->with('success', 'Compte créé avec succès ! Un email de vérification vous a été envoyé.');
+                ->with('success', 'Compte créé avec succès ! Bienvenue ' . $user->first_name . ' !');
         } catch (\Exception $e) {
-            DB::rollBack();
-
-            Log::error('Registration failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
             return back()
                 ->withInput($request->except('password', 'password_confirmation'))
                 ->withErrors(['error' => 'Erreur lors de la création du compte. Détails: ' . $e->getMessage()]);

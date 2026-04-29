@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CompanyController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -25,8 +26,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
-    
-    // Onboarding
+
+    // Onboarding (original routes - keep for backward compatibility)
     Route::post('/profile', [AuthController::class, 'updateProfile']);
     Route::post('/company', [AuthController::class, 'createCompany']);
+
+    // Company routes (new - for search and advanced features)
+    Route::prefix('companies')->group(function () {
+        Route::get('/search', [CompanyController::class, 'search']);      // Search companies
+        Route::get('/me', [CompanyController::class, 'getUserCompany']);  // Get user's company
+        Route::post('/', [CompanyController::class, 'store']);            // Create/Join company (alternative to /company)
+        Route::get('/', [CompanyController::class, 'index']);             // List all companies (optional)
+    });
 });

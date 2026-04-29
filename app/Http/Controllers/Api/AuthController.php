@@ -5,71 +5,56 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
-use App\Http\Requests\CompanyRequest;
 use App\Http\Requests\ProfileRequest;
-use App\Models\Company;
-use App\Models\Plan;
-use App\Models\Subscription;
-use App\Models\User;
-use Illuminate\Auth\Events\Registered;
+use App\Services\AuthService;
+use App\Services\CompanyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
+/**
+ * AuthController (REFACTORED)
+ * 
+ * Thin controller - only handles HTTP requests/responses.
+ * All business logic is in AuthService.
+ */
 class AuthController extends Controller
 {
+    protected AuthService $authService;
+    protected CompanyService $companyService;
+
     /**
-     * Register a new user and assign basic plan.
+     * Inject services via constructor.
+     */
+    public function __construct(AuthService $authService, CompanyService $companyService)
+    {
+        $this->authService = $authService;
+        $this->companyService = $companyService;
+    }
+
+    /**
+     * Register a new user.
      *
      * @param RegisterRequest $request
      * @return JsonResponse
      */
     public function register(RegisterRequest $request): JsonResponse
     {
-        DB::beginTransaction();
-        
         try {
-            // Create user
-            $user = User::create([
-                'first_name' => $request->first_name,
-                'last_name' => $request->last_name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'role' => 'user',
-            ]);
-
-            // Fire the registered event for email verification
-            event(new Registered($user));
-
-            // Assign basic plan
-            $basicPlan = Plan::where('name', 'basic')->first();
-            
-            if ($basicPlan) {
-                Subscription::create([
-                    'user_id' => $user->id,
-                    'plan_id' => $basicPlan->id,
-                    'status' => 'active',
-                    'trial_ends_at' => now()->addDays(14), // 14 days trial
-                ]);
-            }
+            // Service handles ALL business logic
+            $user = $this->authService->register($request->validated());
 
             // Create token
-            $token = $user->createToken('auth_token')->plainTextToken;
+            $token = $this->authService->createToken($user);
 
-            DB::commit();
-
+            // Return JSON response
             return response()->json([
                 'message' => 'Registration successful. Please verify your email and complete your profile.',
-                'data' => $this->getUserData($user),
+                'data' => $this->authService->getUserData($user),
                 'token' => $token,
                 'token_type' => 'Bearer',
             ], 201);
-            
         } catch (\Exception $e) {
-            DB::rollBack();
-            
             return response()->json([
                 'message' => 'Registration failed',
                 'error' => $e->getMessage(),
@@ -78,7 +63,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Login user and create token.
+     * Login user.
      *
      * @param LoginRequest $request
      * @return JsonResponse
@@ -93,31 +78,32 @@ class AuthController extends Controller
             ], 401);
         }
 
-        $user = User::where('email', $request->email)->firstOrFail();
+        $user = Auth::user();
 
         // Revoke all previous tokens
-        $user->tokens()->delete();
+        $this->authService->revokeAllTokens($user);
 
         // Create new token
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $token = $this->authService->createToken($user);
 
         return response()->json([
             'message' => 'Login successful',
-            'data' => $this->getUserData($user),
+            'data' => $this->authService->getUserData($user),
             'token' => $token,
             'token_type' => 'Bearer',
         ]);
     }
 
     /**
-     * Logout user (revoke token).
+     * Logout user.
      *
      * @param Request $request
      * @return JsonResponse
      */
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        // Service handles token revocation
+        $this->authService->revokeCurrentToken($request->user());
 
         return response()->json([
             'message' => 'Logout successful',
@@ -133,7 +119,7 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         return response()->json([
-            'data' => $this->getUserData($request->user()),
+            'data' => $this->authService->getUserData($request->user()),
         ]);
     }
 
@@ -145,136 +131,55 @@ class AuthController extends Controller
      */
     public function updateProfile(ProfileRequest $request): JsonResponse
     {
-        $user = $request->user();
+        try {
+            // Service handles ALL business logic
+            $user = $this->authService->updateProfile(
+                $request->user(),
+                $request->validated()
+            );
 
-        // Check if user has already completed profile
-        if ($user->hasCompletedProfile()) {
             return response()->json([
-                'message' => 'Profile already completed',
+                'message' => 'Profile updated successfully. Please create your company to complete onboarding.',
+                'data' => $this->authService->getUserData($user),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
             ], 400);
         }
-
-        $user->update([
-            'gender' => $request->gender,
-            'city_birth' => $request->city_birth,
-            'city_living' => $request->city_living,
-            'birthday' => $request->birthday,
-        ]);
-
-        return response()->json([
-            'message' => 'Profile updated successfully. Please create your company to complete onboarding.',
-            'data' => $this->getUserData($user->fresh()),
-        ]);
     }
 
     /**
-     * Create company and complete onboarding.
+     * Create company (legacy method - kept for backward compatibility).
      *
-     * @param CompanyRequest $request
+     * @param Request $request
      * @return JsonResponse
      */
-    public function createCompany(CompanyRequest $request): JsonResponse
+    public function createCompany(Request $request): JsonResponse
     {
-        $user = $request->user();
+        // Validate
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'siret' => ['required', 'string', 'size:14', 'unique:companies,siret', 'regex:/^[0-9]{14}$/'],
+            'sector' => ['required', 'string', 'max:255'],
+            'website' => ['nullable', 'url', 'max:255'],
+        ]);
 
-        // Check if profile is completed
-        if (!$user->hasCompletedProfile()) {
-            return response()->json([
-                'message' => 'Please complete your profile before creating a company',
-            ], 400);
-        }
-
-        // Check if user already has a company
-        if ($user->company_id) {
-            return response()->json([
-                'message' => 'User already belongs to a company',
-            ], 400);
-        }
-
-        DB::beginTransaction();
-        
         try {
-            // Create company
-            $company = Company::create([
-                'name' => $request->name,
-                'siret' => $request->siret,
-                'sector' => $request->sector,
-                'website' => $request->website,
-            ]);
-
-            // Update user with company and mark onboarding as completed
-            $user->update([
-                'company_id' => $company->id,
-                'onboarding_completed' => true,
-            ]);
-
-            DB::commit();
+            // Service handles ALL business logic
+            $company = $this->companyService->createCompany(
+                $request->user(),
+                $validated
+            );
 
             return response()->json([
                 'message' => 'Company created successfully. Onboarding completed!',
-                'data' => $this->getUserData($user->fresh()),
+                'data' => $this->authService->getUserData($request->user()->fresh()),
             ], 201);
-            
         } catch (\Exception $e) {
-            DB::rollBack();
-            
             return response()->json([
-                'message' => 'Company creation failed',
-                'error' => $e->getMessage(),
-            ], 500);
+                'message' => $e->getMessage(),
+            ], 400);
         }
-    }
-
-    /**
-     * Get formatted user data for API responses.
-     *
-     * @param User $user
-     * @return array
-     */
-    private function getUserData(User $user): array
-    {
-        // Load relationships
-        $user->load(['company', 'subscription.plan']);
-
-        $data = [
-            'user' => [
-                'id' => $user->id,
-                'first_name' => $user->first_name,
-                'last_name' => $user->last_name,
-                'full_name' => $user->full_name,
-                'email' => $user->email,
-                'gender' => $user->gender,
-                'city_birth' => $user->city_birth,
-                'city_living' => $user->city_living,
-                'birthday' => $user->birthday?->format('Y-m-d'),
-                'role' => $user->role,
-                'email_verified_at' => $user->email_verified_at,
-                'created_at' => $user->created_at,
-            ],
-            'company' => $user->company ? [
-                'id' => $user->company->id,
-                'name' => $user->company->name,
-                'siret' => $user->company->siret,
-                'sector' => $user->company->sector,
-                'website' => $user->company->website,
-            ] : null,
-            'subscription' => $user->subscription ? [
-                'id' => $user->subscription->id,
-                'status' => $user->subscription->status,
-                'trial_ends_at' => $user->subscription->trial_ends_at,
-                'ends_at' => $user->subscription->ends_at,
-                'on_trial' => $user->subscription->onTrial(),
-            ] : null,
-            'plan' => $user->subscription?->plan ? [
-                'id' => $user->subscription->plan->id,
-                'name' => $user->subscription->plan->name,
-                'price' => $user->subscription->plan->price,
-                'features' => $user->subscription->plan->features,
-            ] : null,
-            'onboarding_completed' => $user->onboarding_completed,
-            'profile_completed' => $user->hasCompletedProfile(),
-        ];
-
-        return $data;
     }
 }
