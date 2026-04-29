@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CompanyController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\ConnectionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,5 +38,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [CompanyController::class, 'getUserCompany']);  // Get user's company
         Route::post('/', [CompanyController::class, 'store']);            // Create/Join company (alternative to /company)
         Route::get('/', [CompanyController::class, 'index']);             // List all companies (optional)
+    });
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::prefix('connections')->group(function () {
+        Route::get('/', [ConnectionController::class, 'index']);
+        Route::post('/', [ConnectionController::class, 'store']);
+        Route::post('/{id}/accept', [ConnectionController::class, 'accept']);
+        Route::post('/{id}/reject', [ConnectionController::class, 'reject']);
+        Route::delete('/{id}', [ConnectionController::class, 'destroy']);
     });
 });
