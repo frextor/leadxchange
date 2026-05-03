@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,24 +10,65 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-        .badge-pulse { animation: pulse 2s infinite; }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .dropdown-enter { animation: slideDown 0.2s ease-out; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .badge-pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-enter {
+            animation: slideDown 0.2s ease-out;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
     </style>
     @stack('styles')
 </head>
+
 <body class="bg-gray-50 antialiased">
 
     <!-- Navbar -->
     <nav class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                
+
                 <!-- Logo & Nav -->
                 <div class="flex items-center space-x-8">
                     <a href="{{ route('dashboard') }}" class="flex items-center">
@@ -51,7 +93,7 @@
 
                 <!-- Right Side -->
                 <div class="flex items-center space-x-2 sm:space-x-3">
-                    
+
                     <!-- Search (hidden on mobile) -->
                     <div class="hidden lg:block relative">
                         <input type="text" placeholder="Search..." class="w-64 pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent">
@@ -111,7 +153,7 @@
                                 <p class="text-sm font-bold text-gray-900 truncate">{{ auth()->user()->first_name }} {{ auth()->user()->last_name }}</p>
                                 <p class="text-xs text-gray-500 truncate">{{ auth()->user()->email }}</p>
                             </div>
-                            
+
                             <div class="py-2">
                                 <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                                     <i class="fas fa-user w-5 text-gray-400"></i>
@@ -159,7 +201,7 @@
         function toggleNotifications() {
             const panel = document.getElementById('notificationPanel');
             document.getElementById('userPanel').classList.add('hidden');
-            
+
             if (panel.classList.contains('hidden')) {
                 panel.classList.remove('hidden');
                 if (!notifLoaded) {
@@ -188,14 +230,16 @@
             const loading = document.getElementById('loadingState');
             const list = document.getElementById('requestsList');
             const empty = document.getElementById('emptyState');
-            
+
             try {
                 loading.style.display = 'block';
                 list.style.display = 'none';
                 empty.style.display = 'none';
 
                 const res = await fetch('/api/connections?type=received&status=pending', {
-                    headers: { 'Accept': 'application/json' },
+                    headers: {
+                        'Accept': 'application/json'
+                    },
                     credentials: 'same-origin'
                 });
 
@@ -268,13 +312,19 @@
                 el.style.pointerEvents = 'none';
                 const res = await fetch(`/api/connections/${id}/accept`, {
                     method: 'POST',
-                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': CSRF
+                    },
                     credentials: 'same-origin'
                 });
                 if (!res.ok) throw new Error();
                 el.style.transform = 'translateX(100%)';
                 el.style.transition = 'all 0.3s';
-                setTimeout(() => { el.remove(); loadRequests(); }, 300);
+                setTimeout(() => {
+                    el.remove();
+                    loadRequests();
+                }, 300);
                 toast('Request accepted! 🎉', 'success');
             } catch {
                 el.style.opacity = '1';
@@ -290,13 +340,19 @@
                 el.style.pointerEvents = 'none';
                 const res = await fetch(`/api/connections/${id}/reject`, {
                     method: 'POST',
-                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': CSRF
+                    },
                     credentials: 'same-origin'
                 });
                 if (!res.ok) throw new Error();
                 el.style.transform = 'translateX(-100%)';
                 el.style.transition = 'all 0.3s';
-                setTimeout(() => { el.remove(); loadRequests(); }, 300);
+                setTimeout(() => {
+                    el.remove();
+                    loadRequests();
+                }, 300);
                 toast('Request rejected', 'info');
             } catch {
                 el.style.opacity = '1';
@@ -318,8 +374,16 @@
         }
 
         function toast(msg, type = 'success') {
-            const c = { success: 'bg-green-500', error: 'bg-red-500', info: 'bg-blue-500' };
-            const i = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+            const c = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                info: 'bg-blue-500'
+            };
+            const i = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                info: 'fa-info-circle'
+            };
             const t = document.createElement('div');
             t.className = `${c[type]} text-white px-6 py-3 rounded-lg shadow-2xl flex items-center space-x-3 transform transition-all`;
             t.style.transform = 'translateX(400px)';
@@ -332,23 +396,28 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             fetch('/api/connections?type=received&status=pending', {
-                headers: { 'Accept': 'application/json' },
-                credentials: 'same-origin'
-            })
-            .then(r => r.json())
-            .then(d => {
-                const n = (d.data || []).length;
-                if (n > 0) {
-                    document.getElementById('notificationBadge').textContent = n;
-                    document.getElementById('notificationBadge').style.display = 'flex';
-                }
-            })
-            .catch(console.error);
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(r => r.json())
+                .then(d => {
+                    const n = (d.data || []).length;
+                    if (n > 0) {
+                        document.getElementById('notificationBadge').textContent = n;
+                        document.getElementById('notificationBadge').style.display = 'flex';
+                    }
+                })
+                .catch(console.error);
 
-            setInterval(() => { if (notifLoaded) loadRequests(); }, 30000);
+            setInterval(() => {
+                if (notifLoaded) loadRequests();
+            }, 30000);
         });
     </script>
 
     @stack('scripts')
 </body>
+
 </html>

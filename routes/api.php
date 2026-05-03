@@ -2,8 +2,9 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CompanyController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ConnectionController;
+use App\Http\Controllers\Api\UserController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,37 +17,43 @@ use App\Http\Controllers\Api\ConnectionController;
 |
 */
 
-// Public routes
+// ==========================================
+// Public Routes (No authentication)
+// ==========================================
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
 });
 
-// Protected routes
-Route::middleware('auth:sanctum')->group(function () {
-    // Auth
+// ==========================================
+// Protected Routes (Web sessions + API tokens)
+// ==========================================
+Route::middleware(['web', 'auth'])->group(function () {
+
+    // Auth Routes
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
-
-    // Onboarding (original routes - keep for backward compatibility)
     Route::post('/profile', [AuthController::class, 'updateProfile']);
     Route::post('/company', [AuthController::class, 'createCompany']);
 
-    // Company routes (new - for search and advanced features)
+    // Company Routes
     Route::prefix('companies')->group(function () {
         Route::get('/search', [CompanyController::class, 'search']);      // Search companies
         Route::get('/me', [CompanyController::class, 'getUserCompany']);  // Get user's company
-        Route::post('/', [CompanyController::class, 'store']);            // Create/Join company (alternative to /company)
-        Route::get('/', [CompanyController::class, 'index']);             // List all companies (optional)
+        Route::post('/', [CompanyController::class, 'store']);            // Create/Join company
+        Route::get('/', [CompanyController::class, 'index']);             // List all companies
     });
-});
 
-Route::middleware('auth:sanctum')->group(function () {
+    // Connection Routes
     Route::prefix('connections')->group(function () {
-        Route::get('/', [ConnectionController::class, 'index']);
-        Route::post('/', [ConnectionController::class, 'store']);
-        Route::post('/{id}/accept', [ConnectionController::class, 'accept']);
-        Route::post('/{id}/reject', [ConnectionController::class, 'reject']);
-        Route::delete('/{id}', [ConnectionController::class, 'destroy']);
+        Route::get('/', [ConnectionController::class, 'index']);              // Get all connections
+        Route::post('/', [ConnectionController::class, 'store']);             // Send connection request
+        Route::post('/{id}/accept', [ConnectionController::class, 'accept']); // Accept request
+        Route::post('/{id}/reject', [ConnectionController::class, 'reject']); // Reject request
+        Route::delete('/{id}', [ConnectionController::class, 'destroy']);     // Cancel request
     });
+
+    // User Routes
+    Route::get('/users', [UserController::class, 'index']);       // Get paginated users list
+    Route::get('/users/{id}', [UserController::class, 'show']);   // Get user details
 });
