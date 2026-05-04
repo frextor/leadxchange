@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\ConnectionController;
 use App\Http\Controllers\Api\DeviceTokenController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,7 +30,7 @@ Route::prefix('auth')->group(function () {
 // ==========================================
 // Protected Routes (Web sessions + API tokens)
 // ==========================================
-Route::middleware(['web', 'auth'])->group(function () {
+Route::middleware(['web', 'auth:sanctum'])->group(function () {
 
     // Auth Routes
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -59,6 +60,15 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/users/{id}', [UserController::class, 'show']);   // Get user details
 
     // FCM Device Token Routes
-    Route::post('/device-token', [DeviceTokenController::class, 'store']);    // Register FCM token
-    Route::delete('/device-token', [DeviceTokenController::class, 'destroy']); // Remove FCM token (logout)
+    Route::post('/device-token', [DeviceTokenController::class, 'store']);
+    Route::delete('/device-token', [DeviceTokenController::class, 'destroy']);
+
+    // Profile Routes
+    Route::get('/profile',                  [ProfileController::class, 'show']);
+    Route::put('/profile/basic',            [ProfileController::class, 'updateBasic']);
+    Route::put('/profile/professional',     [ProfileController::class, 'updateProfessional']);
+    Route::put('/profile/bio',              [ProfileController::class, 'updateBio']);
+    Route::post('/profile/avatar',          [ProfileController::class, 'updateAvatar']);
+    Route::post('/profile/interests',       [ProfileController::class, 'syncInterests']);
+    Route::get('/interests',                [ProfileController::class, 'interests']);
 });
