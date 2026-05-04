@@ -8,6 +8,10 @@
     <title>@yield('title', config('app.name'))</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    @if(config('firebase.api_key'))
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+    @endif
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body {
@@ -155,7 +159,7 @@
                             </div>
 
                             <div class="py-2">
-                                <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                                <a href="{{ route('profile.me') }}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                                     <i class="fas fa-user w-5 text-gray-400"></i>
                                     <span class="ml-3">Profile</span>
                                 </a>
@@ -373,6 +377,49 @@
             return new Date(d).toLocaleDateString();
         }
 
+        function incrementBadge() {
+            const badge = document.getElementById('notificationBadge');
+            const current = parseInt(badge.textContent) || 0;
+            badge.textContent = current + 1;
+            badge.style.display = 'flex';
+        }
+
+        function prependRequest(data) {
+            const list  = document.getElementById('requestsList');
+            const empty = document.getElementById('emptyState');
+            const count = document.getElementById('requestCountText');
+
+            empty.style.display = 'none';
+            list.style.display  = 'block';
+
+            const n = list.children.length + 1;
+            count.textContent = `${n} pending request${n > 1 ? 's' : ''}`;
+
+            const item = document.createElement('div');
+            item.id        = `req-${data.connection_id}`;
+            item.className = 'p-4 border-b border-gray-100 hover:bg-gray-50 transition';
+            item.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center shadow">
+                        <span class="text-white font-bold text-sm">${data.sender.first_name.charAt(0)}${data.sender.last_name.charAt(0)}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-gray-900 truncate">${data.sender.first_name} ${data.sender.last_name}</p>
+                        <p class="text-xs text-gray-500 truncate">${data.sender.email}</p>
+                        <p class="text-xs text-gray-400 mt-1"><i class="far fa-clock mr-1"></i>Just now</p>
+                        <div class="flex space-x-2 mt-3">
+                            <button onclick="accept(${data.connection_id})" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold py-2 rounded-lg transition">
+                                <i class="fas fa-check mr-1"></i>Accept
+                            </button>
+                            <button onclick="reject(${data.connection_id})" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-semibold py-2 rounded-lg transition">
+                                <i class="fas fa-times mr-1"></i>Reject
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+            list.prepend(item);
+        }
+
         function toast(msg, type = 'success') {
             const c = {
                 success: 'bg-green-500',
@@ -416,6 +463,67 @@
             }, 30000);
         });
     </script>
+
+    @if(config('firebase.api_key'))
+    <script>
+        (function () {
+            firebase.initializeApp({
+                apiKey:            '{{ config("firebase.api_key") }}',
+                authDomain:        '{{ config("firebase.auth_domain") }}',
+                projectId:         '{{ config("firebase.project_id") }}',
+                storageBucket:     '{{ config("firebase.storage_bucket") }}',
+                messagingSenderId: '{{ config("firebase.messaging_sender_id") }}',
+                appId:             '{{ config("firebase.app_id") }}',
+            });
+
+            const messaging = firebase.messaging();
+            const vapidKey  = '{{ config("firebase.vapid_key") }}';
+
+            async function initFcm() {
+                try {
+                    const permission = await Notification.requestPermission();
+                    if (permission !== 'granted') return;
+
+                    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                    const token = await messaging.getToken({ vapidKey, serviceWorkerRegistration: swReg });
+
+                    if (token) {
+                        await fetch('/api/device-token', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': CSRF,
+                            },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({ token, platform: 'web' }),
+                        });
+                    }
+                } catch (e) {
+                    console.warn('FCM init:', e.message);
+                }
+            }
+
+            messaging.onMessage((payload) => {
+                const d = payload.data || {};
+                incrementBadge();
+                if (notifLoaded) {
+                    prependRequest({
+                        connection_id: d.connection_id,
+                        sender: {
+                            first_name: d.sender_first_name,
+                            last_name:  d.sender_last_name,
+                            email:      d.sender_email,
+                        },
+                    });
+                }
+                toast(`${d.sender_first_name} ${d.sender_last_name} vous a envoyé une demande de connexion`, 'success');
+            });
+
+            initFcm();
+        })();
+    </script>
+    @endif
 
     @stack('scripts')
 </body>

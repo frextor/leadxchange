@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -22,6 +23,14 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return redirect()->route('login');
 });
+
+// Firebase Messaging Service Worker (must be at root scope, no auth required)
+Route::get('/firebase-messaging-sw.js', function () {
+    return response()
+        ->view('firebase-sw', ['config' => config('firebase')])
+        ->header('Content-Type', 'application/javascript')
+        ->header('Service-Worker-Allowed', '/');
+})->name('firebase.sw');
 
 // ==========================================
 // Guest Routes (Not authenticated)
@@ -70,6 +79,12 @@ Route::middleware('auth')->group(function () {
 
     // Members/Network Page (Find Members)
     Route::get('/connections', [MemberController::class, 'index'])->name('connections.index');
+
+    // Profile Routes
+    Route::get('/profile', function () {
+        return redirect()->route('profile.show', ['id' => auth()->id()]);
+    })->name('profile.me');
+    Route::get('/profile/{id}', [ProfileController::class, 'show'])->name('profile.show');
 
     // Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');

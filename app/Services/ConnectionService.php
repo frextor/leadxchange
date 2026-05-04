@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Connection;
 use App\Models\User;
+use App\Services\FirebaseService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -68,10 +69,16 @@ class ConnectionService
 
             DB::commit();
 
+            try {
+                app(FirebaseService::class)->sendConnectionNotification($connection, $sender);
+            } catch (\Exception $e) {
+                Log::warning('Firebase notification failed', ['error' => $e->getMessage()]);
+            }
+
             Log::info('Connection request sent', [
-                'sender_id' => $sender->id,
-                'receiver_id' => $receiverId,
-                'connection_id' => $connection->id
+                'sender_id'     => $sender->id,
+                'receiver_id'   => $receiverId,
+                'connection_id' => $connection->id,
             ]);
 
             return $connection;
