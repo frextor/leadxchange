@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -70,6 +71,12 @@ Route::middleware('auth')->group(function () {
 
     // Members/Network Page (Find Members)
     Route::get('/connections', [MemberController::class, 'index'])->name('connections.index');
+
+    // Profile Routes
+    Route::get('/profile', function () {
+        return redirect()->route('profile.show', ['id' => auth()->id()]);
+    })->name('profile.me');
+    Route::get('/profile/{id}', [ProfileController::class, 'show'])->name('profile.show');
 
     // Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');

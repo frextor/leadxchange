@@ -146,8 +146,37 @@ class UserService
     }
 
     /**
+     * Get full profile data for a single user (includes birthday, gender, city_birth, website).
+     */
+    public function getProfileById(int $userId, int $currentUserId): ?array
+    {
+        $user = User::with(['company:id,name,sector,website'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_birth', 'city_living', 'birthday', 'company_id', 'created_at'])
+            ->find($userId);
+
+        if (!$user) {
+            return null;
+        }
+
+        $base = $this->enrichUserWithConnectionStatus($user, $currentUserId);
+
+        return array_merge($base, [
+            'gender'       => $user->gender,
+            'city_birth'   => $user->city_birth,
+            'birthday'     => $user->birthday,
+            'member_since' => $user->created_at?->format('F Y'),
+            'company'      => $user->company ? [
+                'id'      => $user->company->id,
+                'name'    => $user->company->name,
+                'sector'  => $user->company->sector,
+                'website' => $user->company->website,
+            ] : null,
+        ]);
+    }
+
+    /**
      * Get total users count (excluding current user).
-     * 
+     *
      * @param int $currentUserId
      * @return int
      */

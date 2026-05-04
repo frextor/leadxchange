@@ -62,7 +62,6 @@
 <script>
     console.log('🚀 Members page JavaScript loaded');
 
-    const CSRF = document.querySelector('meta[name="csrf-token"]').content;
     let currentPage = 1;
     let totalPages = 1;
     let isLoading = false;
@@ -225,9 +224,9 @@
                 
                 <!-- Info -->
                 <div class="flex-1 min-w-0">
-                    <h3 class="text-lg font-bold text-gray-900 truncate">
+                    <a href="/profile/${user.id}" class="text-lg font-bold text-gray-900 hover:text-teal-600 transition truncate block">
                         ${user.first_name} ${user.last_name}
-                    </h3>
+                    </a>
                     <p class="text-sm text-gray-600 truncate">${user.email}</p>
                     ${user.company ? `
                         <p class="text-sm text-gray-500 mt-1">
