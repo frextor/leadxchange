@@ -30,7 +30,7 @@ Route::prefix('auth')->group(function () {
 // ==========================================
 // Protected Routes (Web sessions + API tokens)
 // ==========================================
-Route::middleware(['web', 'auth:sanctum'])->group(function () {
+Route::middleware('auth:sanctum')->group(function () {
 
     // Auth Routes
     Route::post('/logout', [AuthController::class, 'logout']);
