@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\ConnectionController;
+use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -56,4 +57,8 @@ Route::middleware(['web', 'auth'])->group(function () {
     // User Routes
     Route::get('/users', [UserController::class, 'index']);       // Get paginated users list
     Route::get('/users/{id}', [UserController::class, 'show']);   // Get user details
+
+    // FCM Device Token Routes
+    Route::post('/device-token', [DeviceTokenController::class, 'store']);    // Register FCM token
+    Route::delete('/device-token', [DeviceTokenController::class, 'destroy']); // Remove FCM token (logout)
 });

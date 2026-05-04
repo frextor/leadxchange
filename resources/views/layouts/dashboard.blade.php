@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     @if(config('firebase.api_key'))
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
     @endif
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -470,26 +470,57 @@
             firebase.initializeApp({
                 apiKey:            '{{ config("firebase.api_key") }}',
                 authDomain:        '{{ config("firebase.auth_domain") }}',
-                databaseURL:       '{{ config("firebase.database.url") }}',
                 projectId:         '{{ config("firebase.project_id") }}',
                 storageBucket:     '{{ config("firebase.storage_bucket") }}',
                 messagingSenderId: '{{ config("firebase.messaging_sender_id") }}',
                 appId:             '{{ config("firebase.app_id") }}',
             });
 
-            const userId       = {{ auth()->id() }};
-            const pageLoadTime = Date.now();
+            const messaging = firebase.messaging();
+            const vapidKey  = '{{ config("firebase.vapid_key") }}';
 
-            firebase.database()
-                .ref(`notifications/${userId}`)
-                .orderByChild('timestamp')
-                .startAfter(pageLoadTime)
-                .on('child_added', (snapshot) => {
-                    const data = snapshot.val();
-                    incrementBadge();
-                    if (notifLoaded) prependRequest(data);
-                    toast(`${data.sender.first_name} ${data.sender.last_name} sent you a connection request`, 'success');
-                });
+            async function initFcm() {
+                try {
+                    const permission = await Notification.requestPermission();
+                    if (permission !== 'granted') return;
+
+                    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                    const token = await messaging.getToken({ vapidKey, serviceWorkerRegistration: swReg });
+
+                    if (token) {
+                        await fetch('/api/device-token', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': CSRF,
+                            },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({ token, platform: 'web' }),
+                        });
+                    }
+                } catch (e) {
+                    console.warn('FCM init:', e.message);
+                }
+            }
+
+            messaging.onMessage((payload) => {
+                const d = payload.data || {};
+                incrementBadge();
+                if (notifLoaded) {
+                    prependRequest({
+                        connection_id: d.connection_id,
+                        sender: {
+                            first_name: d.sender_first_name,
+                            last_name:  d.sender_last_name,
+                            email:      d.sender_email,
+                        },
+                    });
+                }
+                toast(`${d.sender_first_name} ${d.sender_last_name} vous a envoyé une demande de connexion`, 'success');
+            });
+
+            initFcm();
         })();
     </script>
     @endif

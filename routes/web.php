@@ -24,6 +24,14 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+// Firebase Messaging Service Worker (must be at root scope, no auth required)
+Route::get('/firebase-messaging-sw.js', function () {
+    return response()
+        ->view('firebase-sw', ['config' => config('firebase')])
+        ->header('Content-Type', 'application/javascript')
+        ->header('Service-Worker-Allowed', '/');
+})->name('firebase.sw');
+
 // ==========================================
 // Guest Routes (Not authenticated)
 // ==========================================
