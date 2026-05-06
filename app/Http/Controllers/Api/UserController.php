@@ -35,16 +35,21 @@ class UserController extends Controller
     {
         try {
             $currentUserId = $request->user()->id;
-            $page = $request->get('page', 1);
-            $search = $request->get('search', '');
+            $page    = (int) $request->get('page', 1);
+            $search  = $request->get('search', '');
             $perPage = 10;
 
-            // Call service
+            $filters = $request->only([
+                'gender', 'age_min', 'age_max', 'city_birth',
+                'city_living', 'company', 'interests', 'open_to_network',
+            ]);
+
             $users = $this->userService->getPaginatedUsers(
                 $currentUserId,
                 $page,
                 $search,
-                $perPage
+                $perPage,
+                $filters
             );
 
             // Return JSON response

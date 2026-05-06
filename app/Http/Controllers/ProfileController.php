@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Interest;
+use App\Models\ProfileVisitor;
 use App\Models\User;
 use App\Services\ProfileService;
 use App\Services\UserService;
@@ -27,6 +28,26 @@ class ProfileController extends Controller
         }
 
         $targetUser = User::with(['profile', 'interests'])->find($id);
+
+        // Track profile visit (not own profile)
+        if ($id !== $currentUserId) {
+            $visit = ProfileVisitor::where('profile_user_id', $id)
+                ->where('visitor_id', $currentUserId)
+                ->first();
+
+            if ($visit) {
+                $visit->increment('visit_count');
+                $visit->update(['last_visited_at' => now(), 'is_new' => true]);
+            } else {
+                ProfileVisitor::create([
+                    'profile_user_id' => $id,
+                    'visitor_id'      => $currentUserId,
+                    'visit_count'     => 1,
+                    'last_visited_at' => now(),
+                    'is_new'          => true,
+                ]);
+            }
+        }
 
         return view('profile', [
             'user'          => $user,

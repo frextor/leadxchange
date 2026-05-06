@@ -1,0 +1,313 @@
+/* ============================================================
+   LeadXchange — Auth Stylesheet (Split-screen)
+   ============================================================ */
+
+/* ————————— 1. Tokens ————————— */
+:root {
+  --lx-teal-light:   #34d4bf;
+  --lx-teal:         #2BB6A3;
+  --lx-teal-dark:    #1E8F88;
+  --lx-teal-deepest: #176D67;
+  --lx-teal-glow:    #5DDFC8;
+
+  --lx-bg:        #F9FAFB;
+  --lx-card:      #FFFFFF;
+  --lx-text:      #111827;
+  --lx-text-2:    #4B5563;
+  --lx-text-mute: #9CA3AF;
+  --lx-border:    #E5E7EB;
+  --lx-border-2:  #D1D5DB;
+  --lx-field-bg:  #F9FAFB;
+
+  --lx-error:      #EF4444;
+  --lx-error-soft: #FEF2F2;
+
+  --lx-radius-sm: 8px;
+  --lx-radius:    12px;
+  --lx-radius-lg: 24px;
+
+  --lx-grad:       linear-gradient(135deg, #2BB6A3 0%, #1E8F88 100%);
+  --lx-grad-hover: linear-gradient(135deg, #1E8F88 0%, #176D67 100%);
+  --lx-grad-logo:  linear-gradient(135deg, #34d4bf 0%, #1E8F88 100%);
+
+  --lx-trust-bg:   #0F1F1D;
+  --lx-trust-bg-2: #142523;
+  --lx-trust-fg:   #F0FAF8;
+}
+
+* { box-sizing: border-box; }
+
+/* ————————— 2. Body & shell ————————— */
+.lx-auth-body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--lx-bg);
+  color: var(--lx-text);
+  min-height: 100vh;
+}
+
+.lx-auth-shell {
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  min-height: 100vh;
+}
+
+/* ————————— 3. Left column ————————— */
+.lx-auth-left {
+  display: flex;
+  flex-direction: column;
+  padding: 36px 56px;
+  justify-content: space-between;
+  min-height: 100vh;
+}
+
+.lx-auth-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+.lx-logo-mark {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--lx-grad-logo);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+  box-shadow: 0 6px 16px -4px rgba(43, 182, 163, 0.4);
+}
+.lx-logo-text { color: var(--lx-text); }
+
+.lx-auth-form-wrap {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  align-self: center;
+  padding: 32px 0;
+}
+
+.lx-auth-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--lx-text-mute);
+}
+.lx-auth-footer a { color: inherit; text-decoration: none; }
+.lx-auth-footer a:hover { color: var(--lx-text-2); }
+.lx-auth-footer-links { display: flex; gap: 16px; }
+
+/* ————————— 4. Right trust panel ————————— */
+.lx-auth-right {
+  position: relative;
+  overflow: hidden;
+  color: var(--lx-trust-fg);
+  padding: 44px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  background:
+    radial-gradient(900px 600px at 80% 10%, rgba(43,182,163,0.22), transparent 60%),
+    radial-gradient(700px 500px at 10% 90%, rgba(30,143,136,0.16), transparent 60%),
+    var(--lx-trust-bg);
+}
+
+.lx-trust-bg-grid {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 22px 22px;
+  pointer-events: none;
+}
+
+/* Trust head */
+.lx-trust-head {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lx-trust-pill {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(43,182,163,0.15);
+  color: var(--lx-teal-glow);
+  border: 1px solid rgba(43,182,163,0.35);
+}
+.lx-trust-title {
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
+}
+.lx-trust-accent { color: var(--lx-teal-glow); }
+.lx-trust-sub {
+  font-size: 15px;
+  color: rgba(240,250,248,0.7);
+  max-width: 480px;
+  margin: 0;
+  line-height: 1.55;
+}
+
+/* Avatars + trust meta */
+.lx-trust-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.lx-avatars { display: flex; }
+.lx-avatar {
+  width: 40px; height: 40px;
+  border-radius: 999px;
+  border: 3px solid var(--lx-trust-bg);
+  display: grid; place-items: center;
+  font-weight: 600; font-size: 14px;
+  color: #fff;
+  margin-left: -10px;
+  flex-shrink: 0;
+}
+.lx-avatar:first-child { margin-left: 0; }
+.lx-avatar-count {
+  background: rgba(255,255,255,0.1);
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.lx-trust-meta { display: flex; flex-direction: column; gap: 4px; }
+.lx-trust-meta-strong { font-size: 14.5px; font-weight: 500; }
+.lx-trust-meta-stars {
+  font-size: 12.5px;
+  color: rgba(240,250,248,0.65);
+  display: flex; align-items: center; gap: 6px;
+}
+.lx-trust-meta-stars > span { display: inline-flex; gap: 1px; }
+
+/* Companies grid */
+.lx-trust-companies { position: relative; display: flex; flex-direction: column; gap: 10px; }
+.lx-trust-eyebrow {
+  font-size: 11px;
+  color: rgba(240,250,248,0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.lx-trust-companies-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.lx-trust-company {
+  padding: 20px 14px;
+  background: var(--lx-trust-bg-2);
+  display: grid; place-items: center;
+  color: rgba(240,250,248,0.85);
+  font-size: 14px;
+}
+
+/* Testimonial */
+.lx-trust-quote {
+  position: relative;
+  padding: 20px 22px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.03);
+  display: flex; flex-direction: column; gap: 14px;
+}
+.lx-trust-quote-text {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--lx-trust-fg);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.lx-trust-quote-author { display: flex; align-items: center; gap: 12px; }
+.lx-trust-author-name { font-size: 14px; font-weight: 500; }
+.lx-trust-author-role { font-size: 12.5px; color: rgba(240,250,248,0.65); }
+
+/* ————————— 5. Inputs ————————— */
+.lx-input {
+  background: var(--lx-field-bg);
+  border: 1px solid var(--lx-border);
+  border-radius: var(--lx-radius);
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--lx-text-2);
+  transition: border-color .15s, box-shadow .15s, background .15s;
+  outline: none;
+  width: 100%;
+}
+.lx-input::placeholder { color: var(--lx-text-mute); }
+.lx-input:hover  { border-color: var(--lx-border-2); }
+.lx-input:focus  {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--lx-teal);
+  background: #fff;
+}
+.lx-input.lx-error,
+.lx-error {
+  border-color: var(--lx-error) !important;
+  background: var(--lx-error-soft);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+/* ————————— 6. Primary gradient button ————————— */
+.gradient-button {
+  background: var(--lx-grad);
+  box-shadow: 0 8px 20px -8px rgba(43, 182, 163, 0.5);
+  cursor: pointer;
+  border: none;
+}
+.gradient-button:hover { background: var(--lx-grad-hover); }
+.gradient-button:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ————————— 7. Animations ————————— */
+@keyframes lx-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.lx-fade-in { animation: lx-fade-in .3s cubic-bezier(.2,.7,.3,1) both; }
+
+@keyframes lx-shake {
+  0%,100% { transform: translateX(0); }
+  25%     { transform: translateX(-4px); }
+  75%     { transform: translateX(4px); }
+}
+.lx-shake { animation: lx-shake .35s ease-in-out; }
+
+/* ————————— 8. Responsive ————————— */
+@media (max-width: 1024px) {
+  .lx-auth-shell { grid-template-columns: 1fr; }
+  .lx-auth-right { display: none; }
+  .lx-auth-left  { padding: 28px 32px; }
+}
+@media (max-width: 640px) {
+  .lx-auth-left { padding: 20px 20px; }
+  .lx-auth-form-wrap { padding: 24px 0; }
+}
+
+/* ————————— 9. Accessibility ————————— */
+*:focus-visible { outline: 2px solid var(--lx-teal); outline-offset: 2px; }
+.lx-input:focus-visible { outline: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}

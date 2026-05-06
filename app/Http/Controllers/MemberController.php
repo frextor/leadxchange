@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Interest;
+use App\Models\ProfileVisitor;
 use App\Services\UserService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -28,11 +30,17 @@ class MemberController extends Controller
      * 
      * @return View
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        // Just return the view
-        // JavaScript will call /api/users to fetch data
-        return view('members');
+        $user = $request->user();
+
+        return view('members.index', [
+            'interests'      => Interest::orderBy('name')->get(),
+            'userInterests'  => $user->interests()->pluck('interests.id')->toArray(),
+            'newVisitorCount'=> ProfileVisitor::where('profile_user_id', $user->id)
+                                    ->where('is_new', true)->count(),
+            'initialTab'     => $request->get('tab', 'recommendations'),
+        ]);
     }
 
     /**

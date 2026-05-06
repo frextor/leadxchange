@@ -4,385 +4,362 @@
 
 @push('styles')
 <style>
-    .avatar-ring { box-shadow: 0 0 0 4px white, 0 4px 20px rgba(0,0,0,.15); }
-    .section-card { @apply bg-white rounded-xl shadow-sm p-6 mb-5; }
-    .edit-btn { @apply ml-2 text-gray-300 hover:text-teal-500 transition cursor-pointer text-sm; }
-    .field-row { @apply flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0; }
-    .field-icon { @apply w-8 h-8 bg-teal-50 rounded-lg flex items-center justify-center flex-shrink-0; }
-    .chip { @apply inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 text-teal-700 rounded-full text-sm font-medium; }
-    .modal-overlay { @apply fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4; }
-    .modal-box { @apply bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto; }
-    .modal-header { @apply flex items-center justify-between px-6 py-4 border-b border-gray-100; }
-    .modal-body { @apply px-6 py-5 space-y-4; }
-    .modal-footer { @apply px-6 py-4 border-t border-gray-100 flex justify-end gap-3; }
-    .inp { @apply w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent; }
-    .lbl { @apply block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5; }
-    .btn-primary { @apply px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg transition text-sm disabled:opacity-50; }
-    .btn-ghost { @apply px-5 py-2.5 text-gray-600 hover:bg-gray-100 font-medium rounded-lg transition text-sm; }
+    .modal-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 50;
+        display: flex; align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal-box {
+        background: white; border-radius: 1rem;
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+        width: 100%; max-width: 32rem; max-height: 90vh; overflow-y: auto;
+    }
+    .modal-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 1rem 1.5rem; border-bottom: 1px solid #F3F4F6;
+    }
+    .modal-body { padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+    .modal-footer {
+        padding: 1rem 1.5rem; border-top: 1px solid #F3F4F6;
+        display: flex; justify-content: flex-end; gap: 0.75rem;
+    }
+    .inp {
+        width: 100%; padding: 0.625rem 1rem; border: 1px solid #E5E7EB;
+        border-radius: 0.5rem; font-size: 0.875rem; color: #111827;
+        outline: none; font-family: inherit; transition: border-color .15s, box-shadow .15s;
+        background: white;
+    }
+    .inp:focus { border-color: #1E8F88; box-shadow: 0 0 0 3px rgba(30,143,136,0.12); }
+    select.inp { appearance: none; cursor: pointer; }
+    textarea.inp { resize: vertical; }
+    .lbl {
+        display: block; font-size: 0.7rem; font-weight: 700; color: #6B7280;
+        text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.4rem;
+    }
+    .btn-primary {
+        padding: 0.6rem 1.25rem; color: white; font-weight: 600;
+        border-radius: 0.5rem; font-size: 0.875rem; cursor: pointer; border: none;
+        background: linear-gradient(135deg, #2BB6A3, #1E8F88);
+        box-shadow: 0 4px 12px -4px rgba(43,182,163,0.5);
+        transition: opacity .15s;
+    }
+    .btn-primary:hover { opacity: .88; }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-ghost {
+        padding: 0.6rem 1.25rem; color: #4B5563; background: transparent;
+        border: 1px solid #E5E7EB; border-radius: 0.5rem; font-size: 0.875rem;
+        cursor: pointer; font-family: inherit; transition: background .12s;
+    }
+    .btn-ghost:hover { background: #F9FAFB; }
 </style>
 @endpush
 
 @section('content')
 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-    {{-- ── COMPLETION BANNER (own profile only) ── --}}
-    @if ($isOwnProfile && $completion < 100)
-    <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-center justify-between gap-4">
-        <div class="flex items-center gap-4">
-            <div class="relative w-14 h-14 flex-shrink-0">
-                <svg class="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
-                    <circle cx="28" cy="28" r="23" fill="none" stroke="#fed7aa" stroke-width="5"/>
-                    <circle cx="28" cy="28" r="23" fill="none" stroke="#f97316" stroke-width="5"
-                        stroke-dasharray="{{ round(2 * pi() * 23, 2) }}"
-                        stroke-dashoffset="{{ round(2 * pi() * 23 * (1 - $completion / 100), 2) }}"
-                        stroke-linecap="round"/>
-                </svg>
-                <span class="absolute inset-0 flex items-center justify-center text-xs font-bold text-orange-600">{{ $completion }}%</span>
-            </div>
-            <div>
-                <p class="font-semibold text-gray-900">Complétez votre profil</p>
-                <p class="text-sm text-gray-500">Plus votre profil est complet, plus vous attirez des connexions.</p>
-            </div>
-        </div>
-        <button onclick="openModal('modal-missing')" class="flex-shrink-0 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition">
-            Compléter
-        </button>
-    </div>
-    @endif
+    <div class="grid gap-6 lg:grid-cols-[320px_1fr] items-start">
 
-    {{-- ── PROFILE HEADER ── --}}
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-5">
-        <div class="h-36 bg-gradient-to-r from-teal-500 via-teal-600 to-teal-700 relative">
-            @if ($isOwnProfile)
-            <div class="absolute bottom-3 right-4 text-white/70 text-xs">
-                <i class="fas fa-image mr-1"></i>Cover photo bientôt
-            </div>
-            @endif
-        </div>
+        {{-- ── LEFT SIDEBAR ── --}}
+        <aside class="space-y-5 lg:sticky lg:top-6">
 
-        <div class="px-6 pb-6">
-            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 -mt-14 mb-4">
+            {{-- Profile card --}}
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="h-20" style="background: linear-gradient(135deg, #34d4bf, #1E8F88);"></div>
 
-                {{-- Avatar --}}
-                <div class="relative w-28 h-28 flex-shrink-0">
-                    @if ($profile?->avatar_url)
-                        <img id="avatarImg" src="{{ $profile->avatar_url }}" alt="Avatar"
-                             class="w-28 h-28 rounded-full object-cover avatar-ring">
-                    @else
-                        <div id="avatarImg" class="w-28 h-28 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center avatar-ring">
-                            <span class="text-white font-bold text-3xl">
+                <div class="px-5 pb-5 -mt-10">
+                    {{-- Avatar --}}
+                    <div class="relative w-20 h-20 mb-3.5">
+                        @if ($profile?->avatar_url)
+                            <img id="avatarImg" src="{{ $profile->avatar_url }}" alt="Avatar"
+                                 class="w-20 h-20 rounded-full object-cover border-4 border-white">
+                        @else
+                            <div id="avatarImg" class="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center text-white font-semibold text-[28px]"
+                                 style="background: linear-gradient(135deg, hsl(165 60% 60%), hsl(180 55% 45%));">
                                 {{ strtoupper(substr($user['first_name'], 0, 1) . substr($user['last_name'], 0, 1)) }}
-                            </span>
-                        </div>
-                    @endif
+                            </div>
+                        @endif
 
-                    @if ($isOwnProfile)
-                    <label for="avatarInput"
-                           class="absolute bottom-1 right-1 w-8 h-8 bg-teal-600 hover:bg-teal-700 rounded-full flex items-center justify-center cursor-pointer shadow-lg transition"
-                           title="Changer la photo">
-                        <i class="fas fa-camera text-white text-xs"></i>
-                    </label>
-                    <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp" class="hidden">
-                    @endif
-                </div>
+                        @if ($isOwnProfile)
+                        <label for="avatarInput"
+                               class="absolute bottom-0.5 right-0.5 w-7 h-7 rounded-full flex items-center justify-center cursor-pointer shadow-md transition"
+                               style="background:#1E8F88;"
+                               title="Changer la photo">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        </label>
+                        <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp" class="hidden">
+                        @endif
+                    </div>
 
-                {{-- Actions --}}
-                <div id="connectionAction" class="sm:mb-2">
-                    @if ($isOwnProfile)
-                        <span class="inline-flex items-center px-5 py-2.5 bg-teal-50 text-teal-700 font-semibold rounded-lg border border-teal-200 text-sm">
-                            <i class="fas fa-user mr-2"></i>Votre profil
-                        </span>
-                    @elseif ($user['connection_status'] === 'accepted')
-                        <button disabled class="px-6 py-2.5 bg-gray-100 text-gray-500 font-semibold rounded-lg cursor-not-allowed text-sm">
-                            <i class="fas fa-check mr-2"></i>Connecté
-                        </button>
-                    @elseif ($user['connection_status'] === 'pending' && $user['i_am_sender'])
-                        <button disabled class="px-6 py-2.5 bg-yellow-100 text-yellow-700 font-semibold rounded-lg cursor-not-allowed text-sm">
-                            <i class="fas fa-clock mr-2"></i>En attente
-                        </button>
-                    @elseif ($user['connection_status'] === 'pending' && $user['i_am_receiver'])
-                        <div class="flex gap-2">
-                            <button onclick="acceptRequest({{ $user['connection_id'] }})"
-                                    id="accept-btn-{{ $user['connection_id'] }}"
-                                    class="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg transition text-sm">
-                                <i class="fas fa-check mr-1"></i>Accepter
-                            </button>
-                            <button onclick="rejectRequest({{ $user['connection_id'] }}, {{ $user['id'] }})"
-                                    id="reject-btn-{{ $user['connection_id'] }}"
-                                    class="px-5 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 font-semibold rounded-lg transition text-sm">
-                                <i class="fas fa-times mr-1"></i>Refuser
-                            </button>
-                        </div>
-                    @else
-                        <button onclick="connect({{ $user['id'] }})" id="connect-btn"
-                                class="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg transition shadow-sm text-sm">
-                            <i class="fas fa-user-plus mr-2"></i>Se connecter
-                        </button>
-                    @endif
-                </div>
-            </div>
-
-            {{-- Name & headline --}}
-            <div class="flex items-start gap-2">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-900">
+                    {{-- Name & title --}}
+                    <h1 class="text-xl font-semibold text-gray-900 leading-tight tracking-tight">
                         {{ $user['first_name'] }} {{ $user['last_name'] }}
                     </h1>
-                    @if ($profile?->job_title || $profile?->sector)
-                    <p class="text-gray-600 mt-0.5 text-sm font-medium">
-                        {{ $profile?->job_title }}
+                    <div class="text-sm text-gray-500 mt-0.5">
+                        {{ $profile?->job_title ?? '' }}
                         @if ($profile?->job_title && $profile?->sector) · @endif
-                        {{ $profile?->sector }}
-                    </p>
-                    @endif
-                </div>
-                @if ($isOwnProfile)
-                <button onclick="openModal('modal-basic')" class="edit-btn mt-1"><i class="fas fa-pen"></i></button>
-                @endif
-            </div>
+                        {{ $profile?->sector ?? '' }}
+                    </div>
 
-            {{-- Meta row --}}
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
-                @if ($user['city_living'])
-                <span class="text-sm text-gray-500"><i class="fas fa-map-marker-alt mr-1.5 text-teal-500"></i>{{ $user['city_living'] }}</span>
-                @endif
-                @if ($user['member_since'])
-                <span class="text-sm text-gray-400"><i class="fas fa-calendar mr-1.5"></i>Membre depuis {{ $user['member_since'] }}</span>
-                @endif
-                @if ($profile?->open_to_network)
-                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
-                    <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>Open to network
-                </span>
-                @endif
-            </div>
-        </div>
-    </div>
-
-    {{-- ── CONTENT GRID ── --}}
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-
-        {{-- ── LEFT COLUMN ── --}}
-        <div class="lg:col-span-1 space-y-5">
-
-            {{-- Personal Info --}}
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="font-semibold text-gray-900 flex items-center gap-2">
-                        <i class="fas fa-user text-teal-500 text-sm"></i>Informations
-                    </h2>
-                    @if ($isOwnProfile)
-                    <button onclick="openModal('modal-basic')" class="text-gray-300 hover:text-teal-500 transition text-sm">
-                        <i class="fas fa-pen"></i>
-                    </button>
-                    @endif
-                </div>
-
-                <div class="space-y-0">
-                    <div class="field-row">
-                        <div class="field-icon"><i class="fas fa-envelope text-teal-500 text-xs"></i></div>
-                        <div><p class="text-xs text-gray-400">Email</p><p class="text-sm font-medium text-gray-700">{{ $user['email'] }}</p></div>
-                    </div>
-                    @if ($user['city_living'])
-                    <div class="field-row">
-                        <div class="field-icon"><i class="fas fa-map-marker-alt text-teal-500 text-xs"></i></div>
-                        <div><p class="text-xs text-gray-400">Ville</p><p class="text-sm font-medium text-gray-700">{{ $user['city_living'] }}</p></div>
-                    </div>
-                    @elseif ($isOwnProfile)
-                    <div class="field-row opacity-50">
-                        <div class="field-icon"><i class="fas fa-map-marker-alt text-gray-400 text-xs"></i></div>
-                        <div><p class="text-xs text-gray-400">Ville</p><p class="text-sm italic text-gray-400">Non renseigné</p></div>
-                    </div>
-                    @endif
-                    @if ($user['city_birth'])
-                    <div class="field-row">
-                        <div class="field-icon"><i class="fas fa-baby text-teal-500 text-xs"></i></div>
-                        <div><p class="text-xs text-gray-400">Né(e) à</p><p class="text-sm font-medium text-gray-700">{{ $user['city_birth'] }}</p></div>
-                    </div>
-                    @endif
-                    @if ($user['gender'])
-                    <div class="field-row">
-                        <div class="field-icon"><i class="fas fa-venus-mars text-teal-500 text-xs"></i></div>
-                        <div><p class="text-xs text-gray-400">Genre</p><p class="text-sm font-medium text-gray-700 capitalize">{{ $user['gender'] }}</p></div>
-                    </div>
-                    @endif
-                    @if ($user['birthday'])
-                    <div class="field-row">
-                        <div class="field-icon"><i class="fas fa-birthday-cake text-teal-500 text-xs"></i></div>
-                        <div><p class="text-xs text-gray-400">Date de naissance</p><p class="text-sm font-medium text-gray-700">{{ \Carbon\Carbon::parse($user['birthday'])->format('d F Y') }}</p></div>
-                    </div>
-                    @endif
-                </div>
-            </div>
-
-            {{-- Company --}}
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <h2 class="font-semibold text-gray-900 flex items-center gap-2 mb-4">
-                    <i class="fas fa-building text-teal-500 text-sm"></i>Entreprise
-                </h2>
-                @if ($user['company'])
-                <div class="space-y-0">
-                    <div class="field-row">
-                        <div class="field-icon"><i class="fas fa-tag text-teal-500 text-xs"></i></div>
-                        <div><p class="text-xs text-gray-400">Nom</p><p class="text-sm font-medium text-gray-700">{{ $user['company']['name'] }}</p></div>
-                    </div>
-                    @if ($user['company']['sector'])
-                    <div class="field-row">
-                        <div class="field-icon"><i class="fas fa-industry text-teal-500 text-xs"></i></div>
-                        <div><p class="text-xs text-gray-400">Secteur</p><p class="text-sm font-medium text-gray-700">{{ $user['company']['sector'] }}</p></div>
-                    </div>
-                    @endif
-                    @if ($user['company']['website'])
-                    <div class="field-row">
-                        <div class="field-icon"><i class="fas fa-globe text-teal-500 text-xs"></i></div>
-                        <div><p class="text-xs text-gray-400">Site web</p>
-                            <a href="{{ $user['company']['website'] }}" target="_blank" rel="noopener"
-                               class="text-sm font-medium text-teal-600 hover:underline truncate block max-w-[160px]">
-                                {{ $user['company']['website'] }}
-                            </a>
+                    {{-- Meta --}}
+                    <div class="mt-2.5 space-y-1.5">
+                        @if ($user['city_living'])
+                        <div class="flex items-center gap-1.5 text-[13px] text-gray-400">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                            {{ $user['city_living'] }}
                         </div>
+                        @endif
+                        @if ($user['member_since'])
+                        <div class="flex items-center gap-1.5 text-[13px] text-gray-400">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            Membre depuis {{ $user['member_since'] }}
+                        </div>
+                        @endif
+                        @if ($profile?->open_to_network)
+                        <div class="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border"
+                             style="background:#E6F7F4;color:#1E8F88;border-color:#A8E2D9;">
+                            <span class="w-1.5 h-1.5 rounded-full animate-pulse" style="background:#10B981;"></span>
+                            Open to network
+                        </div>
+                        @endif
                     </div>
-                    @endif
+
+                    {{-- Action button --}}
+                    <div id="connectionAction" class="mt-4">
+                        @if ($isOwnProfile)
+                            <button onclick="openModal('modal-basic')"
+                                class="w-full inline-flex items-center justify-center gap-1.5 py-2.5 rounded-[10px] text-white font-semibold text-sm"
+                                style="background: linear-gradient(135deg, #2BB6A3, #1E8F88); box-shadow: 0 6px 14px -6px rgba(43,182,163,0.5);">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+                                Modifier le profil
+                            </button>
+                        @elseif ($user['connection_status'] === 'accepted')
+                            <button disabled class="w-full py-2.5 rounded-[10px] bg-gray-100 text-gray-500 font-semibold text-sm cursor-not-allowed flex items-center justify-center gap-2">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 5 5L20 7"/></svg>
+                                Connecté
+                            </button>
+                        @elseif ($user['connection_status'] === 'pending' && $user['i_am_sender'])
+                            <button disabled class="w-full py-2.5 rounded-[10px] font-semibold text-sm cursor-not-allowed flex items-center justify-center gap-2" style="background:#FFFBEB;color:#92400E;border:1px solid #FDE68A;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                En attente
+                            </button>
+                        @elseif ($user['connection_status'] === 'pending' && $user['i_am_receiver'])
+                            <div class="flex gap-2">
+                                <button onclick="acceptRequest({{ $user['connection_id'] }})"
+                                        id="accept-btn-{{ $user['connection_id'] }}"
+                                        class="flex-1 py-2.5 text-white font-semibold rounded-[10px] transition text-sm flex items-center justify-center gap-1.5"
+                                        style="background: linear-gradient(135deg, #2BB6A3, #1E8F88);">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg>
+                                    Accepter
+                                </button>
+                                <button onclick="rejectRequest({{ $user['connection_id'] }}, {{ $user['id'] }})"
+                                        id="reject-btn-{{ $user['connection_id'] }}"
+                                        class="flex-1 py-2.5 font-semibold rounded-[10px] transition text-sm flex items-center justify-center gap-1.5"
+                                        style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                    Refuser
+                                </button>
+                            </div>
+                        @else
+                            <button onclick="connect({{ $user['id'] }})" id="connect-btn"
+                                    class="w-full inline-flex items-center justify-center gap-1.5 py-2.5 rounded-[10px] text-white font-semibold text-sm"
+                                    style="background: linear-gradient(135deg, #2BB6A3, #1E8F88); box-shadow: 0 6px 14px -6px rgba(43,182,163,0.5);">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
+                                Se connecter
+                            </button>
+                        @endif
+                    </div>
                 </div>
-                @else
-                <div class="text-center py-6">
-                    <i class="fas fa-building text-gray-200 text-3xl mb-2"></i>
-                    <p class="text-sm text-gray-400">Aucune entreprise</p>
-                    @if ($isOwnProfile)
-                    <a href="{{ route('company.create') }}" class="text-teal-600 text-xs font-semibold hover:underline mt-1 inline-block">
-                        + Ajouter une entreprise
-                    </a>
-                    @endif
-                </div>
-                @endif
             </div>
-        </div>
 
-        {{-- ── RIGHT COLUMN ── --}}
-        <div class="lg:col-span-2 space-y-5">
-
-            {{-- Bio / Motto --}}
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="font-semibold text-gray-900 flex items-center gap-2">
-                        <i class="fas fa-quote-left text-teal-500 text-sm"></i>À propos
-                    </h2>
-                    @if ($isOwnProfile)
-                    <button onclick="openModal('modal-bio')" class="text-gray-300 hover:text-teal-500 transition text-sm">
-                        <i class="fas fa-pen"></i>
-                    </button>
-                    @endif
+            {{-- Stats card --}}
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                <div class="text-[12px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Statistiques</div>
+                <div class="grid grid-cols-2 gap-3">
+                    <x-stat value="0" label="Échanges" />
+                    <x-stat value="0" label="Leads reçus" />
+                    <x-stat value="0" label="Connexions" />
+                    <x-stat value="4.8" label="Score" :star="true" />
                 </div>
+            </div>
+
+            {{-- Completion card (own profile only) --}}
+            @if ($isOwnProfile && $completion < 100)
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+                <div class="flex justify-between items-baseline mb-2">
+                    <span class="text-[13px] font-semibold text-gray-900">Complétion du profil</span>
+                    <span class="text-lg font-semibold" style="color:#1E8F88;">{{ $completion }}%</span>
+                </div>
+                <div class="h-1.5 rounded-full overflow-hidden" style="background:#E5E7EB;">
+                    <div class="h-full rounded-full transition-all duration-500"
+                         style="width:{{ $completion }}%; background: linear-gradient(90deg, #34d4bf, #1E8F88);"></div>
+                </div>
+                <ul class="mt-3.5 flex flex-col gap-1.5">
+                    @foreach ($missing as $item)
+                    <li class="flex items-center gap-2 text-[13px] text-gray-400">
+                        <span class="w-4 h-4 rounded-full border border-dashed border-gray-300 flex-shrink-0"></span>
+                        {{ $item['label'] }}
+                    </li>
+                    @endforeach
+                </ul>
+                <button onclick="openModal('modal-missing')"
+                    class="mt-4 w-full py-2 text-white text-sm font-semibold rounded-[10px] transition"
+                    style="background: linear-gradient(135deg, #2BB6A3, #1E8F88);">
+                    Compléter le profil
+                </button>
+            </div>
+            @endif
+
+        </aside>
+
+        {{-- ── MAIN CONTENT ── --}}
+        <div class="space-y-5">
+
+            {{-- À propos --}}
+            <x-profile-section title="À propos" :editModal="$isOwnProfile ? 'modal-bio' : null">
                 @if ($profile?->bio || $profile?->motto)
                     @if ($profile?->motto)
-                    <p class="text-gray-700 italic text-base border-l-4 border-teal-500 pl-4 mb-3">"{{ $profile->motto }}"</p>
+                    <x-profile-block label="Motto">
+                        <span class="italic">"{{ $profile->motto }}"</span>
+                    </x-profile-block>
                     @endif
                     @if ($profile?->bio)
-                    <p class="text-gray-600 text-sm leading-relaxed">{{ $profile->bio }}</p>
+                    <x-profile-block label="Bio">{{ $profile->bio }}</x-profile-block>
                     @endif
                 @else
-                    <div class="text-center py-6 text-gray-400">
-                        <i class="fas fa-pen text-2xl text-gray-200 mb-2"></i>
+                    <div class="text-center py-4 text-gray-400">
+                        <p class="text-sm">
+                            @if ($isOwnProfile)
+                                Partagez votre motto ou votre bio
+                            @else
+                                Aucune bio
+                            @endif
+                        </p>
                         @if ($isOwnProfile)
-                        <p class="text-sm">Partagez votre motto ou votre bio</p>
                         <button onclick="openModal('modal-bio')" class="text-teal-600 text-xs font-semibold hover:underline mt-1">+ Ajouter</button>
-                        @else
-                        <p class="text-sm">Aucune bio</p>
                         @endif
                     </div>
                 @endif
-            </div>
+            </x-profile-section>
 
-            {{-- Professional --}}
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="font-semibold text-gray-900 flex items-center gap-2">
-                        <i class="fas fa-briefcase text-teal-500 text-sm"></i>Profil professionnel
-                    </h2>
-                    @if ($isOwnProfile)
-                    <button onclick="openModal('modal-professional')" class="text-gray-300 hover:text-teal-500 transition text-sm">
-                        <i class="fas fa-pen"></i>
-                    </button>
-                    @endif
-                </div>
-
-                @if ($profile?->job_title || $profile?->sector || $profile?->experience_level || $profile?->looking_for)
-                <div class="space-y-0">
-                    @if ($profile?->job_title)
-                    <div class="field-row">
-                        <div class="field-icon"><i class="fas fa-user-tie text-teal-500 text-xs"></i></div>
-                        <div><p class="text-xs text-gray-400">Poste</p><p class="text-sm font-medium text-gray-700">{{ $profile->job_title }}</p></div>
-                    </div>
-                    @endif
-                    @if ($profile?->sector)
-                    <div class="field-row">
-                        <div class="field-icon"><i class="fas fa-industry text-teal-500 text-xs"></i></div>
-                        <div><p class="text-xs text-gray-400">Secteur</p><p class="text-sm font-medium text-gray-700">{{ $profile->sector }}</p></div>
-                    </div>
-                    @endif
-                    @if ($profile?->experience_level)
+            {{-- Profil professionnel --}}
+            <x-profile-section title="Profil professionnel" :editModal="$isOwnProfile ? 'modal-professional' : null">
+                @if ($profile?->job_title || $profile?->sector || $profile?->experience_level || $profile?->looking_for || $profile?->services_offered)
                     @php $expLabels = ['junior' => 'Junior (0-2 ans)', 'mid' => 'Intermédiaire (2-5 ans)', 'senior' => 'Senior (5-10 ans)', 'expert' => 'Expert (10+ ans)']; @endphp
-                    <div class="field-row">
-                        <div class="field-icon"><i class="fas fa-chart-line text-teal-500 text-xs"></i></div>
-                        <div><p class="text-xs text-gray-400">Expérience</p><p class="text-sm font-medium text-gray-700">{{ $expLabels[$profile->experience_level] ?? $profile->experience_level }}</p></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        @if ($profile?->job_title)
+                        <x-profile-kv label="Poste">{{ $profile->job_title }}</x-profile-kv>
+                        @endif
+                        @if ($profile?->sector)
+                        <x-profile-kv label="Secteur">{{ $profile->sector }}</x-profile-kv>
+                        @endif
+                        @if ($profile?->experience_level)
+                        <x-profile-kv label="Expérience">{{ $expLabels[$profile->experience_level] ?? $profile->experience_level }}</x-profile-kv>
+                        @endif
                     </div>
-                    @endif
                     @if ($profile?->looking_for)
-                    <div class="pt-3">
-                        <p class="text-xs text-gray-400 mb-1.5">Recherche</p>
-                        <p class="text-sm text-gray-600 leading-relaxed">{{ $profile->looking_for }}</p>
-                    </div>
+                    <x-profile-block label="Recherche">{{ $profile->looking_for }}</x-profile-block>
                     @endif
                     @if ($profile?->services_offered)
-                    <div class="pt-3">
-                        <p class="text-xs text-gray-400 mb-1.5">Services proposés</p>
-                        <p class="text-sm text-gray-600 leading-relaxed">{{ $profile->services_offered }}</p>
-                    </div>
+                    <x-profile-block label="Services proposés">{{ $profile->services_offered }}</x-profile-block>
                     @endif
-                </div>
                 @else
-                <div class="text-center py-6 text-gray-400">
-                    <i class="fas fa-briefcase text-2xl text-gray-200 mb-2"></i>
-                    @if ($isOwnProfile)
-                    <p class="text-sm">Ajoutez vos informations professionnelles</p>
-                    <button onclick="openModal('modal-professional')" class="text-teal-600 text-xs font-semibold hover:underline mt-1">+ Ajouter</button>
-                    @else
-                    <p class="text-sm">Aucune information professionnelle</p>
-                    @endif
-                </div>
+                    <div class="text-center py-4 text-gray-400">
+                        <p class="text-sm">
+                            @if ($isOwnProfile)
+                                Ajoutez vos informations professionnelles
+                            @else
+                                Aucune information professionnelle
+                            @endif
+                        </p>
+                        @if ($isOwnProfile)
+                        <button onclick="openModal('modal-professional')" class="text-teal-600 text-xs font-semibold hover:underline mt-1">+ Ajouter</button>
+                        @endif
+                    </div>
                 @endif
-            </div>
+            </x-profile-section>
 
-            {{-- Interests --}}
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="font-semibold text-gray-900 flex items-center gap-2">
-                        <i class="fas fa-star text-teal-500 text-sm"></i>Centres d'intérêt
-                    </h2>
-                    @if ($isOwnProfile)
-                    <button onclick="openModal('modal-interests')" class="text-gray-300 hover:text-teal-500 transition text-sm">
-                        <i class="fas fa-pen"></i>
-                    </button>
-                    @endif
-                </div>
-
+            {{-- Centres d'intérêt --}}
+            <x-profile-section title="Centres d'intérêt" :editModal="$isOwnProfile ? 'modal-interests' : null">
                 @if ($userInterests->isNotEmpty())
                 <div class="flex flex-wrap gap-2">
                     @foreach ($userInterests as $interest)
-                    <span class="chip">{{ $interest->icon }} {{ $interest->name }}</span>
+                    <span class="px-3.5 py-1.5 rounded-full text-[13px] font-medium border"
+                          style="background:#E6F7F4;color:#1E8F88;border-color:#A8E2D9;">
+                        {{ $interest->icon }} {{ $interest->name }}
+                    </span>
                     @endforeach
+                    @if ($isOwnProfile)
+                    <button onclick="openModal('modal-interests')"
+                            class="px-3.5 py-1.5 rounded-full text-gray-400 text-[13px] font-medium border border-dashed border-gray-300 hover:border-gray-400 hover:text-gray-600 transition bg-transparent">
+                        + Ajouter
+                    </button>
+                    @endif
                 </div>
                 @else
-                <div class="text-center py-6 text-gray-400">
-                    <i class="fas fa-star text-2xl text-gray-200 mb-2"></i>
+                <div class="flex flex-wrap gap-2">
+                    <span class="text-[13px] text-gray-400">Aucun centre d'intérêt.</span>
                     @if ($isOwnProfile)
-                    <p class="text-sm">Ajoutez vos centres d'intérêt</p>
-                    <button onclick="openModal('modal-interests')" class="text-teal-600 text-xs font-semibold hover:underline mt-1">+ Ajouter</button>
-                    @else
-                    <p class="text-sm">Aucun centre d'intérêt</p>
+                    <button onclick="openModal('modal-interests')"
+                            class="px-3.5 py-1.5 rounded-full text-gray-400 text-[13px] font-medium border border-dashed border-gray-300 hover:border-gray-400 hover:text-gray-600 transition bg-transparent">
+                        + Ajouter un intérêt
+                    </button>
                     @endif
                 </div>
                 @endif
-            </div>
+            </x-profile-section>
+
+            {{-- Entreprise --}}
+            <x-profile-section title="Entreprise">
+                @if ($user['company'])
+                <div class="flex items-start gap-4">
+                    <div class="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center text-2xl font-semibold flex-shrink-0"
+                         style="color:#1E8F88;">
+                        {{ strtoupper(substr($user['company']['name'], 0, 1)) }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-base font-semibold text-gray-900">{{ $user['company']['name'] }}</div>
+                        <div class="flex flex-wrap items-center gap-1.5 text-[13px] text-gray-400 mt-1">
+                            @if ($user['company']['sector'])
+                            <span>{{ $user['company']['sector'] }}</span>
+                            @endif
+                            @if ($user['company']['sector'] && $user['company']['website'])
+                            <span>·</span>
+                            @endif
+                            @if ($user['company']['website'])
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            <a href="{{ $user['company']['website'] }}" target="_blank" rel="noopener"
+                               class="hover:underline truncate" style="color:#1E8F88;">{{ $user['company']['website'] }}</a>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                @else
+                <div class="text-[13px] text-gray-400">
+                    Aucune entreprise liée.
+                    @if ($isOwnProfile)
+                    <a href="{{ route('company.create') }}" class="font-semibold hover:underline ml-1" style="color:#1E8F88;">+ Ajouter</a>
+                    @endif
+                </div>
+                @endif
+            </x-profile-section>
+
+            {{-- Informations personnelles --}}
+            <x-profile-section title="Informations" :editModal="$isOwnProfile ? 'modal-basic' : null">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <x-profile-kv label="Email">{{ $user['email'] }}</x-profile-kv>
+                    @if ($user['city_living'])
+                    <x-profile-kv label="Ville actuelle">{{ $user['city_living'] }}</x-profile-kv>
+                    @endif
+                    @if ($user['city_birth'])
+                    <x-profile-kv label="Ville de naissance">{{ $user['city_birth'] }}</x-profile-kv>
+                    @endif
+                    @if ($user['gender'])
+                    <x-profile-kv label="Genre"><span class="capitalize">{{ $user['gender'] }}</span></x-profile-kv>
+                    @endif
+                    @if ($user['birthday'])
+                    <x-profile-kv label="Date de naissance">{{ \Carbon\Carbon::parse($user['birthday'])->format('d F Y') }}</x-profile-kv>
+                    @endif
+                </div>
+            </x-profile-section>
 
         </div>
     </div>
@@ -618,16 +595,6 @@
     document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(m => { m.classList.add('hidden'); document.body.style.overflow = ''; }); });
     document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if (e.target === m) { m.classList.add('hidden'); document.body.style.overflow = ''; } }));
 
-    // ── Completion badge ──
-    function updateCompletion(pct) {
-        const circle = document.querySelector('circle:last-child');
-        const label  = document.querySelector('svg + span, svg ~ span');
-        if (!circle) return;
-        const r = 23, circ = 2 * Math.PI * r;
-        circle.style.strokeDashoffset = circ * (1 - pct / 100);
-        document.querySelectorAll('[data-completion]').forEach(el => el.textContent = pct + '%');
-    }
-
     async function apiFetch(url, method, body) {
         const opts = { method, credentials: 'same-origin', headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF } };
         if (body instanceof FormData) { opts.body = body; }
@@ -659,7 +626,7 @@
                 const img = document.createElement('img');
                 img.id = 'avatarImg';
                 img.src = data.avatar_url;
-                img.className = 'w-28 h-28 rounded-full object-cover avatar-ring';
+                img.className = 'w-20 h-20 rounded-full object-cover border-4 border-white';
                 container.replaceWith(img);
             }
             toast('Photo mise à jour !', 'success');
@@ -758,27 +725,27 @@
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Envoi…';
         try {
             await apiFetch('/api/connections', 'POST', { receiver_id: userId });
-            btn.outerHTML = '<button disabled class="px-6 py-2.5 bg-yellow-100 text-yellow-700 font-semibold rounded-lg cursor-not-allowed text-sm"><i class="fas fa-clock mr-2"></i>En attente</button>';
+            btn.outerHTML = '<button disabled class="w-full py-2.5 rounded-xl bg-yellow-50 text-yellow-700 font-semibold text-sm cursor-not-allowed flex items-center justify-center gap-2" style="border:1px solid #fde68a;"><i class="fas fa-clock"></i>En attente</button>';
             toast('Demande envoyée !', 'success');
-        } catch (e) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus mr-2"></i>Se connecter'; toast(e.message || 'Erreur', 'error'); }
+        } catch (e) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus"></i>Se connecter'; toast(e.message || 'Erreur', 'error'); }
     }
     async function acceptRequest(id) {
         const a = document.getElementById(`accept-btn-${id}`), r = document.getElementById(`reject-btn-${id}`);
-        a.disabled = r.disabled = true; a.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>';
+        a.disabled = r.disabled = true; a.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         try {
             await apiFetch(`/api/connections/${id}/accept`, 'POST', {});
-            document.getElementById('connectionAction').innerHTML = '<button disabled class="px-6 py-2.5 bg-gray-100 text-gray-500 font-semibold rounded-lg cursor-not-allowed text-sm"><i class="fas fa-check mr-2"></i>Connecté</button>';
+            document.getElementById('connectionAction').innerHTML = '<button disabled class="w-full py-2.5 rounded-xl bg-gray-100 text-gray-500 font-semibold text-sm cursor-not-allowed flex items-center justify-center gap-2"><i class="fas fa-check"></i>Connecté</button>';
             toast('Connexion acceptée !', 'success');
-        } catch (e) { a.disabled = r.disabled = false; a.innerHTML = '<i class="fas fa-check mr-1"></i>Accepter'; toast('Erreur', 'error'); }
+        } catch (e) { a.disabled = r.disabled = false; a.innerHTML = '<i class="fas fa-check text-xs"></i>Accepter'; toast('Erreur', 'error'); }
     }
     async function rejectRequest(id, userId) {
         const a = document.getElementById(`accept-btn-${id}`), r = document.getElementById(`reject-btn-${id}`);
-        a.disabled = r.disabled = true; r.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>';
+        a.disabled = r.disabled = true; r.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         try {
             await apiFetch(`/api/connections/${id}/reject`, 'POST', {});
-            document.getElementById('connectionAction').innerHTML = `<button onclick="connect(${userId})" id="connect-btn" class="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg transition text-sm"><i class="fas fa-user-plus mr-2"></i>Se connecter</button>`;
+            document.getElementById('connectionAction').innerHTML = `<button onclick="connect(${userId})" id="connect-btn" class="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-xl transition text-sm flex items-center justify-center gap-2 shadow-sm"><i class="fas fa-user-plus"></i>Se connecter</button>`;
             toast('Demande refusée', 'info');
-        } catch (e) { a.disabled = r.disabled = false; r.innerHTML = '<i class="fas fa-times mr-1"></i>Refuser'; toast('Erreur', 'error'); }
+        } catch (e) { a.disabled = r.disabled = false; r.innerHTML = '<i class="fas fa-times text-xs"></i>Refuser'; toast('Erreur', 'error'); }
     }
     @endif
 

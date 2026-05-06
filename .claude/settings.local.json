@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(php artisan *)"
+      "Bash(php artisan *)",
+      "Bash(dir \"d:\\\\laragon\\\\www\\\\LeadXchange\\\\resources\\\\views\" -Recurse -Filter \"*connection*\")",
+      "PowerShell(Get-ChildItem -Path \"d:\\\\laragon\\\\www\\\\LeadXchange\\\\resources\\\\views\" -Recurse -File | Where-Object { $_.Name -match \"connection\" })",
+      "PowerShell(Get-ChildItem d:\\\\laragon\\\\www\\\\LeadXchange\\\\database\\\\migrations\\\\ | Where-Object { $_.Name -match \"compan|sector\" } | Select-Object Name)"
     ]
   }
 }

@@ -68,6 +68,18 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(Interest::class, 'user_interests');
     }
 
+    public function languages()
+    {
+        return $this->belongsToMany(Language::class, 'user_languages')
+                    ->withPivot('level')
+                    ->withTimestamps();
+    }
+
+    public function nationality()
+    {
+        return $this->belongsTo(Nationality::class);
+    }
+
     /**
      * Get the user's active subscription.
      */
