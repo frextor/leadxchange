@@ -71,7 +71,8 @@ class CompanyController extends Controller
                             'id' => $company->id,
                             'name' => $company->name,
                             'siret' => $company->siret,
-                            'sector' => $company->sector,
+                            'sector_id' => $company->sector_id,
+                            'sector'    => $company->sector_name,
                             'website' => $company->website,
                         ],
                         'action' => 'joined'
@@ -81,10 +82,10 @@ class CompanyController extends Controller
 
             // Case 2: Create new company
             $validated = $request->validate([
-                'name' => ['required', 'string', 'max:255'],
-                'siret' => ['required', 'string', 'size:14', 'unique:companies,siret', 'regex:/^[0-9]{14}$/'],
-                'sector' => ['required', 'string', 'max:255'],
-                'website' => ['nullable', 'url', 'max:255'],
+                'name'      => ['required', 'string', 'max:255'],
+                'siret'     => ['required', 'string', 'size:14', 'unique:companies,siret', 'regex:/^[0-9]{14}$/'],
+                'sector_id' => ['required', 'integer', 'exists:sectors,id'],
+                'website'   => ['nullable', 'url', 'max:255'],
             ]);
 
             $company = $this->companyService->createCompany(
@@ -100,7 +101,8 @@ class CompanyController extends Controller
                         'id' => $company->id,
                         'name' => $company->name,
                         'siret' => $company->siret,
-                        'sector' => $company->sector,
+                        'sector_id' => $company->sector_id,
+                            'sector'    => $company->sector_name,
                         'website' => $company->website,
                     ],
                     'action' => 'created'
@@ -146,7 +148,8 @@ class CompanyController extends Controller
                     'id' => $company->id,
                     'name' => $company->name,
                     'siret' => $company->siret,
-                    'sector' => $company->sector,
+                    'sector_id' => $company->sector_id,
+                            'sector'    => $company->sector_name,
                     'website' => $company->website,
                     'created_at' => $company->created_at,
                 ]

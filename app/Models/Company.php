@@ -17,15 +17,22 @@ class Company extends Model
     protected $fillable = [
         'name',
         'siret',
-        'sector',
+        'sector_id',
         'website',
     ];
 
-    /**
-     * Get the users for the company.
-     */
+    public function sector()
+    {
+        return $this->belongsTo(Sector::class);
+    }
+
     public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+    public function getSectorNameAttribute(): ?string
+    {
+        return $this->sector?->name;
     }
 }

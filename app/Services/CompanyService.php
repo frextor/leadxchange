@@ -39,11 +39,12 @@ class CompanyService
         try {
             // Create company
             $company = Company::create([
-                'name' => $data['name'],
-                'siret' => $data['siret'],
-                'sector' => $data['sector'],
-                'website' => $data['website'] ?? null,
+                'name'      => $data['name'],
+                'siret'     => $data['siret'],
+                'sector_id' => $data['sector_id'],
+                'website'   => $data['website'] ?? null,
             ]);
+            $company->load('sector');
 
             // Update user with company and mark onboarding as completed
             $user->update([
@@ -76,7 +77,7 @@ class CompanyService
      */
     public function joinCompany(User $user, int $companyId): Company
     {
-        $company = Company::find($companyId);
+        $company = Company::with('sector')->find($companyId);
 
         if (!$company) {
             throw new \Exception('Company not found');
@@ -122,10 +123,11 @@ class CompanyService
             return collect([]);
         }
 
-        return Company::where('name', 'LIKE', "%{$query}%")
+        return Company::with('sector')
+            ->where('name', 'LIKE', "%{$query}%")
             ->orWhere('siret', 'LIKE', "%{$query}%")
             ->limit($limit)
-            ->get(['id', 'name', 'siret', 'sector', 'website']);
+            ->get(['id', 'name', 'siret', 'sector_id', 'website']);
     }
 
     /**

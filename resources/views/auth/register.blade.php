@@ -1,368 +1,281 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create your account - LeadXchange</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .gradient-button {
-            background: linear-gradient(135deg, #2BB6A3 0%, #1E8F88 100%);
-        }
-        .gradient-button:hover {
-            background: linear-gradient(135deg, #1E8F88 0%, #176D67 100%);
-        }
-    </style>
-</head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
-    
-    <div class="w-full max-w-md">
-        <!-- Logo & Title -->
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-teal-400 to-teal-600 rounded-2xl mb-4">
-                <span class="text-white text-2xl font-bold">LX</span>
+{{-- resources/views/auth/register.blade.php --}}
+@extends('layouts.auth')
+
+@section('title', 'Create your account — LeadXchange')
+
+@section('content')
+    <div class="mb-8">
+        <h1 class="text-3xl font-semibold text-gray-900" style="letter-spacing:-0.025em;">Create your account</h1>
+        <p class="text-gray-500 mt-2" style="font-size:15px;">Join 1,500+ Business Developers exchanging qualified leads.</p>
+    </div>
+
+    {{-- Progress indicator --}}
+    <div class="flex items-center justify-center mb-8">
+        <div class="flex items-center">
+            <div id="step1-indicator"
+                 class="flex items-center justify-center w-8 h-8 rounded-full text-white text-sm font-semibold transition-all"
+                 style="background:#2BB6A3;">1</div>
+            <div class="w-16 h-1 mx-2 rounded-full overflow-hidden" style="background:#E5E7EB;">
+                <div id="progress-bar" class="h-1 transition-all duration-300" style="width:0%;background:#2BB6A3;"></div>
             </div>
-            <h2 class="text-gray-800 text-xl font-semibold">LeadXchange</h2>
-        </div>
-
-        <!-- Card Container -->
-        <div class="bg-white rounded-3xl shadow-xl p-8">
-            <h1 class="text-2xl font-bold text-gray-900 text-center mb-8">Create your account</h1>
-
-            <!-- Progress Indicator -->
-            <div class="flex items-center justify-center mb-8">
-                <div class="flex items-center">
-                    <div id="step1-indicator" class="flex items-center justify-center w-8 h-8 rounded-full bg-teal-500 text-white text-sm font-semibold">
-                        1
-                    </div>
-                    <div class="w-16 h-1 bg-gray-200 mx-2">
-                        <div id="progress-bar" class="h-1 bg-teal-500 transition-all duration-300" style="width: 0%"></div>
-                    </div>
-                    <div id="step2-indicator" class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 text-gray-500 text-sm font-semibold">
-                        2
-                    </div>
-                </div>
-            </div>
-
-            <form id="registrationForm" action="{{ route('register') }}" method="POST">
-                @csrf
-
-                <!-- STEP 1: Account Information -->
-                <div id="step1" class="step-content">
-                    <!-- First Name -->
-                    <div class="mb-4">
-                        <input 
-                            type="text" 
-                            id="first_name" 
-                            name="first_name" 
-                            placeholder="First Name" 
-                            value="{{ old('first_name') }}"
-                            class="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-gray-700 placeholder-gray-400"
-                        >
-                        @error('first_name')
-                            <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Last Name -->
-                    <div class="mb-4">
-                        <input 
-                            type="text" 
-                            id="last_name" 
-                            name="last_name" 
-                            placeholder="Last Name" 
-                            value="{{ old('last_name') }}"
-                            class="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-gray-700 placeholder-gray-400"
-                        >
-                        @error('last_name')
-                            <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Email -->
-                    <div class="mb-4">
-                        <input 
-                            type="email" 
-                            id="email" 
-                            name="email" 
-                            placeholder="Work Email" 
-                            value="{{ old('email') }}"
-                            class="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-gray-700 placeholder-gray-400"
-                        >
-                        @error('email')
-                            <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Password -->
-                    <div class="mb-4 relative">
-                        <input 
-                            type="password" 
-                            id="password" 
-                            name="password" 
-                            placeholder="Create Password" 
-                            class="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-gray-700 placeholder-gray-400 pr-12"
-                        >
-                        <button 
-                            type="button" 
-                            onclick="togglePassword('password')" 
-                            class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        >
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                            </svg>
-                        </button>
-                        @error('password')
-                            <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Confirm Password -->
-                    <div class="mb-6 relative">
-                        <input 
-                            type="password" 
-                            id="password_confirmation" 
-                            name="password_confirmation" 
-                            placeholder="Confirm Password" 
-                            class="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-gray-700 placeholder-gray-400 pr-12"
-                        >
-                        <button 
-                            type="button" 
-                            onclick="togglePassword('password_confirmation')" 
-                            class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        >
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                            </svg>
-                        </button>
-                    </div>
-
-                    <!-- Next Button -->
-                    <button 
-                        type="button" 
-                        onclick="goToStep2()" 
-                        class="w-full gradient-button text-white font-semibold py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
-                    >
-                        NEXT
-                    </button>
-                </div>
-
-                <!-- STEP 2: Profile Information -->
-                <div id="step2" class="step-content hidden">
-                    <!-- Gender -->
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-3">Gender</label>
-                        <div class="flex gap-4">
-                            <label class="flex-1 relative">
-                                <input 
-                                    type="radio" 
-                                    name="gender" 
-                                    value="male" 
-                                    {{ old('gender') == 'male' ? 'checked' : '' }}
-                                    class="peer sr-only"
-                                >
-                                <div class="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl cursor-pointer transition-all peer-checked:border-teal-500 peer-checked:bg-teal-50 text-center text-gray-700 font-medium">
-                                    Male
-                                </div>
-                            </label>
-                            <label class="flex-1 relative">
-                                <input 
-                                    type="radio" 
-                                    name="gender" 
-                                    value="female" 
-                                    {{ old('gender') == 'female' ? 'checked' : '' }}
-                                    class="peer sr-only"
-                                >
-                                <div class="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl cursor-pointer transition-all peer-checked:border-teal-500 peer-checked:bg-teal-50 text-center text-gray-700 font-medium">
-                                    Female
-                                </div>
-                            </label>
-                        </div>
-                        @error('gender')
-                            <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- City of Birth -->
-                    <div class="mb-4">
-                        <input 
-                            type="text" 
-                            id="city_birth" 
-                            name="city_birth" 
-                            placeholder="City of Birth" 
-                            value="{{ old('city_birth') }}"
-                            class="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-gray-700 placeholder-gray-400"
-                        >
-                        @error('city_birth')
-                            <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- City of Living -->
-                    <div class="mb-4">
-                        <input 
-                            type="text" 
-                            id="city_living" 
-                            name="city_living" 
-                            placeholder="City of Living" 
-                            value="{{ old('city_living') }}"
-                            class="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-gray-700 placeholder-gray-400"
-                        >
-                        @error('city_living')
-                            <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Birthday -->
-                    <div class="mb-6">
-                        <input 
-                            type="date" 
-                            id="birthday" 
-                            name="birthday" 
-                            value="{{ old('birthday') }}"
-                            class="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-gray-700"
-                        >
-                        @error('birthday')
-                            <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Terms & Conditions -->
-                    <div class="mb-6">
-                        <label class="flex items-start cursor-pointer group">
-                            <input 
-                                type="checkbox" 
-                                name="terms" 
-                                value="1"
-                                {{ old('terms') ? 'checked' : '' }}
-                                class="mt-1 w-5 h-5 text-teal-500 border-gray-300 rounded focus:ring-teal-500 focus:ring-2"
-                            >
-                            <span class="ml-3 text-sm text-gray-600 group-hover:text-gray-900">
-                                I agree to the <a href="#" class="text-teal-500 hover:text-teal-600 font-medium">Terms & Conditions</a> and <a href="#" class="text-teal-500 hover:text-teal-600 font-medium">Privacy Policy</a>
-                            </span>
-                        </label>
-                        @error('terms')
-                            <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Back & Submit Buttons -->
-                    <div class="flex gap-3">
-                        <button 
-                            type="button" 
-                            onclick="goToStep1()" 
-                            class="flex-1 bg-gray-100 text-gray-700 font-semibold py-4 rounded-xl transition-all duration-300 hover:bg-gray-200 border border-gray-200"
-                        >
-                            BACK
-                        </button>
-                        <button 
-                            type="submit" 
-                            class="flex-1 gradient-button text-white font-semibold py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
-                        >
-                            SUBMIT
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        <!-- Footer Links -->
-        <div class="text-center mt-8 text-sm text-gray-500">
-            Need help? • <a href="#" class="text-teal-500 hover:text-teal-600">Support</a> • <a href="#" class="text-teal-500 hover:text-teal-600">FAQ</a>
-        </div>
-
-        <!-- Already have account -->
-        <div class="text-center mt-4 text-sm text-gray-600">
-            Already have an account? <a href="{{ route('login') }}" class="text-teal-500 hover:text-teal-600 font-semibold">Sign in</a>
+            <div id="step2-indicator"
+                 class="flex items-center justify-center w-8 h-8 rounded-full text-gray-500 text-sm font-semibold transition-all"
+                 style="background:#E5E7EB;">2</div>
         </div>
     </div>
 
-    <script>
-        // Store form data temporarily
-        let formData = {};
+    <form id="registrationForm" action="{{ route('register') }}" method="POST">
+        @csrf
 
-        // Toggle password visibility
-        function togglePassword(fieldId) {
-            const field = document.getElementById(fieldId);
-            field.type = field.type === 'password' ? 'text' : 'password';
+        {{-- ─────────── STEP 1 ─────────── --}}
+        <div id="step1" class="space-y-4 lx-fade-in">
+
+            {{-- First Name --}}
+            <div>
+                <input type="text" id="first_name" name="first_name" placeholder="First Name"
+                    value="{{ old('first_name') }}" required
+                    class="lx-input px-4 py-3.5 @error('first_name') lx-error @enderror">
+                @error('first_name') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- Last Name --}}
+            <div>
+                <input type="text" id="last_name" name="last_name" placeholder="Last Name"
+                    value="{{ old('last_name') }}" required
+                    class="lx-input px-4 py-3.5 @error('last_name') lx-error @enderror">
+                @error('last_name') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- Email --}}
+            <div>
+                <input type="email" id="email" name="email" placeholder="Work Email"
+                    value="{{ old('email') }}" required
+                    class="lx-input px-4 py-3.5 @error('email') lx-error @enderror">
+                @error('email') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- Password --}}
+            <div>
+                <div class="relative">
+                    <input type="password" id="password" name="password" placeholder="Create Password" required
+                        class="lx-input px-4 py-3.5 pr-12 @error('password') lx-error @enderror"
+                        oninput="updateStrength()">
+                    <button type="button" onclick="togglePassword('password')"
+                        class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </button>
+                </div>
+                {{-- Strength meter --}}
+                <div class="mt-2 flex gap-1">
+                    <div id="s-1" class="flex-1 h-1 rounded-full transition-all" style="background:#E5E7EB;"></div>
+                    <div id="s-2" class="flex-1 h-1 rounded-full transition-all" style="background:#E5E7EB;"></div>
+                    <div id="s-3" class="flex-1 h-1 rounded-full transition-all" style="background:#E5E7EB;"></div>
+                    <div id="s-4" class="flex-1 h-1 rounded-full transition-all" style="background:#E5E7EB;"></div>
+                </div>
+                <p id="s-label" class="mt-1 text-xs text-gray-400 h-4"></p>
+                @error('password') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- Confirm Password --}}
+            <div>
+                <div class="relative">
+                    <input type="password" id="password_confirmation" name="password_confirmation"
+                        placeholder="Confirm Password" required
+                        class="lx-input px-4 py-3.5 pr-12">
+                    <button type="button" onclick="togglePassword('password_confirmation')"
+                        class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <button type="button" onclick="goToStep2()"
+                class="gradient-button w-full text-white font-semibold py-4 rounded-xl uppercase tracking-wider transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]">
+                Next
+            </button>
+        </div>
+
+        {{-- ─────────── STEP 2 ─────────── --}}
+        <div id="step2" class="space-y-4 hidden">
+
+            {{-- Gender --}}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-3">Gender</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="gender" value="male"
+                            {{ old('gender') == 'male' ? 'checked' : '' }} class="peer sr-only">
+                        <div class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-center text-gray-700 font-medium transition-all peer-checked:border-teal-500 peer-checked:text-teal-700"
+                             style="background:#F9FAFB;peer-checked:background:rgba(43,182,163,0.06);">
+                            Male
+                        </div>
+                    </label>
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="gender" value="female"
+                            {{ old('gender') == 'female' ? 'checked' : '' }} class="peer sr-only">
+                        <div class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-center text-gray-700 font-medium transition-all peer-checked:border-teal-500 peer-checked:text-teal-700"
+                             style="background:#F9FAFB;">
+                            Female
+                        </div>
+                    </label>
+                </div>
+                @error('gender') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- City of Birth --}}
+            <div>
+                <input type="text" name="city_birth" placeholder="City of Birth"
+                    value="{{ old('city_birth') }}"
+                    class="lx-input px-4 py-3.5 @error('city_birth') lx-error @enderror">
+                @error('city_birth') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- City of Living --}}
+            <div>
+                <input type="text" name="city_living" placeholder="City of Living"
+                    value="{{ old('city_living') }}"
+                    class="lx-input px-4 py-3.5 @error('city_living') lx-error @enderror">
+                @error('city_living') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- Birthday --}}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Birthday</label>
+                <input type="date" name="birthday" value="{{ old('birthday') }}"
+                    class="lx-input px-4 py-3.5 @error('birthday') lx-error @enderror">
+                @error('birthday') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- Terms --}}
+            <div>
+                <label class="flex items-start gap-3 cursor-pointer group">
+                    <input type="checkbox" name="terms" value="1" {{ old('terms') ? 'checked' : '' }}
+                        class="mt-1 w-5 h-5 rounded flex-shrink-0" style="accent-color:#2BB6A3;">
+                    <span class="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+                        I agree to the
+                        <a href="#" class="font-medium" style="color:#1E8F88;">Terms &amp; Conditions</a>
+                        and
+                        <a href="#" class="font-medium" style="color:#1E8F88;">Privacy Policy</a>
+                    </span>
+                </label>
+                @error('terms') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- Buttons --}}
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="goToStep1()"
+                    class="flex-1 font-semibold py-4 rounded-xl uppercase tracking-wider transition-all border border-gray-200 text-gray-700 hover:bg-gray-100"
+                    style="background:#F3F4F6;">
+                    Back
+                </button>
+                <button type="submit"
+                    class="flex-1 gradient-button text-white font-semibold py-4 rounded-xl uppercase tracking-wider transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]">
+                    Submit
+                </button>
+            </div>
+        </div>
+    </form>
+@endsection
+
+@section('below_card')
+    <div class="text-center mt-6 text-sm text-gray-600">
+        Already have an account?
+        <a href="{{ route('login') }}" class="font-semibold" style="color:#1E8F88;">Sign in</a>
+    </div>
+@endsection
+
+@push('scripts')
+<script>
+    function togglePassword(id) {
+        const f = document.getElementById(id);
+        f.type = f.type === 'password' ? 'text' : 'password';
+    }
+
+    function passwordScore(pw) {
+        if (!pw) return 0;
+        let s = 0;
+        if (pw.length >= 8)  s++;
+        if (pw.length >= 12) s++;
+        if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++;
+        if (/[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw)) s++;
+        return Math.min(s, 4);
+    }
+
+    function updateStrength() {
+        const pw    = document.getElementById('password').value;
+        const score = passwordScore(pw);
+        const bgMap = { 0:'#E5E7EB', 1:'#EF4444', 2:'#F59E0B', 3:'#EAB308', 4:'#2BB6A3' };
+        const labels = ['', 'Too weak', 'Weak', 'Good', 'Strong'];
+        for (let i = 1; i <= 4; i++) {
+            document.getElementById('s-' + i).style.background = i <= score ? bgMap[score] : bgMap[0];
+        }
+        document.getElementById('s-label').textContent = pw ? labels[score] : '';
+    }
+
+    function goToStep2() {
+        const fields = ['first_name', 'last_name', 'email', 'password', 'password_confirmation'];
+        let ok = true;
+        fields.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el.value.trim()) { el.classList.add('lx-error'); ok = false; }
+            else el.classList.remove('lx-error');
+        });
+        if (!ok) return;
+
+        const pw  = document.getElementById('password').value;
+        const pwc = document.getElementById('password_confirmation').value;
+        if (pw !== pwc) {
+            document.getElementById('password_confirmation').classList.add('lx-error');
+            alert('Passwords do not match');
+            return;
+        }
+        if (pw.length < 8) {
+            document.getElementById('password').classList.add('lx-error');
+            alert('Password must be at least 8 characters');
+            return;
         }
 
-        // Save step 1 data and go to step 2
-        function goToStep2() {
-            // Get values from step 1
-            formData.first_name = document.getElementById('first_name').value;
-            formData.last_name = document.getElementById('last_name').value;
-            formData.email = document.getElementById('email').value;
-            formData.password = document.getElementById('password').value;
-            formData.password_confirmation = document.getElementById('password_confirmation').value;
+        document.getElementById('step1').classList.add('hidden');
+        const s2 = document.getElementById('step2');
+        s2.classList.remove('hidden');
+        s2.classList.add('lx-fade-in');
 
-            // Basic validation
-            if (!formData.first_name || !formData.last_name || !formData.email || !formData.password || !formData.password_confirmation) {
-                alert('Please fill in all fields');
-                return;
-            }
+        document.getElementById('step2-indicator').style.background = '#2BB6A3';
+        document.getElementById('step2-indicator').style.color = '#fff';
+        document.getElementById('progress-bar').style.width = '100%';
 
-            if (formData.password !== formData.password_confirmation) {
-                alert('Passwords do not match');
-                return;
-            }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
-            if (formData.password.length < 8) {
-                alert('Password must be at least 8 characters');
-                return;
-            }
+    function goToStep1() {
+        document.getElementById('step2').classList.add('hidden');
+        const s1 = document.getElementById('step1');
+        s1.classList.remove('hidden');
+        s1.classList.add('lx-fade-in');
+        setTimeout(() => s1.classList.remove('lx-fade-in'), 350);
 
-            // Switch to step 2
-            document.getElementById('step1').classList.add('hidden');
-            document.getElementById('step2').classList.remove('hidden');
-            
-            // Update progress indicator
-            document.getElementById('step1-indicator').classList.remove('bg-teal-500', 'text-white');
-            document.getElementById('step1-indicator').classList.add('bg-teal-500', 'text-white');
-            document.getElementById('step2-indicator').classList.remove('bg-gray-200', 'text-gray-500');
-            document.getElementById('step2-indicator').classList.add('bg-teal-500', 'text-white');
-            document.getElementById('progress-bar').style.width = '100%';
+        document.getElementById('step2-indicator').style.background = '#E5E7EB';
+        document.getElementById('step2-indicator').style.color = '#6B7280';
+        document.getElementById('progress-bar').style.width = '0%';
 
-            // Scroll to top
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
-        // Go back to step 1
-        function goToStep1() {
-            // Switch to step 1
-            document.getElementById('step2').classList.add('hidden');
-            document.getElementById('step1').classList.remove('hidden');
-            
-            // Update progress indicator
-            document.getElementById('step2-indicator').classList.remove('bg-teal-500', 'text-white');
-            document.getElementById('step2-indicator').classList.add('bg-gray-200', 'text-gray-500');
-            document.getElementById('progress-bar').style.width = '0%';
-
-            // Scroll to top
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        // If there are validation errors, determine which step to show
-        @if($errors->any())
-            window.addEventListener('DOMContentLoaded', function() {
-                const step2Fields = ['gender', 'city_birth', 'city_living', 'birthday', 'terms'];
-                const hasStep2Errors = step2Fields.some(field => 
-                    document.querySelector(`[name="${field}"]`)?.parentElement?.querySelector('.text-red-500')
-                );
-
-                if (hasStep2Errors) {
-                    // Prepopulate step 1 data from old values
-                    document.getElementById('first_name').value = "{{ old('first_name') }}";
-                    document.getElementById('last_name').value = "{{ old('last_name') }}";
-                    document.getElementById('email').value = "{{ old('email') }}";
-                    
-                    // Show step 2
-                    goToStep2();
-                }
-            });
-        @endif
-    </script>
-</body>
-</html>
+    {{-- Auto-jump to step 2 on server-side validation errors --}}
+    @if ($errors->any())
+        document.addEventListener('DOMContentLoaded', function () {
+            const step2Fields = ['gender', 'city_birth', 'city_living', 'birthday', 'terms'];
+            const errs = @json($errors->keys());
+            const hasStep2Errors = step2Fields.some(f => errs.includes(f));
+            const hasStep1Errors = ['first_name', 'last_name', 'email', 'password'].some(f => errs.includes(f));
+            if (hasStep2Errors && !hasStep1Errors) goToStep2();
+        });
+    @endif
+</script>
+@endpush

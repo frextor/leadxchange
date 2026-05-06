@@ -53,12 +53,31 @@ class User extends Authenticatable implements MustVerifyEmail
         'password' => 'hashed',
     ];
 
-    /**
-     * Get the company that owns the user.
-     */
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function profile()
+    {
+        return $this->hasOne(Profile::class);
+    }
+
+    public function interests()
+    {
+        return $this->belongsToMany(Interest::class, 'user_interests');
+    }
+
+    public function languages()
+    {
+        return $this->belongsToMany(Language::class, 'user_languages')
+                    ->withPivot('level')
+                    ->withTimestamps();
+    }
+
+    public function nationality()
+    {
+        return $this->belongsTo(Nationality::class);
     }
 
     /**
@@ -99,9 +118,9 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function hasCompletedProfile(): bool
     {
-        return !is_null($this->gender) 
-            && !is_null($this->city_birth) 
-            && !is_null($this->city_living) 
+        return !is_null($this->gender)
+            && !is_null($this->city_birth)
+            && !is_null($this->city_living)
             && !is_null($this->birthday);
     }
 
@@ -149,7 +168,7 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         $features = $this->subscription->plan->features;
-        
+
         return $features[$key] ?? $default;
     }
 
