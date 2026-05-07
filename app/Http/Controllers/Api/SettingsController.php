@@ -22,6 +22,7 @@ class SettingsController extends Controller
     public function index(): JsonResponse
     {
         return response()->json([
+            'version'       => 'v2',
             'interests'     => Interest::orderBy('name')
                                    ->get(['id', 'name', 'icon']),
 
