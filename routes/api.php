@@ -6,11 +6,8 @@ use App\Http\Controllers\Api\ConnectionController;
 use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ProfileVisitorController;
-use App\Http\Controllers\Api\CityController;
 use App\Http\Controllers\Api\CountryController;
 use App\Http\Controllers\Api\LanguageController;
-use App\Http\Controllers\Api\NationalityController;
-use App\Http\Controllers\Api\SectorController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
@@ -36,7 +33,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/reset-password',  [AuthController::class, 'resetPassword']);
 });
 
-// Settings (all reference data in one call — public, no auth needed)
+// Reference data — public, no auth needed
 Route::get('/settings', [SettingsController::class, 'index']);
 
 // ==========================================
@@ -83,10 +80,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/profile/avatar',          [ProfileController::class, 'updateAvatar']);
     Route::post('/profile/interests',       [ProfileController::class, 'syncInterests']);
     Route::get('/interests',                [ProfileController::class, 'interests']);
-    Route::get('/sectors',                  [SectorController::class, 'index']);
     Route::get('/languages',                [LanguageController::class, 'index']);
-    Route::get('/nationalities',            [NationalityController::class, 'index']);
-    Route::get('/cities',                   [CityController::class, 'index']);
     Route::get('/countries',                [CountryController::class, 'index']);
     Route::get('/profile/visitors',         [ProfileVisitorController::class, 'index']);
 });
