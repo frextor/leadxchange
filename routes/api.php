@@ -36,6 +36,7 @@ Route::prefix('auth')->group(function () {
 // Reference data — public, no auth needed
 Route::get('/settings', [SettingsController::class, 'index']);
 
+
 // ==========================================
 // Protected Routes (Web sessions + API tokens)
 // ==========================================
