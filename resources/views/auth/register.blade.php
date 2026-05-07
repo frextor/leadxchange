@@ -111,8 +111,8 @@
                     <label class="relative cursor-pointer">
                         <input type="radio" name="gender" value="male"
                             {{ old('gender') == 'male' ? 'checked' : '' }} class="peer sr-only">
-                        <div class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-center text-gray-700 font-medium transition-all peer-checked:border-teal-500 peer-checked:text-teal-700"
-                             style="background:#F9FAFB;peer-checked:background:rgba(43,182,163,0.06);">
+                        <div class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-center text-gray-700 font-medium transition-all peer-checked:border-teal-500 peer-checked:text-teal-700 peer-checked:bg-teal-50"
+                             style="background:#F9FAFB;">
                             Male
                         </div>
                     </label>
@@ -126,6 +126,19 @@
                     </label>
                 </div>
                 @error('gender') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- Phone --}}
+            <div>
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium select-none">+</span>
+                    <input type="tel" id="phone" name="phone"
+                        placeholder="Phone number (e.g. 33612345678)"
+                        value="{{ old('phone') }}"
+                        inputmode="numeric"
+                        class="lx-input pl-7 pr-4 py-3.5 @error('phone') lx-error @enderror">
+                </div>
+                @error('phone') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
 
             {{-- City of Birth --}}
@@ -191,6 +204,9 @@
 @endsection
 
 @push('scripts')
+<script>
+    window._registerErrors = @json($errors->keys());
+</script>
 <script>
     function togglePassword(id) {
         const f = document.getElementById(id);
@@ -267,15 +283,14 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    {{-- Auto-jump to step 2 on server-side validation errors --}}
-    @if ($errors->any())
+    // Auto-jump to step 2 on server-side validation errors
+    if (window._registerErrors && window._registerErrors.length) {
         document.addEventListener('DOMContentLoaded', function () {
-            const step2Fields = ['gender', 'city_birth', 'city_living', 'birthday', 'terms'];
-            const errs = @json($errors->keys());
-            const hasStep2Errors = step2Fields.some(f => errs.includes(f));
-            const hasStep1Errors = ['first_name', 'last_name', 'email', 'password'].some(f => errs.includes(f));
+            const step2Fields = ['phone', 'gender', 'city_birth', 'city_living', 'birthday', 'terms'];
+            const hasStep2Errors = step2Fields.some(f => window._registerErrors.includes(f));
+            const hasStep1Errors = ['first_name', 'last_name', 'email', 'password'].some(f => window._registerErrors.includes(f));
             if (hasStep2Errors && !hasStep1Errors) goToStep2();
         });
-    @endif
+    }
 </script>
 @endpush

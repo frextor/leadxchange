@@ -150,34 +150,37 @@ class AuthController extends Controller
     }
 
     /**
-     * Create company (legacy method - kept for backward compatibility).
+     * POST /api/company
      *
-     * @param Request $request
-     * @return JsonResponse
+     * @deprecated Use POST /api/companies instead.
      */
     public function createCompany(Request $request): JsonResponse
     {
-        // Validate
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'siret' => ['required', 'string', 'size:14', 'unique:companies,siret', 'regex:/^[0-9]{14}$/'],
-            'sector' => ['required', 'string', 'max:255'],
-            'website' => ['nullable', 'url', 'max:255'],
-        ]);
-
         try {
-            // Service handles ALL business logic
-            $company = $this->companyService->createCompany(
-                $request->user(),
-                $validated
-            );
+            $validated = $request->validate([
+                'name'      => ['required', 'string', 'max:255'],
+                'siret'     => ['required', 'string', 'size:14', 'unique:companies,siret', 'regex:/^[0-9]{14}$/'],
+                'sector_id' => ['required', 'integer', 'exists:sectors,id'],
+                'website'   => ['nullable', 'url', 'max:255'],
+                'position'  => ['nullable', 'string', 'max:100'],
+            ]);
+
+            $company = $this->companyService->createCompany($request->user(), $validated);
 
             return response()->json([
-                'message' => 'Company created successfully. Onboarding completed!',
-                'data' => $this->authService->getUserData($request->user()->fresh()),
+                'success' => true,
+                'message' => 'Company created successfully',
+                'data'    => $this->authService->getUserData($request->user()->fresh()),
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
+                'success' => false,
                 'message' => $e->getMessage(),
             ], 400);
         }

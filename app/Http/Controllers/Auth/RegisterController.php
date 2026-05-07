@@ -47,27 +47,29 @@ class RegisterController extends Controller
             'password' => ['required', 'string', 'confirmed', 'min:8'],
 
             // Step 2: Profile Information
-            'gender' => ['required', 'in:male,female,other'],
+            'phone'      => ['required', 'string', 'max:30', 'unique:users,phone'],
+            'gender'     => ['required', 'in:male,female,other'],
             'city_birth' => ['required', 'string', 'max:255'],
-            'city_living' => ['required', 'string', 'max:255'],
-            'birthday' => ['required', 'date', 'before:today'],
-            'terms' => ['required', 'accepted'],
+            'city_living'=> ['required', 'string', 'max:255'],
+            'birthday'   => ['required', 'date', 'before:today'],
+            'terms'      => ['required', 'accepted'],
         ], [
-            // Custom error messages
-            'first_name.required' => 'Le prénom est requis.',
-            'last_name.required' => 'Le nom est requis.',
-            'email.unique' => 'Cet email est déjà utilisé.',
-            'email.required' => 'L\'email est requis.',
-            'password.confirmed' => 'Les mots de passe ne correspondent pas.',
-            'password.required' => 'Le mot de passe est requis.',
-            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
-            'gender.required' => 'Veuillez sélectionner votre sexe.',
-            'city_birth.required' => 'La ville de naissance est requise.',
+            'first_name.required'  => 'Le prénom est requis.',
+            'last_name.required'   => 'Le nom est requis.',
+            'email.unique'         => 'Cet email est déjà utilisé.',
+            'email.required'       => 'L\'email est requis.',
+            'password.confirmed'   => 'Les mots de passe ne correspondent pas.',
+            'password.required'    => 'Le mot de passe est requis.',
+            'password.min'         => 'Le mot de passe doit contenir au moins 8 caractères.',
+            'phone.required'       => 'Le numéro de téléphone est requis.',
+            'phone.unique'         => 'Ce numéro de téléphone est déjà utilisé.',
+            'gender.required'      => 'Veuillez sélectionner votre sexe.',
+            'city_birth.required'  => 'La ville de naissance est requise.',
             'city_living.required' => 'La ville de résidence est requise.',
-            'birthday.required' => 'La date de naissance est requise.',
-            'birthday.before' => 'La date de naissance doit être antérieure à aujourd\'hui.',
-            'terms.required' => 'Vous devez accepter les conditions.',
-            'terms.accepted' => 'Vous devez accepter les conditions.',
+            'birthday.required'    => 'La date de naissance est requise.',
+            'birthday.before'      => 'La date de naissance doit être antérieure à aujourd\'hui.',
+            'terms.required'       => 'Vous devez accepter les conditions.',
+            'terms.accepted'       => 'Vous devez accepter les conditions.',
         ]);
 
         try {
@@ -76,10 +78,11 @@ class RegisterController extends Controller
 
             // Update profile (step 2 data)
             $user = $this->authService->updateProfile($user, [
-                'gender' => $validated['gender'],
+                'phone'      => $validated['phone'],
+                'gender'     => $validated['gender'],
                 'city_birth' => $validated['city_birth'],
-                'city_living' => $validated['city_living'],
-                'birthday' => $validated['birthday'],
+                'city_living'=> $validated['city_living'],
+                'birthday'   => $validated['birthday'],
             ]);
 
             // Log the user in
