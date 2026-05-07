@@ -23,8 +23,8 @@ class ProfileRequest extends FormRequest
             'phone'              => ['nullable', 'string', 'max:30', Rule::unique('users', 'phone')->ignore($userId)],
             'phone_country_code' => ['nullable', 'string', 'max:10'],  // web
             'phone_code'         => ['nullable', 'string', 'max:10'],  // mobile alias
-            'gender'             => ['required', Rule::in(['male', 'female', 'other'])],
-            'birthday'           => ['required', 'date', 'before:today'],
+            'gender'             => ['sometimes', Rule::in(['male', 'female', 'other'])],
+            'birthday'           => ['sometimes', 'date', 'before:today'],
             'city_birth'         => ['sometimes', 'string', 'max:255'],
             'city_living'        => ['sometimes', 'string', 'max:255'],
             'city_id'            => ['nullable', 'integer', 'exists:cities,id'],
@@ -60,10 +60,8 @@ class ProfileRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'gender.required'       => 'Gender is required.',
-            'gender.in'             => 'Gender must be male, female, or other.',
-            'birthday.required'     => 'Birthday is required.',
-            'birthday.before'       => 'Birthday must be a date before today.',
+            'gender.in'         => 'Gender must be male, female, or other.',
+            'birthday.before'   => 'Birthday must be a date before today.',
             'nationality_id.exists' => 'Selected nationality is invalid.',
             'experience_level.in'   => 'Experience level must be junior, mid, senior, or expert.',
             'phone.unique'          => 'This phone number is already taken.',
