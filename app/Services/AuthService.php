@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Plan;
+use App\Models\Sector;
 use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
@@ -36,7 +37,7 @@ class AuthService
                 'last_name'  => $data['last_name'],
                 'email'      => $data['email'],
                 'password'   => Hash::make($data['password']),
-                'phone'      => $data['phone'],
+                'phone'      => $data['phone'] ?? null,
                 'role'       => 'user',
             ]);
 
@@ -67,19 +68,38 @@ class AuthService
      * @param array $data  Validated data from ProfileRequest
      * @return User
      */
-    public function updateProfile(User $user, array $data): User
+    public function updateProfile(User $user, array $data, ?\Illuminate\Http\UploadedFile $picture = null): User
     {
+        // ── Normalize mobile aliases ──────────────────────────────────────
+        $data['phone_country_code'] = $data['phone_code']    ?? $data['phone_country_code'] ?? null;
+        $data['looking_for']        = $data['leads_wanted']  ?? $data['looking_for']        ?? null;
+        $data['services_offered']   = $data['leads_offered'] ?? $data['services_offered']   ?? null;
+
         // ── users table ───────────────────────────────────────────────────
         $userFields = array_filter([
-            'first_name'     => $data['first_name']     ?? null,
-            'last_name'      => $data['last_name']      ?? null,
-            'phone'          => $data['phone']          ?? null,
-            'gender'         => $data['gender'],
-            'birthday'       => $data['birthday'],
-            'city_birth'     => $data['city_birth'],
-            'city_living'    => $data['city_living'],
-            'nationality_id' => $data['nationality_id'] ?? null,
+            'first_name'         => $data['first_name']         ?? null,
+            'last_name'          => $data['last_name']          ?? null,
+            'phone'              => $data['phone']              ?? null,
+            'phone_country_code' => $data['phone_country_code'] ?? null,
+            'gender'             => $data['gender']             ?? null,
+            'birthday'           => $data['birthday']           ?? null,
+            'city_birth'         => $data['city_birth']         ?? null,
+            'city_living'        => $data['city_living']        ?? null,
+            'city_id'            => $data['city_id']            ?? null,
+            'nationality_id'     => $data['nationality_id']     ?? null,
+            'company_id'         => $data['company_id']         ?? null,
+            'position'           => $data['position']           ?? null,
+            'newsletter'         => $data['newsletter']         ?? null,
+            'notifications'      => $data['notifications']      ?? null,
         ], fn($v) => $v !== null);
+
+        // Resolve city_living from city_id if provided
+        if (!empty($data['city_id'])) {
+            $city = \App\Models\City::find($data['city_id']);
+            if ($city) {
+                $userFields['city_living'] = $city->name;
+            }
+        }
 
         $user->update($userFields);
 
@@ -92,6 +112,10 @@ class AuthService
             'looking_for'      => $data['looking_for']      ?? null,
             'services_offered' => $data['services_offered'] ?? null,
             'open_to_network'  => $data['open_to_network']  ?? null,
+            'website'          => $data['website']          ?? null,
+            'region'           => $data['region']           ?? null,
+            'linkedin'         => $data['linkedin']         ?? null,
+            'sector_ids'       => $data['sector_id']        ?? null,
         ], fn($v) => $v !== null);
 
         if (!empty($profileFields)) {
@@ -99,6 +123,15 @@ class AuthService
                 ['user_id' => $user->id],
                 $profileFields
             );
+        }
+
+        // ── avatar upload (profile_picture) ───────────────────────────────
+        if ($picture) {
+            if ($user->profile?->avatar) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($user->profile->avatar);
+            }
+            $path = $picture->store('avatars', 'public');
+            $user->profile()->updateOrCreate(['user_id' => $user->id], ['avatar' => $path]);
         }
 
         Log::info('User profile updated', ['user_id' => $user->id]);
@@ -171,7 +204,16 @@ class AuthService
      */
     public function getUserData(User $user): array
     {
-        $user->load(['company.sector', 'subscription.plan', 'profile', 'nationality']);
+        $user->load(['company.sector', 'subscription.plan', 'profile', 'nationality', 'city']);
+
+        $sectorIds = array_unique(array_merge(
+            $user->profile?->looking_for      ?? [],
+            $user->profile?->services_offered ?? [],
+            $user->profile?->sector_ids       ?? [],
+        ));
+        $sectorMap = $sectorIds
+            ? Sector::whereIn('id', $sectorIds)->pluck('name', 'id')
+            : collect();
 
         return [
             'user' => [
@@ -181,6 +223,7 @@ class AuthService
                 'full_name'          => $user->full_name,
                 'email'              => $user->email,
                 'phone'              => $user->phone,
+                'phone_country_code' => $user->phone_country_code,
                 'gender'             => $user->gender,
                 'birthday'           => $user->birthday?->format('Y-m-d'),
                 'city_birth'         => $user->city_birth,
@@ -193,7 +236,14 @@ class AuthService
                     'code'    => $user->nationality->code,
                     'flag'    => $user->nationality->flag,
                 ] : null,
+                'city_id'            => $user->city_id,
+                'city'               => $user->city ? [
+                    'id'   => $user->city->id,
+                    'name' => $user->city->name,
+                ] : null,
                 'position'           => $user->position,
+                'newsletter'         => $user->newsletter,
+                'notifications'      => $user->notifications,
                 'role'               => $user->role,
                 'email_verified_at'  => $user->email_verified_at,
                 'created_at'         => $user->created_at,
@@ -204,9 +254,13 @@ class AuthService
                 'motto'            => $user->profile->motto,
                 'job_title'        => $user->profile->job_title,
                 'experience_level' => $user->profile->experience_level,
-                'looking_for'      => $user->profile->looking_for,
-                'services_offered' => $user->profile->services_offered,
+                'looking_for'      => collect($user->profile->looking_for ?? [])->map(fn($id) => ['id' => $id, 'name' => $sectorMap[$id] ?? null])->values(),
+                'services_offered' => collect($user->profile->services_offered ?? [])->map(fn($id) => ['id' => $id, 'name' => $sectorMap[$id] ?? null])->values(),
+                'sector_ids'       => collect($user->profile->sector_ids ?? [])->map(fn($id) => ['id' => $id, 'name' => $sectorMap[$id] ?? null])->values(),
                 'open_to_network'  => $user->profile->open_to_network,
+                'website'          => $user->profile->website,
+                'region'           => $user->profile->region,
+                'linkedin'         => $user->profile->linkedin,
             ] : null,
             'company' => $user->company ? [
                 'id'        => $user->company->id,

@@ -27,7 +27,7 @@ class RegisterRequest extends FormRequest
             'last_name'  => ['required', 'string', 'max:255'],
             'email'      => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password'   => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()],
-            'phone'      => ['required', 'string', 'max:30', 'unique:users,phone'],
+            'phone'      => ['nullable', 'string', 'max:30', 'unique:users,phone'],
         ];
     }
 
@@ -42,7 +42,6 @@ class RegisterRequest extends FormRequest
             'email.unique'    => 'This email is already registered.',
             'first_name.required' => 'First name is required.',
             'last_name.required'  => 'Last name is required.',
-            'phone.required'  => 'Phone number is required.',
             'phone.unique'    => 'This phone number is already registered.',
         ];
     }

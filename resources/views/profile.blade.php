@@ -54,6 +54,10 @@
 @endpush
 
 @section('content')
+@php
+$currentLookingFor      = $profile?->looking_for      ?? [];
+$currentServicesOffered = $profile?->services_offered ?? [];
+@endphp
 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
     <div class="grid gap-6 lg:grid-cols-[320px_1fr] items-start">
@@ -242,7 +246,7 @@
 
             {{-- Profil professionnel --}}
             <x-profile-section title="Profil professionnel" :editModal="$isOwnProfile ? 'modal-professional' : null">
-                @if ($profile?->job_title || $profile?->sector || $profile?->experience_level || $profile?->looking_for || $profile?->services_offered)
+                @if ($profile?->job_title || $profile?->sector || $profile?->experience_level || !empty($currentLookingFor) || !empty($currentServicesOffered))
                     @php $expLabels = ['junior' => 'Junior (0-2 ans)', 'mid' => 'Intermédiaire (2-5 ans)', 'senior' => 'Senior (5-10 ans)', 'expert' => 'Expert (10+ ans)']; @endphp
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         @if ($profile?->job_title)
@@ -255,11 +259,35 @@
                         <x-profile-kv label="Expérience">{{ $expLabels[$profile->experience_level] ?? $profile->experience_level }}</x-profile-kv>
                         @endif
                     </div>
-                    @if ($profile?->looking_for)
-                    <x-profile-block label="Recherche">{{ $profile->looking_for }}</x-profile-block>
+                    @if (!empty($currentLookingFor))
+                    <x-profile-block label="Recherche">
+                        <div class="flex flex-wrap gap-2 mt-1">
+                            @foreach ($currentLookingFor as $sectorId)
+                            @php $s = $sectors->firstWhere('id', $sectorId); @endphp
+                            @if ($s)
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold border"
+                                  style="background:#E6F7F4;color:#1E8F88;border-color:#A8E2D9;">
+                                {{ $s->name }}
+                            </span>
+                            @endif
+                            @endforeach
+                        </div>
+                    </x-profile-block>
                     @endif
-                    @if ($profile?->services_offered)
-                    <x-profile-block label="Services proposés">{{ $profile->services_offered }}</x-profile-block>
+                    @if (!empty($currentServicesOffered))
+                    <x-profile-block label="Services proposés">
+                        <div class="flex flex-wrap gap-2 mt-1">
+                            @foreach ($currentServicesOffered as $sectorId)
+                            @php $s = $sectors->firstWhere('id', $sectorId); @endphp
+                            @if ($s)
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold border"
+                                  style="background:#EEF2FF;color:#4F46E5;border-color:#C7D2FE;">
+                                {{ $s->name }}
+                            </span>
+                            @endif
+                            @endforeach
+                        </div>
+                    </x-profile-block>
                     @endif
                 @else
                     <div class="text-center py-4 text-gray-400">
@@ -395,6 +423,7 @@
                         'interests'   => 'modal-interests',
                         'looking_for' => 'modal-professional',
                         'gender'      => 'modal-basic',
+                        'phone'       => 'modal-basic',
                     ];
                     $target = $modalMap[$item['key']] ?? null;
                 @endphp
@@ -512,11 +541,8 @@
                 <label class="lbl">Secteur d'activité</label>
                 <select id="pro_sector" class="inp">
                     <option value="">— Sélectionner —</option>
-                    @php
-                    $sectors = ['Technologie','Marketing','Finance','Ventes','Ressources humaines','Juridique','Santé','Éducation','Immobilier','Consulting','E-commerce','Startup','Logistique','Industrie','Médias','Design','Construction','Agriculture','Tourisme','Intelligence artificielle','Autre'];
-                    @endphp
-                    @foreach ($sectors as $s)
-                    <option value="{{ $s }}" {{ $profile?->sector === $s ? 'selected' : '' }}>{{ $s }}</option>
+                    @foreach ($sectors as $sector)
+                    <option value="{{ $sector->name }}" {{ $profile?->sector === $sector->name ? 'selected' : '' }}>{{ $sector->name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -531,14 +557,28 @@
                 </select>
             </div>
             <div>
-                <label class="lbl">Recherche <span class="text-gray-400 font-normal normal-case">(ce que vous cherchez)</span></label>
-                <textarea id="pro_looking_for" rows="3" class="inp resize-none"
-                          placeholder="ex: Partenaires commerciaux dans le secteur tech…">{{ $profile?->looking_for ?? '' }}</textarea>
+                <label class="lbl">Recherche <span class="text-gray-400 font-normal normal-case">(secteurs recherchés — multi-choix)</span></label>
+                <div class="flex flex-wrap gap-2 pt-1">
+                    @foreach ($sectors as $sector)
+                    <button type="button" data-value="{{ $sector->id }}"
+                        onclick="toggleChip(this)"
+                        class="lf-chip px-3 py-1.5 rounded-full text-sm font-medium border-2 transition {{ in_array($sector->id, $currentLookingFor) ? 'selected border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-200 bg-white text-gray-600 hover:border-teal-300' }}">
+                        {{ $sector->name }}
+                    </button>
+                    @endforeach
+                </div>
             </div>
             <div>
-                <label class="lbl">Services proposés</label>
-                <textarea id="pro_services" rows="3" class="inp resize-none"
-                          placeholder="ex: Consulting en stratégie digitale…">{{ $profile?->services_offered ?? '' }}</textarea>
+                <label class="lbl">Services proposés <span class="text-gray-400 font-normal normal-case">(secteurs d'activité — multi-choix)</span></label>
+                <div class="flex flex-wrap gap-2 pt-1">
+                    @foreach ($sectors as $sector)
+                    <button type="button" data-value="{{ $sector->id }}"
+                        onclick="toggleChip(this)"
+                        class="so-chip px-3 py-1.5 rounded-full text-sm font-medium border-2 transition {{ in_array($sector->id, $currentServicesOffered) ? 'selected border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 bg-white text-gray-600 hover:border-indigo-300' }}">
+                        {{ $sector->name }}
+                    </button>
+                    @endforeach
+                </div>
             </div>
         </div>
         <div class="modal-footer">
@@ -668,16 +708,32 @@
         finally { setBtnLoading('btn-save-bio', false); }
     }
 
+    // ── Chip toggle (looking_for + services_offered) ──
+    function toggleChip(btn) {
+        const active = btn.classList.contains('selected');
+        const isSo   = btn.classList.contains('so-chip');
+        const color  = isSo ? 'indigo' : 'teal';
+        btn.classList.toggle('selected',              !active);
+        btn.classList.toggle(`border-${color}-500`,   !active);
+        btn.classList.toggle(`bg-${color}-50`,        !active);
+        btn.classList.toggle(`text-${color}-700`,     !active);
+        btn.classList.toggle('border-gray-200',        active);
+        btn.classList.toggle('bg-white',               active);
+        btn.classList.toggle('text-gray-600',          active);
+    }
+
     // ── Save professional ──
     async function saveProfessional() {
         setBtnLoading('btn-save-pro', true);
+        const lookingFor = [...document.querySelectorAll('.lf-chip.selected')].map(b => parseInt(b.dataset.value));
+        const services   = [...document.querySelectorAll('.so-chip.selected')].map(b => parseInt(b.dataset.value));
         try {
             await apiFetch('/api/profile/professional', 'PUT', {
                 job_title:        document.getElementById('pro_job_title').value || null,
                 sector:           document.getElementById('pro_sector').value || null,
                 experience_level: document.getElementById('pro_experience').value || null,
-                looking_for:      document.getElementById('pro_looking_for').value || null,
-                services_offered: document.getElementById('pro_services').value || null,
+                looking_for:      lookingFor,
+                services_offered: services,
             });
             closeModal('modal-professional');
             toast('Profil mis à jour !', 'success');

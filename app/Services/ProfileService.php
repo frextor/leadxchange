@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Interest;
 use App\Models\Profile;
+use App\Models\Sector;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -13,6 +14,16 @@ class ProfileService
     public function getProfile(User $user): array
     {
         $user->loadMissing(['profile', 'interests', 'company']);
+
+        $sectorIds = array_unique(array_merge(
+            $user->profile?->looking_for      ?? [],
+            $user->profile?->services_offered ?? [],
+        ));
+        $sectorMap = $sectorIds
+            ? Sector::whereIn('id', $sectorIds)->pluck('name', 'id')
+            : collect();
+
+        $profile = $user->profile;
 
         return [
             'id'           => $user->id,
@@ -24,7 +35,10 @@ class ProfileService
             'city_living'  => $user->city_living,
             'birthday'     => $user->birthday?->format('Y-m-d'),
             'member_since' => $user->created_at?->format('F Y'),
-            'profile'      => $user->profile,
+            'profile'      => $profile ? array_merge($profile->toArray(), [
+                'looking_for'      => collect($profile->looking_for ?? [])->map(fn($id) => ['id' => $id, 'name' => $sectorMap[$id] ?? null])->values(),
+                'services_offered' => collect($profile->services_offered ?? [])->map(fn($id) => ['id' => $id, 'name' => $sectorMap[$id] ?? null])->values(),
+            ]) : null,
             'interests'    => $user->interests,
             'company'      => $user->company,
             'completion'   => $this->getCompletionPercentage($user),
@@ -46,11 +60,12 @@ class ProfileService
     public function updateProfessional(User $user, array $data): void
     {
         $profile = $user->profile ?? new Profile(['user_id' => $user->id]);
-        $profile->fill(array_filter([
-            'job_title'        => $data['job_title'] ?? null,
-            'sector'           => $data['sector'] ?? null,
-            'experience_level' => $data['experience_level'] ?? null,
-        ], fn($v) => $v !== null));
+        $fields  = array_intersect_key($data, array_flip([
+            'job_title', 'sector', 'experience_level', 'looking_for', 'services_offered',
+        ]));
+        $profile->fill(array_filter($fields, fn($v) => $v !== null));
+        if (array_key_exists('looking_for', $data))      $profile->looking_for      = $data['looking_for']      ?? [];
+        if (array_key_exists('services_offered', $data)) $profile->services_offered = $data['services_offered'] ?? [];
         $profile->save();
     }
 
@@ -58,11 +73,9 @@ class ProfileService
     {
         $profile = $user->profile ?? new Profile(['user_id' => $user->id]);
         $profile->fill([
-            'bio'              => $data['bio'] ?? $profile->bio,
-            'motto'            => $data['motto'] ?? $profile->motto,
-            'looking_for'      => $data['looking_for'] ?? $profile->looking_for,
-            'services_offered' => $data['services_offered'] ?? $profile->services_offered,
-            'open_to_network'  => $data['open_to_network'] ?? $profile->open_to_network,
+            'bio'             => $data['bio']             ?? $profile->bio,
+            'motto'           => $data['motto']           ?? $profile->motto,
+            'open_to_network' => $data['open_to_network'] ?? $profile->open_to_network,
         ]);
         $profile->save();
     }
@@ -100,8 +113,9 @@ class ProfileService
             fn() => !is_null($user->city_living),
             fn() => !is_null($user->company_id),
             fn() => $user->interests->isNotEmpty(),
-            fn() => !is_null($p?->looking_for),
+            fn() => !empty($p?->looking_for),
             fn() => !is_null($user->gender),
+            fn() => !is_null($user->phone),
         ];
 
         $done = collect($checks)->filter(fn($c) => $c())->count();
@@ -122,8 +136,9 @@ class ProfileService
         if (is_null($user->city_living))                                $missing[] = ['key' => 'location',    'label' => 'Localisation',     'icon' => 'fa-map-marker-alt'];
         if (is_null($user->company_id))                                 $missing[] = ['key' => 'company',     'label' => 'Entreprise',       'icon' => 'fa-building'];
         if ($user->interests->isEmpty())                                $missing[] = ['key' => 'interests',   'label' => 'Centres d\'intérêt', 'icon' => 'fa-star'];
-        if (is_null($p?->looking_for))                                  $missing[] = ['key' => 'looking_for', 'label' => 'Recherche',        'icon' => 'fa-search'];
+        if (empty($p?->looking_for))                                    $missing[] = ['key' => 'looking_for', 'label' => 'Recherche',        'icon' => 'fa-search'];
         if (is_null($user->gender))                                     $missing[] = ['key' => 'gender',      'label' => 'Genre',            'icon' => 'fa-user'];
+        if (is_null($user->phone))                                      $missing[] = ['key' => 'phone',       'label' => 'Téléphone',         'icon' => 'fa-phone'];
 
         return $missing;
     }

@@ -39,9 +39,13 @@ class ProfileController extends Controller
     public function updateProfessional(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'job_title'        => 'nullable|string|max:150',
-            'sector'           => 'nullable|string|max:100',
-            'experience_level' => 'nullable|in:junior,mid,senior,expert',
+            'job_title'          => 'nullable|string|max:150',
+            'sector'             => 'nullable|string|max:100',
+            'experience_level'   => 'nullable|in:junior,mid,senior,expert',
+            'looking_for'        => 'nullable|array',
+            'looking_for.*'      => 'integer|exists:sectors,id',
+            'services_offered'   => 'nullable|array',
+            'services_offered.*' => 'integer|exists:sectors,id',
         ]);
 
         $this->profileService->updateProfessional($request->user(), $data);
@@ -55,11 +59,9 @@ class ProfileController extends Controller
     public function updateBio(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'bio'              => 'nullable|string|max:1000',
-            'motto'            => 'nullable|string|max:500',
-            'looking_for'      => 'nullable|string|max:1000',
-            'services_offered' => 'nullable|string|max:1000',
-            'open_to_network'  => 'nullable|boolean',
+            'bio'             => 'nullable|string|max:1000',
+            'motto'           => 'nullable|string|max:500',
+            'open_to_network' => 'nullable|boolean',
         ]);
 
         $this->profileService->updateBio($request->user(), $data);

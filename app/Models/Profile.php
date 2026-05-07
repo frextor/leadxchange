@@ -11,10 +11,14 @@ class Profile extends Model
     protected $fillable = [
         'user_id', 'avatar', 'bio', 'motto', 'job_title', 'sector',
         'experience_level', 'looking_for', 'services_offered', 'open_to_network',
+        'website', 'region', 'linkedin', 'sector_ids',
     ];
 
     protected $casts = [
-        'open_to_network' => 'boolean',
+        'open_to_network'  => 'boolean',
+        'looking_for'      => 'array',
+        'services_offered' => 'array',
+        'sector_ids'       => 'array',
     ];
 
     public function user(): BelongsTo

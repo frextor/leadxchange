@@ -27,10 +27,14 @@ class User extends Authenticatable implements MustVerifyEmail
         'city_living',
         'birthday',
         'phone',
+        'phone_country_code',
         'nationality_id',
         'company_id',
+        'city_id',
         'position',
         'onboarding_completed',
+        'newsletter',
+        'notifications',
         'role',
     ];
 
@@ -50,15 +54,22 @@ class User extends Authenticatable implements MustVerifyEmail
      * @var array<string, string>
      */
     protected $casts = [
-        'email_verified_at' => 'datetime',
-        'birthday' => 'date',
+        'email_verified_at'    => 'datetime',
+        'birthday'             => 'date',
         'onboarding_completed' => 'boolean',
-        'password' => 'hashed',
+        'newsletter'           => 'boolean',
+        'notifications'        => 'boolean',
+        'password'             => 'hashed',
     ];
 
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(\App\Models\City::class);
     }
 
     public function profile()
