@@ -8,111 +8,103 @@ use App\Services\CompanyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/**
- * CompanyController (REFACTORED)
- * 
- * Thin controller - only handles HTTP requests/responses.
- * All business logic is in CompanyService.
- */
 class CompanyController extends Controller
 {
     protected CompanyService $companyService;
     protected AuthService $authService;
 
-    /**
-     * Inject services via constructor.
-     */
     public function __construct(CompanyService $companyService, AuthService $authService)
     {
         $this->companyService = $companyService;
-        $this->authService = $authService;
+        $this->authService    = $authService;
     }
 
     /**
-     * Search companies.
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * GET /api/companies/search?q=xxx
      */
     public function search(Request $request): JsonResponse
     {
-        $query = $request->get('q', '');
-
-        // Service handles search logic
-        $companies = $this->companyService->searchCompanies($query);
+        $companies = $this->companyService->searchCompanies($request->get('q', ''));
 
         return response()->json([
             'success' => true,
-            'data' => $companies
+            'data'    => $companies->map(fn($c) => [
+                'id'        => $c->id,
+                'name'      => $c->name,
+                'siret'     => $c->siret,
+                'sector_id' => $c->sector_id,
+                'sector'    => $c->sector?->name,
+                'website'   => $c->website,
+            ]),
         ]);
     }
 
     /**
-     * Create new company OR join existing company.
+     * POST /api/companies
      *
-     * @param Request $request
-     * @return JsonResponse
+     * Create a new company OR join an existing one.
+     *
+     * Create body:
+     *   { name, siret, sector_id, website?, position? }
+     *
+     * Join body:
+     *   { existing_company_id, position? }
      */
     public function store(Request $request): JsonResponse
     {
+        $user = $request->user();
+
         try {
-            // Case 1: Join existing company
+            // ── Join existing company ──────────────────────────────────────
             if ($request->filled('existing_company_id')) {
+                $request->validate([
+                    'existing_company_id' => ['required', 'integer', 'exists:companies,id'],
+                    'position'            => ['nullable', 'string', 'max:100'],
+                ]);
+
                 $company = $this->companyService->joinCompany(
-                    $request->user(),
-                    $request->input('existing_company_id')
+                    $user,
+                    $request->integer('existing_company_id'),
+                    $request->input('position')
                 );
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Joined company successfully',
-                    'data' => [
-                        'company' => [
-                            'id' => $company->id,
-                            'name' => $company->name,
-                            'siret' => $company->siret,
-                            'sector_id' => $company->sector_id,
-                            'sector'    => $company->sector_name,
-                            'website' => $company->website,
-                        ],
-                        'action' => 'joined'
-                    ]
+                    'message' => 'Company joined successfully',
+                    'data'    => [
+                        'action'  => 'joined',
+                        'company' => $this->companyData($company),
+                        'user'    => $this->authService->getUserData($user->fresh()),
+                    ],
                 ]);
             }
 
-            // Case 2: Create new company
+            // ── Create new company ─────────────────────────────────────────
             $validated = $request->validate([
                 'name'      => ['required', 'string', 'max:255'],
                 'siret'     => ['required', 'string', 'size:14', 'unique:companies,siret', 'regex:/^[0-9]{14}$/'],
                 'sector_id' => ['required', 'integer', 'exists:sectors,id'],
                 'website'   => ['nullable', 'url', 'max:255'],
+                'position'  => ['nullable', 'string', 'max:100'],
             ]);
 
-            $company = $this->companyService->createCompany(
-                $request->user(),
-                $validated
-            );
+            $company = $this->companyService->createCompany($user, $validated);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Company created successfully',
-                'data' => [
-                    'company' => [
-                        'id' => $company->id,
-                        'name' => $company->name,
-                        'siret' => $company->siret,
-                        'sector_id' => $company->sector_id,
-                            'sector'    => $company->sector_name,
-                        'website' => $company->website,
-                    ],
-                    'action' => 'created'
-                ]
+                'data'    => [
+                    'action'  => 'created',
+                    'company' => $this->companyData($company),
+                    'user'    => $this->authService->getUserData($user->fresh()),
+                ],
             ], 201);
+
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $e->errors()
+                'errors'  => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
@@ -123,54 +115,43 @@ class CompanyController extends Controller
     }
 
     /**
-     * Get user's company.
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * GET /api/companies/me
      */
     public function getUserCompany(Request $request): JsonResponse
     {
         $company = $this->companyService->getUserCompany($request->user());
 
-        if (!$company) {
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'company' => null
-                ]
-            ]);
-        }
-
         return response()->json([
             'success' => true,
-            'data' => [
-                'company' => [
-                    'id' => $company->id,
-                    'name' => $company->name,
-                    'siret' => $company->siret,
-                    'sector_id' => $company->sector_id,
-                            'sector'    => $company->sector_name,
-                    'website' => $company->website,
-                    'created_at' => $company->created_at,
-                ]
-            ]
+            'data'    => [
+                'company' => $company ? $this->companyData($company) : null,
+            ],
         ]);
     }
 
     /**
-     * Get all companies (admin only).
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * GET /api/companies
      */
     public function index(Request $request): JsonResponse
     {
-        // Optional: Add admin check here
-        $companies = \App\Models\Company::with('users')->paginate(15);
+        $companies = \App\Models\Company::with('sector')->paginate(15);
 
         return response()->json([
             'success' => true,
-            'data' => $companies
+            'data'    => $companies,
         ]);
+    }
+
+    private function companyData($company): array
+    {
+        return [
+            'id'         => $company->id,
+            'name'       => $company->name,
+            'siret'      => $company->siret,
+            'sector_id'  => $company->sector_id,
+            'sector'     => $company->sector?->name ?? $company->sector_name,
+            'website'    => $company->website,
+            'created_at' => $company->created_at,
+        ];
     }
 }

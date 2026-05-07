@@ -24,11 +24,6 @@ class CompanyService
      */
     public function createCompany(User $user, array $data): Company
     {
-        // Check if profile is completed
-        if (!$user->hasCompletedProfile()) {
-            throw new \Exception('Please complete your profile before creating a company');
-        }
-
         // Check if user already has a company
         if ($user->company_id) {
             throw new \Exception('User already belongs to a company');
@@ -48,7 +43,8 @@ class CompanyService
 
             // Update user with company and mark onboarding as completed
             $user->update([
-                'company_id' => $company->id,
+                'company_id'           => $company->id,
+                'position'             => $data['position'] ?? null,
                 'onboarding_completed' => true,
             ]);
 
@@ -75,7 +71,7 @@ class CompanyService
      * @return Company
      * @throws \Exception
      */
-    public function joinCompany(User $user, int $companyId): Company
+    public function joinCompany(User $user, int $companyId, ?string $position = null): Company
     {
         $company = Company::with('sector')->find($companyId);
 
@@ -91,7 +87,8 @@ class CompanyService
 
         try {
             $user->update([
-                'company_id' => $company->id,
+                'company_id'           => $company->id,
+                'position'             => $position,
                 'onboarding_completed' => true,
             ]);
 

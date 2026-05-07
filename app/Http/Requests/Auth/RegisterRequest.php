@@ -24,9 +24,10 @@ class RegisterRequest extends FormRequest
     {
         return [
             'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()],
+            'last_name'  => ['required', 'string', 'max:255'],
+            'email'      => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'password'   => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()],
+            'phone'      => ['required', 'string', 'max:30', 'unique:users,phone'],
         ];
     }
 
@@ -38,9 +39,11 @@ class RegisterRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.unique' => 'This email is already registered.',
+            'email.unique'    => 'This email is already registered.',
             'first_name.required' => 'First name is required.',
-            'last_name.required' => 'Last name is required.',
+            'last_name.required'  => 'Last name is required.',
+            'phone.required'  => 'Phone number is required.',
+            'phone.unique'    => 'This phone number is already registered.',
         ];
     }
 }

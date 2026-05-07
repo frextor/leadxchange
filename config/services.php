@@ -31,4 +31,9 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'siren' => [
+        'key'      => env('SIREN_API_KEY'),
+        'base_url' => env('SIREN_API_URL', 'https://data.siren-api.fr'),
+    ],
+
 ];
