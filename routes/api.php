@@ -34,6 +34,7 @@ Route::prefix('auth')->group(function () {
 });
 
 // Reference data — public, no auth needed
+Route::get('/ping',     fn() => response()->json(['status' => 'ok']));
 Route::get('/settings', [SettingsController::class, 'index']);
 
 
