@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\GroupController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -88,6 +89,11 @@ Route::middleware('auth')->group(function () {
 
     // Members/Network Page (Find Members)
     Route::get('/connections', [MemberController::class, 'index'])->name('connections.index');
+
+    // Groups
+    Route::get('/groups',              [GroupController::class, 'index'])->name('groups.index');
+    Route::post('/groups/{id}/join',   [GroupController::class, 'join'])->name('groups.join');
+    Route::delete('/groups/{id}/leave',[GroupController::class, 'leave'])->name('groups.leave');
 
     // Profile Routes
     Route::get('/profile', function () {

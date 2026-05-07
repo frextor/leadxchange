@@ -96,6 +96,11 @@
                    @if(request()->routeIs('connections.*')) style="color:#1E8F88;" @endif>
                     Network
                 </a>
+                <a href="{{ route('groups.index') }}"
+                   class="font-medium transition-colors {{ request()->routeIs('groups.*') ? '' : 'text-gray-500 hover:text-gray-900' }}"
+                   @if(request()->routeIs('groups.*')) style="color:#1E8F88;" @endif>
+                    Groups
+                </a>
                 <a href="#" class="font-medium text-gray-500 hover:text-gray-900 transition-colors">
                     Messages
                 </a>

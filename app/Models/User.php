@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Group;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -80,6 +81,12 @@ class User extends Authenticatable implements MustVerifyEmail
     public function interests()
     {
         return $this->belongsToMany(Interest::class, 'user_interests');
+    }
+
+    public function groups()
+    {
+        return $this->belongsToMany(Group::class, 'group_user')
+                    ->withPivot('role', 'joined_at');
     }
 
     public function languages()
