@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Interest;
 use App\Models\ProfileVisitor;
+use App\Models\Sector;
 use App\Models\User;
 use App\Services\ProfileService;
 use App\Services\UserService;
@@ -54,6 +55,7 @@ class ProfileController extends Controller
             'profile'       => $targetUser->profile,
             'userInterests' => $targetUser->interests,
             'allInterests'  => Interest::orderBy('name')->get(),
+            'sectors'       => Sector::orderBy('name')->get(),
             'completion'    => $this->profileService->getCompletionPercentage($targetUser),
             'missing'       => $id === $currentUserId ? $this->profileService->getMissingFields($targetUser) : [],
             'isOwnProfile'  => $id === $currentUserId,

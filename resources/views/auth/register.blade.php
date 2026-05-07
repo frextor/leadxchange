@@ -130,31 +130,52 @@
 
             {{-- Phone --}}
             <div>
-                <div class="relative">
-                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium select-none">+</span>
-                    <input type="tel" id="phone" name="phone"
-                        placeholder="Phone number (e.g. 33612345678)"
-                        value="{{ old('phone') }}"
-                        inputmode="numeric"
-                        class="lx-input pl-7 pr-4 py-3.5 @error('phone') lx-error @enderror">
-                </div>
+                <x-phone-input
+                    codeId="phone_country_code"
+                    codeName="phone_country_code"
+                    codeValue="{{ old('phone_country_code', '+212') }}"
+                    phoneId="phone"
+                    phoneName="phone"
+                    phoneValue="{{ old('phone') }}"
+                    inputClass="{{ $errors->has('phone') ? 'border-red-400' : '' }}"
+                />
+                @error('phone_country_code') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
                 @error('phone') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
 
-            {{-- City of Birth --}}
+            {{-- Nationality --}}
             <div>
-                <input type="text" name="city_birth" placeholder="City of Birth"
-                    value="{{ old('city_birth') }}"
-                    class="lx-input px-4 py-3.5 @error('city_birth') lx-error @enderror">
-                @error('city_birth') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+                <select name="nationality_id"
+                    class="lx-input px-4 py-3.5 @error('nationality_id') lx-error @enderror">
+                    <option value="">Nationality</option>
+                    @foreach($nationalities as $n)
+                        <option value="{{ $n->id }}" {{ old('nationality_id') == $n->id ? 'selected' : '' }}>
+                            {{ $n->flag }} {{ $n->country }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('nationality_id') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
 
-            {{-- City of Living --}}
-            <div>
-                <input type="text" name="city_living" placeholder="City of Living"
-                    value="{{ old('city_living') }}"
-                    class="lx-input px-4 py-3.5 @error('city_living') lx-error @enderror">
-                @error('city_living') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+            {{-- City of Living (searchable) --}}
+            <div class="relative">
+                <input type="text" id="city_search" placeholder="City of Residence" autocomplete="off"
+                    value="{{ old('city_id') ? $cities->firstWhere('id', old('city_id'))?->name : '' }}"
+                    class="lx-input px-4 py-3.5 @error('city_id') lx-error @enderror"
+                    oninput="filterCities(this.value)" onfocus="showCityDropdown()" onblur="hideCityDropdown()">
+                <input type="hidden" id="city_id" name="city_id" value="{{ old('city_id') }}">
+                <div id="city_dropdown"
+                     class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto hidden">
+                    @foreach($cities as $city)
+                        <button type="button"
+                            class="city-option w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-700 transition-colors"
+                            data-id="{{ $city->id }}" data-name="{{ $city->name }}"
+                            onmousedown="selectCity({{ $city->id }}, '{{ addslashes($city->name) }}')">
+                            {{ $city->name }}
+                        </button>
+                    @endforeach
+                </div>
+                @error('city_id') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
 
             {{-- Birthday --}}
@@ -204,8 +225,9 @@
 @endsection
 
 @push('scripts')
+<div id="_reg_err" data-errors="{{ json_encode($errors->keys()) }}" hidden></div>
 <script>
-    window._registerErrors = @json($errors->keys());
+    window._registerErrors = JSON.parse(document.getElementById('_reg_err').dataset.errors || '[]');
 </script>
 <script>
     function togglePassword(id) {
@@ -283,10 +305,33 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    function filterCities(q) {
+        const lower = q.toLowerCase();
+        document.querySelectorAll('.city-option').forEach(btn => {
+            btn.style.display = btn.dataset.name.toLowerCase().includes(lower) ? '' : 'none';
+        });
+        document.getElementById('city_dropdown').classList.remove('hidden');
+        if (!q) document.getElementById('city_id').value = '';
+    }
+
+    function showCityDropdown() {
+        document.getElementById('city_dropdown').classList.remove('hidden');
+    }
+
+    function hideCityDropdown() {
+        setTimeout(() => document.getElementById('city_dropdown').classList.add('hidden'), 150);
+    }
+
+    function selectCity(id, name) {
+        document.getElementById('city_id').value = id;
+        document.getElementById('city_search').value = name;
+        document.getElementById('city_dropdown').classList.add('hidden');
+    }
+
     // Auto-jump to step 2 on server-side validation errors
     if (window._registerErrors && window._registerErrors.length) {
         document.addEventListener('DOMContentLoaded', function () {
-            const step2Fields = ['phone', 'gender', 'city_birth', 'city_living', 'birthday', 'terms'];
+            const step2Fields = ['phone', 'gender', 'nationality_id', 'city_id', 'birthday', 'terms'];
             const hasStep2Errors = step2Fields.some(f => window._registerErrors.includes(f));
             const hasStep1Errors = ['first_name', 'last_name', 'email', 'password'].some(f => window._registerErrors.includes(f));
             if (hasStep2Errors && !hasStep1Errors) goToStep2();

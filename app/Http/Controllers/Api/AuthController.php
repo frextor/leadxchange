@@ -11,6 +11,9 @@ use App\Services\CompanyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 
 /**
  * AuthController (REFACTORED)
@@ -132,21 +135,63 @@ class AuthController extends Controller
     public function updateProfile(ProfileRequest $request): JsonResponse
     {
         try {
-            // Service handles ALL business logic
             $user = $this->authService->updateProfile(
                 $request->user(),
-                $request->validated()
+                $request->validated(),
+                $request->file('profile_picture')
             );
 
             return response()->json([
-                'message' => 'Profile updated successfully. Please create your company to complete onboarding.',
-                'data' => $this->authService->getUserData($user),
+                'message' => 'Profile updated successfully.',
+                'data'    => $this->authService->getUserData($user),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => $e->getMessage(),
             ], 400);
         }
+    }
+
+    /**
+     * POST /api/auth/forgot-password
+     */
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $request->validate(['email' => ['required', 'email']]);
+
+        $status = Password::sendResetLink($request->only('email'));
+
+        if ($status === Password::RESET_LINK_SENT) {
+            return response()->json(['message' => 'Reset link sent to your email.']);
+        }
+
+        return response()->json(['message' => __($status)], 422);
+    }
+
+    /**
+     * POST /api/auth/reset-password
+     */
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'token'                 => ['required', 'string'],
+            'email'                 => ['required', 'email'],
+            'password'              => ['required', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()],
+        ]);
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, $password) {
+                $user->forceFill(['password' => Hash::make($password)])->save();
+                $user->tokens()->delete();
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return response()->json(['message' => 'Password reset successfully.']);
+        }
+
+        return response()->json(['message' => __($status)], 422);
     }
 
     /**
@@ -165,7 +210,7 @@ class AuthController extends Controller
                 'position'  => ['nullable', 'string', 'max:100'],
             ]);
 
-            $company = $this->companyService->createCompany($request->user(), $validated);
+            $this->companyService->createCompany($request->user(), $validated);
 
             return response()->json([
                 'success' => true,
