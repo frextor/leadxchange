@@ -36,13 +36,13 @@ Route::prefix('auth')->group(function () {
     Route::post('/reset-password',  [AuthController::class, 'resetPassword']);
 });
 
+// Settings (all reference data in one call — public, no auth needed)
+Route::get('/settings', [SettingsController::class, 'index']);
+
 // ==========================================
 // Protected Routes (Web sessions + API tokens)
 // ==========================================
 Route::middleware(['auth:sanctum'])->group(function () {
-
-    // Settings (all reference data in one call)
-    Route::get('/settings', [SettingsController::class, 'index']);
 
     // Auth Routes
     Route::post('/logout', [AuthController::class, 'logout']);
