@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,58 +13,17 @@
     @endif
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.05);
-            }
-        }
-
-        .badge-pulse {
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .dropdown-enter {
-            animation: slideDown 0.2s ease-out;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
+        body { font-family: 'Inter', sans-serif; }
+        @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+        .badge-pulse { animation: pulse 2s infinite; }
+        @keyframes slideDown { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+        .dropdown-enter { animation: slideDown 0.2s ease-out; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
     @stack('styles')
 </head>
-
 <body class="bg-gray-50 antialiased">
 
     <!-- Navbar -->
@@ -79,7 +37,7 @@
                 <span class="font-semibold text-base text-gray-900 hidden sm:block">LeadXchange</span>
             </a>
 
-            <!-- Nav links (hidden on mobile) -->
+            <!-- Nav links -->
             <nav class="hidden md:flex items-center gap-6 text-sm">
                 <a href="{{ route('dashboard') }}"
                    class="font-medium transition-colors {{ request()->routeIs('dashboard') ? '' : 'text-gray-500 hover:text-gray-900' }}"
@@ -96,13 +54,22 @@
                    @if(request()->routeIs('connections.*')) style="color:#1E8F88;" @endif>
                     Network
                 </a>
-                <a href="#" class="font-medium text-gray-500 hover:text-gray-900 transition-colors">
-                    Messages
+                <a href="{{ route('groups.index') }}"
+                   class="font-medium transition-colors {{ request()->routeIs('groups.*') ? '' : 'text-gray-500 hover:text-gray-900' }}"
+                   @if(request()->routeIs('groups.*')) style="color:#1E8F88;" @endif>
+                    Groups
                 </a>
             </nav>
 
             <!-- Right side -->
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1">
+
+                <!-- Messages icon -->
+                <button class="relative w-9 h-9 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                </button>
 
                 <!-- Notification Bell -->
                 <div class="relative" id="notificationDropdown">
@@ -122,20 +89,16 @@
                             <h3 class="font-semibold text-gray-900">Connection Requests</h3>
                             <p class="text-xs text-gray-500 mt-0.5" id="requestCountText">Loading...</p>
                         </div>
-
                         <div id="loadingState" class="p-8 text-center">
                             <div class="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mx-auto" style="border-color:#2BB6A3; border-top-color:transparent;"></div>
                             <p class="text-gray-400 text-sm mt-3">Loading...</p>
                         </div>
-
                         <div id="requestsList" class="max-h-96 overflow-y-auto custom-scrollbar" style="display:none;"></div>
-
                         <div id="emptyState" class="p-10 text-center" style="display:none;">
                             <div class="text-4xl mb-3">📭</div>
                             <p class="text-gray-600 font-semibold text-sm">No pending requests</p>
                             <p class="text-gray-400 text-xs mt-1">All caught up!</p>
                         </div>
-
                         <div class="border-t border-gray-100 px-5 py-3">
                             <a href="{{ route('connections.index') }}"
                                class="text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors"
@@ -148,7 +111,7 @@
                 </div>
 
                 <!-- User Menu -->
-                <div class="relative" id="userDropdown">
+                <div class="relative ml-1" id="userDropdown">
                     <button onclick="toggleUserMenu()" class="flex items-center gap-2 pl-1 rounded-full hover:bg-gray-100 transition pr-2 py-1">
                         <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-[13px] flex-shrink-0"
                              style="background: linear-gradient(135deg, hsl(165 60% 60%), hsl(180 55% 45%));">
@@ -169,11 +132,7 @@
                             </a>
                             <a href="{{ route('connections.index') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition">
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                                Connections
-                            </a>
-                            <a href="#" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                                Settings
+                                Network
                             </a>
                         </div>
                         <div class="border-t border-gray-100">
@@ -187,7 +146,6 @@
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     </header>
@@ -197,10 +155,9 @@
         @yield('content')
     </main>
 
-    <!-- Toast Container -->
+    <!-- Toast -->
     <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
 
-    <!-- JavaScript -->
     <script>
         const CSRF = document.querySelector('meta[name="csrf-token"]').content;
         let notifLoaded = false;
@@ -208,22 +165,15 @@
         function toggleNotifications() {
             const panel = document.getElementById('notificationPanel');
             document.getElementById('userPanel').classList.add('hidden');
-
             if (panel.classList.contains('hidden')) {
                 panel.classList.remove('hidden');
-                if (!notifLoaded) {
-                    loadRequests();
-                    notifLoaded = true;
-                }
-            } else {
-                panel.classList.add('hidden');
-            }
+                if (!notifLoaded) { loadRequests(); notifLoaded = true; }
+            } else { panel.classList.add('hidden'); }
         }
 
         function toggleUserMenu() {
-            const panel = document.getElementById('userPanel');
             document.getElementById('notificationPanel').classList.add('hidden');
-            panel.classList.toggle('hidden');
+            document.getElementById('userPanel').classList.toggle('hidden');
         }
 
         document.addEventListener('click', function(e) {
@@ -235,294 +185,109 @@
 
         async function loadRequests() {
             const loading = document.getElementById('loadingState');
-            const list = document.getElementById('requestsList');
-            const empty = document.getElementById('emptyState');
-
+            const list    = document.getElementById('requestsList');
+            const empty   = document.getElementById('emptyState');
             try {
-                loading.style.display = 'block';
-                list.style.display = 'none';
-                empty.style.display = 'none';
-
-                const res = await fetch('/api/connections?type=received&status=pending', {
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                    credentials: 'same-origin'
-                });
-
-                if (!res.ok) throw new Error('Failed');
+                loading.style.display = 'block'; list.style.display = 'none'; empty.style.display = 'none';
+                const res  = await fetch('/api/connections?type=received&status=pending', { headers: {'Accept':'application/json'}, credentials: 'same-origin' });
+                if (!res.ok) throw new Error();
                 const data = await res.json();
                 displayRequests(data.data || []);
-            } catch (e) {
-                console.error(e);
-                loading.style.display = 'none';
-                empty.style.display = 'block';
-            }
+            } catch { loading.style.display='none'; empty.style.display='block'; }
         }
 
         function displayRequests(reqs) {
             const loading = document.getElementById('loadingState');
-            const list = document.getElementById('requestsList');
-            const empty = document.getElementById('emptyState');
-            const badge = document.getElementById('notificationBadge');
-            const count = document.getElementById('requestCountText');
+            const list    = document.getElementById('requestsList');
+            const empty   = document.getElementById('emptyState');
+            const badge   = document.getElementById('notificationBadge');
+            const count   = document.getElementById('requestCountText');
             const n = reqs.length;
-
             loading.style.display = 'none';
-
-            if (n > 0) {
-                badge.textContent = n;
-                badge.style.display = 'flex';
-                count.textContent = `${n} pending request${n > 1 ? 's' : ''}`;
-            } else {
-                badge.style.display = 'none';
-                count.textContent = 'No pending requests';
-            }
-
-            if (n === 0) {
-                list.style.display = 'none';
-                empty.style.display = 'block';
-                return;
-            }
-
-            empty.style.display = 'none';
-            list.style.display = 'block';
-
+            if (n > 0) { badge.textContent=n; badge.style.display='flex'; count.textContent=`${n} pending request${n>1?'s':''}`; }
+            else { badge.style.display='none'; count.textContent='No pending requests'; }
+            if (n === 0) { list.style.display='none'; empty.style.display='block'; return; }
+            empty.style.display = 'none'; list.style.display = 'block';
             list.innerHTML = reqs.map(r => `
                 <div class="p-4 border-b border-gray-100 hover:bg-gray-50 transition" id="req-${r.id}">
                     <div class="flex items-center space-x-3">
-                        <div class="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center shadow">
-                            <span class="text-white font-bold text-sm">${r.user.first_name.charAt(0)}${r.user.last_name.charAt(0)}</span>
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style="background:linear-gradient(135deg,#34d4bf,#1E8F88);">
+                            ${r.user.first_name.charAt(0)}${r.user.last_name.charAt(0)}
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-bold text-gray-900 truncate">${r.user.first_name} ${r.user.last_name}</p>
-                            <p class="text-xs text-gray-500 truncate">${r.user.email}</p>
-                            <p class="text-xs text-gray-400 mt-1"><i class="far fa-clock mr-1"></i>${timeAgo(r.created_at)}</p>
-                            <div class="flex space-x-2 mt-3">
-                                <button onclick="accept(${r.id})" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold py-2 rounded-lg transition">
-                                    <i class="fas fa-check mr-1"></i>Accept
-                                </button>
-                                <button onclick="reject(${r.id})" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-semibold py-2 rounded-lg transition">
-                                    <i class="fas fa-times mr-1"></i>Reject
-                                </button>
+                            <p class="text-xs text-gray-400 mt-0.5">${timeAgo(r.created_at)}</p>
+                            <div class="flex gap-2 mt-2">
+                                <button onclick="accept(${r.id})" class="flex-1 text-xs font-semibold py-1.5 rounded-lg text-white" style="background:#1E8F88;">Accept</button>
+                                <button onclick="reject(${r.id})" class="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition">Reject</button>
                             </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                </div>`).join('');
         }
 
         async function accept(id) {
             const el = document.getElementById(`req-${id}`);
+            el.style.opacity='0.5'; el.style.pointerEvents='none';
             try {
-                el.style.opacity = '0.5';
-                el.style.pointerEvents = 'none';
-                const res = await fetch(`/api/connections/${id}/accept`, {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': CSRF
-                    },
-                    credentials: 'same-origin'
-                });
-                if (!res.ok) throw new Error();
-                el.style.transform = 'translateX(100%)';
-                el.style.transition = 'all 0.3s';
-                setTimeout(() => {
-                    el.remove();
-                    loadRequests();
-                }, 300);
-                toast('Request accepted! 🎉', 'success');
-            } catch {
-                el.style.opacity = '1';
-                el.style.pointerEvents = 'auto';
-                toast('Failed to accept', 'error');
-            }
+                await fetch(`/api/connections/${id}/accept`, { method:'POST', headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF}, credentials:'same-origin' });
+                el.remove(); loadRequests(); toast('Request accepted! 🎉','success');
+            } catch { el.style.opacity='1'; el.style.pointerEvents='auto'; }
         }
 
         async function reject(id) {
             const el = document.getElementById(`req-${id}`);
+            el.style.opacity='0.5'; el.style.pointerEvents='none';
             try {
-                el.style.opacity = '0.5';
-                el.style.pointerEvents = 'none';
-                const res = await fetch(`/api/connections/${id}/reject`, {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': CSRF
-                    },
-                    credentials: 'same-origin'
-                });
-                if (!res.ok) throw new Error();
-                el.style.transform = 'translateX(-100%)';
-                el.style.transition = 'all 0.3s';
-                setTimeout(() => {
-                    el.remove();
-                    loadRequests();
-                }, 300);
-                toast('Request rejected', 'info');
-            } catch {
-                el.style.opacity = '1';
-                el.style.pointerEvents = 'auto';
-                toast('Failed to reject', 'error');
-            }
+                await fetch(`/api/connections/${id}/reject`, { method:'POST', headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF}, credentials:'same-origin' });
+                el.remove(); loadRequests(); toast('Request rejected','info');
+            } catch { el.style.opacity='1'; el.style.pointerEvents='auto'; }
         }
 
         function timeAgo(d) {
-            const diff = new Date() - new Date(d);
-            const m = Math.floor(diff / 60000);
-            const h = Math.floor(diff / 3600000);
-            const days = Math.floor(diff / 86400000);
-            if (m < 1) return 'Just now';
-            if (m < 60) return `${m}m ago`;
-            if (h < 24) return `${h}h ago`;
-            if (days < 7) return `${days}d ago`;
+            const diff=new Date()-new Date(d),m=Math.floor(diff/60000),h=Math.floor(diff/3600000),days=Math.floor(diff/86400000);
+            if(m<1)return'Just now'; if(m<60)return`${m}m ago`; if(h<24)return`${h}h ago`; if(days<7)return`${days}d ago`;
             return new Date(d).toLocaleDateString();
         }
 
         function incrementBadge() {
-            const badge = document.getElementById('notificationBadge');
-            const current = parseInt(badge.textContent) || 0;
-            badge.textContent = current + 1;
-            badge.style.display = 'flex';
+            const b=document.getElementById('notificationBadge');
+            b.textContent=parseInt(b.textContent||0)+1; b.style.display='flex';
         }
 
-        function prependRequest(data) {
-            const list  = document.getElementById('requestsList');
-            const empty = document.getElementById('emptyState');
-            const count = document.getElementById('requestCountText');
-
-            empty.style.display = 'none';
-            list.style.display  = 'block';
-
-            const n = list.children.length + 1;
-            count.textContent = `${n} pending request${n > 1 ? 's' : ''}`;
-
-            const item = document.createElement('div');
-            item.id        = `req-${data.connection_id}`;
-            item.className = 'p-4 border-b border-gray-100 hover:bg-gray-50 transition';
-            item.innerHTML = `
-                <div class="flex items-center space-x-3">
-                    <div class="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center shadow">
-                        <span class="text-white font-bold text-sm">${data.sender.first_name.charAt(0)}${data.sender.last_name.charAt(0)}</span>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-bold text-gray-900 truncate">${data.sender.first_name} ${data.sender.last_name}</p>
-                        <p class="text-xs text-gray-500 truncate">${data.sender.email}</p>
-                        <p class="text-xs text-gray-400 mt-1"><i class="far fa-clock mr-1"></i>Just now</p>
-                        <div class="flex space-x-2 mt-3">
-                            <button onclick="accept(${data.connection_id})" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold py-2 rounded-lg transition">
-                                <i class="fas fa-check mr-1"></i>Accept
-                            </button>
-                            <button onclick="reject(${data.connection_id})" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-semibold py-2 rounded-lg transition">
-                                <i class="fas fa-times mr-1"></i>Reject
-                            </button>
-                        </div>
-                    </div>
-                </div>`;
-            list.prepend(item);
-        }
-
-        function toast(msg, type = 'success') {
-            const c = {
-                success: 'bg-green-500',
-                error: 'bg-red-500',
-                info: 'bg-blue-500'
-            };
-            const i = {
-                success: 'fa-check-circle',
-                error: 'fa-exclamation-circle',
-                info: 'fa-info-circle'
-            };
-            const t = document.createElement('div');
-            t.className = `${c[type]} text-white px-6 py-3 rounded-lg shadow-2xl flex items-center space-x-3 transform transition-all`;
-            t.style.transform = 'translateX(400px)';
-            t.innerHTML = `<i class="fas ${i[type]}"></i><span class="font-medium">${msg}</span>`;
+        function toast(msg, type='success') {
+            const c={success:'bg-green-500',error:'bg-red-500',info:'bg-blue-500'};
+            const t=document.createElement('div');
+            t.className=`${c[type]} text-white px-6 py-3 rounded-lg shadow-2xl flex items-center space-x-3 transform transition-all`;
+            t.style.transform='translateX(400px)';
+            t.innerHTML=`<i class="fas fa-check-circle"></i><span class="font-medium">${msg}</span>`;
             document.getElementById('toastContainer').appendChild(t);
-            setTimeout(() => t.style.transform = 'translateX(0)', 10);
-            setTimeout(() => t.style.transform = 'translateX(400px)', 3000);
-            setTimeout(() => t.remove(), 3300);
+            setTimeout(()=>t.style.transform='translateX(0)',10);
+            setTimeout(()=>t.style.transform='translateX(400px)',3000);
+            setTimeout(()=>t.remove(),3300);
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            fetch('/api/connections?type=received&status=pending', {
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                    credentials: 'same-origin'
-                })
-                .then(r => r.json())
-                .then(d => {
-                    const n = (d.data || []).length;
-                    if (n > 0) {
-                        document.getElementById('notificationBadge').textContent = n;
-                        document.getElementById('notificationBadge').style.display = 'flex';
-                    }
-                })
-                .catch(console.error);
-
-            setInterval(() => {
-                if (notifLoaded) loadRequests();
-            }, 30000);
+            fetch('/api/connections?type=received&status=pending', { headers:{'Accept':'application/json'}, credentials:'same-origin' })
+                .then(r=>r.json()).then(d=>{ const n=(d.data||[]).length; if(n>0){document.getElementById('notificationBadge').textContent=n; document.getElementById('notificationBadge').style.display='flex';} }).catch(()=>{});
+            setInterval(()=>{ if(notifLoaded) loadRequests(); }, 30000);
         });
     </script>
 
     @if(config('firebase.api_key'))
     <script>
-        (function () {
-            firebase.initializeApp({
-                apiKey:            '{{ config("firebase.api_key") }}',
-                authDomain:        '{{ config("firebase.auth_domain") }}',
-                projectId:         '{{ config("firebase.project_id") }}',
-                storageBucket:     '{{ config("firebase.storage_bucket") }}',
-                messagingSenderId: '{{ config("firebase.messaging_sender_id") }}',
-                appId:             '{{ config("firebase.app_id") }}',
-            });
-
-            const messaging = firebase.messaging();
-            const vapidKey  = '{{ config("firebase.vapid_key") }}';
-
+        (function() {
+            firebase.initializeApp({ apiKey:'{{ config("firebase.api_key") }}', authDomain:'{{ config("firebase.auth_domain") }}', projectId:'{{ config("firebase.project_id") }}', storageBucket:'{{ config("firebase.storage_bucket") }}', messagingSenderId:'{{ config("firebase.messaging_sender_id") }}', appId:'{{ config("firebase.app_id") }}' });
+            const messaging=firebase.messaging(), vapidKey='{{ config("firebase.vapid_key") }}';
             async function initFcm() {
                 try {
-                    const permission = await Notification.requestPermission();
-                    if (permission !== 'granted') return;
-
-                    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-                    const token = await messaging.getToken({ vapidKey, serviceWorkerRegistration: swReg });
-
-                    if (token) {
-                        await fetch('/api/device-token', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': CSRF,
-                            },
-                            credentials: 'same-origin',
-                            body: JSON.stringify({ token, platform: 'web' }),
-                        });
-                    }
-                } catch (e) {
-                    console.warn('FCM init:', e.message);
-                }
+                    if(await Notification.requestPermission()!=='granted') return;
+                    const swReg=await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                    const token=await messaging.getToken({vapidKey,serviceWorkerRegistration:swReg});
+                    if(token) await fetch('/api/device-token',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':CSRF},credentials:'same-origin',body:JSON.stringify({token,platform:'web'})});
+                } catch(e){console.warn('FCM:',e.message);}
             }
-
-            messaging.onMessage((payload) => {
-                const d = payload.data || {};
-                incrementBadge();
-                if (notifLoaded) {
-                    prependRequest({
-                        connection_id: d.connection_id,
-                        sender: {
-                            first_name: d.sender_first_name,
-                            last_name:  d.sender_last_name,
-                            email:      d.sender_email,
-                        },
-                    });
-                }
-                toast(`${d.sender_first_name} ${d.sender_last_name} vous a envoyé une demande de connexion`, 'success');
-            });
-
+            messaging.onMessage(payload=>{ const d=payload.data||{}; incrementBadge(); toast(`${d.sender_first_name} ${d.sender_last_name} vous a envoyé une demande`,'success'); });
             initFcm();
         })();
     </script>
@@ -530,5 +295,4 @@
 
     @stack('scripts')
 </body>
-
 </html>

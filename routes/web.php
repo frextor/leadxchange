@@ -6,6 +6,8 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GroupController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -72,13 +74,8 @@ Route::middleware('auth')->group(function () {
 Route::middleware('auth')->group(function () {
 
     // Dashboard
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
-
-    Route::get('/home', function () {
-        return view('dashboard');
-    })->name('home');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/home',      [DashboardController::class, 'index'])->name('home');
 
     // Company Routes
     Route::get('/company/create', [CompanyController::class, 'create'])->name('company.create');
@@ -88,6 +85,12 @@ Route::middleware('auth')->group(function () {
 
     // Members/Network Page (Find Members)
     Route::get('/connections', [MemberController::class, 'index'])->name('connections.index');
+
+    // Groups
+    Route::get('/groups',               [GroupController::class, 'index'])->name('groups.index');
+    Route::post('/groups',              [GroupController::class, 'store'])->name('groups.store');
+    Route::post('/groups/{id}/join',    [GroupController::class, 'join'])->name('groups.join');
+    Route::delete('/groups/{id}/leave', [GroupController::class, 'leave'])->name('groups.leave');
 
     // Profile Routes
     Route::get('/profile', function () {
