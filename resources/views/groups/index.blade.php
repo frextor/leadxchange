@@ -31,9 +31,93 @@
 <div class="max-w-7xl mx-auto px-6 lg:px-8 py-8">
 
     {{-- Header --}}
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold text-gray-900 tracking-tight">Groups</h1>
-        <p class="text-sm text-gray-500 mt-1">Discover groups recommended based on your professional interests</p>
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-semibold text-gray-900 tracking-tight">Groups</h1>
+            <p class="text-sm text-gray-500 mt-1">Discover groups recommended based on your professional interests</p>
+        </div>
+        <button onclick="document.getElementById('createGroupModal').classList.remove('hidden')"
+            class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition"
+            style="background:#1E8F88;" onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Create a group
+        </button>
+    </div>
+
+    {{-- ── CREATE GROUP MODAL ── --}}
+    <div id="createGroupModal" class="{{ $errors->any() ? '' : 'hidden' }} fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.4);">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <h2 class="font-semibold text-gray-900">Create a group</h2>
+                <button type="button" onclick="document.getElementById('createGroupModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <form method="POST" action="{{ route('groups.store') }}" class="px-6 py-5 space-y-4">
+                @csrf
+
+                {{-- Name --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Group name <span class="text-red-400">*</span></label>
+                    <input type="text" name="name" value="{{ old('name') }}" placeholder="Ex: Sales & Business Dev Morocco"
+                        required maxlength="100"
+                        class="gr-input @error('name') border-red-400 @enderror">
+                    @error('name') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                </div>
+
+                {{-- Description --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
+                    <textarea name="description" rows="3" placeholder="What is this group about?" maxlength="500"
+                        class="gr-input" style="height:auto;padding-top:10px;padding-bottom:10px;resize:none;">{{ old('description') }}</textarea>
+                    @error('description') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                </div>
+
+                {{-- Sector / Interest --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Category (interest)</label>
+                    <select name="sector_id" class="gr-input" style="appearance:none;">
+                        <option value="">— No category —</option>
+                        @foreach($sectors as $sector)
+                            <option value="{{ $sector->id }}" {{ old('sector_id') == $sector->id ? 'selected' : '' }}>
+                                {{ $sector->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('sector_id') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                </div>
+
+                {{-- Cover color --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Cover color</label>
+                    <div class="flex gap-2 flex-wrap">
+                        @foreach(['#1E8F88','#6366F1','#F59E0B','#EF4444','#8B5CF6','#EC4899','#10B981','#3B82F6'] as $color)
+                        <label class="cursor-pointer color-swatch" style="position:relative;">
+                            <input type="radio" name="cover_color" value="{{ $color }}" class="sr-only"
+                                {{ (old('cover_color', '#1E8F88') === $color) ? 'checked' : '' }}
+                                onchange="updateSwatches()">
+                            <span class="block w-7 h-7 rounded-full transition-all"
+                                  style="background:{{ $color }}; box-shadow: {{ (old('cover_color', '#1E8F88') === $color) ? '0 0 0 2px white, 0 0 0 4px '.$color : 'none' }};"></span>
+                        </label>
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="document.getElementById('createGroupModal').classList.add('hidden')"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition"
+                        style="background:#1E8F88;" onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
+                        Create
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <div class="flex gap-6 items-start">
@@ -154,5 +238,25 @@
         document.getElementById('categoryInput').value = id;
         document.getElementById('filterForm').submit();
     }
+
+    function updateSwatches() {
+        document.querySelectorAll('.color-swatch').forEach(label => {
+            const input = label.querySelector('input');
+            const span  = label.querySelector('span');
+            const color = input.value;
+            span.style.boxShadow = input.checked
+                ? `0 0 0 2px white, 0 0 0 4px ${color}`
+                : 'none';
+        });
+    }
+
+    document.querySelectorAll('.color-swatch input').forEach(input => {
+        input.addEventListener('change', updateSwatches);
+    });
+
+    // Close modal on backdrop click
+    document.getElementById('createGroupModal').addEventListener('click', function(e) {
+        if (e.target === this) this.classList.add('hidden');
+    });
 </script>
 @endpush

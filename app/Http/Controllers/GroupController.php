@@ -46,6 +46,30 @@ class GroupController extends Controller
         ));
     }
 
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name'        => ['required', 'string', 'max:100'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'sector_id'   => ['nullable', 'integer', 'exists:sectors,id'],
+            'cover_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+        ]);
+
+        $group = Group::create([
+            'name'          => $validated['name'],
+            'description'   => $validated['description'] ?? null,
+            'sector_id'     => $validated['sector_id'] ?? null,
+            'cover_color'   => $validated['cover_color'] ?? '#1E8F88',
+            'created_by'    => $request->user()->id,
+            'is_public'     => true,
+            'members_count' => 1,
+        ]);
+
+        $group->members()->attach($request->user()->id, ['role' => 'admin']);
+
+        return redirect()->route('groups.index')->with('success', 'Groupe "' . $group->name . '" créé avec succès !');
+    }
+
     public function join(Request $request, int $id)
     {
         $group = Group::findOrFail($id);

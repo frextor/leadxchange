@@ -91,9 +91,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/connections', [MemberController::class, 'index'])->name('connections.index');
 
     // Groups
-    Route::get('/groups',              [GroupController::class, 'index'])->name('groups.index');
-    Route::post('/groups/{id}/join',   [GroupController::class, 'join'])->name('groups.join');
-    Route::delete('/groups/{id}/leave',[GroupController::class, 'leave'])->name('groups.leave');
+    Route::get('/groups',               [GroupController::class, 'index'])->name('groups.index');
+    Route::post('/groups',              [GroupController::class, 'store'])->name('groups.store');
+    Route::post('/groups/{id}/join',    [GroupController::class, 'join'])->name('groups.join');
+    Route::delete('/groups/{id}/leave', [GroupController::class, 'leave'])->name('groups.leave');
 
     // Profile Routes
     Route::get('/profile', function () {
