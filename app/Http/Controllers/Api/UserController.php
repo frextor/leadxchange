@@ -40,8 +40,8 @@ class UserController extends Controller
             $perPage = 10;
 
             $filters = $request->only([
-                'gender', 'age_min', 'age_max', 'city_birth',
-                'city_living', 'company', 'interests', 'open_to_network',
+                'gender', 'age_min', 'age_max', 'city_birth_id',
+                'city_living_id', 'company', 'interests', 'open_to_network',
             ]);
 
             $users = $this->userService->getPaginatedUsers(
@@ -77,8 +77,37 @@ class UserController extends Controller
     }
 
     /**
+     * Get recommended users ordered by location + shared interests.
+     *
+     * GET /api/users/recommendations?page=1&search=query
+     */
+    public function recommendations(Request $request): JsonResponse
+    {
+        try {
+            $currentUser = $request->user()->load(['profile', 'interests']);
+            $page        = (int) $request->get('page', 1);
+            $search      = $request->get('search', '') ?: null;
+
+            $users = $this->userService->getRecommendedUsers($currentUser, $page, $search);
+
+            return response()->json([
+                'success'       => true,
+                'users'         => $users->items(),
+                'current_page'  => $users->currentPage(),
+                'last_page'     => $users->lastPage(),
+                'per_page'      => $users->perPage(),
+                'total'         => $users->total(),
+                'has_more_pages'=> $users->hasMorePages(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to load recommendations', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Failed to load recommendations'], 500);
+        }
+    }
+
+    /**
      * Get user details by ID.
-     * 
+     *
      * GET /api/users/{id}
      * 
      * @param int $id

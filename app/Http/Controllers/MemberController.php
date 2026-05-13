@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\City;
 use App\Models\Interest;
 use App\Models\ProfileVisitor;
 use App\Services\UserService;
@@ -37,6 +38,7 @@ class MemberController extends Controller
         return view('members.index', [
             'interests'      => Interest::orderBy('name')->get(),
             'userInterests'  => $user->interests()->pluck('interests.id')->toArray(),
+            'cities'         => City::with('country:id,name')->orderBy('name')->get(),
             'newVisitorCount'=> ProfileVisitor::where('profile_user_id', $user->id)
                                     ->where('is_new', true)->count(),
             'initialTab'     => $request->get('tab', 'recommendations'),

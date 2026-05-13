@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Connection;
+use App\Models\Event;
+use App\Models\Group;
+use App\Models\Plan;
 use App\Models\User;
 use App\Services\ProfileService;
 use Illuminate\Http\Request;
@@ -35,9 +38,29 @@ class DashboardController extends Controller
             ->limit(4)
             ->get();
 
+        $plans = Plan::orderBy('price')->get();
+
+        $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
+        $featuredGroups = Group::with(['sector:id,name'])
+            ->withCount('members')
+            ->where('is_public', true)
+            ->orderBy('members_count', 'desc')
+            ->limit(3)
+            ->get();
+
+        $upcomingEvents    = Event::with(['sector:id,name'])
+            ->where('is_public', true)
+            ->where('starts_at', '>=', now())
+            ->orderBy('starts_at')
+            ->limit(3)
+            ->get();
+        $attendingEventIds = $user->events()->pluck('events.id')->toArray();
+
         return view('dashboard', compact(
             'user', 'connectionCount', 'pendingCount', 'groupCount',
-            'completion', 'missing', 'prospects'
+            'completion', 'missing', 'prospects', 'plans',
+            'featuredGroups', 'memberGroupIds',
+            'upcomingEvents', 'attendingEventIds'
         ));
     }
 }

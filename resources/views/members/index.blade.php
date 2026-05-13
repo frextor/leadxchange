@@ -116,7 +116,7 @@
             {{-- Primary filters (always visible) --}}
             <div class="grid grid-cols-2 gap-5">
                 <x-form-field label="Name">
-                    <input name="name" type="text" placeholder="e.g. Alex Barin" class="ms-input">
+                    <input name="search" type="text" placeholder="Name, position, company, city…" class="ms-input">
                 </x-form-field>
 
                 <x-form-field label="Gender">
@@ -169,7 +169,16 @@
                         </x-form-field>
 
                         <x-form-field label="Born in">
-                            <input name="city_birth" type="text" placeholder="e.g. Casablanca, Morocco" class="ms-input">
+                            <select name="city_birth_id" class="ms-input">
+                                <option value="">— All cities —</option>
+                                @foreach($cities->groupBy('country.name') as $country => $group)
+                                <optgroup label="{{ $country }}">
+                                    @foreach($group as $city)
+                                    <option value="{{ $city->id }}">{{ $city->name }}</option>
+                                    @endforeach
+                                </optgroup>
+                                @endforeach
+                            </select>
                         </x-form-field>
 
                         <x-form-field label="Company">
@@ -180,7 +189,16 @@
                     {{-- RIGHT --}}
                     <div class="flex flex-col gap-4">
                         <x-form-field label="City of living">
-                            <input name="city_living" type="text" placeholder="e.g. Rabat, Morocco" class="ms-input">
+                            <select name="city_living_id" class="ms-input">
+                                <option value="">— All cities —</option>
+                                @foreach($cities->groupBy('country.name') as $country => $group)
+                                <optgroup label="{{ $country }}">
+                                    @foreach($group as $city)
+                                    <option value="{{ $city->id }}">{{ $city->name }}</option>
+                                    @endforeach
+                                </optgroup>
+                                @endforeach
+                            </select>
                         </x-form-field>
 
                         <x-form-field label="About">
@@ -316,7 +334,7 @@ async function loadRec(page = recPage) {
         const params = new URLSearchParams({ page: recPage, per_page: 10 });
         if (recSearch) params.set('search', recSearch);
 
-        const data = await apiFetch('/api/users?' + params);
+        const data = await apiFetch('/api/users/recommendations?' + params);
         recTotal = data.total;
 
         updateBadge('recommendations', data.total);
@@ -463,6 +481,15 @@ function memberRowHtml(m, isLast) {
     const hue2 = (hue + 40) % 360;
     const initials = (m.first_name.charAt(0) + m.last_name.charAt(0)).toUpperCase();
 
+    const subtitle = m.job_title || m.position || '';
+
+    const nearYouBadge = m.same_city
+        ? `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ml-1.5" style="background:#E6F7F4;color:#1E8F88;">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              Near you
+           </span>`
+        : '';
+
     const sharedHtml = m.shared_interests && m.shared_interests.length > 0
         ? `<div class="text-[13.5px] text-gray-700 flex items-start gap-2 leading-snug">
             <span style="color:#1E8F88;" class="mt-[3px]">
@@ -481,16 +508,23 @@ function memberRowHtml(m, isLast) {
          style="grid-template-columns: 260px 1fr auto;">
 
       <div class="flex items-center gap-3.5 min-w-0">
-        <div class="w-12 h-12 rounded-full grid place-items-center text-white font-semibold text-base flex-none"
-             style="background: linear-gradient(135deg, hsl(${hue} 60% 60%), hsl(${hue2} 55% 45%));">
-          ${initials}
+        <div class="w-12 h-12 rounded-full flex-none overflow-hidden">
+          ${m.avatar
+            ? `<img src="${m.avatar}" alt="${initials}" class="w-full h-full object-cover">`
+            : `<div class="w-full h-full grid place-items-center text-white font-semibold text-base" style="background: linear-gradient(135deg, hsl(${hue} 60% 60%), hsl(${hue2} 55% 45%));">${initials}</div>`
+          }
         </div>
         <div class="min-w-0">
           <a href="/profile/${m.id}" class="font-semibold text-[15px] hover:underline block" style="color:#1E8F88;">${m.first_name} ${m.last_name}</a>
-          ${m.city_living ? `<div class="text-[13px] text-gray-400 mt-0.5 flex items-center gap-1.5 truncate">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-            ${m.city_living}</div>` : ''}
-          ${m.company ? `<div class="text-[12.5px] text-gray-500 mt-0.5">${m.company.name}</div>` : ''}
+          ${subtitle ? `<div class="text-[12.5px] text-gray-500 mt-0.5 truncate">${subtitle}</div>` : ''}
+          ${m.city_living ? `<div class="text-[13px] text-gray-400 mt-0.5 flex items-center gap-0.5 flex-wrap">
+            <span class="flex items-center gap-1">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              ${m.city_living}
+            </span>
+            ${nearYouBadge}
+          </div>` : ''}
+          ${m.company ? `<div class="text-[12px] text-gray-400 mt-0.5">${m.company.name}</div>` : ''}
         </div>
       </div>
 
@@ -513,11 +547,11 @@ function visitorRowHtml(v, isLast) {
       ${v.is_new ? `<span class="absolute left-0 top-0 bottom-0 w-[3px]" style="background:#1E8F88;"></span>` : ''}
 
       <div class="flex items-center gap-3.5 min-w-0">
-        <div class="relative flex-none">
-          <div class="w-12 h-12 rounded-full grid place-items-center text-white font-semibold text-base"
-               style="background: linear-gradient(135deg, hsl(${hue} 60% 60%), hsl(${hue2} 55% 45%));">
-            ${initials}
-          </div>
+        <div class="relative flex-none w-12 h-12 rounded-full overflow-hidden">
+          ${v.avatar
+            ? `<img src="${v.avatar}" alt="${initials}" class="w-full h-full object-cover">`
+            : `<div class="w-full h-full grid place-items-center text-white font-semibold text-base" style="background: linear-gradient(135deg, hsl(${hue} 60% 60%), hsl(${hue2} 55% 45%));">${initials}</div>`
+          }
           ${v.is_new ? `<span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-[2.5px] border-white" style="background:#10B981;"></span>` : ''}
         </div>
         <div class="min-w-0">

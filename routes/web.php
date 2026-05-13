@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EventController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\ProfileController;
@@ -91,6 +92,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/groups',              [GroupController::class, 'store'])->name('groups.store');
     Route::post('/groups/{id}/join',    [GroupController::class, 'join'])->name('groups.join');
     Route::delete('/groups/{id}/leave', [GroupController::class, 'leave'])->name('groups.leave');
+
+    // Events
+    Route::get('/events',               [EventController::class, 'index'])->name('events.index');
+    Route::post('/events',              [EventController::class, 'store'])->name('events.store');
+    Route::post('/events/{id}/join',    [EventController::class, 'join'])->name('events.join');
+    Route::delete('/events/{id}/leave', [EventController::class, 'leave'])->name('events.leave');
 
     // Profile Routes
     Route::get('/profile', function () {

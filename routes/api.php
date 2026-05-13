@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ProfileVisitorController;
 use App\Http\Controllers\Api\CountryController;
+use App\Http\Controllers\Api\EventController as ApiEventController;
+use App\Http\Controllers\Api\GroupController;
 use App\Http\Controllers\Api\LanguageController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\UserController;
@@ -67,8 +69,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 
     // User Routes
-    Route::get('/users', [UserController::class, 'index']);       // Get paginated users list
-    Route::get('/users/{id}', [UserController::class, 'show']);   // Get user details
+    Route::get('/users',                  [UserController::class, 'index']);           // Paginated list + search
+    Route::get('/users/recommendations',  [UserController::class, 'recommendations']); // Location + interest scoring
+    Route::get('/users/{id}',             [UserController::class, 'show']);            // User details
 
     // FCM Device Token Routes
     Route::post('/device-token', [DeviceTokenController::class, 'store']);
@@ -85,4 +88,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/languages',                [LanguageController::class, 'index']);
     Route::get('/countries',                [CountryController::class, 'index']);
     Route::get('/profile/visitors',         [ProfileVisitorController::class, 'index']);
+
+    // Group Routes
+    Route::get('/groups',              [GroupController::class, 'index']);
+    Route::post('/groups',             [GroupController::class, 'store']);
+    Route::get('/groups/{id}',         [GroupController::class, 'show']);
+    Route::post('/groups/{id}/join',   [GroupController::class, 'join']);
+    Route::delete('/groups/{id}/leave',[GroupController::class, 'leave']);
+
+    // Event Routes
+    Route::get('/events',               [ApiEventController::class, 'index']);
+    Route::post('/events',              [ApiEventController::class, 'store']);
+    Route::get('/events/{id}',          [ApiEventController::class, 'show']);
+    Route::post('/events/{id}/join',    [ApiEventController::class, 'join']);
+    Route::delete('/events/{id}/leave', [ApiEventController::class, 'leave']);
 });

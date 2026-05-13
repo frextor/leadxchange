@@ -23,9 +23,11 @@ class ProfileVisitorController extends Controller
         $page   = (int) $request->get('page', 1);
 
         $query = ProfileVisitor::with([
-                'visitor:id,first_name,last_name,email,city_living,company_id',
-                'visitor.company:id,name,sector',
+                'visitor:id,first_name,last_name,email,city_living_id,company_id',
+                'visitor.company:id,name,sector_id',
+                'visitor.company.sector:id,name',
                 'visitor.profile:id,user_id,job_title,avatar,open_to_network',
+                'visitor.cityLiving:id,name',
             ])
             ->where('profile_user_id', $me->id)
             ->orderByDesc('last_visited_at');
@@ -59,9 +61,10 @@ class ProfileVisitorController extends Controller
                 'first_name'       => $u->first_name,
                 'last_name'        => $u->last_name,
                 'email'            => $u->email,
-                'city_living'      => $u->city_living,
+                'city_living'      => $u->cityLiving?->name,
+                'avatar'           => $u->profile?->avatar_url,
                 'job_title'        => $u->profile?->job_title,
-                'company'          => $u->company ? ['name' => $u->company->name, 'sector' => $u->company->sector] : null,
+                'company'          => $u->company ? ['name' => $u->company->name, 'sector' => $u->company->sector?->name] : null,
                 'connection_status' => $conn?->status,
                 'connection_id'     => $conn?->id,
                 'i_am_sender'       => $conn ? ($conn->sender_id === $myId) : false,

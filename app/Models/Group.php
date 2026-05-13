@@ -30,8 +30,7 @@ class Group extends Model
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'group_user')
-                    ->withPivot('role', 'joined_at')
-                    ->withTimestamps();
+                    ->withPivot('role', 'joined_at');
     }
 
     public function isMember(int $userId): bool

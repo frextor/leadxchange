@@ -23,14 +23,13 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'gender',
-        'city_birth',
-        'city_living',
+        'city_birth_id',
+        'city_living_id',
         'birthday',
         'phone',
         'phone_country_code',
         'nationality_id',
         'company_id',
-        'city_id',
         'position',
         'onboarding_completed',
         'newsletter',
@@ -67,9 +66,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(Company::class);
     }
 
-    public function city()
+    public function cityLiving()
     {
-        return $this->belongsTo(\App\Models\City::class);
+        return $this->belongsTo(\App\Models\City::class, 'city_living_id');
+    }
+
+    public function cityBirth()
+    {
+        return $this->belongsTo(\App\Models\City::class, 'city_birth_id');
     }
 
     public function profile()
@@ -86,6 +90,12 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->belongsToMany(\App\Models\Group::class, 'group_user')
                     ->withPivot('role', 'joined_at');
+    }
+
+    public function events()
+    {
+        return $this->belongsToMany(\App\Models\Event::class, 'event_user')
+                    ->withPivot('role', 'registered_at');
     }
 
     public function languages()
@@ -139,8 +149,8 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasCompletedProfile(): bool
     {
         return !is_null($this->gender)
-            && !is_null($this->city_birth)
-            && !is_null($this->city_living)
+            && !is_null($this->city_birth_id)
+            && !is_null($this->city_living_id)
             && !is_null($this->birthday);
     }
 
