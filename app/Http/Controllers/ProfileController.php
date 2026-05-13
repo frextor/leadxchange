@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\City;
 use App\Models\Interest;
 use App\Models\ProfileVisitor;
 use App\Models\Sector;
@@ -56,6 +57,7 @@ class ProfileController extends Controller
             'userInterests' => $targetUser->interests,
             'allInterests'  => Interest::orderBy('name')->get(),
             'sectors'       => Sector::orderBy('name')->get(),
+            'cities'        => City::with('country:id,name')->orderBy('name')->get(),
             'completion'    => $this->profileService->getCompletionPercentage($targetUser),
             'missing'       => $id === $currentUserId ? $this->profileService->getMissingFields($targetUser) : [],
             'isOwnProfile'  => $id === $currentUserId,

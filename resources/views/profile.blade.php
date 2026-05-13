@@ -475,11 +475,53 @@ $currentServicesOffered = $profile?->services_offered ?? [];
             </div>
             <div>
                 <label class="lbl">Ville actuelle</label>
-                <input id="b_city_living" type="text" class="inp" placeholder="Paris, Casablanca…" value="{{ $user['city_living'] ?? '' }}">
+                <div class="relative">
+                    <input type="text" id="b_city_living_search" autocomplete="off"
+                           placeholder="Rechercher une ville…"
+                           class="inp"
+                           value="{{ $user['city_living'] ?? '' }}"
+                           oninput="filterCityDropdown('living', this.value)"
+                           onfocus="showCityDropdown('living')"
+                           onblur="hideCityDropdown('living')">
+                    <input type="hidden" id="b_city_living_id" value="{{ $user['city_living_id'] ?? '' }}">
+                    <div id="city_living_dropdown"
+                         class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto hidden">
+                        @foreach($cities as $city)
+                        <button type="button"
+                                class="city-opt w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-700"
+                                data-id="{{ $city->id }}" data-name="{{ $city->name }}"
+                                onmousedown="pickCity('living', {{ $city->id }}, '{{ addslashes($city->name) }}')">
+                            {{ $city->name }}
+                            <span class="text-xs text-gray-400 ml-1">{{ $city->country?->name }}</span>
+                        </button>
+                        @endforeach
+                    </div>
+                </div>
             </div>
             <div>
                 <label class="lbl">Ville de naissance</label>
-                <input id="b_city_birth" type="text" class="inp" placeholder="Rabat, Lyon…" value="{{ $user['city_birth'] ?? '' }}">
+                <div class="relative">
+                    <input type="text" id="b_city_birth_search" autocomplete="off"
+                           placeholder="Rechercher une ville…"
+                           class="inp"
+                           value="{{ $user['city_birth'] ?? '' }}"
+                           oninput="filterCityDropdown('birth', this.value)"
+                           onfocus="showCityDropdown('birth')"
+                           onblur="hideCityDropdown('birth')">
+                    <input type="hidden" id="b_city_birth_id" value="{{ $user['city_birth_id'] ?? '' }}">
+                    <div id="city_birth_dropdown"
+                         class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto hidden">
+                        @foreach($cities as $city)
+                        <button type="button"
+                                class="city-opt w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-700"
+                                data-id="{{ $city->id }}" data-name="{{ $city->name }}"
+                                onmousedown="pickCity('birth', {{ $city->id }}, '{{ addslashes($city->name) }}')">
+                            {{ $city->name }}
+                            <span class="text-xs text-gray-400 ml-1">{{ $city->country?->name }}</span>
+                        </button>
+                        @endforeach
+                    </div>
+                </div>
             </div>
         </div>
         <div class="modal-footer">
@@ -678,12 +720,12 @@ $currentServicesOffered = $profile?->services_offered ?? [];
         setBtnLoading('btn-save-basic', true);
         try {
             await apiFetch('/api/profile/basic', 'PUT', {
-                first_name:  document.getElementById('b_first_name').value,
-                last_name:   document.getElementById('b_last_name').value,
-                gender:      document.getElementById('b_gender').value || null,
-                birthday:    document.getElementById('b_birthday').value || null,
-                city_living: document.getElementById('b_city_living').value || null,
-                city_birth:  document.getElementById('b_city_birth').value || null,
+                first_name:      document.getElementById('b_first_name').value,
+                last_name:       document.getElementById('b_last_name').value,
+                gender:          document.getElementById('b_gender').value || null,
+                birthday:        document.getElementById('b_birthday').value || null,
+                city_living_id:  document.getElementById('b_city_living_id').value || null,
+                city_birth_id:   document.getElementById('b_city_birth_id').value || null,
             });
             closeModal('modal-basic');
             toast('Informations mises à jour !', 'success');
@@ -816,6 +858,32 @@ $currentServicesOffered = $profile?->services_offered ?? [];
         setTimeout(() => t.style.transform = 'translateX(0)', 10);
         setTimeout(() => t.style.transform = 'translateX(400px)', 3000);
         setTimeout(() => t.remove(), 3300);
+    }
+
+    // ── City autocomplete dropdowns ──
+    function filterCityDropdown(type, q) {
+        const dd = document.getElementById(`city_${type}_dropdown`);
+        const btns = dd.querySelectorAll('.city-opt');
+        const lq = q.toLowerCase();
+        let any = false;
+        btns.forEach(b => {
+            const show = b.dataset.name.toLowerCase().includes(lq);
+            b.style.display = show ? '' : 'none';
+            if (show) any = true;
+        });
+        dd.classList.toggle('hidden', !any);
+        if (!q) document.getElementById(`b_city_${type}_id`).value = '';
+    }
+    function showCityDropdown(type) {
+        document.getElementById(`city_${type}_dropdown`).classList.remove('hidden');
+    }
+    function hideCityDropdown(type) {
+        setTimeout(() => document.getElementById(`city_${type}_dropdown`).classList.add('hidden'), 150);
+    }
+    function pickCity(type, id, name) {
+        document.getElementById(`b_city_${type}_search`).value = name;
+        document.getElementById(`b_city_${type}_id`).value = id;
+        document.getElementById(`city_${type}_dropdown`).classList.add('hidden');
     }
 </script>
 @endpush

@@ -55,7 +55,7 @@ class RegisterController extends Controller
             'phone'          => ['nullable', 'string', 'max:30', 'unique:users,phone'],
             'gender'         => ['required', 'in:male,female,other'],
             'nationality_id' => ['required', 'integer', 'exists:nationalities,id'],
-            'city_id'        => ['required', 'integer', 'exists:cities,id'],
+            'city_living_id' => ['required', 'integer', 'exists:cities,id'],
             'birthday'       => ['required', 'date', 'before:today'],
             'terms'          => ['required', 'accepted'],
         ], [
@@ -70,8 +70,8 @@ class RegisterController extends Controller
             'gender.required'         => 'Veuillez sélectionner votre sexe.',
             'nationality_id.required' => 'Veuillez sélectionner votre nationalité.',
             'nationality_id.exists'   => 'Nationalité invalide.',
-            'city_id.required'        => 'Veuillez sélectionner votre ville de résidence.',
-            'city_id.exists'          => 'Ville invalide.',
+            'city_living_id.required' => 'Veuillez sélectionner votre ville de résidence.',
+            'city_living_id.exists'   => 'Ville invalide.',
             'birthday.required'       => 'La date de naissance est requise.',
             'birthday.before'         => 'La date de naissance doit être antérieure à aujourd\'hui.',
             'terms.required'          => 'Vous devez accepter les conditions.',
@@ -88,7 +88,7 @@ class RegisterController extends Controller
                 'phone_country_code' => $validated['phone_country_code'] ?? null,
                 'gender'             => $validated['gender'],
                 'nationality_id'     => $validated['nationality_id'],
-                'city_id'            => $validated['city_id'],
+                'city_living_id'     => $validated['city_living_id'],
                 'birthday'           => $validated['birthday'],
             ]);
 

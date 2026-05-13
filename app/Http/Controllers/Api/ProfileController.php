@@ -20,12 +20,12 @@ class ProfileController extends Controller
     public function updateBasic(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'first_name' => 'sometimes|string|max:100',
-            'last_name'  => 'sometimes|string|max:100',
-            'gender'     => 'nullable|in:male,female,other',
-            'birthday'   => 'nullable|date',
-            'city_birth' => 'nullable|string|max:100',
-            'city_living'=> 'nullable|string|max:100',
+            'first_name'     => 'sometimes|string|max:100',
+            'last_name'      => 'sometimes|string|max:100',
+            'gender'         => 'nullable|in:male,female,other',
+            'birthday'       => 'nullable|date',
+            'city_birth_id'  => 'nullable|integer|exists:cities,id',
+            'city_living_id' => 'nullable|integer|exists:cities,id',
         ]);
 
         $this->profileService->updateBasicInfo($request->user(), $data);

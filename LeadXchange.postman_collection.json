@@ -1,0 +1,594 @@
+{
+  "info": {
+    "name": "LeadXchange API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost/api", "type": "string" },
+    { "key": "token",    "value": "",                     "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/register", "host": ["{{base_url}}"], "path": ["auth","register"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"first_name\": \"Karim\",\n  \"last_name\": \"Benali\",\n  \"email\": \"karim@example.com\",\n  \"password\": \"password\",\n  \"password_confirmation\": \"password\",\n  \"phone\": \"+212600000000\",\n  \"gender\": \"male\",\n  \"nationality_id\": 1,\n  \"city_living_id\": 2,\n  \"birthday\": \"1992-05-15\",\n  \"terms\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["const r = pm.response.json(); if(r.token) pm.collectionVariables.set('token', r.token);"],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth","login"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"email\": \"karim@example.com\",\n  \"password\": \"password\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/logout", "host": ["{{base_url}}"], "path": ["logout"] }
+          }
+        },
+        {
+          "name": "Me (current user)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/me", "host": ["{{base_url}}"], "path": ["me"] }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/forgot-password", "host": ["{{base_url}}"], "path": ["auth","forgot-password"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"email\": \"karim@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/reset-password", "host": ["{{base_url}}"], "path": ["auth","reset-password"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"token\": \"RESET_TOKEN\",\n  \"email\": \"karim@example.com\",\n  \"password\": \"newpassword\",\n  \"password_confirmation\": \"newpassword\"\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Get my profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/profile", "host": ["{{base_url}}"], "path": ["profile"] }
+          }
+        },
+        {
+          "name": "Update basic info",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/profile/basic", "host": ["{{base_url}}"], "path": ["profile","basic"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"first_name\": \"Karim\",\n  \"last_name\": \"Benali\",\n  \"gender\": \"male\",\n  \"birthday\": \"1992-05-15\",\n  \"city_living_id\": 2,\n  \"city_birth_id\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Update professional info",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/profile/professional", "host": ["{{base_url}}"], "path": ["profile","professional"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"job_title\": \"Product Manager\",\n  \"experience_level\": \"senior\",\n  \"looking_for\": [1, 3],\n  \"services_offered\": [2]\n}"
+            }
+          }
+        },
+        {
+          "name": "Update bio",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/profile/bio", "host": ["{{base_url}}"], "path": ["profile","bio"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"bio\": \"Entrepreneur passionné par l'innovation.\",\n  \"motto\": \"Build, Learn, Repeat.\",\n  \"open_to_network\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Update avatar",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/profile/avatar", "host": ["{{base_url}}"], "path": ["profile","avatar"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "avatar", "type": "file", "src": "" }]
+            }
+          }
+        },
+        {
+          "name": "Sync interests",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/profile/interests", "host": ["{{base_url}}"], "path": ["profile","interests"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"interests\": [1, 4, 7]\n}"
+            }
+          }
+        },
+        {
+          "name": "Who visited my profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profile/visitors?filter=all&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["profile","visitors"],
+              "query": [
+                { "key": "filter", "value": "all", "description": "all | new" },
+                { "key": "page",   "value": "1" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Members",
+      "item": [
+        {
+          "name": "Recommendations (Near me + interests)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/recommendations?page=1",
+              "host": ["{{base_url}}"],
+              "path": ["users","recommendations"],
+              "query": [
+                { "key": "page",   "value": "1" },
+                { "key": "search", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search / List with filters",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users?page=1",
+              "host": ["{{base_url}}"],
+              "path": ["users"],
+              "query": [
+                { "key": "page",            "value": "1" },
+                { "key": "search",          "value": "",  "disabled": true, "description": "name, position, job_title, company, city" },
+                { "key": "gender",          "value": "",  "disabled": true, "description": "male | female | all" },
+                { "key": "age_min",         "value": "",  "disabled": true },
+                { "key": "age_max",         "value": "",  "disabled": true },
+                { "key": "city_living_id",  "value": "",  "disabled": true, "description": "ID from /cities" },
+                { "key": "city_birth_id",   "value": "",  "disabled": true, "description": "ID from /cities" },
+                { "key": "company",         "value": "",  "disabled": true },
+                { "key": "interests[]",     "value": "",  "disabled": true, "description": "Interest IDs" },
+                { "key": "open_to_network", "value": "",  "disabled": true, "description": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get member by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/1",
+              "host": ["{{base_url}}"],
+              "path": ["users","1"]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Connections",
+      "item": [
+        {
+          "name": "List connections",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/connections?type=all",
+              "host": ["{{base_url}}"],
+              "path": ["connections"],
+              "query": [
+                { "key": "type",   "value": "all", "description": "all | sent | received | connections" },
+                { "key": "status", "value": "",    "description": "pending | accepted | rejected", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send connection request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/connections", "host": ["{{base_url}}"], "path": ["connections"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"receiver_id\": 5\n}"
+            }
+          }
+        },
+        {
+          "name": "Accept request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/connections/1/accept", "host": ["{{base_url}}"], "path": ["connections","1","accept"] }
+          }
+        },
+        {
+          "name": "Reject request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/connections/1/reject", "host": ["{{base_url}}"], "path": ["connections","1","reject"] }
+          }
+        },
+        {
+          "name": "Cancel / Delete connection",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/connections/1", "host": ["{{base_url}}"], "path": ["connections","1"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Groups",
+      "item": [
+        {
+          "name": "List groups",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/groups", "host": ["{{base_url}}"], "path": ["groups"] }
+          }
+        },
+        {
+          "name": "Create group",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/groups", "host": ["{{base_url}}"], "path": ["groups"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"name\": \"Growth Hackers Maroc\",\n  \"description\": \"Groupe dédié au growth marketing.\",\n  \"sector_id\": 2,\n  \"cover_color\": \"#1E8F88\",\n  \"is_public\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Get group by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/groups/1", "host": ["{{base_url}}"], "path": ["groups","1"] }
+          }
+        },
+        {
+          "name": "Join group",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/groups/1/join", "host": ["{{base_url}}"], "path": ["groups","1","join"] }
+          }
+        },
+        {
+          "name": "Leave group",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/groups/1/leave", "host": ["{{base_url}}"], "path": ["groups","1","leave"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Events",
+      "item": [
+        {
+          "name": "List events",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/events", "host": ["{{base_url}}"], "path": ["events"] }
+          }
+        },
+        {
+          "name": "Create event",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/events", "host": ["{{base_url}}"], "path": ["events"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"title\": \"Workshop IA & Business\",\n  \"description\": \"Atelier pratique sur l'IA générative.\",\n  \"type\": \"hybrid\",\n  \"location\": \"Casablanca Hub\",\n  \"meeting_link\": \"https://meet.example.com/abc\",\n  \"starts_at\": \"2026-06-15T10:00:00\",\n  \"ends_at\": \"2026-06-15T13:00:00\",\n  \"sector_id\": 1,\n  \"cover_color\": \"#6366F1\",\n  \"max_attendees\": 50,\n  \"is_public\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Get event by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/events/1", "host": ["{{base_url}}"], "path": ["events","1"] }
+          }
+        },
+        {
+          "name": "Join event",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/events/1/join", "host": ["{{base_url}}"], "path": ["events","1","join"] }
+          }
+        },
+        {
+          "name": "Leave event",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/events/1/leave", "host": ["{{base_url}}"], "path": ["events","1","leave"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Reference Data",
+      "item": [
+        {
+          "name": "Ping",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/ping", "host": ["{{base_url}}"], "path": ["ping"] }
+          }
+        },
+        {
+          "name": "Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/settings", "host": ["{{base_url}}"], "path": ["settings"] }
+          }
+        },
+        {
+          "name": "Countries",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/countries", "host": ["{{base_url}}"], "path": ["countries"] }
+          }
+        },
+        {
+          "name": "Languages",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/languages", "host": ["{{base_url}}"], "path": ["languages"] }
+          }
+        },
+        {
+          "name": "Interests",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/interests", "host": ["{{base_url}}"], "path": ["interests"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Companies",
+      "item": [
+        {
+          "name": "Search companies",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/companies/search?q=acme",
+              "host": ["{{base_url}}"],
+              "path": ["companies","search"],
+              "query": [{ "key": "q", "value": "acme" }]
+            }
+          }
+        },
+        {
+          "name": "My company",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/companies/me", "host": ["{{base_url}}"], "path": ["companies","me"] }
+          }
+        },
+        {
+          "name": "Create / Join company",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/companies", "host": ["{{base_url}}"], "path": ["companies"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"name\": \"Acme SA\",\n  \"sector_id\": 2,\n  \"website\": \"https://acme.ma\"\n}"
+            }
+          }
+        }
+      ]
+    }
+
+  ]
+}

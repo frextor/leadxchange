@@ -32,16 +32,20 @@ class UserService
 
         $query = User::query()
             ->where('id', '!=', $currentUserId)
-            ->with(['company:id,name,sector_id,website', 'company.sector:id,name', 'interests:id,name,icon'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'city_living', 'city_birth', 'birthday', 'gender', 'company_id']);
+            ->with(['company:id,name,sector_id,website', 'company.sector:id,name', 'interests:id,name,icon', 'profile:user_id,avatar,job_title', 'cityLiving:id,name', 'cityBirth:id,name'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'city_living_id', 'city_birth_id', 'birthday', 'gender', 'company_id', 'position']);
 
-        // Basic search
+        // Basic search — name, email, city, position, job_title, company
         if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'LIKE', "%{$search}%")
-                  ->orWhere('last_name',  'LIKE', "%{$search}%")
-                  ->orWhere('email',      'LIKE', "%{$search}%")
-                  ->orWhere('city_living','LIKE', "%{$search}%");
+            $like = "%{$search}%";
+            $query->where(function ($q) use ($like) {
+                $q->where('first_name',  'LIKE', $like)
+                  ->orWhere('last_name',  'LIKE', $like)
+                  ->orWhere('email',      'LIKE', $like)
+                  ->orWhere('position',   'LIKE', $like)
+                  ->orWhereHas('cityLiving', fn ($c) => $c->where('name', 'LIKE', $like))
+                  ->orWhereHas('profile',    fn ($p) => $p->where('job_title', 'LIKE', $like))
+                  ->orWhereHas('company',    fn ($c) => $c->where('name', 'LIKE', $like));
             });
         }
 
@@ -60,14 +64,14 @@ class UserService
                   ->whereDate('birthday', '>=', now()->subYears((int) $filters['age_max'] + 1)->toDateString());
         }
 
-        // City of birth
-        if (!empty($filters['city_birth'])) {
-            $query->where('city_birth', 'LIKE', '%' . $filters['city_birth'] . '%');
+        // City of birth (by ID)
+        if (!empty($filters['city_birth_id'])) {
+            $query->where('city_birth_id', (int) $filters['city_birth_id']);
         }
 
-        // City of living (advanced filter, distinct from basic search)
-        if (!empty($filters['city_living'])) {
-            $query->where('city_living', 'LIKE', '%' . $filters['city_living'] . '%');
+        // City of living (by ID)
+        if (!empty($filters['city_living_id'])) {
+            $query->where('city_living_id', (int) $filters['city_living_id']);
         }
 
         // Company name
@@ -100,6 +104,88 @@ class UserService
     }
 
     /**
+     * Get recommended users ordered by location proximity then shared interests.
+     *
+     * Scoring (per user):
+     *   +30 — same city_living as current user
+     *   +10 — same profile.region
+     *   +5  — per shared interest (user_interests pivot)
+     */
+    public function getRecommendedUsers(
+        User $currentUser,
+        int $page = 1,
+        ?string $search = null,
+        int $perPage = 10
+    ): LengthAwarePaginator {
+        $myCityId     = $currentUser->city_living_id;
+        $myRegion     = $currentUser->profile?->region ?? '';
+        $myInterestIds = $currentUser->interests()->pluck('interests.id')->toArray();
+
+        if (empty($myInterestIds)) {
+            $interestSql      = '0';
+            $interestBindings = [];
+        } else {
+            $phs              = implode(',', array_fill(0, count($myInterestIds), '?'));
+            $interestSql      = "(SELECT COUNT(*) FROM user_interests ui WHERE ui.user_id = users.id AND ui.interest_id IN ({$phs})) * 5";
+            $interestBindings = $myInterestIds;
+        }
+
+        // Closure applied to both count and data queries
+        $applyWhere = function ($q) use ($currentUser, $search) {
+            $q->where('users.id', '!=', $currentUser->id);
+            if ($search) {
+                $like = "%{$search}%";
+                $q->where(function ($q2) use ($like) {
+                    $q2->where('users.first_name',   'LIKE', $like)
+                       ->orWhere('users.last_name',   'LIKE', $like)
+                       ->orWhere('users.position',    'LIKE', $like)
+                       ->orWhere('profiles.job_title','LIKE', $like)
+                       ->orWhereExists(function ($sub) use ($like) {
+                           $sub->from('cities')
+                               ->whereColumn('cities.id', 'users.city_living_id')
+                               ->where('cities.name', 'LIKE', $like);
+                       });
+                });
+            }
+        };
+
+        // Count (no selectRaw needed)
+        $total = User::leftJoin('profiles', 'profiles.user_id', '=', 'users.id')
+            ->tap($applyWhere)
+            ->count('users.id');
+
+        // Data — scored and ordered
+        $scoreBindings = array_merge([$myCityId, $myRegion], $interestBindings);
+
+        $users = User::select('users.*')
+            ->selectRaw("
+                (CASE WHEN users.city_living_id = ? AND users.city_living_id IS NOT NULL THEN 30 ELSE 0 END) +
+                (CASE WHEN profiles.region      = ? AND profiles.region      != ''       THEN 10 ELSE 0 END) +
+                {$interestSql} as rec_score
+            ", $scoreBindings)
+            ->leftJoin('profiles', 'profiles.user_id', '=', 'users.id')
+            ->with(['company:id,name,sector_id', 'company.sector:id,name', 'interests:id,name,icon', 'profile:user_id,avatar,job_title', 'cityLiving:id,name'])
+            ->tap($applyWhere)
+            ->orderBy('rec_score', 'desc')
+            ->orderBy('users.created_at', 'desc')
+            ->offset(($page - 1) * $perPage)
+            ->limit($perPage)
+            ->get();
+
+        $enriched = $users->map(fn ($u) => array_merge(
+            $this->enrichUserWithConnectionStatus($u, $currentUser->id, $myInterestIds),
+            [
+                'same_city' => $myCityId !== null && $u->city_living_id === $myCityId,
+                'rec_score' => (int) ($u->rec_score ?? 0),
+            ]
+        ));
+
+        return new LengthAwarePaginator($enriched, $total, $perPage, $page, [
+            'path' => \Illuminate\Support\Facades\Request::url(),
+        ]);
+    }
+
+    /**
      * Enrich a user with connection status and shared interests.
      */
     public function enrichUserWithConnectionStatus(
@@ -128,7 +214,11 @@ class UserService
             'first_name'       => $user->first_name,
             'last_name'        => $user->last_name,
             'email'            => $user->email,
-            'city_living'      => $user->city_living,
+            'city_living_id'   => $user->city_living_id,
+            'city_living'      => $user->relationLoaded('cityLiving') ? $user->cityLiving?->name : null,
+            'position'         => $user->position,
+            'avatar'           => $user->profile?->avatar_url,
+            'job_title'        => $user->profile?->job_title,
             'company'          => $user->company ? [
                 'id'     => $user->company->id,
                 'name'   => $user->company->name,
@@ -145,8 +235,8 @@ class UserService
 
     public function getUserById(int $userId, int $currentUserId): ?array
     {
-        $user = User::with(['company:id,name,sector_id,website', 'company.sector:id,name'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_birth', 'city_living', 'birthday', 'company_id', 'created_at'])
+        $user = User::with(['company:id,name,sector_id,website', 'company.sector:id,name', 'cityLiving:id,name', 'cityBirth:id,name'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_birth_id', 'city_living_id', 'birthday', 'company_id', 'created_at'])
             ->find($userId);
 
         return $user ? $this->enrichUserWithConnectionStatus($user, $currentUserId) : null;
@@ -154,8 +244,8 @@ class UserService
 
     public function getProfileById(int $userId, int $currentUserId): ?array
     {
-        $user = User::with(['company:id,name,sector_id,website', 'company.sector:id,name'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_birth', 'city_living', 'birthday', 'company_id', 'created_at'])
+        $user = User::with(['company:id,name,sector_id,website', 'company.sector:id,name', 'cityLiving:id,name', 'cityBirth:id,name'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_birth_id', 'city_living_id', 'birthday', 'company_id', 'created_at'])
             ->find($userId);
 
         if (!$user) return null;
@@ -164,7 +254,8 @@ class UserService
 
         return array_merge($base, [
             'gender'       => $user->gender,
-            'city_birth'   => $user->city_birth,
+            'city_birth_id'  => $user->city_birth_id,
+            'city_birth'     => $user->cityBirth?->name,
             'birthday'     => $user->birthday,
             'member_since' => $user->created_at?->format('F Y'),
             'company'      => $user->company ? [

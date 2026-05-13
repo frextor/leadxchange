@@ -41,23 +41,31 @@ class AuthService
                 'role'       => 'user',
             ]);
 
-            // Fire the registered event for email verification
-            event(new Registered($user));
-
             // Assign basic plan
             $this->assignBasicPlan($user);
 
             DB::commit();
 
-            Log::info('User registered successfully', ['user_id' => $user->id]);
-
-            return $user;
-            
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('User registration failed', ['error' => $e->getMessage()]);
             throw $e;
         }
+
+        // Send verification email outside the transaction — a mail failure
+        // must not roll back the already-created account.
+        try {
+            event(new Registered($user));
+        } catch (\Exception $e) {
+            Log::warning('Verification email could not be sent', [
+                'user_id' => $user->id,
+                'error'   => $e->getMessage(),
+            ]);
+        }
+
+        Log::info('User registered successfully', ['user_id' => $user->id]);
+
+        return $user;
     }
 
     /**
@@ -83,23 +91,14 @@ class AuthService
             'phone_country_code' => $data['phone_country_code'] ?? null,
             'gender'             => $data['gender']             ?? null,
             'birthday'           => $data['birthday']           ?? null,
-            'city_birth'         => $data['city_birth']         ?? null,
-            'city_living'        => $data['city_living']        ?? null,
-            'city_id'            => $data['city_id']            ?? null,
+            'city_birth_id'      => $data['city_birth_id']      ?? null,
+            'city_living_id'     => $data['city_living_id']     ?? null,
             'nationality_id'     => $data['nationality_id']     ?? null,
             'company_id'         => $data['company_id']         ?? null,
             'position'           => $data['position']           ?? null,
             'newsletter'         => $data['newsletter']         ?? null,
             'notifications'      => $data['notifications']      ?? null,
         ], fn($v) => $v !== null);
-
-        // Resolve city_living from city_id if provided
-        if (!empty($data['city_id'])) {
-            $city = \App\Models\City::find($data['city_id']);
-            if ($city) {
-                $userFields['city_living'] = $city->name;
-            }
-        }
 
         $user->update($userFields);
 
@@ -204,7 +203,7 @@ class AuthService
      */
     public function getUserData(User $user): array
     {
-        $user->load(['company.sector', 'subscription.plan', 'profile', 'nationality', 'city']);
+        $user->load(['company.sector', 'subscription.plan', 'profile', 'nationality', 'cityLiving', 'cityBirth']);
 
         $sectorIds = array_unique(array_merge(
             $user->profile?->looking_for      ?? [],
@@ -226,8 +225,10 @@ class AuthService
                 'phone_country_code' => $user->phone_country_code,
                 'gender'             => $user->gender,
                 'birthday'           => $user->birthday?->format('Y-m-d'),
-                'city_birth'         => $user->city_birth,
-                'city_living'        => $user->city_living,
+                'city_birth_id'      => $user->city_birth_id,
+                'city_birth'         => $user->cityBirth?->name,
+                'city_living_id'     => $user->city_living_id,
+                'city_living'        => $user->cityLiving?->name,
                 'nationality_id'     => $user->nationality_id,
                 'nationality'        => $user->nationality ? [
                     'id'      => $user->nationality->id,
@@ -235,11 +236,6 @@ class AuthService
                     'country' => $user->nationality->country,
                     'code'    => $user->nationality->code,
                     'flag'    => $user->nationality->flag,
-                ] : null,
-                'city_id'            => $user->city_id,
-                'city'               => $user->city ? [
-                    'id'   => $user->city->id,
-                    'name' => $user->city->name,
                 ] : null,
                 'position'           => $user->position,
                 'newsletter'         => $user->newsletter,
