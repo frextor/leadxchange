@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LeadXchange — Échangez des leads, accélérez votre business</title>
-    <meta name="description" content="LeadXchange est la plateforme B2B qui connecte les professionnels marocains pour échanger des opportunités business, des leads qualifiés et construire un réseau solide.">
+    <meta name="description" content="LeadXchange est la plateforme B2B qui connecte les professionnels pour échanger des opportunités business, des leads qualifiés et construire un réseau solide.">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
@@ -174,7 +174,7 @@
                 </h1>
 
                 <p class="animate-fade-up delay-200 text-lg text-gray-500 leading-relaxed mb-8 max-w-lg">
-                    La première plateforme marocaine dédiée à l'échange de leads B2B. Connectez-vous avec des professionnels qualifiés, partagez vos opportunités et développez votre réseau business.
+                    La plateforme B2B dédiée à l'échange de leads qualifiés. Connectez-vous avec des professionnels de votre secteur, partagez vos opportunités et développez votre réseau business.
                 </p>
 
                 {{-- CTAs --}}
@@ -241,9 +241,9 @@
                         {{-- Lead cards --}}
                         <div class="space-y-2.5">
                             @foreach([
-                                ['Projet e-commerce retail','Sara M.','Web Dev','12k MAD','accepted'],
-                                ['Refonte identité visuelle','Karim B.','Design','8k MAD','new'],
-                                ['Audit comptable PME','Leila H.','Finance','5k MAD','converted'],
+                                ['Projet e-commerce retail','Sara M.','Web Dev','12k €','accepted'],
+                                ['Refonte identité visuelle','Thomas B.','Design','8k €','new'],
+                                ['Audit comptable PME','Claire H.','Finance','5k €','converted'],
                             ] as [$t,$s,$c,$b,$st])
                             @php
                                 $stConf = ['accepted'=>['#ECFDF5','#10B981'],'new'=>['#EFF6FF','#3B82F6'],'converted'=>['#E6F7F4','#1E8F88']][$st];
@@ -275,7 +275,7 @@
                         </div>
                         <div>
                             <p class="text-xs font-bold text-gray-900">Nouveau lead reçu !</p>
-                            <p class="text-[10px] text-gray-400">Ahmed vous a envoyé une opportunité</p>
+                            <p class="text-[10px] text-gray-400">Marc vous a envoyé une opportunité</p>
                         </div>
                     </div>
 
@@ -286,7 +286,7 @@
                         </div>
                         <div>
                             <p class="text-xs font-bold text-gray-900">Lead converti 🎉</p>
-                            <p class="text-[10px] text-gray-400">+12 000 MAD de business</p>
+                            <p class="text-[10px] text-gray-400">+12 000 € de business</p>
                         </div>
                     </div>
                 </div>
@@ -450,7 +450,7 @@
                 Plateforme complète
             </div>
             <h2 class="text-4xl font-black text-white mb-4">Tout pour votre croissance B2B</h2>
-            <p class="text-lg max-w-2xl mx-auto" style="color:#94A3B8;">Un écosystème complet conçu pour les professionnels marocains ambitieux.</p>
+            <p class="text-lg max-w-2xl mx-auto" style="color:#94A3B8;">Un écosystème complet conçu pour les professionnels B2B ambitieux.</p>
         </div>
 
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -494,7 +494,7 @@
 
         <div class="text-center mb-14">
             <h2 class="text-4xl font-black text-gray-900 mb-4">Pourquoi LeadXchange ?</h2>
-            <p class="text-lg text-gray-500 max-w-xl mx-auto">Une plateforme pensée pour la réalité du business B2B marocain.</p>
+            <p class="text-lg text-gray-500 max-w-xl mx-auto">Une plateforme pensée pour la réalité du business B2B moderne.</p>
         </div>
 
         <div class="grid md:grid-cols-2 gap-6">
