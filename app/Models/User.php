@@ -35,6 +35,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'newsletter',
         'notifications',
         'role',
+        'points_balance',
+        'badge_level',
     ];
 
     /**
@@ -59,6 +61,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'newsletter'           => 'boolean',
         'notifications'        => 'boolean',
         'password'             => 'hashed',
+        'points_balance'       => 'integer',
     ];
 
     public function company()
@@ -96,6 +99,60 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->belongsToMany(\App\Models\Event::class, 'event_user')
                     ->withPivot('role', 'registered_at');
+    }
+
+    public function sentLeads()
+    {
+        return $this->hasMany(\App\Models\Lead::class, 'sender_id');
+    }
+
+    public function receivedLeads()
+    {
+        return $this->hasMany(\App\Models\Lead::class, 'receiver_id');
+    }
+
+    public function connections()
+    {
+        return \App\Models\Connection::where('status', 'accepted')
+            ->where(fn($q) => $q->where('sender_id', $this->id)->orWhere('receiver_id', $this->id));
+    }
+
+    public function connectionIds(): array
+    {
+        return \App\Models\Connection::where('status', 'accepted')
+            ->where(fn($q) => $q->where('sender_id', $this->id)->orWhere('receiver_id', $this->id))
+            ->get()
+            ->map(fn($c) => $c->sender_id === $this->id ? $c->receiver_id : $c->sender_id)
+            ->toArray();
+    }
+
+    public function isConnectedWith(int $userId): bool
+    {
+        return \App\Models\Connection::where('status', 'accepted')
+            ->where(fn($q) => $q
+                ->where(['sender_id' => $this->id, 'receiver_id' => $userId])
+                ->orWhere(['sender_id' => $userId, 'receiver_id' => $this->id])
+            )->exists();
+    }
+
+    public function adjustPoints(int $delta): void
+    {
+        $newBalance = max(0, ($this->points_balance ?? 0) + $delta);
+        $this->update(['points_balance' => $newBalance]);
+        $this->recalculateBadge();
+    }
+
+    public function recalculateBadge(): void
+    {
+        $balance = $this->points_balance ?? 0;
+        $level = match (true) {
+            $balance >= 151 => 'or',
+            $balance >= 51  => 'argent',
+            default         => 'bronze',
+        };
+        if ($this->badge_level !== $level) {
+            $this->update(['badge_level' => $level]);
+        }
     }
 
     public function languages()

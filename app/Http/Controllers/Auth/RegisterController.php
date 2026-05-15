@@ -95,6 +95,10 @@ class RegisterController extends Controller
             // Log the user in
             AuthFacade::login($user);
 
+            // Create a Sanctum token for SPA API calls (JS fetch)
+            $token = $user->createToken('web-spa')->plainTextToken;
+            $request->session()->put('web_api_token', $token);
+
             // Redirect with success message to dashboard
             return redirect()->route('dashboard')
                 ->with('success', 'Compte créé avec succès ! Bienvenue ' . $user->first_name . ' !');

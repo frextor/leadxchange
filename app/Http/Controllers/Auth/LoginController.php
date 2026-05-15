@@ -52,8 +52,14 @@ class LoginController extends Controller
         if (Auth::attempt($credentials, $request->filled('remember'))) {
             $request->session()->regenerate();
 
+            // Create a Sanctum token for SPA API calls — revoke old one first
+            $user = Auth::user();
+            $user->tokens()->where('name', 'web-spa')->delete();
+            $token = $user->createToken('web-spa')->plainTextToken;
+            $request->session()->put('web_api_token', $token);
+
             return redirect()->intended(route('dashboard'))
-                ->with('success', 'Bienvenue ' . Auth::user()->first_name . ' !');
+                ->with('success', 'Bienvenue ' . $user->first_name . ' !');
         }
 
         // Failed login
@@ -67,6 +73,11 @@ class LoginController extends Controller
      */
     public function logout(Request $request)
     {
+        // Revoke the web-spa token before destroying the session
+        if ($token = $request->session()->get('web_api_token')) {
+            Auth::user()?->tokens()->where('name', 'web-spa')->delete();
+        }
+
         Auth::logout();
 
         $request->session()->invalidate();

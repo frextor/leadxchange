@@ -139,15 +139,18 @@
                     <span>Marketplace</span>
                 </a>
 
-                {{-- EXCHANGES (future) --}}
-                <a href="#"
-                   class="lx-nav-item opacity-50 cursor-not-allowed">
+                {{-- EXCHANGES / LEADS --}}
+                <a href="{{ route('leads.index') }}"
+                   class="lx-nav-item {{ request()->routeIs('leads.*') ? 'active' : '' }}">
                     <div class="relative">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
                             <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
                         </svg>
-                        {{-- <span class="lx-nav-badge">1</span> --}}
+                        @php $navPending = \App\Models\Lead::where('receiver_id', auth()->id())->where('status','new')->count(); @endphp
+                        @if($navPending > 0)
+                        <span class="lx-nav-badge">{{ $navPending }}</span>
+                        @endif
                     </div>
                     <span>Exchanges</span>
                 </a>
@@ -384,6 +387,10 @@
     </script>
     @endif
 
+    <script>
+        window.API_TOKEN = '{{ session("web_api_token", "") }}';
+        window.CSRF      = '{{ csrf_token() }}';
+    </script>
     @stack('scripts')
 </body>
 </html>

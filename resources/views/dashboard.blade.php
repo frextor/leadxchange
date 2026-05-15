@@ -413,6 +413,80 @@
     </div>
     @endif
 
+    {{-- ── LEADS / EXCHANGES ── --}}
+    <div>
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h2 class="text-base font-semibold text-gray-900">Exchanges</h2>
+                <p class="text-xs text-gray-400 mt-0.5">Your lead activity at a glance</p>
+            </div>
+            <a href="{{ route('leads.index') }}"
+               class="text-xs font-semibold px-3 py-1.5 rounded-lg transition"
+               style="color:#1E8F88;background:#E6F7F4;"
+               onmouseover="this.style.background='#C7EDE9'" onmouseout="this.style.background='#E6F7F4'">
+               View all
+            </a>
+        </div>
+
+        {{-- Stats mini-row --}}
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            @php
+                $ldCfg = [
+                    ['label'=>'Sent',      'value'=>$leadStats['sent'],      'icon'=>'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z', 'color'=>'#6366F1','bg'=>'#EEF2FF'],
+                    ['label'=>'Received',  'value'=>$leadStats['received'],  'icon'=>'M20 12V22H4V12M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z', 'color'=>'#1E8F88','bg'=>'#E6F7F4'],
+                    ['label'=>'Pending',   'value'=>$leadStats['pending'],   'icon'=>'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z', 'color'=>'#F59E0B','bg'=>'#FFFBEB'],
+                    ['label'=>'Converted', 'value'=>$leadStats['converted'], 'icon'=>'M22 7L13.5 15.5 8.5 10.5 2 17M16 7h6v6', 'color'=>'#10B981','bg'=>'#ECFDF5'],
+                ];
+            @endphp
+            @foreach($ldCfg as $ls)
+            <div class="rounded-2xl border border-gray-100 p-3.5 shadow-sm" style="background:{{ $ls['bg'] }};">
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:{{ $ls['color'] }}20;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="{{ $ls['color'] }}" stroke-width="2">
+                            <path d="{{ $ls['icon'] }}"/>
+                        </svg>
+                    </div>
+                    <p class="text-[11px] font-semibold text-gray-500">{{ $ls['label'] }}</p>
+                </div>
+                <p class="text-xl font-extrabold" style="color:{{ $ls['color'] }};">{{ $ls['value'] }}</p>
+            </div>
+            @endforeach
+        </div>
+
+        {{-- Pending leads preview --}}
+        @if($pendingLeads->isNotEmpty())
+        <div class="bg-white rounded-2xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
+            @foreach($pendingLeads as $lead)
+            <div class="flex items-center gap-3 px-4 py-3">
+                <div class="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-xs font-bold"
+                     style="background:linear-gradient(135deg,#1E8F88,#34d4bf);">
+                    {{ strtoupper(substr($lead->sender->first_name ?? '?', 0, 1)) }}{{ strtoupper(substr($lead->sender->last_name ?? '', 0, 1)) }}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-gray-900 truncate">{{ $lead->title }}</p>
+                    <p class="text-xs text-gray-400">From {{ $lead->sender->first_name }} {{ $lead->sender->last_name }} · {{ $lead->created_at->diffForHumans() }}</p>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <form method="POST" action="{{ route('leads.accept', $lead->id) }}">
+                        @csrf
+                        <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-semibold text-white transition"
+                                style="background:#10B981;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10B981'">
+                            Accept
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ route('leads.reject', $lead->id) }}">
+                        @csrf
+                        <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
+                            Decline
+                        </button>
+                    </form>
+                </div>
+            </div>
+            @endforeach
+        </div>
+        @endif
+    </div>
+
     {{-- ── UPGRADE YOUR REACH ── --}}
     @if($plans->isNotEmpty())
     @php

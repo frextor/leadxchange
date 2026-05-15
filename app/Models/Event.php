@@ -9,10 +9,32 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Event extends Model
 {
     protected $fillable = [
-        'title', 'description', 'type', 'location', 'meeting_link',
+        'title', 'description', 'type', 'category', 'location', 'meeting_link',
         'starts_at', 'ends_at', 'created_by', 'sector_id',
-        'cover_color', 'max_attendees', 'attendees_count', 'is_public',
+        'cover_color', 'cover_image', 'price', 'max_attendees', 'attendees_count', 'is_public',
     ];
+
+    public static array $categoryLabels = [
+        'networking'  => 'Networking',
+        'workshop'    => 'Workshop',
+        'conference'  => 'Conference',
+        'pitch'       => 'Pitch',
+        'after_work'  => 'After-work',
+        'webinar'     => 'Online / Webinar',
+        'community'   => 'Community',
+    ];
+
+    public function getCoverUrlAttribute(): ?string
+    {
+        return $this->cover_image
+            ? \Illuminate\Support\Facades\Storage::url($this->cover_image)
+            : null;
+    }
+
+    public function getIsFreeAttribute(): bool
+    {
+        return is_null($this->price) || $this->price == 0;
+    }
 
     protected $casts = [
         'starts_at'  => 'datetime',
