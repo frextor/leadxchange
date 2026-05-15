@@ -678,7 +678,14 @@ $currentServicesOffered = $profile?->services_offered ?? [];
     document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if (e.target === m) { m.classList.add('hidden'); document.body.style.overflow = ''; } }));
 
     async function apiFetch(url, method, body) {
-        const opts = { method, credentials: 'same-origin', headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF } };
+        const opts = {
+            method,
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': 'Bearer ' + (window.API_TOKEN || ''),
+                'X-CSRF-TOKEN': window.CSRF || '',
+            },
+        };
         if (body instanceof FormData) { opts.body = body; }
         else { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
         const res = await fetch(url, opts);

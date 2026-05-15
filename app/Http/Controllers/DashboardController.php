@@ -5,14 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Connection;
 use App\Models\Event;
 use App\Models\Group;
+use App\Models\Lead;
 use App\Models\Plan;
 use App\Models\User;
+use App\Services\LeadService;
 use App\Services\ProfileService;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function __construct(private ProfileService $profileService) {}
+    public function __construct(
+        private ProfileService $profileService,
+        private LeadService    $leadService,
+    ) {}
 
     public function index(Request $request)
     {
@@ -56,11 +61,20 @@ class DashboardController extends Controller
             ->get();
         $attendingEventIds = $user->events()->pluck('events.id')->toArray();
 
+        $leadStats         = $this->leadService->getDashboardStats($user);
+        $pendingLeads      = Lead::with(['sender:id,first_name,last_name'])
+            ->where('receiver_id', $user->id)
+            ->where('status', Lead::STATUS_NEW)
+            ->latest()
+            ->limit(3)
+            ->get();
+
         return view('dashboard', compact(
             'user', 'connectionCount', 'pendingCount', 'groupCount',
             'completion', 'missing', 'prospects', 'plans',
             'featuredGroups', 'memberGroupIds',
-            'upcomingEvents', 'attendingEventIds'
+            'upcomingEvents', 'attendingEventIds',
+            'leadStats', 'pendingLeads'
         ));
     }
 }

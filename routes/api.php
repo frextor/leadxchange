@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\LeadController as ApiLeadController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\ConnectionController;
 use App\Http\Controllers\Api\DeviceTokenController;
@@ -95,6 +96,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/groups/{id}',         [GroupController::class, 'show']);
     Route::post('/groups/{id}/join',   [GroupController::class, 'join']);
     Route::delete('/groups/{id}/leave',[GroupController::class, 'leave']);
+
+    // Lead Routes
+    Route::get('/leads',                   [ApiLeadController::class, 'index']);
+    Route::post('/leads',                  [ApiLeadController::class, 'store']);
+    Route::get('/leads/{id}',              [ApiLeadController::class, 'show']);
+    Route::post('/leads/{id}/accept',      [ApiLeadController::class, 'accept']);
+    Route::post('/leads/{id}/reject',      [ApiLeadController::class, 'reject']);
+    Route::post('/leads/{id}/convert',     [ApiLeadController::class, 'convert']);
+    Route::post('/leads/{id}/rate',        [ApiLeadController::class, 'rate']);
 
     // Event Routes
     Route::get('/events',               [ApiEventController::class, 'index']);

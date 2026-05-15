@@ -57,6 +57,73 @@ class FirebaseService
         }
     }
 
+    public function sendLeadNotification(\App\Models\Lead $lead, User $actor, string $event): void
+    {
+        // 'sent'     → notify the receiver
+        // 'accepted' → notify the sender
+        // 'rejected' → notify the sender
+        $targetUserId = match ($event) {
+            'sent'              => $lead->receiver_id,
+            'accepted', 'rejected' => $lead->sender_id,
+            default             => null,
+        };
+
+        if (!$targetUserId) {
+            return;
+        }
+
+        $tokens = DeviceToken::where('user_id', $targetUserId)->pluck('token');
+        if ($tokens->isEmpty()) {
+            return;
+        }
+
+        [$title, $body] = match ($event) {
+            'sent'     => [
+                'Nouveau lead reçu',
+                "{$actor->first_name} {$actor->last_name} vous a envoyé un lead : {$lead->title}",
+            ],
+            'accepted' => [
+                'Lead accepté',
+                "{$actor->first_name} {$actor->last_name} a accepté votre lead : {$lead->title}",
+            ],
+            'rejected' => [
+                'Lead refusé',
+                "{$actor->first_name} {$actor->last_name} a refusé votre lead : {$lead->title}",
+            ],
+            default    => ['Lead update', $lead->title],
+        };
+
+        $accessToken = $this->getAccessToken();
+        $projectId   = config('firebase.project_id');
+
+        foreach ($tokens as $token) {
+            $response = Http::withToken($accessToken)
+                ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
+                    'message' => [
+                        'token'        => $token,
+                        'notification' => ['title' => $title, 'body' => $body],
+                        'data'         => [
+                            'lead_id'          => (string) $lead->id,
+                            'lead_title'       => $lead->title,
+                            'actor_id'         => (string) $actor->id,
+                            'actor_first_name' => $actor->first_name,
+                            'actor_last_name'  => $actor->last_name,
+                            'event'            => $event,
+                            'type'             => 'lead',
+                        ],
+                    ],
+                ]);
+
+            if (!$response->successful()) {
+                $errorCode = $response->json('error.details.0.errorCode') ?? '';
+                Log::warning('FCM lead notification failed', ['error' => $response->json('error.message')]);
+                if (in_array($errorCode, ['UNREGISTERED', 'INVALID_ARGUMENT'])) {
+                    DeviceToken::where('token', $token)->delete();
+                }
+            }
+        }
+    }
+
     private function getAccessToken(): string
     {
         return Cache::remember('firebase_fcm_access_token', 3500, function () {

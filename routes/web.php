@@ -9,6 +9,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\GroupController;
+use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -24,10 +25,13 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// Home - Redirect to login
+// Home — Landing page (guests) or Dashboard (authenticated)
 Route::get('/', function () {
-    return redirect()->route('login');
-});
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+    return view('landing');
+})->name('home');
 
 // Firebase Messaging Service Worker (must be at root scope, no auth required)
 Route::get('/firebase-messaging-sw.js', function () {
@@ -98,6 +102,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/events',              [EventController::class, 'store'])->name('events.store');
     Route::post('/events/{id}/join',    [EventController::class, 'join'])->name('events.join');
     Route::delete('/events/{id}/leave', [EventController::class, 'leave'])->name('events.leave');
+
+    // Leads (Exchanges)
+    Route::get('/leads',                  [LeadController::class, 'index'])->name('leads.index');
+    Route::post('/leads',                 [LeadController::class, 'store'])->name('leads.store');
+    Route::post('/leads/{id}/accept',     [LeadController::class, 'accept'])->name('leads.accept');
+    Route::post('/leads/{id}/reject',     [LeadController::class, 'reject'])->name('leads.reject');
+    Route::post('/leads/{id}/convert',    [LeadController::class, 'convert'])->name('leads.convert');
+    Route::post('/leads/{id}/rate',       [LeadController::class, 'rate'])->name('leads.rate');
 
     // Profile Routes
     Route::get('/profile', function () {

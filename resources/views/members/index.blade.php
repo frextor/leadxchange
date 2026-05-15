@@ -704,8 +704,11 @@ async function rejectRequest(connId, userId) {
 async function apiFetch(url, method = 'GET', body = null) {
     const opts = {
         method,
-        credentials: 'same-origin',
-        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+        headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer ' + (window.API_TOKEN || ''),
+            'X-CSRF-TOKEN': window.CSRF || '',
+        },
     };
     if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
     const res = await fetch(url, opts);

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use App\Models\Sector;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class EventController extends Controller
 {
@@ -23,7 +24,23 @@ class EventController extends Controller
             $query->where('type', $request->type);
         }
         if ($request->filled('category')) {
-            $query->where('sector_id', $request->category);
+            $query->where('category', $request->category);
+        }
+        if ($request->filled('price_filter')) {
+            if ($request->price_filter === 'free') {
+                $query->where(fn($q) => $q->whereNull('price')->orWhere('price', 0));
+            } elseif ($request->price_filter === 'paid') {
+                $query->where('price', '>', 0);
+            }
+        }
+        if ($request->filled('when')) {
+            $now = now();
+            match ($request->when) {
+                'today'      => $query->whereDate('starts_at', $now->toDateString()),
+                'this_week'  => $query->whereBetween('starts_at', [$now->startOfDay(), $now->copy()->endOfWeek()]),
+                'this_month' => $query->whereBetween('starts_at', [$now->startOfDay(), $now->copy()->endOfMonth()]),
+                default      => null,
+            };
         }
 
         $all      = $query->orderBy('starts_at')->get();
@@ -31,8 +48,11 @@ class EventController extends Controller
         $past     = $all->filter(fn($e) => $e->starts_at->isPast());
 
         $attendingEventIds = $user->events()->pluck('events.id')->toArray();
+        $featured          = $upcoming->first();
 
-        return view('events.index', compact('upcoming', 'past', 'sectors', 'attendingEventIds'));
+        return view('events.index', compact(
+            'upcoming', 'past', 'sectors', 'attendingEventIds', 'featured'
+        ));
     }
 
     public function store(Request $request)
@@ -41,17 +61,37 @@ class EventController extends Controller
             'title'         => ['required', 'string', 'max:150'],
             'description'   => ['nullable', 'string', 'max:1000'],
             'type'          => ['required', 'in:virtual,in_person,hybrid'],
+            'category'      => ['nullable', 'in:' . implode(',', array_keys(Event::$categoryLabels))],
             'location'      => ['nullable', 'string', 'max:255'],
             'meeting_link'  => ['nullable', 'url', 'max:500'],
             'starts_at'     => ['required', 'date', 'after:now'],
             'ends_at'       => ['nullable', 'date', 'after:starts_at'],
             'sector_id'     => ['nullable', 'integer', 'exists:sectors,id'],
             'cover_color'   => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'cover_image'   => ['nullable', 'image', 'max:2048'],
+            'price'         => ['nullable', 'numeric', 'min:0'],
             'max_attendees' => ['nullable', 'integer', 'min:1'],
         ]);
 
+        $coverImagePath = null;
+        if ($request->hasFile('cover_image')) {
+            $coverImagePath = $request->file('cover_image')->store('events/covers', 'public');
+        }
+
         $event = Event::create([
-            ...$validated,
+            'title'           => $validated['title'],
+            'description'     => $validated['description'] ?? null,
+            'type'            => $validated['type'],
+            'category'        => $validated['category'] ?? null,
+            'location'        => $validated['location'] ?? null,
+            'meeting_link'    => $validated['meeting_link'] ?? null,
+            'starts_at'       => $validated['starts_at'],
+            'ends_at'         => $validated['ends_at'] ?? null,
+            'sector_id'       => $validated['sector_id'] ?? null,
+            'cover_color'     => $validated['cover_color'] ?? '#1E8F88',
+            'cover_image'     => $coverImagePath,
+            'price'           => $validated['price'] ?? null,
+            'max_attendees'   => $validated['max_attendees'] ?? null,
             'created_by'      => $request->user()->id,
             'is_public'       => true,
             'attendees_count' => 1,
