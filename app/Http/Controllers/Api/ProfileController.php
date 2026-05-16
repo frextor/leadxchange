@@ -100,6 +100,19 @@ class ProfileController extends Controller
         ]);
     }
 
+    public function complete(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $user->update(['onboarding_completed' => true]);
+
+        return response()->json([
+            'message'              => 'Profil marqué comme complété.',
+            'onboarding_completed' => true,
+            'completion'           => $this->profileService->getCompletionPercentage($user->fresh()),
+        ]);
+    }
+
     public function interests(): JsonResponse
     {
         return response()->json(Interest::orderBy('name')->get());

@@ -106,6 +106,7 @@ class AuthService
             'notifications'      => $data['notifications']      ?? null,
         ], fn($v) => $v !== null);
 
+        $userFields['onboarding_completed'] = true;
         $user->update($userFields);
 
         // ── profiles table (upsert) ────────────────────────────────────────

@@ -85,6 +85,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/profile/bio',              [ProfileController::class, 'updateBio']);
     Route::post('/profile/avatar',          [ProfileController::class, 'updateAvatar']);
     Route::post('/profile/interests',       [ProfileController::class, 'syncInterests']);
+    Route::post('/profile/complete',        [ProfileController::class, 'complete']);
     Route::get('/interests',                [ProfileController::class, 'interests']);
     Route::get('/languages',                [LanguageController::class, 'index']);
     Route::get('/countries',                [CountryController::class, 'index']);
