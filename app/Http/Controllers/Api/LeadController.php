@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreLeadRequest;
 use App\Models\Lead;
+use App\Models\PointsHistory;
 use App\Services\LeadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,7 +37,7 @@ class LeadController extends Controller
             $lead = $this->leadService->createLead($request->user(), $request->validated());
 
             return response()->json([
-                'message' => 'Lead sent successfully.',
+                'message' => 'Lead envoyé avec succès.',
                 'data'    => $this->format($lead),
             ], 201);
         } catch (\Exception $e) {
@@ -46,11 +47,16 @@ class LeadController extends Controller
 
     public function show(Request $request, int $id): JsonResponse
     {
-        $lead = Lead::with(['sender:id,first_name,last_name', 'receiver:id,first_name,last_name', 'ratings'])->findOrFail($id);
+        $lead = Lead::with([
+            'sender:id,first_name,last_name',
+            'receiver:id,first_name,last_name',
+            'ratings',
+            'sector:id,name',
+        ])->findOrFail($id);
 
         $user = $request->user();
         if ($lead->sender_id !== $user->id && $lead->receiver_id !== $user->id) {
-            return response()->json(['message' => 'Unauthorized.'], 403);
+            return response()->json(['message' => 'Non autorisé.'], 403);
         }
 
         return response()->json(['data' => $this->format($lead)]);
@@ -61,7 +67,7 @@ class LeadController extends Controller
         try {
             $lead = $this->leadService->acceptLead($request->user(), $id);
 
-            return response()->json(['message' => 'Lead accepted.', 'data' => $this->format($lead)]);
+            return response()->json(['message' => 'Lead accepté.', 'data' => $this->format($lead)]);
         } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -72,7 +78,7 @@ class LeadController extends Controller
         try {
             $lead = $this->leadService->rejectLead($request->user(), $id);
 
-            return response()->json(['message' => 'Lead rejected.', 'data' => $this->format($lead)]);
+            return response()->json(['message' => 'Lead refusé.', 'data' => $this->format($lead)]);
         } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -83,7 +89,7 @@ class LeadController extends Controller
         try {
             $lead = $this->leadService->convertLead($request->user(), $id);
 
-            return response()->json(['message' => 'Lead converted.', 'data' => $this->format($lead)]);
+            return response()->json(['message' => 'Lead converti.', 'data' => $this->format($lead)]);
         } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -107,7 +113,7 @@ class LeadController extends Controller
             );
 
             return response()->json([
-                'message' => 'Rating saved.',
+                'message' => 'Notation enregistrée.',
                 'data'    => [
                     'quality'      => $rating->quality,
                     'relevance'    => $rating->relevance,
@@ -120,11 +126,45 @@ class LeadController extends Controller
         }
     }
 
+    public function report(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'fraud_reason' => ['required', 'in:fausses_coordonnees,besoin_inexistant,doublon'],
+        ]);
+
+        try {
+            $lead = $this->leadService->reportFraud($request->user(), $id, $request->fraud_reason);
+
+            return response()->json([
+                'message' => 'Lead signalé comme frauduleux.',
+                'data'    => $this->format($lead),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function pointsHistory(Request $request): JsonResponse
+    {
+        $history = PointsHistory::where('user_id', $request->user()->id)
+            ->orderByDesc('created_at')
+            ->limit(100)
+            ->get(['id', 'delta', 'reason', 'balance_after', 'created_at']);
+
+        return response()->json([
+            'data' => $history,
+            'meta' => [
+                'current_balance' => $request->user()->points_balance ?? 0,
+                'badge_level'     => $request->user()->badge_level ?? 'bronze',
+            ],
+        ]);
+    }
+
     private function format(Lead $lead): array
     {
-        $sc   = Lead::$statusConfig[$lead->status]   ?? [];
-        $qc   = Lead::$qualificationConfig[$lead->qualification] ?? [];
-        $avg  = $lead->average_rating;
+        $sc  = Lead::$statusConfig[$lead->status]          ?? [];
+        $qc  = Lead::$qualificationConfig[$lead->qualification] ?? [];
+        $avg = $lead->average_rating;
 
         return [
             'id'               => $lead->id,
@@ -136,11 +176,14 @@ class LeadController extends Controller
             'deadline'         => $lead->deadline?->toDateString(),
             'qualification'    => $lead->qualification,
             'qualification_label' => $qc['label'] ?? $lead->qualification,
+            'sector'           => $lead->sector ? ['id' => $lead->sector->id, 'name' => $lead->sector->name] : null,
             'description'      => $lead->description,
             'status'           => $lead->status,
             'status_label'     => $sc['label'] ?? $lead->status,
             'average_rating'   => $avg,
             'ratings_count'    => $lead->ratings?->count() ?? 0,
+            'fraud_reported'   => (bool) $lead->fraud_reported,
+            'fraud_reason'     => $lead->fraud_reason,
             'sender'           => $lead->sender ? [
                 'id'   => $lead->sender->id,
                 'name' => $lead->sender->first_name . ' ' . $lead->sender->last_name,

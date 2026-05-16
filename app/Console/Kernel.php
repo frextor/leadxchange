@@ -14,6 +14,9 @@ class Kernel extends ConsoleKernel
     {
         // Deduct 1 point from receivers who haven't rated within 15 days
         $schedule->command('leads:deduct-points')->dailyAt('02:00');
+
+        // Send J+15 and J+25 notation reminders (push notifications)
+        $schedule->command('leads:send-reminders')->dailyAt('09:00');
     }
 
     /**

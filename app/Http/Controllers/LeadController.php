@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreLeadRequest;
 use App\Models\Lead;
+use App\Models\LeadRating;
+use App\Models\Sector;
 use App\Models\User;
 use App\Services\LeadService;
 use Illuminate\Http\Request;
@@ -17,21 +19,42 @@ class LeadController extends Controller
         $user  = $request->user();
         $leads = $this->leadService->getUserLeads($user);
 
-        // Only connections can receive leads
         $connectionIds = $user->connectionIds();
         $connections   = User::whereIn('id', $connectionIds)
             ->select('id', 'first_name', 'last_name', 'points_balance')
             ->orderBy('first_name')
             ->get();
 
+        $sectors = Sector::orderBy('name')->get(['id', 'name']);
+
         return view('leads.index', [
             'received'      => $leads['received'],
             'sent'          => $leads['sent'],
             'connections'   => $connections,
+            'sectors'       => $sectors,
             'statusConfig'  => Lead::$statusConfig,
             'qualConfig'    => Lead::$qualificationConfig,
             'currentUser'   => $user,
         ]);
+    }
+
+    public function show(Request $request, int $id)
+    {
+        $user = $request->user();
+        $lead = Lead::with([
+            'sender:id,first_name,last_name,points_balance,badge_level',
+            'receiver:id,first_name,last_name,points_balance,badge_level',
+            'ratings',
+            'sector:id,name',
+        ])->findOrFail($id);
+
+        if ($lead->sender_id !== $user->id && $lead->receiver_id !== $user->id) {
+            abort(403);
+        }
+
+        $isSent = $lead->sender_id === $user->id;
+
+        return view('leads.show', compact('lead', 'user', 'isSent'));
     }
 
     public function store(StoreLeadRequest $request)
@@ -97,6 +120,21 @@ class LeadController extends Controller
             );
 
             return back()->with('success', 'Merci pour votre notation !');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function report(Request $request, int $id)
+    {
+        $request->validate([
+            'fraud_reason' => ['required', 'in:fausses_coordonnees,besoin_inexistant,doublon'],
+        ]);
+
+        try {
+            $this->leadService->reportFraud($request->user(), $id, $request->fraud_reason);
+
+            return back()->with('success', 'Lead signalé comme frauduleux. Merci pour votre vigilance.');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }

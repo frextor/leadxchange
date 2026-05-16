@@ -4,7 +4,12 @@
       "Bash(php artisan *)",
       "Bash(dir \"d:\\\\laragon\\\\www\\\\LeadXchange\\\\resources\\\\views\" -Recurse -Filter \"*connection*\")",
       "PowerShell(Get-ChildItem -Path \"d:\\\\laragon\\\\www\\\\LeadXchange\\\\resources\\\\views\" -Recurse -File | Where-Object { $_.Name -match \"connection\" })",
-      "PowerShell(Get-ChildItem d:\\\\laragon\\\\www\\\\LeadXchange\\\\database\\\\migrations\\\\ | Where-Object { $_.Name -match \"compan|sector\" } | Select-Object Name)"
+      "PowerShell(Get-ChildItem d:\\\\laragon\\\\www\\\\LeadXchange\\\\database\\\\migrations\\\\ | Where-Object { $_.Name -match \"compan|sector\" } | Select-Object Name)",
+      "Bash(mysqlbinlog --no-defaults --base64-output=DECODE-ROWS -v \"D:/laragon/data/mysql-8/binlog.000270\")",
+      "Bash(mysql -u root leadxchange -e \"SELECT id, first_name, last_name, email, points_balance, badge_level FROM users;\")",
+      "Bash(mysql -u root -e \"SELECT id, first_name, last_name, email FROM leadxchange.users;\")",
+      "Bash(mysql -u root -e \"SELECT COUNT\\(*\\) as leads FROM leadxchange.leads;\")",
+      "Bash(mysql -u root -e \"SELECT COUNT\\(*\\) as profiles FROM leadxchange.profiles;\")"
     ]
   }
 }

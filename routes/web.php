@@ -9,6 +9,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\GroupController;
+use App\Http\Controllers\InboxController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\ProfileController;
@@ -80,7 +81,7 @@ Route::middleware('auth')->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/home',      [DashboardController::class, 'index'])->name('home');
+    Route::get('/home',      [DashboardController::class, 'index']);
 
     // Company Routes
     Route::get('/company/create', [CompanyController::class, 'create'])->name('company.create');
@@ -105,11 +106,20 @@ Route::middleware('auth')->group(function () {
 
     // Leads (Exchanges)
     Route::get('/leads',                  [LeadController::class, 'index'])->name('leads.index');
+    Route::get('/leads/{id}',             [LeadController::class, 'show'])->name('leads.show');
     Route::post('/leads',                 [LeadController::class, 'store'])->name('leads.store');
     Route::post('/leads/{id}/accept',     [LeadController::class, 'accept'])->name('leads.accept');
     Route::post('/leads/{id}/reject',     [LeadController::class, 'reject'])->name('leads.reject');
     Route::post('/leads/{id}/convert',    [LeadController::class, 'convert'])->name('leads.convert');
     Route::post('/leads/{id}/rate',       [LeadController::class, 'rate'])->name('leads.rate');
+    Route::post('/leads/{id}/report',     [LeadController::class, 'report'])->name('leads.report');
+
+    // Inbox
+    Route::get('/inbox',                    [InboxController::class, 'index'])->name('inbox.index');
+    Route::post('/inbox/compose',           [InboxController::class, 'compose'])->name('inbox.compose');
+    Route::post('/inbox/{id}/read',         [InboxController::class, 'read'])->name('inbox.read');
+    Route::post('/inbox/{id}/archive',      [InboxController::class, 'archive'])->name('inbox.archive');
+    Route::post('/inbox/{id}/reply',        [InboxController::class, 'reply'])->name('inbox.reply');
 
     // Profile Routes
     Route::get('/profile', function () {

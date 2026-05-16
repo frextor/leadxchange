@@ -21,19 +21,17 @@ class LeadService
         $receiverId = (int) $data['receiver_id'];
 
         if ($sender->id === $receiverId) {
-            throw new \Exception('You cannot send a lead to yourself.');
+            throw new \Exception('Vous ne pouvez pas vous envoyer un lead à vous-même.');
         }
 
         $receiver = User::findOrFail($receiverId);
 
-        // Receiver must be a connection
         if (!$sender->isConnectedWith($receiverId)) {
-            throw new \Exception('You can only send leads to your connections.');
+            throw new \Exception('Vous ne pouvez envoyer des leads qu\'à vos connexions.');
         }
 
-        // Receiver must have a positive balance (ratio enforcement)
         if (($receiver->points_balance ?? 0) < 1) {
-            throw new \Exception('This member cannot receive leads right now. They need to send a lead first to build their balance.');
+            throw new \Exception('Ce membre ne peut pas recevoir de leads pour le moment. Son solde est insuffisant.');
         }
 
         DB::beginTransaction();
@@ -43,17 +41,17 @@ class LeadService
                 'receiver_id'      => $receiverId,
                 'company_name'     => $data['company_name'],
                 'contact_name'     => $data['contact_name'],
-                'contact_email'    => $data['contact_email'] ?? null,
-                'contact_phone'    => $data['contact_phone'] ?? null,
+                'contact_email'    => $data['contact_email'],
+                'contact_phone'    => $data['contact_phone'],
                 'contact_position' => $data['contact_position'] ?? null,
                 'deadline'         => $data['deadline'],
                 'qualification'    => $data['qualification'],
+                'sector_id'        => $data['sector_id'] ?? null,
                 'description'      => $data['description'] ?? null,
                 'status'           => Lead::STATUS_NEW,
             ]);
 
-            // +1 point for the sender immediately
-            $sender->adjustPoints(+1);
+            $sender->adjustPoints(+1, 'lead_sent');
 
             DB::commit();
         } catch (\Exception $e) {
@@ -70,7 +68,7 @@ class LeadService
 
         Log::info('Lead created', ['lead_id' => $lead->id, 'sender' => $sender->id, 'receiver' => $receiverId]);
 
-        return $lead->load(['sender', 'receiver']);
+        return $lead->load(['sender', 'receiver', 'sector']);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -82,11 +80,11 @@ class LeadService
         $lead = Lead::findOrFail($leadId);
 
         if ($lead->receiver_id !== $user->id) {
-            throw new \Exception('Only the recipient can accept this lead.');
+            throw new \Exception('Seul le destinataire peut accepter ce lead.');
         }
 
         if (!$lead->isNew()) {
-            throw new \Exception('This lead has already been actioned.');
+            throw new \Exception('Ce lead a déjà été traité.');
         }
 
         DB::beginTransaction();
@@ -118,11 +116,11 @@ class LeadService
         $lead = Lead::findOrFail($leadId);
 
         if ($lead->receiver_id !== $user->id) {
-            throw new \Exception('Only the recipient can reject this lead.');
+            throw new \Exception('Seul le destinataire peut refuser ce lead.');
         }
 
         if (!$lead->isNew()) {
-            throw new \Exception('This lead has already been actioned.');
+            throw new \Exception('Ce lead a déjà été traité.');
         }
 
         DB::beginTransaction();
@@ -154,11 +152,11 @@ class LeadService
         $lead = Lead::findOrFail($leadId);
 
         if ($lead->sender_id !== $user->id) {
-            throw new \Exception('Only the sender can mark a lead as converted.');
+            throw new \Exception('Seul l\'expéditeur peut marquer un lead comme converti.');
         }
 
         if (!$lead->isAccepted()) {
-            throw new \Exception('Only accepted leads can be converted.');
+            throw new \Exception('Seuls les leads acceptés peuvent être convertis.');
         }
 
         $lead->update(['status' => Lead::STATUS_CONVERTED]);
@@ -169,7 +167,7 @@ class LeadService
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Rate a lead (receiver rates the quality of the lead they received)
+    // Rate a lead
     // ─────────────────────────────────────────────────────────────────────────
 
     public function rateLead(User $rater, int $leadId, int $quality, int $relevance, int $reactivity): LeadRating
@@ -177,15 +175,15 @@ class LeadService
         $lead = Lead::with('sender')->findOrFail($leadId);
 
         if ($lead->receiver_id !== $rater->id) {
-            throw new \Exception('Only the recipient can rate this lead.');
+            throw new \Exception('Seul le destinataire peut noter ce lead.');
         }
 
         if (!$lead->isAccepted() && !$lead->isConverted()) {
-            throw new \Exception('You can only rate accepted leads.');
+            throw new \Exception('Vous ne pouvez noter que les leads acceptés.');
         }
 
         if ($lead->hasRatingBy($rater->id)) {
-            throw new \Exception('You have already rated this lead.');
+            throw new \Exception('Vous avez déjà noté ce lead.');
         }
 
         DB::beginTransaction();
@@ -198,14 +196,13 @@ class LeadService
                 'reactivity' => $reactivity,
             ]);
 
-            // +1 bonus for sender if avg >= 4
             $avg = ($quality + $relevance + $reactivity) / 3.0;
+
             if ($avg >= 4.0 && $lead->rated_bonus_at === null) {
                 $lead->update(['rated_bonus_at' => now()]);
-                $lead->sender?->adjustPoints(+1);
+                $lead->sender?->adjustPoints(+1, 'lead_bonus_note');
             }
 
-            // If the deduction hadn't fired yet (rated within 15 days), mark to skip cron
             if (!$lead->points_deducted) {
                 $lead->update(['points_deducted' => true]);
             }
@@ -218,7 +215,69 @@ class LeadService
 
         Log::info('Lead rated', ['lead_id' => $lead->id, 'rater' => $rater->id, 'avg' => round($avg, 2)]);
 
+        // Warn sender after every 5 bad notes (avg ≤ 2)
+        if ($avg <= 2.0 && $lead->sender) {
+            $badCount = LeadRating::whereHas('lead', fn($q) => $q->where('sender_id', $lead->sender_id))
+                ->where('average_note', '<=', 2)
+                ->count();
+
+            if ($badCount > 0 && $badCount % 5 === 0) {
+                try {
+                    $this->firebase->sendBadNoteWarning($lead->sender, $badCount);
+                } catch (\Exception $e) {
+                    Log::warning('Bad note warning notification failed', ['error' => $e->getMessage()]);
+                }
+            }
+        }
+
         return $rating;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Report a lead as fraudulent
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function reportFraud(User $reporter, int $leadId, string $reason): Lead
+    {
+        $lead = Lead::with('sender')->findOrFail($leadId);
+
+        if ($lead->receiver_id !== $reporter->id) {
+            throw new \Exception('Seul le destinataire peut signaler un lead comme frauduleux.');
+        }
+
+        if ($lead->isFraudReported()) {
+            throw new \Exception('Ce lead a déjà été signalé.');
+        }
+
+        $allowedReasons = ['fausses_coordonnees', 'besoin_inexistant', 'doublon'];
+        if (!in_array($reason, $allowedReasons)) {
+            throw new \Exception('Motif invalide.');
+        }
+
+        DB::beginTransaction();
+        try {
+            $lead->update([
+                'fraud_reported'    => true,
+                'fraud_reason'      => $reason,
+                'fraud_reported_at' => now(),
+            ]);
+
+            // Additional -1 point penalty for the sender (CDC: "Lead déclaré frauduleux: −1 supplémentaire")
+            $lead->sender?->adjustPoints(-1, 'lead_fraud_penalty');
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+
+        Log::info('Lead reported as fraud', [
+            'lead_id'  => $lead->id,
+            'reporter' => $reporter->id,
+            'reason'   => $reason,
+        ]);
+
+        return $lead->fresh(['sender', 'receiver']);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -227,7 +286,7 @@ class LeadService
 
     public function getUserLeads(User $user): array
     {
-        $with = ['sender:id,first_name,last_name', 'receiver:id,first_name,last_name', 'ratings'];
+        $with = ['sender:id,first_name,last_name', 'receiver:id,first_name,last_name', 'ratings', 'sector:id,name'];
 
         $received = Lead::with($with)->where('receiver_id', $user->id)->latest()->get();
         $sent     = Lead::with($with)->where('sender_id',   $user->id)->latest()->get();
