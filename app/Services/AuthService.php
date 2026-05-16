@@ -33,12 +33,18 @@ class AuthService
         try {
             // Create user
             $user = User::create([
-                'first_name' => $data['first_name'],
-                'last_name'  => $data['last_name'],
-                'email'      => $data['email'],
-                'password'   => Hash::make($data['password']),
-                'phone'      => $data['phone'] ?? null,
-                'role'       => 'user',
+                'first_name'         => $data['first_name'],
+                'last_name'          => $data['last_name'],
+                'email'              => $data['email'],
+                'password'           => Hash::make($data['password']),
+                'phone'              => $data['phone']              ?? null,
+                'phone_country_code' => $data['phone_country_code'] ?? null,
+                'city_living_id'     => $data['city_living_id']     ?? null,
+                'city_birth_id'      => $data['city_birth_id']      ?? null,
+                'nationality_id'     => $data['nationality_id']     ?? null,
+                'gender'             => $data['gender']             ?? null,
+                'birthday'           => $data['birthday']           ?? null,
+                'role'               => 'user',
             ]);
 
             // Assign basic plan
@@ -100,6 +106,7 @@ class AuthService
             'notifications'      => $data['notifications']      ?? null,
         ], fn($v) => $v !== null);
 
+        $userFields['onboarding_completed'] = true;
         $user->update($userFields);
 
         // ── profiles table (upsert) ────────────────────────────────────────
