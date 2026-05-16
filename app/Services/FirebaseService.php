@@ -77,20 +77,22 @@ class FirebaseService
             return;
         }
 
+        $leadLabel = $lead->company_name ?? 'Lead';
+
         [$title, $body] = match ($event) {
             'sent'     => [
                 'Nouveau lead reçu',
-                "{$actor->first_name} {$actor->last_name} vous a envoyé un lead : {$lead->title}",
+                "{$actor->first_name} {$actor->last_name} vous a envoyé un lead : {$leadLabel}",
             ],
             'accepted' => [
                 'Lead accepté',
-                "{$actor->first_name} {$actor->last_name} a accepté votre lead : {$lead->title}",
+                "{$actor->first_name} {$actor->last_name} a accepté votre lead : {$leadLabel}",
             ],
             'rejected' => [
                 'Lead refusé',
-                "{$actor->first_name} {$actor->last_name} a refusé votre lead : {$lead->title}",
+                "{$actor->first_name} {$actor->last_name} a refusé votre lead : {$leadLabel}",
             ],
-            default    => ['Lead update', $lead->title],
+            default    => ['Lead update', $leadLabel],
         };
 
         $accessToken = $this->getAccessToken();
@@ -117,6 +119,64 @@ class FirebaseService
             if (!$response->successful()) {
                 $errorCode = $response->json('error.details.0.errorCode') ?? '';
                 Log::warning('FCM lead notification failed', ['error' => $response->json('error.message')]);
+                if (in_array($errorCode, ['UNREGISTERED', 'INVALID_ARGUMENT'])) {
+                    DeviceToken::where('token', $token)->delete();
+                }
+            }
+        }
+    }
+
+    public function sendLeadReminderNotification(\App\Models\Lead $lead, int $dayNumber): void
+    {
+        $tokens = DeviceToken::where('user_id', $lead->receiver_id)->pluck('token');
+        if ($tokens->isEmpty()) {
+            return;
+        }
+
+        $title = 'Rappel : lead en attente de notation';
+        $body  = "Vous avez {$dayNumber} jours pour noter le lead de {$lead->company_name}. Votre avis compte !";
+
+        $this->sendToTokens($tokens, $title, $body, [
+            'lead_id' => (string) $lead->id,
+            'type'    => 'lead_reminder',
+            'day'     => (string) $dayNumber,
+        ]);
+    }
+
+    public function sendBadNoteWarning(User $sender, int $badNoteCount): void
+    {
+        $tokens = DeviceToken::where('user_id', $sender->id)->pluck('token');
+        if ($tokens->isEmpty()) {
+            return;
+        }
+
+        $title = 'Avertissement qualité lead';
+        $body  = "Vous avez reçu {$badNoteCount} évaluations négatives. Améliorez la qualité de vos leads pour éviter des pénalités.";
+
+        $this->sendToTokens($tokens, $title, $body, [
+            'type'           => 'bad_note_warning',
+            'bad_note_count' => (string) $badNoteCount,
+        ]);
+    }
+
+    private function sendToTokens($tokens, string $title, string $body, array $data = []): void
+    {
+        $accessToken = $this->getAccessToken();
+        $projectId   = config('firebase.project_id');
+
+        foreach ($tokens as $token) {
+            $response = Http::withToken($accessToken)
+                ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
+                    'message' => [
+                        'token'        => $token,
+                        'notification' => ['title' => $title, 'body' => $body],
+                        'data'         => $data,
+                    ],
+                ]);
+
+            if (!$response->successful()) {
+                $errorCode = $response->json('error.details.0.errorCode') ?? '';
+                Log::warning('FCM notification failed', ['error' => $response->json('error.message')]);
                 if (in_array($errorCode, ['UNREGISTERED', 'INVALID_ARGUMENT'])) {
                     DeviceToken::where('token', $token)->delete();
                 }

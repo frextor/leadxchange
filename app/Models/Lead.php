@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Lead extends Model
 {
@@ -20,9 +21,9 @@ class Lead extends Model
     const QUAL_FROID = 'froid';
 
     public static array $qualificationConfig = [
-        'chaud' => ['label' => 'Chaud', 'icon' => '🔥', 'classes' => 'bg-red-100 text-red-700',    'textClass' => 'text-red-700'],
-        'tiede' => ['label' => 'Tiède', 'icon' => '⚡', 'classes' => 'bg-yellow-100 text-yellow-700', 'textClass' => 'text-yellow-700'],
-        'froid' => ['label' => 'Froid', 'icon' => '❄️', 'classes' => 'bg-blue-50 text-blue-600',    'textClass' => 'text-blue-600'],
+        'chaud' => ['label' => 'Chaud', 'icon' => '🔥', 'classes' => 'bg-red-100 text-red-700',    'textClass' => 'text-red-700',   'barClass' => 'bg-red-500'],
+        'tiede' => ['label' => 'Tiède', 'icon' => '⚡', 'classes' => 'bg-amber-100 text-amber-700', 'textClass' => 'text-amber-700', 'barClass' => 'bg-amber-400'],
+        'froid' => ['label' => 'Froid', 'icon' => '❄️', 'classes' => 'bg-blue-100 text-blue-600',  'textClass' => 'text-blue-600',  'barClass' => 'bg-blue-400'],
     ];
 
     // ── Status labels & colors for UI ────────────────────────────────────────
@@ -37,14 +38,20 @@ class Lead extends Model
         'sender_id', 'receiver_id',
         'company_name', 'contact_name', 'contact_email',
         'contact_phone', 'contact_position',
-        'deadline', 'qualification', 'description', 'status',
+        'deadline', 'qualification', 'sector_id', 'description', 'status',
         'points_deducted', 'rated_bonus_at',
+        'fraud_reported', 'fraud_reason', 'fraud_reported_at',
+        'reminder_15_sent_at', 'reminder_25_sent_at',
     ];
 
     protected $casts = [
-        'deadline'        => 'date',
-        'points_deducted' => 'boolean',
-        'rated_bonus_at'  => 'datetime',
+        'deadline'             => 'date',
+        'points_deducted'      => 'boolean',
+        'rated_bonus_at'       => 'datetime',
+        'fraud_reported'       => 'boolean',
+        'fraud_reported_at'    => 'datetime',
+        'reminder_15_sent_at'  => 'datetime',
+        'reminder_25_sent_at'  => 'datetime',
     ];
 
     // ── Relationships ────────────────────────────────────────────────────────
@@ -64,7 +71,14 @@ class Lead extends Model
         return $this->hasMany(LeadRating::class);
     }
 
+    public function sector(): BelongsTo
+    {
+        return $this->belongsTo(Sector::class);
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    public function isFraudReported(): bool { return (bool) $this->fraud_reported; }
 
     public function isNew(): bool       { return $this->status === self::STATUS_NEW; }
     public function isAccepted(): bool  { return $this->status === self::STATUS_ACCEPTED; }

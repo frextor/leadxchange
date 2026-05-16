@@ -105,6 +105,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/leads/{id}/reject',      [ApiLeadController::class, 'reject']);
     Route::post('/leads/{id}/convert',     [ApiLeadController::class, 'convert']);
     Route::post('/leads/{id}/rate',        [ApiLeadController::class, 'rate']);
+    Route::post('/leads/{id}/report',      [ApiLeadController::class, 'report']);
+
+    // Points history (CDC: GET /api/users/me/points/history)
+    Route::get('/users/me/points/history', [ApiLeadController::class, 'pointsHistory']);
 
     // Event Routes
     Route::get('/events',               [ApiEventController::class, 'index']);

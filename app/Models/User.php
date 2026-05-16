@@ -135,11 +135,18 @@ class User extends Authenticatable implements MustVerifyEmail
             )->exists();
     }
 
-    public function adjustPoints(int $delta): void
+    public function adjustPoints(int $delta, string $reason = ''): void
     {
         $newBalance = max(0, ($this->points_balance ?? 0) + $delta);
         $this->update(['points_balance' => $newBalance]);
         $this->recalculateBadge();
+
+        \App\Models\PointsHistory::create([
+            'user_id'      => $this->id,
+            'delta'        => $delta,
+            'reason'       => $reason ?: ($delta >= 0 ? 'credit' : 'debit'),
+            'balance_after' => $newBalance,
+        ]);
     }
 
     public function recalculateBadge(): void

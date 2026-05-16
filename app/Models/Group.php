@@ -10,7 +10,7 @@ class Group extends Model
 {
     protected $fillable = [
         'name', 'description', 'sector_id', 'created_by',
-        'cover_color', 'is_public', 'members_count',
+        'cover_color', 'cover_photo', 'is_public', 'members_count',
     ];
 
     protected $casts = [

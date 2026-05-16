@@ -1,0 +1,22 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class PointsHistory extends Model
+{
+    protected $table = 'points_history';
+
+    public $timestamps = false;
+
+    protected $fillable = ['user_id', 'delta', 'reason', 'balance_after'];
+
+    protected $casts = ['created_at' => 'datetime'];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+}

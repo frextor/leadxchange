@@ -6,9 +6,12 @@
     <title>LeadXchange — Échangez des leads, accélérez votre business</title>
     <meta name="description" content="LeadXchange est la plateforme B2B qui connecte les professionnels pour échanger des opportunités business, des leads qualifiés et construire un réseau solide.">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
     <style>
         * { font-family: 'Inter', sans-serif; }
+        .playfair { font-family: 'Playfair Display', Georgia, serif; }
 
         /* ── Animations ── */
         @keyframes fadeUp   { from { opacity:0; transform:translateY(30px) } to { opacity:1; transform:translateY(0) } }

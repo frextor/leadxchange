@@ -11,53 +11,74 @@ class PlansSeeder extends Seeder
     {
         $plans = [
             [
-                'name'  => 'basic',
-                'price' => 0.00,
-                'features' => [
-                    '10 leads per month',
-                    'View public profiles',
-                    'Community access',
-                    'Basic member search',
-                    'Join up to 3 groups',
-                    'Email support',
+                'name'           => 'basic',
+                'label'          => 'Basic',
+                'description'    => 'Démarrez gratuitement et explorez le réseau LeadXchange.',
+                'price'          => 0.00,
+                'billing_period' => 'free',
+                'max_leads'      => 10,
+                'max_groups'     => 3,
+                'is_active'      => true,
+                'sort_order'     => 1,
+                'features'       => [
+                    '10 leads par mois',
+                    'Profils publics visibles',
+                    'Accès à la communauté',
+                    'Recherche de membres (basique)',
+                    'Rejoindre jusqu\'à 3 groupes',
+                    'Support par email',
                 ],
             ],
             [
-                'name'  => 'ambassadeur',
-                'price' => 29.99,
-                'features' => [
-                    'Unlimited leads',
-                    'Full profile access',
-                    'AI-written intro messages',
-                    'Priority inbox',
-                    'Advanced search & filters',
-                    'Join unlimited groups',
-                    'Analytics dashboard',
+                'name'           => 'ambassadeur',
+                'label'          => 'Ambassadeur',
+                'description'    => 'Le plan idéal pour les professionnels actifs qui veulent développer leur réseau.',
+                'price'          => 29.99,
+                'billing_period' => 'monthly',
+                'max_leads'      => null,
+                'max_groups'     => null,
+                'is_active'      => true,
+                'sort_order'     => 2,
+                'features'       => [
+                    'Leads illimités',
+                    'Accès complet aux profils',
+                    'Messages d\'introduction IA',
+                    'Inbox prioritaire',
+                    'Recherche avancée & filtres',
+                    'Groupes illimités',
+                    'Tableau de bord analytics',
                     'Export contacts (CSV)',
-                    'Email & chat support',
+                    'Support email & chat',
                 ],
             ],
             [
-                'name'  => 'premium_gold',
-                'price' => 99.99,
-                'features' => [
-                    'Everything in Ambassadeur',
-                    'Verified profile badge',
-                    'Featured in search results',
-                    'Co-host & create events',
-                    'CRM integrations',
-                    'White-label lead exports',
-                    'Dedicated account manager',
-                    '24/7 priority support',
+                'name'           => 'premium_gold',
+                'label'          => 'Premium Gold',
+                'description'    => 'Visibilité maximale et outils exclusifs pour les acteurs clés du réseau.',
+                'price'          => 99.99,
+                'billing_period' => 'monthly',
+                'max_leads'      => null,
+                'max_groups'     => null,
+                'is_active'      => true,
+                'sort_order'     => 3,
+                'features'       => [
+                    'Tout ce qu\'inclut Ambassadeur',
+                    'Badge de profil vérifié',
+                    'Mis en avant dans les résultats de recherche',
+                    'Co-organisation d\'événements',
+                    'Intégrations CRM',
+                    'Exports leads en marque blanche',
+                    'Account manager dédié',
+                    'Support prioritaire 24/7',
                 ],
             ],
         ];
 
         foreach ($plans as $data) {
-            Plan::where('name', $data['name'])->update([
-                'features' => json_encode($data['features']),
-                'price'    => $data['price'],
-            ]);
+            Plan::updateOrCreate(
+                ['name' => $data['name']],
+                $data
+            );
         }
     }
 }

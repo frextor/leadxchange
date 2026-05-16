@@ -52,13 +52,20 @@ class GroupController extends Controller
             'description' => ['nullable', 'string', 'max:500'],
             'sector_id'   => ['nullable', 'integer', 'exists:sectors,id'],
             'cover_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'cover_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
+
+        $photoPath = null;
+        if ($request->hasFile('cover_photo')) {
+            $photoPath = $request->file('cover_photo')->store('groups', 'public');
+        }
 
         $group = Group::create([
             'name'          => $validated['name'],
             'description'   => $validated['description'] ?? null,
             'sector_id'     => $validated['sector_id'] ?? null,
             'cover_color'   => $validated['cover_color'] ?? '#1E8F88',
+            'cover_photo'   => $photoPath,
             'created_by'    => $request->user()->id,
             'is_public'     => true,
             'members_count' => 1,

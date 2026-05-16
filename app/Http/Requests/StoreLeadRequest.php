@@ -18,17 +18,18 @@ class StoreLeadRequest extends FormRequest
                 'required', 'integer', 'exists:users,id',
                 function ($_attr, $value, $fail) {
                     if ((int) $value === $this->user()->id) {
-                        $fail('You cannot send a lead to yourself.');
+                        $fail('Vous ne pouvez pas vous envoyer un lead à vous-même.');
                     }
                 },
             ],
             'company_name'     => ['required', 'string', 'max:150'],
             'contact_name'     => ['required', 'string', 'max:100'],
-            'contact_email'    => ['nullable', 'email', 'max:150'],
-            'contact_phone'    => ['nullable', 'string', 'max:30'],
+            'contact_email'    => ['required', 'email', 'max:150'],
+            'contact_phone'    => ['required', 'string', 'max:30'],
             'contact_position' => ['nullable', 'string', 'max:100'],
             'deadline'         => ['required', 'date', 'after:today'],
             'qualification'    => ['required', 'in:chaud,tiede,froid'],
+            'sector_id'        => ['required', 'integer', 'exists:sectors,id'],
             'description'      => ['nullable', 'string', 'max:2000'],
         ];
     }
@@ -36,15 +37,19 @@ class StoreLeadRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'receiver_id.required'   => 'Please select a recipient.',
-            'receiver_id.exists'     => 'Recipient not found.',
-            'company_name.required'  => 'The company name is required.',
-            'contact_name.required'  => 'The contact name is required.',
-            'contact_email.email'    => 'Please enter a valid email address.',
-            'deadline.required'      => 'Please set a deadline.',
-            'deadline.after'         => 'The deadline must be a future date.',
-            'qualification.required' => 'Please select a qualification level.',
-            'qualification.in'       => 'Qualification must be Chaud, Tiède, or Froid.',
+            'receiver_id.required'   => 'Veuillez sélectionner un destinataire.',
+            'receiver_id.exists'     => 'Destinataire introuvable.',
+            'company_name.required'  => 'Le nom de l\'entreprise est obligatoire.',
+            'contact_name.required'  => 'Le nom du contact est obligatoire.',
+            'contact_email.required' => 'L\'email du contact est obligatoire.',
+            'contact_email.email'    => 'Veuillez saisir une adresse email valide.',
+            'contact_phone.required' => 'Le téléphone du contact est obligatoire.',
+            'deadline.required'      => 'Veuillez définir une deadline.',
+            'deadline.after'         => 'La deadline doit être une date future.',
+            'qualification.required' => 'Veuillez sélectionner un niveau de qualification.',
+            'qualification.in'       => 'La qualification doit être Chaud, Tiède ou Froid.',
+            'sector_id.required'     => 'Veuillez sélectionner un secteur.',
+            'sector_id.exists'       => 'Secteur invalide.',
         ];
     }
 }

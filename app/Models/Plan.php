@@ -15,19 +15,19 @@ class Plan extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
-        'price',
-        'features',
+        'name', 'label', 'description',
+        'price', 'billing_period',
+        'max_leads', 'max_groups',
+        'features', 'is_active', 'sort_order',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
-        'features' => 'array',
-        'price' => 'decimal:2',
+        'features'   => 'array',
+        'price'      => 'decimal:2',
+        'max_leads'  => 'integer',
+        'max_groups' => 'integer',
+        'is_active'  => 'boolean',
+        'sort_order' => 'integer',
     ];
 
     /**

@@ -1,26 +1,9 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Exchanges — LeadXchange')
+@section('title', 'Échanges — LeadXchange')
 
 @push('styles')
 <style>
-    .ld-tab { padding: 8px 20px; border-radius: 10px; font-size: 13px; font-weight: 600;
-              cursor: pointer; border: none; background: transparent; color: #6B7280;
-              transition: all .15s; display: flex; align-items: center; gap: 6px; }
-    .ld-tab:hover  { background: #F3F4F6; color: #111827; }
-    .ld-tab.active { background: #111827; color: white; }
-    .ld-tab .badge { padding: 1px 7px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-    .ld-tab.active .badge { background: rgba(255,255,255,.2); color: white; }
-    .ld-tab:not(.active) .badge { background: #F3F4F6; color: #6B7280; }
-
-    .lead-card { background: white; border-radius: 16px; border: 1px solid #E5E7EB;
-                 padding: 20px; transition: box-shadow .2s, transform .15s; }
-    .lead-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.07); transform: translateY(-1px); }
-
-    .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px;
-                    border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: .02em; }
-    .status-dot   { width: 6px; height: 6px; border-radius: 50%; }
-
     .lx-input { height: 40px; padding: 0 14px; border-radius: 10px; border: 1.5px solid #E5E7EB;
                 background: white; font-size: 13px; color: #111827; outline: none; width: 100%;
                 font-family: inherit; transition: border-color .15s, box-shadow .15s; }
@@ -28,110 +11,221 @@
     .lx-input.error { border-color: #EF4444; }
     .lx-textarea { padding: 10px 14px; border-radius: 10px; border: 1.5px solid #E5E7EB;
                    background: white; font-size: 13px; color: #111827; outline: none; width: 100%;
-                   font-family: inherit; transition: border-color .15s, box-shadow .15s; resize: none; }
+                   font-family: inherit; transition: border-color .15s; resize: none; }
     .lx-textarea:focus { border-color: #111827; box-shadow: 0 0 0 3px rgba(17,24,39,.08); }
 
+    /* Tabs */
+    .main-tab { padding-bottom: 12px; padding-right: 32px; font-size: 14px; font-weight: 600;
+                color: #9CA3AF; border-bottom: 2px solid transparent; transition: all .15s; cursor: pointer; border: none; background: none; }
+    .main-tab.active { color: #111827; border-bottom-color: #111827; }
+
+    /* Filter pills */
+    .filter-pill { padding: 5px 14px; border-radius: 100px; font-size: 12px; font-weight: 600;
+                   border: 1.5px solid #E5E7EB; background: white; color: #6B7280;
+                   cursor: pointer; transition: all .15s; white-space: nowrap; }
+    .filter-pill:hover { border-color: #9CA3AF; color: #374151; }
+    .filter-pill.active { background: #111827; border-color: #111827; color: white; }
+
+    /* Lead card */
+    .lead-card { background: white; border-radius: 16px; border: 1px solid #E5E7EB;
+                 overflow: hidden; display: flex; transition: box-shadow .2s; }
+    .lead-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.06); }
+
+    /* Status dots */
+    .sdot { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; }
+    .sdot::before { content: ''; display: block; width: 7px; height: 7px; border-radius: 50%; }
+
+    /* Qual badge */
     .qual-btn { flex: 1; padding: 10px 8px; border-radius: 12px; border: 2px solid #E5E7EB;
                 cursor: pointer; text-align: center; transition: all .15s; background: white; }
     .qual-btn.selected-chaud  { border-color: #DC2626; background: #FEE2E2; }
     .qual-btn.selected-tiede  { border-color: #D97706; background: #FEF3C7; }
     .qual-btn.selected-froid  { border-color: #3B82F6; background: #EFF6FF; }
-
-    .badge-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px;
-                  border-radius: 20px; font-size: 11px; font-weight: 700; }
 </style>
 @endpush
 
 @section('content')
 @php
+    $userPoints   = $currentUser->points_balance ?? 0;
+    $badgeLevel   = $currentUser->badge_level ?? 'bronze';
+    $badgeConfig  = [
+        'bronze' => ['label' => 'Bronze', 'icon' => '🏆', 'classes' => 'text-yellow-700'],
+        'argent' => ['label' => 'Argent', 'icon' => '🏆', 'classes' => 'text-gray-500'],
+        'or'     => ['label' => 'Or',     'icon' => '🏆', 'classes' => 'text-amber-500'],
+    ];
+    $badge = $badgeConfig[$badgeLevel];
+
+    // Progress to next badge
+    if ($badgeLevel === 'bronze') {
+        $nextLevelLabel = 'Argent'; $nextLevelPts = 50;
+        $progressPct = min(100, (int) round($userPoints / 50 * 100));
+    } elseif ($badgeLevel === 'argent') {
+        $nextLevelLabel = 'Or'; $nextLevelPts = 150;
+        $progressPct = min(100, (int) round(max(0, $userPoints - 51) / 99 * 100));
+    } else {
+        $nextLevelLabel = null; $nextLevelPts = null; $progressPct = 100;
+    }
+
+    // Stats deltas (last 7 days)
+    $sentCount     = $sent->count();
+    $receivedCount = $received->count();
     $pendingCount  = $received->where('status', 'new')->count();
-    $userPoints    = $currentUser->points_balance ?? 0;
-    $badgeConfig   = ['bronze' => ['label'=>'Bronze','classes'=>'bg-yellow-100 text-yellow-900'],
-                      'argent' => ['label'=>'Argent','classes'=>'bg-gray-100 text-gray-700'],
-                      'or'     => ['label'=>'Or',    'classes'=>'bg-amber-100 text-amber-900']];
-    $badge         = $badgeConfig[$currentUser->badge_level ?? 'bronze'];
+    $convertedCount= $sent->where('status', 'converted')->count();
+    $cutoff        = now()->subDays(7);
+    $deltaSent     = $sent->where('created_at', '>=', $cutoff)->count();
+    $deltaReceived = $received->where('created_at', '>=', $cutoff)->count();
+    $deltaPending  = $received->where('status', 'new')->where('created_at', '>=', $cutoff)->count();
+    $deltaConverted= $sent->where('status', 'converted')->where('created_at', '>=', $cutoff)->count();
+
+    // Filter counts per tab
+    $rcvCounts = ['all' => $receivedCount, 'new' => $received->where('status','new')->count(),
+                  'accepted' => $received->where('status','accepted')->count(),
+                  'converted' => $received->where('status','converted')->count(),
+                  'rejected' => $received->where('status','rejected')->count()];
+    $sntCounts = ['all' => $sentCount, 'new' => $sent->where('status','new')->count(),
+                  'accepted' => $sent->where('status','accepted')->count(),
+                  'converted' => $sent->where('status','converted')->count(),
+                  'rejected' => $sent->where('status','rejected')->count()];
 @endphp
 
-<div class="max-w-5xl mx-auto px-4 lg:px-8 py-8">
+{{-- ════ HERO HEADER ════ --}}
+<div class="bg-white border-b border-gray-100">
+    <div class="max-w-6xl mx-auto px-6 lg:px-8 py-10">
+        <div class="flex items-start justify-between gap-8 flex-wrap">
 
-    {{-- ── Page header ── --}}
-    <div class="flex items-start justify-between mb-8 flex-wrap gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Exchanges</h1>
-            <p class="text-sm text-gray-400 mt-1">Partagez et recevez des leads qualifiés avec votre réseau</p>
-        </div>
-        <div class="flex items-center gap-3">
-            {{-- Points + Badge display --}}
-            <div class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white shadow-sm">
-                <span class="badge-pill {{ $badge['classes'] }}">
-                    @if($currentUser->badge_level === 'or') 🥇
-                    @elseif($currentUser->badge_level === 'argent') 🥈
-                    @else 🥉
-                    @endif
-                    {{ $badge['label'] }}
-                </span>
-                <span class="text-sm font-bold text-gray-900">{{ $userPoints }}</span>
-                <span class="text-xs text-gray-400">pts</span>
+            {{-- Left: Hero text --}}
+            <div class="min-w-0">
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Échanges / Vue d'ensemble</p>
+                <h1 class="playfair text-5xl font-normal text-gray-900 leading-tight">
+                    Échangez des<br>
+                    <em class="text-teal-600 not-italic font-normal" style="font-style:italic;">leads qualifiés</em><br>
+                    avec votre réseau.
+                </h1>
+                <p class="mt-4 text-sm text-gray-500 max-w-sm leading-relaxed">
+                    Une économie de points encourage la réciprocité : envoyez un lead, gagnez un point.
+                    Notez ceux que vous recevez sous 15 jours pour préserver le vôtre.
+                </p>
             </div>
-            <button onclick="document.getElementById('sendLeadModal').classList.remove('hidden')"
-                    class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition"
-                    style="background:#111827;" onmouseover="this.style.background='#1F2937'" onmouseout="this.style.background='#111827'">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-                Envoyer un Lead
-            </button>
+
+            {{-- Right: Points widget + CTA --}}
+            <div class="flex flex-col items-end gap-4 flex-shrink-0">
+                {{-- Points + progress --}}
+                <div class="text-right">
+                    <div class="flex items-center gap-2 justify-end">
+                        <span class="text-sm font-semibold {{ $badge['classes'] }}">{{ $badge['icon'] }} {{ $badge['label'] }}</span>
+                        <span class="text-sm font-bold text-gray-900">{{ $userPoints }} <span class="text-xs font-medium text-gray-400">PTS</span></span>
+                    </div>
+                    <div class="w-40 h-1.5 bg-gray-100 rounded-full mt-2 overflow-hidden">
+                        <div class="h-1.5 bg-teal-500 rounded-full transition-all" style="width: {{ $progressPct }}%"></div>
+                    </div>
+                    @if($nextLevelLabel)
+                    <p class="text-xs text-gray-400 mt-1.5">{{ $userPoints }} / {{ $nextLevelPts }} pts · Prochain : {{ $nextLevelLabel }}</p>
+                    @else
+                    <p class="text-xs text-amber-600 mt-1.5">Niveau maximum atteint 🥇</p>
+                    @endif
+                    <a href="#" class="text-xs text-teal-600 hover:underline mt-0.5 inline-block">Historique des points →</a>
+                </div>
+                {{-- CTA --}}
+                <button onclick="document.getElementById('sendLeadModal').classList.remove('hidden')"
+                        class="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-white bg-gray-900 hover:bg-gray-800 transition">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                    Envoyer un Lead
+                </button>
+            </div>
         </div>
     </div>
+</div>
 
-    {{-- ── Stats row ── --}}
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+{{-- ════ STATS ════ --}}
+<div class="max-w-6xl mx-auto px-6 lg:px-8">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 py-6">
         @php
-            $stats = [
-                ['label' => 'Envoyés',    'value' => $sent->count(),                              'numClass' => 'text-indigo-500', 'bgClass' => 'bg-indigo-50'],
-                ['label' => 'Reçus',      'value' => $received->count(),                          'numClass' => 'text-teal-600',   'bgClass' => 'bg-teal-50'],
-                ['label' => 'En attente', 'value' => $pendingCount,                               'numClass' => 'text-amber-500',  'bgClass' => 'bg-amber-50'],
-                ['label' => 'Convertis',  'value' => $sent->where('status','converted')->count(), 'numClass' => 'text-emerald-500','bgClass' => 'bg-emerald-50'],
-            ];
+        $statCards = [
+            ['label' => 'ENVOYÉS',    'value' => $sentCount,      'delta' => $deltaSent,      'num' => 'text-indigo-500', 'bg' => 'bg-indigo-50', 'delta_bg' => 'bg-indigo-100 text-indigo-600'],
+            ['label' => 'REÇUS',      'value' => $receivedCount,  'delta' => $deltaReceived,  'num' => 'text-teal-600',   'bg' => 'bg-teal-50',   'delta_bg' => 'bg-teal-100 text-teal-700'],
+            ['label' => 'EN ATTENTE', 'value' => $pendingCount,   'delta' => $deltaPending,   'num' => 'text-amber-500',  'bg' => 'bg-amber-50',  'delta_bg' => 'bg-amber-100 text-amber-700'],
+            ['label' => 'CONVERTIS',  'value' => $convertedCount, 'delta' => $deltaConverted, 'num' => 'text-emerald-500','bg' => 'bg-emerald-50','delta_bg' => 'bg-emerald-100 text-emerald-700'],
+        ];
         @endphp
-        @foreach($stats as $s)
-        <div class="rounded-2xl border border-gray-100 p-4 shadow-sm {{ $s['bgClass'] }}">
-            <p class="text-2xl font-extrabold {{ $s['numClass'] }}">{{ $s['value'] }}</p>
-            <p class="text-xs font-semibold text-gray-500 mt-0.5">{{ $s['label'] }}</p>
+        @foreach($statCards as $s)
+        <div class="rounded-2xl border border-transparent {{ $s['bg'] }} p-5">
+            <div class="flex items-baseline gap-2">
+                <span class="text-4xl font-light {{ $s['num'] }}">{{ $s['value'] }}</span>
+                @if($s['delta'] > 0)
+                <span class="text-xs font-bold px-1.5 py-0.5 rounded {{ $s['delta_bg'] }}">+{{ $s['delta'] }}</span>
+                @else
+                <span class="text-xs font-semibold text-gray-300">0</span>
+                @endif
+            </div>
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-1">{{ $s['label'] }}</p>
         </div>
         @endforeach
     </div>
+</div>
 
-    {{-- ── Flash messages ── --}}
+{{-- ════ MAIN CONTENT ════ --}}
+<div class="max-w-6xl mx-auto px-6 lg:px-8 pb-12">
+
+    {{-- Flash messages --}}
     @if(session('success'))
-    <div class="mb-5 px-4 py-3 rounded-xl text-sm font-medium" style="background:#E6F7F4;color:#1E8F88;">
+    <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium text-teal-700 bg-teal-50 border border-teal-100">
         {{ session('success') }}
     </div>
     @endif
     @if($errors->has('error'))
-    <div class="mb-5 px-4 py-3 rounded-xl text-sm font-medium bg-red-50 text-red-600">
+    <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium text-red-600 bg-red-50 border border-red-100">
         {{ $errors->first('error') }}
     </div>
     @endif
 
-    {{-- ── Tabs ── --}}
-    <div class="flex items-center gap-2 mb-6">
-        <button onclick="switchTab('received')" id="tab-received" class="ld-tab active">
+    {{-- Main tabs --}}
+    <div class="flex border-b border-gray-200 mb-6 gap-0">
+        <button onclick="switchTab('received')" id="tab-received" class="main-tab active">
             Reçus
-            <span class="badge">{{ $received->count() }}</span>
-            @if($pendingCount > 0)
-            <span class="w-2 h-2 rounded-full bg-amber-400 ml-0.5"></span>
-            @endif
+            <span class="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs rounded-full" id="badge-received">{{ $receivedCount }}</span>
         </button>
-        <button onclick="switchTab('sent')" id="tab-sent" class="ld-tab">
+        <button onclick="switchTab('sent')" id="tab-sent" class="main-tab">
             Envoyés
-            <span class="badge">{{ $sent->count() }}</span>
+            <span class="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs rounded-full" id="badge-sent">{{ $sentCount }}</span>
         </button>
+    </div>
+
+    {{-- Filters + Search --}}
+    <div class="flex items-center justify-between gap-4 mb-5 flex-wrap">
+        {{-- Status filters --}}
+        <div class="flex items-center gap-2 flex-wrap" id="filter-bar">
+            <button class="filter-pill active" data-filter="all" onclick="selectFilter('all')">
+                Tous <span id="fp-all">{{ $receivedCount }}</span>
+            </button>
+            <button class="filter-pill" data-filter="new" onclick="selectFilter('new')">
+                En attente <span id="fp-new">{{ $rcvCounts['new'] }}</span>
+            </button>
+            <button class="filter-pill" data-filter="accepted" onclick="selectFilter('accepted')">
+                Acceptés <span id="fp-accepted">{{ $rcvCounts['accepted'] }}</span>
+            </button>
+            <button class="filter-pill" data-filter="converted" onclick="selectFilter('converted')">
+                Convertis <span id="fp-converted">{{ $rcvCounts['converted'] }}</span>
+            </button>
+            <button class="filter-pill" data-filter="rejected" onclick="selectFilter('rejected')">
+                Refusés <span id="fp-rejected">{{ $rcvCounts['rejected'] }}</span>
+            </button>
+        </div>
+        {{-- Search --}}
+        <div class="relative flex-shrink-0">
+            <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="leadSearch" placeholder="Rechercher une entreprise, un contact…"
+                   oninput="applyFilter()"
+                   class="h-9 w-72 pl-9 pr-4 rounded-full border border-gray-200 text-sm bg-white focus:outline-none focus:border-gray-400 transition">
+        </div>
     </div>
 
     {{-- ── Received panel ── --}}
     <div id="panel-received">
         @if($received->isEmpty())
         <div class="text-center py-16 bg-white rounded-2xl border border-gray-100">
-            <div class="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background:#E6F7F4;">
+            <div class="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-teal-50">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1E8F88" stroke-width="1.5">
                     <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
                     <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
@@ -142,11 +236,12 @@
             <p class="text-sm text-gray-400 mt-1">Les leads envoyés par votre réseau apparaîtront ici</p>
         </div>
         @else
-        <div class="space-y-4">
+        <div class="space-y-3" id="list-received">
             @foreach($received as $lead)
-                @include('leads._card', ['lead' => $lead, 'mode' => 'received', 'currentUser' => $currentUser])
+            @include('leads._card', ['lead' => $lead, 'mode' => 'received', 'currentUser' => $currentUser])
             @endforeach
         </div>
+        <div id="empty-received" class="hidden text-center py-10 text-sm text-gray-400">Aucun lead ne correspond à ce filtre.</div>
         @endif
     </div>
 
@@ -154,7 +249,7 @@
     <div id="panel-sent" class="hidden">
         @if($sent->isEmpty())
         <div class="text-center py-16 bg-white rounded-2xl border border-gray-100">
-            <div class="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background:#EEF2FF;">
+            <div class="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-indigo-50">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5">
                     <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                 </svg>
@@ -162,25 +257,23 @@
             <p class="font-semibold text-gray-600">Aucun lead envoyé</p>
             <p class="text-sm text-gray-400 mt-1">Partagez une opportunité commerciale avec votre réseau</p>
             <button onclick="document.getElementById('sendLeadModal').classList.remove('hidden')"
-                    class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
-                    style="background:#111827;">
+                    class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-gray-900 hover:bg-gray-800 transition">
                 Envoyer votre premier lead
             </button>
         </div>
         @else
-        <div class="space-y-4">
+        <div class="space-y-3" id="list-sent">
             @foreach($sent as $lead)
-                @include('leads._card', ['lead' => $lead, 'mode' => 'sent', 'currentUser' => $currentUser])
+            @include('leads._card', ['lead' => $lead, 'mode' => 'sent', 'currentUser' => $currentUser])
             @endforeach
         </div>
+        <div id="empty-sent" class="hidden text-center py-10 text-sm text-gray-400">Aucun lead ne correspond à ce filtre.</div>
         @endif
     </div>
 
 </div>
 
-{{-- ════════════════════════════════════════════════════
-     SEND LEAD MODAL
-════════════════════════════════════════════════════ --}}
+{{-- ════ SEND LEAD MODAL ════ --}}
 <div id="sendLeadModal"
      class="{{ $errors->any() && !session('success') ? '' : 'hidden' }} fixed inset-0 z-50 flex items-center justify-center p-4"
      style="background:rgba(0,0,0,.5);">
@@ -200,7 +293,7 @@
         <form method="POST" action="{{ route('leads.store') }}" class="px-6 py-5 space-y-4">
             @csrf
 
-            {{-- ── Recipient ── --}}
+            {{-- Recipient --}}
             <div>
                 <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                     Envoyer à <span class="text-red-400">*</span>
@@ -227,14 +320,11 @@
                          class="hidden absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden"
                          style="max-height:220px;overflow-y:auto;">
                         @if($connections->isEmpty())
-                        <div class="px-4 py-5 text-center text-sm text-gray-400">
-                            Connectez-vous avec des membres pour leur envoyer des leads
-                        </div>
+                        <div class="px-4 py-5 text-center text-sm text-gray-400">Connectez-vous avec des membres pour leur envoyer des leads</div>
                         @else
                         @foreach($connections as $u)
                         <button type="button"
-                                class="member-option w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition
-                                       {{ ($u->points_balance ?? 0) < 1 ? 'opacity-50 cursor-not-allowed' : '' }}"
+                                class="member-option w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition {{ ($u->points_balance ?? 0) < 1 ? 'opacity-50 cursor-not-allowed' : '' }}"
                                 data-id="{{ $u->id }}"
                                 data-name="{{ $u->first_name }} {{ $u->last_name }}"
                                 data-balance="{{ $u->points_balance ?? 0 }}"
@@ -246,7 +336,7 @@
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-medium text-gray-900">{{ $u->first_name }} {{ $u->last_name }}</p>
                                 @if(($u->points_balance ?? 0) < 1)
-                                <p class="text-xs text-red-400">Solde insuffisant pour recevoir</p>
+                                <p class="text-xs text-red-400">Solde insuffisant</p>
                                 @else
                                 <p class="text-xs text-gray-400">{{ $u->points_balance }} pts</p>
                                 @endif
@@ -260,7 +350,7 @@
                 @error('receiver_id') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
             </div>
 
-            {{-- ── Contact info section ── --}}
+            {{-- Contact info --}}
             <div class="rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-3">
                 <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contact à recommander</p>
 
@@ -283,17 +373,18 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Email</label>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Email <span class="text-red-400">*</span></label>
                         <input type="email" name="contact_email" value="{{ old('contact_email') }}"
-                               placeholder="email@exemple.com" maxlength="150"
+                               placeholder="email@exemple.com" required maxlength="150"
                                class="lx-input @error('contact_email') error @enderror">
                         @error('contact_email') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Téléphone</label>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Téléphone <span class="text-red-400">*</span></label>
                         <input type="tel" name="contact_phone" value="{{ old('contact_phone') }}"
-                               placeholder="+212 6XX XXX XXX" maxlength="30"
-                               class="lx-input">
+                               placeholder="+33 6 XX XX XX XX" required maxlength="30"
+                               class="lx-input @error('contact_phone') error @enderror">
+                        @error('contact_phone') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                     </div>
                 </div>
 
@@ -305,7 +396,7 @@
                 </div>
             </div>
 
-            {{-- ── Deadline + Qualification ── --}}
+            {{-- Deadline + Qualification --}}
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
@@ -337,7 +428,24 @@
                 </div>
             </div>
 
-            {{-- ── Notes / Description ── --}}
+            {{-- Sector --}}
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                    Secteur <span class="text-red-400">*</span>
+                </label>
+                <select name="sector_id" required
+                        class="lx-input @error('sector_id') error @enderror">
+                    <option value="">— Choisir un secteur —</option>
+                    @foreach($sectors as $sector)
+                    <option value="{{ $sector->id }}" {{ old('sector_id') == $sector->id ? 'selected' : '' }}>
+                        {{ $sector->name }}
+                    </option>
+                    @endforeach
+                </select>
+                @error('sector_id') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- Notes --}}
             <div>
                 <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Notes</label>
                 <textarea name="description" rows="3" maxlength="2000"
@@ -345,7 +453,7 @@
                           class="lx-textarea">{{ old('description') }}</textarea>
             </div>
 
-            {{-- ── Actions ── --}}
+            {{-- Actions --}}
             <div class="flex gap-3 pt-2">
                 <button type="button"
                         onclick="document.getElementById('sendLeadModal').classList.add('hidden')"
@@ -353,8 +461,7 @@
                     Annuler
                 </button>
                 <button type="submit"
-                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition flex items-center justify-center gap-2"
-                        style="background:#111827;" onmouseover="this.style.background='#1F2937'" onmouseout="this.style.background='#111827'">
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-gray-900 hover:bg-gray-800 transition flex items-center justify-center gap-2">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                     </svg>
@@ -370,49 +477,82 @@
 @push('scripts')
 <script>
     /* ── Tab switching ── */
+    const rcvCounts = @json($rcvCounts);
+    const sntCounts = @json($sntCounts);
+    let currentTab    = 'received';
+    let currentFilter = 'all';
+
     function switchTab(tab) {
+        currentTab    = tab;
+        currentFilter = 'all';
         ['received', 'sent'].forEach(t => {
             document.getElementById('panel-' + t).classList.toggle('hidden', t !== tab);
-            document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+            const btn = document.getElementById('tab-' + t);
+            btn.classList.toggle('active', t === tab);
         });
+        updateFilterBar();
+        applyFilter();
+    }
+
+    function updateFilterBar() {
+        const counts = currentTab === 'received' ? rcvCounts : sntCounts;
+        document.getElementById('fp-all').textContent      = counts.all;
+        document.getElementById('fp-new').textContent      = counts.new;
+        document.getElementById('fp-accepted').textContent = counts.accepted;
+        document.getElementById('fp-converted').textContent= counts.converted;
+        document.getElementById('fp-rejected').textContent = counts.rejected;
+    }
+
+    function selectFilter(status) {
+        currentFilter = status;
+        document.querySelectorAll('.filter-pill').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.filter === status);
+        });
+        applyFilter();
+    }
+
+    function applyFilter() {
+        const searchQ  = (document.getElementById('leadSearch').value || '').toLowerCase().trim();
+        const listId   = 'list-' + currentTab;
+        const emptyId  = 'empty-' + currentTab;
+        const list     = document.getElementById(listId);
+        const emptyMsg = document.getElementById(emptyId);
+        if (!list) return;
+
+        let visible = 0;
+        list.querySelectorAll('.lead-card-wrapper').forEach(wrapper => {
+            const statusMatch = currentFilter === 'all' || wrapper.dataset.status === currentFilter;
+            const searchMatch = !searchQ || (wrapper.dataset.search || '').toLowerCase().includes(searchQ);
+            const show = statusMatch && searchMatch;
+            wrapper.classList.toggle('hidden', !show);
+            if (show) visible++;
+        });
+        if (emptyMsg) emptyMsg.classList.toggle('hidden', visible > 0);
     }
 
     /* ── Member autocomplete ── */
-    function showMemberDropdown() {
-        document.getElementById('memberDropdown').classList.remove('hidden');
-    }
-    function hideMemberDropdown() {
-        document.getElementById('memberDropdown').classList.add('hidden');
-    }
+    function showMemberDropdown() { document.getElementById('memberDropdown').classList.remove('hidden'); }
+    function hideMemberDropdown() { document.getElementById('memberDropdown').classList.add('hidden'); }
     function filterMembers(q) {
-        const term     = q.toLowerCase().trim();
-        const options  = document.querySelectorAll('.member-option');
-        const noResult = document.getElementById('noMemberResult');
+        const term    = q.toLowerCase().trim();
+        const options = document.querySelectorAll('.member-option');
+        const noRes   = document.getElementById('noMemberResult');
         let found = 0;
         options.forEach(opt => {
             const visible = !term || opt.dataset.name.toLowerCase().includes(term);
             opt.classList.toggle('hidden', !visible);
             if (visible) found++;
         });
-        noResult.classList.toggle('hidden', found > 0);
+        noRes.classList.toggle('hidden', found > 0);
         showMemberDropdown();
         if (!term) document.getElementById('receiverId').value = '';
     }
     function selectMember(btn) {
-        const id      = btn.dataset.id;
-        const name    = btn.dataset.name;
         const balance = parseInt(btn.dataset.balance, 10);
-        if (balance < 1) {
-            alert('Ce membre ne peut pas recevoir de leads pour le moment (solde insuffisant).');
-            return;
-        }
-        document.getElementById('receiverId').value     = id;
-        document.getElementById('receiverSearch').value = name;
+        if (balance < 1) { alert('Ce membre ne peut pas recevoir de leads pour le moment.'); return; }
+        document.getElementById('receiverId').value     = btn.dataset.id;
+        document.getElementById('receiverSearch').value = btn.dataset.name;
         hideMemberDropdown();
-        const input = document.getElementById('receiverSearch');
-        input.style.borderColor = '#1E8F88';
-        input.style.boxShadow   = '0 0 0 3px rgba(30,143,136,.1)';
-        setTimeout(() => { input.style.borderColor = ''; input.style.boxShadow = ''; }, 1500);
     }
     document.getElementById('sendLeadModal').addEventListener('click', function(e) {
         if (e.target === this) this.classList.add('hidden');
@@ -426,25 +566,29 @@
             if (btn.dataset.qual === key) btn.classList.add('selected-' + key);
         });
     }
-    // Restore on validation error
     const savedQual = document.getElementById('qualInput').value;
     if (savedQual) selectQual(savedQual);
 
-    /* ── Rating star widgets (activated per card) ── */
+    /* ── Rating submit ── */
     function submitRating(leadId) {
         const form = document.getElementById('rateForm-' + leadId);
-        const qEl  = form.querySelector('input[name="quality"]:checked');
-        const rlEl = form.querySelector('input[name="relevance"]:checked');
-        const rxEl = form.querySelector('input[name="reactivity"]:checked');
-        const quality    = qEl  ? qEl.value  : null;
-        const relevance  = rlEl ? rlEl.value : null;
-        const reactivity = rxEl ? rxEl.value : null;
-
-        if (!quality || !relevance || !reactivity) {
-            alert('Veuillez noter les 3 critères avant de valider.');
-            return;
+        const fields = ['quality', 'relevance', 'reactivity'];
+        for (const f of fields) {
+            if (!document.getElementById('val-' + leadId + '-' + f).value) {
+                alert('Veuillez noter les 3 critères avant de valider.');
+                return;
+            }
         }
         form.submit();
     }
+
+    /* Init badge counts */
+    @if($receivedCount > 0)
+    document.getElementById('badge-received').classList.add('bg-gray-900', 'text-white');
+    @else
+    document.getElementById('badge-received').classList.add('bg-gray-100', 'text-gray-500');
+    @endif
+    document.getElementById('badge-sent').classList.add('bg-gray-100', 'text-gray-500');
+    updateFilterBar();
 </script>
 @endpush

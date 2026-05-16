@@ -55,7 +55,7 @@
                 </button>
             </div>
 
-            <form method="POST" action="{{ route('groups.store') }}" class="px-6 py-5 space-y-4">
+            <form method="POST" action="{{ route('groups.store') }}" enctype="multipart/form-data" class="px-6 py-5 space-y-4">
                 @csrf
 
                 <div>
@@ -86,16 +86,44 @@
                     @error('sector_id') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                 </div>
 
+                {{-- Cover photo --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Cover color</label>
-                    <div class="flex gap-2 flex-wrap">
-                        @foreach(['#1E8F88','#6366F1','#F59E0B','#EF4444','#8B5CF6','#EC4899','#10B981','#3B82F6'] as $color)
-                        <label class="cursor-pointer color-swatch" style="position:relative;">
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                        Photo de couverture
+                        <span class="text-gray-400 font-normal text-xs ml-1">(optionnel — prioritaire sur la couleur)</span>
+                    </label>
+                    <label id="photoDropzone"
+                        class="flex flex-col items-center justify-center gap-2 w-full h-28 rounded-xl border-2 border-dashed border-gray-200 cursor-pointer transition hover:border-teal-400 hover:bg-teal-50 relative overflow-hidden">
+                        <input type="file" name="cover_photo" id="coverPhotoInput" accept="image/*" class="sr-only">
+                        {{-- Preview overlay --}}
+                        <img id="coverPhotoPreview" src="" alt="" class="absolute inset-0 w-full h-full object-cover hidden">
+                        <div id="photoPlaceholder" class="flex flex-col items-center gap-1 text-gray-400 pointer-events-none">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                            <span class="text-xs font-medium">Glissez une image ou cliquez</span>
+                            <span class="text-xs">JPG, PNG, WebP — max 2 Mo</span>
+                        </div>
+                        <button type="button" id="removePhotoBtn"
+                            class="hidden absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70"
+                            onclick="event.preventDefault();removePhoto()">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        </button>
+                    </label>
+                    @error('cover_photo') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                </div>
+
+                {{-- Cover color swatches --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Couleur de couverture</label>
+                    <div class="flex gap-2 flex-wrap" id="swatchContainer">
+                        @php $colors = ['#1E8F88','#6366F1','#F59E0B','#EF4444','#8B5CF6','#EC4899','#10B981','#3B82F6']; @endphp
+                        @foreach($colors as $color)
+                        <label class="cursor-pointer color-swatch relative">
                             <input type="radio" name="cover_color" value="{{ $color }}" class="sr-only"
-                                {{ (old('cover_color', '#1E8F88') === $color) ? 'checked' : '' }}
-                                onchange="updateSwatches()">
-                            <span class="block w-7 h-7 rounded-full transition-all"
-                                  style="background:{{ $color }}; box-shadow: {{ (old('cover_color', '#1E8F88') === $color) ? '0 0 0 2px white, 0 0 0 4px '.$color : 'none' }};"></span>
+                                {{ (old('cover_color', '#1E8F88') === $color) ? 'checked' : '' }}>
+                            <span class="swatch-dot block w-7 h-7 rounded-full transition-all" data-color="{{ $color }}"></span>
                         </label>
                         @endforeach
                     </div>
@@ -132,15 +160,14 @@
 
                     <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">Categories</p>
                     <div class="space-y-0.5">
-                        <button type="button" onclick="setCategory('')"
-                            class="cat-btn {{ !request('category') ? 'active' : '' }}">
+                        <button type="button" data-cat="" class="cat-btn {{ !request('category') ? 'active' : '' }}">
                             <span>All groups</span>
                             <span class="text-xs font-normal">{{ $groups->count() }}</span>
                         </button>
                         @foreach($sectors as $sector)
                             @php $count = $groups->where('sector_id', $sector->id)->count(); @endphp
                             @if($count > 0)
-                            <button type="button" onclick="setCategory({{ $sector->id }})"
+                            <button type="button" data-cat="{{ $sector->id }}"
                                 class="cat-btn {{ request('category') == $sector->id ? 'active' : '' }}">
                                 <span>{{ $sector->name }}</span>
                                 <span class="text-xs font-normal">{{ $count }}</span>
@@ -222,25 +249,56 @@
 
 @push('scripts')
 <script>
-    function setCategory(id) {
-        document.getElementById('categoryInput').value = id;
-        document.getElementById('filterForm').submit();
-    }
+    // ── Category filter buttons ──
+    document.querySelectorAll('[data-cat]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('categoryInput').value = btn.dataset.cat;
+            document.getElementById('filterForm').submit();
+        });
+    });
 
+    // ── Color swatches ──
     function updateSwatches() {
         document.querySelectorAll('.color-swatch').forEach(label => {
             const input = label.querySelector('input');
-            const span  = label.querySelector('span');
-            span.style.boxShadow = input.checked
+            const dot   = label.querySelector('.swatch-dot');
+            dot.style.background  = input.value;
+            dot.style.boxShadow   = input.checked
                 ? `0 0 0 2px white, 0 0 0 4px ${input.value}`
                 : 'none';
         });
     }
 
     document.querySelectorAll('.color-swatch input').forEach(i => i.addEventListener('change', updateSwatches));
+    updateSwatches(); // init on load
 
+    // ── Modal close on backdrop ──
     document.getElementById('createGroupModal').addEventListener('click', function(e) {
         if (e.target === this) this.classList.add('hidden');
     });
+
+    // ── Cover photo preview ──
+    const photoInput   = document.getElementById('coverPhotoInput');
+    const preview      = document.getElementById('coverPhotoPreview');
+    const placeholder  = document.getElementById('photoPlaceholder');
+    const removeBtn    = document.getElementById('removePhotoBtn');
+
+    photoInput.addEventListener('change', () => {
+        const file = photoInput.files[0];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        preview.src = url;
+        preview.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+        removeBtn.classList.remove('hidden');
+    });
+
+    function removePhoto() {
+        photoInput.value = '';
+        preview.src = '';
+        preview.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+        removeBtn.classList.add('hidden');
+    }
 </script>
 @endpush
