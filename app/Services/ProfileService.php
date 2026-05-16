@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Interest;
 use App\Models\Profile;
 use App\Models\Sector;
 use App\Models\User;
@@ -13,7 +12,7 @@ class ProfileService
 {
     public function getProfile(User $user): array
     {
-        $user->loadMissing(['profile', 'interests', 'company', 'cityLiving', 'cityBirth']);
+        $user->loadMissing(['profile', 'interests', 'company', 'city', 'cityBirth']);
 
         $sectorIds = array_unique(array_merge(
             $user->profile?->looking_for      ?? [],
@@ -31,10 +30,8 @@ class ProfileService
             'last_name'       => $user->last_name,
             'email'           => $user->email,
             'gender'          => $user->gender,
-            'city_birth_id'   => $user->city_birth_id,
-            'city_birth'      => $user->cityBirth?->name,
-            'city_living_id'  => $user->city_living_id,
-            'city_living'     => $user->cityLiving?->name,
+            'city_id'  => $user->city_id,
+            'city'     => $user->city?->name,
             'birthday'        => $user->birthday?->format('Y-m-d'),
             'member_since' => $user->created_at?->format('F Y'),
             'profile'      => $profile ? array_merge($profile->toArray(), [
@@ -50,7 +47,7 @@ class ProfileService
     public function updateBasicInfo(User $user, array $data): void
     {
         $userFields = array_filter(
-            array_intersect_key($data, array_flip(['first_name', 'last_name', 'gender', 'city_birth_id', 'city_living_id', 'birthday'])),
+            array_intersect_key($data, array_flip(['first_name', 'last_name', 'gender', 'city_id', 'birthday'])),
             fn($v) => $v !== null
         );
 
@@ -112,7 +109,7 @@ class ProfileService
             fn() => !is_null($p?->job_title),
             fn() => !is_null($p?->sector),
             fn() => !is_null($p?->experience_level),
-            fn() => !is_null($user->city_living_id),
+            fn() => !is_null($user->city_id),
             fn() => !is_null($user->company_id),
             fn() => $user->interests->isNotEmpty(),
             fn() => !empty($p?->looking_for),
@@ -135,7 +132,7 @@ class ProfileService
         if (is_null($p?->job_title))                                    $missing[] = ['key' => 'job_title',   'label' => 'Poste',            'icon' => 'fa-briefcase'];
         if (is_null($p?->sector))                                       $missing[] = ['key' => 'sector',      'label' => 'Secteur',          'icon' => 'fa-industry'];
         if (is_null($p?->experience_level))                             $missing[] = ['key' => 'experience',  'label' => 'Expérience',        'icon' => 'fa-chart-line'];
-        if (is_null($user->city_living_id))                             $missing[] = ['key' => 'location',    'label' => 'Localisation',     'icon' => 'fa-map-marker-alt'];
+        if (is_null($user->city_id))                             $missing[] = ['key' => 'location',    'label' => 'Localisation',     'icon' => 'fa-map-marker-alt'];
         if (is_null($user->company_id))                                 $missing[] = ['key' => 'company',     'label' => 'Entreprise',       'icon' => 'fa-building'];
         if ($user->interests->isEmpty())                                $missing[] = ['key' => 'interests',   'label' => 'Centres d\'intérêt', 'icon' => 'fa-star'];
         if (empty($p?->looking_for))                                    $missing[] = ['key' => 'looking_for', 'label' => 'Recherche',        'icon' => 'fa-search'];

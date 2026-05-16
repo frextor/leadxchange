@@ -23,8 +23,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'gender',
-        'city_birth_id',
-        'city_living_id',
+        'city_id',
         'birthday',
         'phone',
         'phone_country_code',
@@ -69,14 +68,9 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(Company::class);
     }
 
-    public function cityLiving()
+    public function city()
     {
-        return $this->belongsTo(\App\Models\City::class, 'city_living_id');
-    }
-
-    public function cityBirth()
-    {
-        return $this->belongsTo(\App\Models\City::class, 'city_birth_id');
+        return $this->belongsTo(\App\Models\City::class, 'city_id');
     }
 
     public function profile()
@@ -213,8 +207,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasCompletedProfile(): bool
     {
         return !is_null($this->gender)
-            && !is_null($this->city_birth_id)
-            && !is_null($this->city_living_id)
+            && !is_null($this->city_id)
             && !is_null($this->birthday);
     }
 

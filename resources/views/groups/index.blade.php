@@ -1,4 +1,4 @@
-@extends('layouts.dashboard')
+extends('layouts.dashboard')
 
 @section('title', 'Groups — LeadXchange')
 
@@ -84,6 +84,20 @@
                         @endforeach
                     </select>
                     @error('sector_id') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">City</label>
+                    <select name="city_id" class="gr-input" style="appearance:none;">
+                        <option value="">— No city —</option>
+                        @foreach($cities as $city)
+                            <option value="{{ $city->id }}"
+                                {{ old('city_id', auth()->user()->city_id) == $city->id ? 'selected' : '' }}>
+                                {{ $city->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('city_id') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                 </div>
 
                 {{-- Cover photo --}}

@@ -25,8 +25,7 @@ class ProfileRequest extends FormRequest
             'phone_code'         => ['nullable', 'string', 'max:10'],  // mobile alias
             'gender'             => ['sometimes', Rule::in(['male', 'female', 'other'])],
             'birthday'           => ['sometimes', 'date', 'before:today'],
-            'city_birth_id'      => ['nullable', 'integer', 'exists:cities,id'],
-            'city_living_id'     => ['nullable', 'integer', 'exists:cities,id'],
+            'city_id'     => ['nullable', 'integer', 'exists:cities,id'],
             'nationality_id'     => ['nullable', 'integer', 'exists:nationalities,id'],
             'company_id'         => ['nullable', 'integer', 'exists:companies,id'],
             'position'           => ['nullable', 'string', 'max:100'],
@@ -64,8 +63,7 @@ class ProfileRequest extends FormRequest
             'nationality_id.exists' => 'Selected nationality is invalid.',
             'experience_level.in'   => 'Experience level must be junior, mid, senior, or expert.',
             'phone.unique'          => 'This phone number is already taken.',
-            'city_living_id.exists' => 'Selected city is invalid.',
-            'city_birth_id.exists'  => 'Selected city of birth is invalid.',
+            'city_id.exists' => 'Selected city is invalid.',
             'company_id.exists'     => 'Selected company is invalid.',
         ];
     }

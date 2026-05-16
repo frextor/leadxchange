@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\City;
 use App\Models\Event;
 use App\Models\Sector;
 use Illuminate\Http\Request;
@@ -13,8 +14,9 @@ class EventController extends Controller
     {
         $user    = $request->user();
         $sectors = Sector::orderBy('name')->get();
+        $cities  = City::orderBy('name')->get();
 
-        $query = Event::with(['sector:id,name', 'creator:id,first_name,last_name'])
+        $query = Event::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
             ->where('is_public', true);
 
         if ($request->filled('search')) {
@@ -51,7 +53,7 @@ class EventController extends Controller
         $featured          = $upcoming->first();
 
         return view('events.index', compact(
-            'upcoming', 'past', 'sectors', 'attendingEventIds', 'featured'
+            'upcoming', 'past', 'sectors', 'cities', 'attendingEventIds', 'featured'
         ));
     }
 
@@ -67,6 +69,7 @@ class EventController extends Controller
             'starts_at'     => ['required', 'date', 'after:now'],
             'ends_at'       => ['nullable', 'date', 'after:starts_at'],
             'sector_id'     => ['nullable', 'integer', 'exists:sectors,id'],
+            'city_id'       => ['nullable', 'integer', 'exists:cities,id'],
             'cover_color'   => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'cover_image'   => ['nullable', 'image', 'max:2048'],
             'price'         => ['nullable', 'numeric', 'min:0'],
@@ -78,6 +81,7 @@ class EventController extends Controller
             $coverImagePath = $request->file('cover_image')->store('events/covers', 'public');
         }
 
+        $user  = $request->user();
         $event = Event::create([
             'title'           => $validated['title'],
             'description'     => $validated['description'] ?? null,
@@ -88,16 +92,17 @@ class EventController extends Controller
             'starts_at'       => $validated['starts_at'],
             'ends_at'         => $validated['ends_at'] ?? null,
             'sector_id'       => $validated['sector_id'] ?? null,
+            'city_id'         => $validated['city_id'] ?? $user->city_id,
             'cover_color'     => $validated['cover_color'] ?? '#1E8F88',
             'cover_image'     => $coverImagePath,
             'price'           => $validated['price'] ?? null,
             'max_attendees'   => $validated['max_attendees'] ?? null,
-            'created_by'      => $request->user()->id,
+            'created_by'      => $user->id,
             'is_public'       => true,
             'attendees_count' => 1,
         ]);
 
-        $event->attendees()->attach($request->user()->id, ['role' => 'organizer']);
+        $event->attendees()->attach($user->id, ['role' => 'organizer']);
 
         return redirect()->route('events.index')
             ->with('success', 'Event "' . $event->title . '" created successfully!');

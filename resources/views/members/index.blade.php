@@ -1,4 +1,4 @@
-@extends('layouts.dashboard')
+extends('layouts.dashboard')
 
 @section('title', 'Members — LeadXchange')
 
@@ -168,19 +168,6 @@
                             </div>
                         </x-form-field>
 
-                        <x-form-field label="Born in">
-                            <select name="city_birth_id" class="ms-input">
-                                <option value="">— All cities —</option>
-                                @foreach($cities->groupBy('country.name') as $country => $group)
-                                <optgroup label="{{ $country }}">
-                                    @foreach($group as $city)
-                                    <option value="{{ $city->id }}">{{ $city->name }}</option>
-                                    @endforeach
-                                </optgroup>
-                                @endforeach
-                            </select>
-                        </x-form-field>
-
                         <x-form-field label="Company">
                             <input name="company" type="text" placeholder="e.g. Greenway" class="ms-input">
                         </x-form-field>
@@ -189,7 +176,7 @@
                     {{-- RIGHT --}}
                     <div class="flex flex-col gap-4">
                         <x-form-field label="City of living">
-                            <select name="city_living_id" class="ms-input">
+                            <select name="city_id" class="ms-input">
                                 <option value="">— All cities —</option>
                                 @foreach($cities->groupBy('country.name') as $country => $group)
                                 <optgroup label="{{ $country }}">
@@ -517,10 +504,10 @@ function memberRowHtml(m, isLast) {
         <div class="min-w-0">
           <a href="/profile/${m.id}" class="font-semibold text-[15px] hover:underline block" style="color:#1E8F88;">${m.first_name} ${m.last_name}</a>
           ${subtitle ? `<div class="text-[12.5px] text-gray-500 mt-0.5 truncate">${subtitle}</div>` : ''}
-          ${m.city_living ? `<div class="text-[13px] text-gray-400 mt-0.5 flex items-center gap-0.5 flex-wrap">
+          ${m.city ? `<div class="text-[13px] text-gray-400 mt-0.5 flex items-center gap-0.5 flex-wrap">
             <span class="flex items-center gap-1">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-              ${m.city_living}
+              ${m.city}
             </span>
             ${nearYouBadge}
           </div>` : ''}
@@ -560,9 +547,9 @@ function visitorRowHtml(v, isLast) {
             ${v.is_new ? `<span class="px-2 py-px rounded-full text-[10px] font-bold uppercase tracking-[0.06em] border" style="background:#E6F7F4;color:#1E8F88;border-color:#A8E2D9;">New</span>` : ''}
           </div>
           ${v.job_title ? `<div class="text-[12.5px] text-gray-500 mt-0.5">${v.job_title}</div>` : ''}
-          ${v.city_living ? `<div class="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5">
+          ${v.city ? `<div class="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-            ${v.city_living}</div>` : ''}
+            ${v.city}</div>` : ''}
         </div>
       </div>
 

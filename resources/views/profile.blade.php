@@ -1,4 +1,4 @@
-@extends('layouts.dashboard')
+extends('layouts.dashboard')
 
 @section('title', $user['first_name'] . ' ' . $user['last_name'])
 
@@ -105,10 +105,10 @@ $currentServicesOffered = $profile?->services_offered ?? [];
 
                     {{-- Meta --}}
                     <div class="mt-2.5 space-y-1.5">
-                        @if ($user['city_living'])
+                        @if ($user['city'])
                         <div class="flex items-center gap-1.5 text-[13px] text-gray-400">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                            {{ $user['city_living'] }}
+                            {{ $user['city'] }}
                         </div>
                         @endif
                         @if ($user['member_since'])
@@ -374,11 +374,8 @@ $currentServicesOffered = $profile?->services_offered ?? [];
             <x-profile-section title="Informations" :editModal="$isOwnProfile ? 'modal-basic' : null">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <x-profile-kv label="Email">{{ $user['email'] }}</x-profile-kv>
-                    @if ($user['city_living'])
-                    <x-profile-kv label="Ville actuelle">{{ $user['city_living'] }}</x-profile-kv>
-                    @endif
-                    @if ($user['city_birth'])
-                    <x-profile-kv label="Ville de naissance">{{ $user['city_birth'] }}</x-profile-kv>
+                    @if ($user['city'])
+                    <x-profile-kv label="Ville actuelle">{{ $user['city'] }}</x-profile-kv>
                     @endif
                     @if ($user['gender'])
                     <x-profile-kv label="Genre"><span class="capitalize">{{ $user['gender'] }}</span></x-profile-kv>
@@ -476,46 +473,21 @@ $currentServicesOffered = $profile?->services_offered ?? [];
             <div>
                 <label class="lbl">Ville actuelle</label>
                 <div class="relative">
-                    <input type="text" id="b_city_living_search" autocomplete="off"
+                    <input type="text" id="b_city_search" autocomplete="off"
                            placeholder="Rechercher une ville…"
                            class="inp"
-                           value="{{ $user['city_living'] ?? '' }}"
+                           value="{{ $user['city'] ?? '' }}"
                            oninput="filterCityDropdown('living', this.value)"
                            onfocus="showCityDropdown('living')"
                            onblur="hideCityDropdown('living')">
-                    <input type="hidden" id="b_city_living_id" value="{{ $user['city_living_id'] ?? '' }}">
-                    <div id="city_living_dropdown"
+                    <input type="hidden" id="b_city_id" value="{{ $user['city_id'] ?? '' }}">
+                    <div id="city_dropdown"
                          class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto hidden">
                         @foreach($cities as $city)
                         <button type="button"
                                 class="city-opt w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-700"
                                 data-id="{{ $city->id }}" data-name="{{ $city->name }}"
                                 onmousedown="pickCity('living', {{ $city->id }}, '{{ addslashes($city->name) }}')">
-                            {{ $city->name }}
-                            <span class="text-xs text-gray-400 ml-1">{{ $city->country?->name }}</span>
-                        </button>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-            <div>
-                <label class="lbl">Ville de naissance</label>
-                <div class="relative">
-                    <input type="text" id="b_city_birth_search" autocomplete="off"
-                           placeholder="Rechercher une ville…"
-                           class="inp"
-                           value="{{ $user['city_birth'] ?? '' }}"
-                           oninput="filterCityDropdown('birth', this.value)"
-                           onfocus="showCityDropdown('birth')"
-                           onblur="hideCityDropdown('birth')">
-                    <input type="hidden" id="b_city_birth_id" value="{{ $user['city_birth_id'] ?? '' }}">
-                    <div id="city_birth_dropdown"
-                         class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto hidden">
-                        @foreach($cities as $city)
-                        <button type="button"
-                                class="city-opt w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-700"
-                                data-id="{{ $city->id }}" data-name="{{ $city->name }}"
-                                onmousedown="pickCity('birth', {{ $city->id }}, '{{ addslashes($city->name) }}')">
                             {{ $city->name }}
                             <span class="text-xs text-gray-400 ml-1">{{ $city->country?->name }}</span>
                         </button>
@@ -731,8 +703,7 @@ $currentServicesOffered = $profile?->services_offered ?? [];
                 last_name:       document.getElementById('b_last_name').value,
                 gender:          document.getElementById('b_gender').value || null,
                 birthday:        document.getElementById('b_birthday').value || null,
-                city_living_id:  document.getElementById('b_city_living_id').value || null,
-                city_birth_id:   document.getElementById('b_city_birth_id').value || null,
+                city_id:  document.getElementById('b_city_id').value || null,
             });
             closeModal('modal-basic');
             toast('Informations mises à jour !', 'success');

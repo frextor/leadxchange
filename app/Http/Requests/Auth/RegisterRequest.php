@@ -28,9 +28,12 @@ class RegisterRequest extends FormRequest
             'email'              => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password'           => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()],
             'phone'              => ['nullable', 'string', 'max:30', 'unique:users,phone'],
+            // canonical names
             'phone_country_code' => ['nullable', 'string', 'max:10'],
-            'city_living_id'     => ['nullable', 'integer', 'exists:cities,id'],
-            'city_birth_id'      => ['nullable', 'integer', 'exists:cities,id'],
+            'city_id'     => ['nullable', 'integer', 'exists:cities,id'],
+            // mobile aliases
+            'phone_code'         => ['nullable', 'string', 'max:10'],
+            'city_id'            => ['nullable', 'integer', 'exists:cities,id'],
             'nationality_id'     => ['nullable', 'integer', 'exists:countries,id'],
             'gender'             => ['nullable', 'string', 'in:male,female,other'],
             'birthday'           => ['nullable', 'date', 'before:today'],

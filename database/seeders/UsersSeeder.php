@@ -20,8 +20,8 @@ class UsersSeeder extends Seeder
                 'email'               => 'karim.benali@example.com',
                 'gender'              => 'male',
                 'birthday'            => '1990-03-15',
-                'city_living_id'      => 1, // Casablanca
-                'city_birth_id'       => 1,
+                'city_id'      => 1, // Casablanca
+                
                 'nationality_id'      => 1, // Marocain
                 'position'            => 'Directeur Commercial',
                 'points_balance'      => 42,
@@ -39,8 +39,8 @@ class UsersSeeder extends Seeder
                 'email'               => 'sara.idrissi@example.com',
                 'gender'              => 'female',
                 'birthday'            => '1993-07-22',
-                'city_living_id'      => 2, // Rabat
-                'city_birth_id'       => 3, // Marrakech
+                'city_id'      => 2, // Rabat
+                 // Marrakech
                 'nationality_id'      => 1,
                 'position'            => 'Product Manager',
                 'points_balance'      => 87,
@@ -58,8 +58,8 @@ class UsersSeeder extends Seeder
                 'email'               => 'youssef.elamrani@example.com',
                 'gender'              => 'male',
                 'birthday'            => '1988-11-05',
-                'city_living_id'      => 1, // Casablanca
-                'city_birth_id'       => 4, // Fès
+                'city_id'      => 1, // Casablanca
+                 // Fès
                 'nationality_id'      => 1,
                 'position'            => 'CEO & Co-Fondateur',
                 'points_balance'      => 165,
@@ -78,8 +78,8 @@ class UsersSeeder extends Seeder
                 'email'               => 'nadia.rousseau@example.com',
                 'gender'              => 'female',
                 'birthday'            => '1991-02-18',
-                'city_living_id'      => 91, // Paris
-                'city_birth_id'       => 91,
+                'city_id'      => 91, // Paris
+                
                 'nationality_id'      => 6, // (France — on prend ce qui existe)
                 'position'            => 'Business Developer',
                 'points_balance'      => 55,
@@ -97,8 +97,8 @@ class UsersSeeder extends Seeder
                 'email'               => 'mehdi.tahiri@example.com',
                 'gender'              => 'male',
                 'birthday'            => '1995-09-30',
-                'city_living_id'      => 5, // Tanger
-                'city_birth_id'       => 5,
+                'city_id'      => 5, // Tanger
+                
                 'nationality_id'      => 1,
                 'position'            => 'Développeur Full-Stack',
                 'points_balance'      => 18,
@@ -116,8 +116,8 @@ class UsersSeeder extends Seeder
                 'email'               => 'amira.benali@example.com',
                 'gender'              => 'female',
                 'birthday'            => '1989-06-12',
-                'city_living_id'      => 74, // Dubaï
-                'city_birth_id'       => 1,  // Casablanca
+                'city_id'      => 74, // Dubaï
+                  // Casablanca
                 'nationality_id'      => 1,
                 'position'            => 'Head of Marketing',
                 'points_balance'      => 210,
@@ -136,8 +136,8 @@ class UsersSeeder extends Seeder
                 'email'               => 'thomas.renard@example.com',
                 'gender'              => 'male',
                 'birthday'            => '1986-04-07',
-                'city_living_id'      => 91, // Paris
-                'city_birth_id'       => 91,
+                'city_id'      => 91, // Paris
+                
                 'nationality_id'      => 6,
                 'position'            => 'Directeur Général',
                 'points_balance'      => 73,
@@ -155,8 +155,8 @@ class UsersSeeder extends Seeder
                 'email'               => 'fatima.alaoui@example.com',
                 'gender'              => 'female',
                 'birthday'            => '1994-12-25',
-                'city_living_id'      => 3, // Marrakech
-                'city_birth_id'       => 3,
+                'city_id'      => 3, // Marrakech
+                
                 'nationality_id'      => 1,
                 'position'            => 'Avocate d\'affaires',
                 'points_balance'      => 31,
@@ -174,8 +174,8 @@ class UsersSeeder extends Seeder
                 'email'               => 'omar.benjelloun@example.com',
                 'gender'              => 'male',
                 'birthday'            => '1987-08-14',
-                'city_living_id'      => 6, // Agadir
-                'city_birth_id'       => 6,
+                'city_id'      => 6, // Agadir
+                
                 'nationality_id'      => 1,
                 'position'            => 'Responsable Logistique',
                 'points_balance'      => 26,
@@ -193,8 +193,8 @@ class UsersSeeder extends Seeder
                 'email'               => 'leila.moussaoui@example.com',
                 'gender'              => 'female',
                 'birthday'            => '1992-01-29',
-                'city_living_id'      => 2, // Rabat
-                'city_birth_id'       => 8, // Oujda
+                'city_id'      => 2, // Rabat
+                 // Oujda
                 'nationality_id'      => 1,
                 'position'            => 'RH & Talent Acquisition',
                 'points_balance'      => 48,
