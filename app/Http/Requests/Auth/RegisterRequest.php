@@ -23,11 +23,17 @@ class RegisterRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name'  => ['required', 'string', 'max:255'],
-            'email'      => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password'   => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()],
-            'phone'      => ['nullable', 'string', 'max:30', 'unique:users,phone'],
+            'first_name'         => ['required', 'string', 'max:255'],
+            'last_name'          => ['required', 'string', 'max:255'],
+            'email'              => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'password'           => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()],
+            'phone'              => ['nullable', 'string', 'max:30', 'unique:users,phone'],
+            'phone_country_code' => ['nullable', 'string', 'max:10'],
+            'city_living_id'     => ['nullable', 'integer', 'exists:cities,id'],
+            'city_birth_id'      => ['nullable', 'integer', 'exists:cities,id'],
+            'nationality_id'     => ['nullable', 'integer', 'exists:countries,id'],
+            'gender'             => ['nullable', 'string', 'in:male,female,other'],
+            'birthday'           => ['nullable', 'date', 'before:today'],
         ];
     }
 
