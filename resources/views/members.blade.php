@@ -1,4 +1,4 @@
-@extends('layouts.dashboard')
+extends('layouts.dashboard')
 
 @section('title', 'Network - Find Members')
 
@@ -234,9 +234,9 @@
                             ${user.company.sector ? ` • ${user.company.sector}` : ''}
                         </p>
                     ` : ''}
-                    ${user.city_living ? `
+                    ${user.city ? `
                         <p class="text-sm text-gray-500">
-                            <i class="fas fa-map-marker-alt mr-1"></i>${user.city_living}
+                            <i class="fas fa-map-marker-alt mr-1"></i>${user.city}
                         </p>
                     ` : ''}
                 </div>

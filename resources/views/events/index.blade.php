@@ -1,4 +1,4 @@
-@extends('layouts.dashboard')
+extends('layouts.dashboard')
 
 @section('title', 'Events — LeadXchange')
 
@@ -413,7 +413,7 @@
                 </div>
             </div>
 
-            {{-- Sector + Price --}}
+            {{-- Sector + City --}}
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Sector</label>
@@ -427,17 +427,32 @@
                     </select>
                 </div>
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">City</label>
+                    <select name="city_id" class="gr-input" style="appearance:none;">
+                        <option value="">— Any —</option>
+                        @foreach($cities as $city)
+                        <option value="{{ $city->id }}"
+                            {{ old('city_id', auth()->user()->city_id) == $city->id ? 'selected' : '' }}>
+                            {{ $city->name }}
+                        </option>
+                        @endforeach
+                    </select>
+                    @error('city_id') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                </div>
+            </div>
+
+            {{-- Price --}}
+            <div class="grid grid-cols-2 gap-3">
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Price (MAD)</label>
                     <input type="number" name="price" value="{{ old('price') }}"
                            placeholder="0 = Free" min="0" step="0.01" class="gr-input">
                 </div>
-            </div>
-
-            {{-- Max attendees --}}
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">Max attendees</label>
-                <input type="number" name="max_attendees" value="{{ old('max_attendees') }}"
-                       placeholder="Leave empty for unlimited" min="1" class="gr-input">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Max attendees</label>
+                    <input type="number" name="max_attendees" value="{{ old('max_attendees') }}"
+                           placeholder="Unlimited" min="1" class="gr-input">
+                </div>
             </div>
 
             {{-- Cover: photo or color --}}

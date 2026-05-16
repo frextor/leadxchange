@@ -40,8 +40,8 @@ class UserController extends Controller
             $perPage = 10;
 
             $filters = $request->only([
-                'gender', 'age_min', 'age_max', 'city_birth_id',
-                'city_living_id', 'company', 'interests', 'open_to_network',
+                'gender', 'age_min', 'age_max',
+                'city_id', 'company', 'interests', 'open_to_network',
             ]);
 
             $users = $this->userService->getPaginatedUsers(

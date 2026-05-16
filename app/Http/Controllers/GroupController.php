@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\City;
 use App\Models\Group;
 use App\Models\Sector;
 use Illuminate\Http\Request;
@@ -20,8 +21,9 @@ class GroupController extends Controller
         ));
 
         $sectors = Sector::orderBy('name')->get();
+        $cities  = City::orderBy('name')->get();
 
-        $query = Group::with(['sector', 'creator'])
+        $query = Group::with(['sector', 'creator', 'city'])
             ->withCount('members')
             ->where('is_public', true);
 
@@ -40,7 +42,7 @@ class GroupController extends Controller
         $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
 
         return view('groups.index', compact(
-            'groups', 'sectors', 'recommended', 'others',
+            'groups', 'sectors', 'cities', 'recommended', 'others',
             'userSectorIds', 'memberGroupIds'
         ));
     }
@@ -51,10 +53,12 @@ class GroupController extends Controller
             'name'        => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:500'],
             'sector_id'   => ['nullable', 'integer', 'exists:sectors,id'],
+            'city_id'     => ['nullable', 'integer', 'exists:cities,id'],
             'cover_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'cover_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
+        $user      = $request->user();
         $photoPath = null;
         if ($request->hasFile('cover_photo')) {
             $photoPath = $request->file('cover_photo')->store('groups', 'public');
@@ -64,14 +68,15 @@ class GroupController extends Controller
             'name'          => $validated['name'],
             'description'   => $validated['description'] ?? null,
             'sector_id'     => $validated['sector_id'] ?? null,
+            'city_id'       => $validated['city_id'] ?? $user->city_id,
             'cover_color'   => $validated['cover_color'] ?? '#1E8F88',
             'cover_photo'   => $photoPath,
-            'created_by'    => $request->user()->id,
+            'created_by'    => $user->id,
             'is_public'     => true,
             'members_count' => 1,
         ]);
 
-        $group->members()->attach($request->user()->id, ['role' => 'admin']);
+        $group->members()->attach($user->id, ['role' => 'admin']);
 
         return redirect()->route('groups.index')
             ->with('success', 'Groupe "' . $group->name . '" créé avec succès !');

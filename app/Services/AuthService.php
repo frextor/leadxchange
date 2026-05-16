@@ -28,8 +28,11 @@ class AuthService
      */
     public function register(array $data): User
     {
+        // Resolve mobile aliases before creating
+        $data['phone_country_code'] = $data['phone_code'] ?? $data['phone_country_code'] ?? null;
+
         DB::beginTransaction();
-        
+
         try {
             // Create user
             $user = User::create([
@@ -39,8 +42,7 @@ class AuthService
                 'password'           => Hash::make($data['password']),
                 'phone'              => $data['phone']              ?? null,
                 'phone_country_code' => $data['phone_country_code'] ?? null,
-                'city_living_id'     => $data['city_living_id']     ?? null,
-                'city_birth_id'      => $data['city_birth_id']      ?? null,
+                'city_id'     => $data['city_id']     ?? null,
                 'nationality_id'     => $data['nationality_id']     ?? null,
                 'gender'             => $data['gender']             ?? null,
                 'birthday'           => $data['birthday']           ?? null,
@@ -97,8 +99,7 @@ class AuthService
             'phone_country_code' => $data['phone_country_code'] ?? null,
             'gender'             => $data['gender']             ?? null,
             'birthday'           => $data['birthday']           ?? null,
-            'city_birth_id'      => $data['city_birth_id']      ?? null,
-            'city_living_id'     => $data['city_living_id']     ?? null,
+            'city_id'     => $data['city_id']     ?? null,
             'nationality_id'     => $data['nationality_id']     ?? null,
             'company_id'         => $data['company_id']         ?? null,
             'position'           => $data['position']           ?? null,
@@ -210,7 +211,7 @@ class AuthService
      */
     public function getUserData(User $user): array
     {
-        $user->load(['company.sector', 'subscription.plan', 'profile', 'nationality', 'cityLiving', 'cityBirth']);
+        $user->load(['company.sector', 'subscription.plan', 'profile', 'nationality', 'city']);
 
         $sectorIds = array_unique(array_merge(
             $user->profile?->looking_for      ?? [],
@@ -232,10 +233,8 @@ class AuthService
                 'phone_country_code' => $user->phone_country_code,
                 'gender'             => $user->gender,
                 'birthday'           => $user->birthday?->format('Y-m-d'),
-                'city_birth_id'      => $user->city_birth_id,
-                'city_birth'         => $user->cityBirth?->name,
-                'city_living_id'     => $user->city_living_id,
-                'city_living'        => $user->cityLiving?->name,
+                'city_id'     => $user->city_id,
+                'city'        => $user->city?->name,
                 'nationality_id'     => $user->nationality_id,
                 'nationality'        => $user->nationality ? [
                     'id'      => $user->nationality->id,

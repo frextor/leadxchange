@@ -1,4 +1,4 @@
-{{-- resources/views/auth/register.blade.php --}}
+{-- resources/views/auth/register.blade.php --}}
 @extends('layouts.auth')
 
 @section('title', 'Create your account — LeadXchange')
@@ -160,10 +160,10 @@
             {{-- City of Living (searchable) --}}
             <div class="relative">
                 <input type="text" id="city_search" placeholder="City of Residence" autocomplete="off"
-                    value="{{ old('city_living_id') ? $cities->firstWhere('id', old('city_living_id'))?->name : '' }}"
-                    class="lx-input px-4 py-3.5 @error('city_living_id') lx-error @enderror"
+                    value="{{ old('city_id') ? $cities->firstWhere('id', old('city_id'))?->name : '' }}"
+                    class="lx-input px-4 py-3.5 @error('city_id') lx-error @enderror"
                     oninput="filterCities(this.value)" onfocus="showCityDropdown()" onblur="hideCityDropdown()">
-                <input type="hidden" id="city_living_id" name="city_living_id" value="{{ old('city_living_id') }}">
+                <input type="hidden" id="city_id" name="city_id" value="{{ old('city_id') }}">
                 <div id="city_dropdown"
                      class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto hidden">
                     @foreach($cities as $city)
@@ -175,7 +175,7 @@
                         </button>
                     @endforeach
                 </div>
-                @error('city_living_id') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+                @error('city_id') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
 
             {{-- Birthday --}}
@@ -311,7 +311,7 @@
             btn.style.display = btn.dataset.name.toLowerCase().includes(lower) ? '' : 'none';
         });
         document.getElementById('city_dropdown').classList.remove('hidden');
-        if (!q) document.getElementById('city_living_id').value = '';
+        if (!q) document.getElementById('city_id').value = '';
     }
 
     function showCityDropdown() {
@@ -323,7 +323,7 @@
     }
 
     function selectCity(id, name) {
-        document.getElementById('city_living_id').value = id;
+        document.getElementById('city_id').value = id;
         document.getElementById('city_search').value = name;
         document.getElementById('city_dropdown').classList.add('hidden');
     }
@@ -331,7 +331,7 @@
     // Auto-jump to step 2 on server-side validation errors
     if (window._registerErrors && window._registerErrors.length) {
         document.addEventListener('DOMContentLoaded', function () {
-            const step2Fields = ['phone', 'gender', 'nationality_id', 'city_living_id', 'birthday', 'terms'];
+            const step2Fields = ['phone', 'gender', 'nationality_id', 'city_id', 'birthday', 'terms'];
             const hasStep2Errors = step2Fields.some(f => window._registerErrors.includes(f));
             const hasStep1Errors = ['first_name', 'last_name', 'email', 'password'].some(f => window._registerErrors.includes(f));
             if (hasStep2Errors && !hasStep1Errors) goToStep2();

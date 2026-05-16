@@ -19,15 +19,20 @@ class GroupController extends Controller
         $user = $request->user();
         $user->loadMissing('profile');
 
-        $userSectorIds = array_unique(array_merge(
+        $userSectorIds  = array_unique(array_merge(
             $user->profile?->looking_for      ?? [],
             $user->profile?->services_offered ?? [],
             $user->profile?->sector_ids       ?? [],
         ));
+        $userCityId = $user->city_id;
 
-        $query = Group::with(['sector:id,name', 'creator:id,first_name,last_name'])
+        $query = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
             ->withCount('members')
             ->where('is_public', true);
+
+        if ($request->filled('city_id')) {
+            $query->where('city_id', $request->city_id);
+        }
 
         if ($request->filled('category')) {
             $query->where('sector_id', $request->category);
@@ -41,15 +46,17 @@ class GroupController extends Controller
 
         $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
 
-        $mapped = $groups->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds));
+        $mapped = $groups->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId));
 
         return response()->json([
             'data' => [
-                'recommended' => $mapped->filter(fn($g) => $g['is_recommended'])->values(),
-                'others'      => $mapped->filter(fn($g) => !$g['is_recommended'])->values(),
+                'nearby'      => $mapped->filter(fn($g) => $g['is_nearby'])->values(),
+                'recommended' => $mapped->filter(fn($g) => $g['is_recommended'] && !$g['is_nearby'])->values(),
+                'others'      => $mapped->filter(fn($g) => !$g['is_recommended'] && !$g['is_nearby'])->values(),
             ],
             'meta' => [
                 'total'       => $groups->count(),
+                'nearby'      => $mapped->filter(fn($g) => $g['is_nearby'])->count(),
                 'recommended' => $mapped->filter(fn($g) => $g['is_recommended'])->count(),
             ],
         ]);
@@ -61,14 +68,15 @@ class GroupController extends Controller
      */
     public function show(int $id, Request $request): JsonResponse
     {
-        $group = Group::with(['sector:id,name', 'creator:id,first_name,last_name'])
+        $group = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
             ->withCount('members')
             ->findOrFail($id);
 
-        $memberGroupIds = $request->user()->groups()->pluck('groups.id')->toArray();
+        $user           = $request->user();
+        $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
 
         return response()->json([
-            'data' => $this->formatGroup($group, $memberGroupIds, []),
+            'data' => $this->formatGroup($group, $memberGroupIds, [], $user->city_id),
         ]);
     }
 
@@ -82,26 +90,29 @@ class GroupController extends Controller
             'name'        => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:500'],
             'sector_id'   => ['nullable', 'integer', 'exists:sectors,id'],
+            'city_id'     => ['nullable', 'integer', 'exists:cities,id'],
             'cover_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ]);
 
+        $user  = $request->user();
         $group = Group::create([
             'name'          => $validated['name'],
             'description'   => $validated['description'] ?? null,
             'sector_id'     => $validated['sector_id'] ?? null,
+            'city_id'       => $validated['city_id'] ?? $user->city_id,
             'cover_color'   => $validated['cover_color'] ?? '#1E8F88',
-            'created_by'    => $request->user()->id,
+            'created_by'    => $user->id,
             'is_public'     => true,
             'members_count' => 1,
         ]);
 
-        $group->members()->attach($request->user()->id, ['role' => 'admin']);
-        $group->load(['sector:id,name', 'creator:id,first_name,last_name']);
+        $group->members()->attach($user->id, ['role' => 'admin']);
+        $group->load(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name']);
         $group->loadCount('members');
 
         return response()->json([
             'message' => 'Group created successfully.',
-            'data'    => $this->formatGroup($group, [$group->id], []),
+            'data'    => $this->formatGroup($group, [$group->id], [], $user->city_id),
         ], 201);
     }
 
@@ -144,7 +155,7 @@ class GroupController extends Controller
         return response()->json(['message' => 'Left group successfully.']);
     }
 
-    private function formatGroup(Group $group, array $memberGroupIds, array $userSectorIds): array
+    private function formatGroup(Group $group, array $memberGroupIds, array $userSectorIds, ?int $userCityId = null): array
     {
         return [
             'id'             => $group->id,
@@ -155,7 +166,9 @@ class GroupController extends Controller
             'members_count'  => $group->members_count,
             'is_member'      => in_array($group->id, $memberGroupIds),
             'is_recommended' => in_array($group->sector_id, $userSectorIds),
+            'is_nearby'      => $userCityId !== null && $group->city_id === $userCityId,
             'sector'         => $group->sector ? ['id' => $group->sector->id, 'name' => $group->sector->name] : null,
+            'city'           => $group->city   ? ['id' => $group->city->id,   'name' => $group->city->name]   : null,
             'creator'        => $group->creator ? ['id' => $group->creator->id, 'name' => $group->creator->first_name . ' ' . $group->creator->last_name] : null,
             'created_at'     => $group->created_at,
         ];

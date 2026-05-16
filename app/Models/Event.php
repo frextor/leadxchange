@@ -10,7 +10,7 @@ class Event extends Model
 {
     protected $fillable = [
         'title', 'description', 'type', 'category', 'location', 'meeting_link',
-        'starts_at', 'ends_at', 'created_by', 'sector_id',
+        'starts_at', 'ends_at', 'created_by', 'sector_id', 'city_id',
         'cover_color', 'cover_image', 'price', 'max_attendees', 'attendees_count', 'is_public',
     ];
 
@@ -56,6 +56,11 @@ class Event extends Model
     public function sector(): BelongsTo
     {
         return $this->belongsTo(Sector::class);
+    }
+
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\City::class);
     }
 
     public function isAttending(int $userId): bool

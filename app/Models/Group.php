@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Group extends Model
 {
     protected $fillable = [
-        'name', 'description', 'sector_id', 'created_by',
+        'name', 'description', 'sector_id', 'city_id', 'created_by',
         'cover_color', 'cover_photo', 'is_public', 'members_count',
     ];
 
@@ -20,6 +20,11 @@ class Group extends Model
     public function sector(): BelongsTo
     {
         return $this->belongsTo(Sector::class);
+    }
+
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\City::class);
     }
 
     public function creator(): BelongsTo

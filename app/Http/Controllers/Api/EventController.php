@@ -12,7 +12,10 @@ class EventController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Event::with(['sector:id,name', 'creator:id,first_name,last_name'])
+        $user       = $request->user();
+        $userCityId = $user->city_id;
+
+        $query = Event::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
             ->where('is_public', true);
 
         if ($request->filled('search')) {
@@ -26,6 +29,9 @@ class EventController extends Controller
         }
         if ($request->filled('sector_id')) {
             $query->where('sector_id', $request->sector_id);
+        }
+        if ($request->filled('city_id')) {
+            $query->where('city_id', $request->city_id);
         }
         if ($request->filled('price_filter')) {
             if ($request->price_filter === 'free') {
@@ -44,27 +50,35 @@ class EventController extends Controller
             };
         }
 
-        $events = $query->orderBy('starts_at')->get();
-        $attendingIds = $request->user()->events()->pluck('events.id')->toArray();
+        $events       = $query->orderBy('starts_at')->get();
+        $attendingIds = $user->events()->pluck('events.id')->toArray();
 
-        $mapped   = $events->map(fn($e) => $this->formatEvent($e, $attendingIds));
-        $upcoming = $mapped->filter(fn($e) => $e['is_upcoming'])->values();
-        $past     = $mapped->filter(fn($e) => !$e['is_upcoming'])->values();
+        $mapped   = $events->map(fn($e) => $this->formatEvent($e, $attendingIds, $userCityId));
+        $upcoming = $mapped->filter(fn($e) => $e['is_upcoming']);
+        $past     = $mapped->filter(fn($e) => !$e['is_upcoming']);
 
         return response()->json([
-            'data' => ['upcoming' => $upcoming, 'past' => $past],
-            'meta' => ['total' => $events->count()],
+            'data' => [
+                'nearby'   => $upcoming->filter(fn($e) => $e['is_nearby'])->values(),
+                'upcoming' => $upcoming->filter(fn($e) => !$e['is_nearby'])->values(),
+                'past'     => $past->values(),
+            ],
+            'meta' => [
+                'total'  => $events->count(),
+                'nearby' => $upcoming->filter(fn($e) => $e['is_nearby'])->count(),
+            ],
         ]);
     }
 
     public function show(int $id, Request $request): JsonResponse
     {
-        $event = Event::with(['sector:id,name', 'creator:id,first_name,last_name'])
+        $event = Event::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
             ->findOrFail($id);
 
-        $attendingIds = $request->user()->events()->pluck('events.id')->toArray();
+        $user         = $request->user();
+        $attendingIds = $user->events()->pluck('events.id')->toArray();
 
-        return response()->json(['data' => $this->formatEvent($event, $attendingIds)]);
+        return response()->json(['data' => $this->formatEvent($event, $attendingIds, $user->city_id)]);
     }
 
     public function store(Request $request): JsonResponse
@@ -79,11 +93,14 @@ class EventController extends Controller
             'starts_at'     => ['required', 'date', 'after:now'],
             'ends_at'       => ['nullable', 'date', 'after:starts_at'],
             'sector_id'     => ['nullable', 'integer', 'exists:sectors,id'],
+            'city_id'       => ['nullable', 'integer', 'exists:cities,id'],
             'cover_color'   => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'cover_image'   => ['nullable', 'image', 'max:2048'],
             'price'         => ['nullable', 'numeric', 'min:0'],
             'max_attendees' => ['nullable', 'integer', 'min:1'],
         ]);
+
+        $user = $request->user();
 
         $coverImagePath = null;
         if ($request->hasFile('cover_image')) {
@@ -100,20 +117,21 @@ class EventController extends Controller
             'starts_at'       => $validated['starts_at'],
             'ends_at'         => $validated['ends_at'] ?? null,
             'sector_id'       => $validated['sector_id'] ?? null,
+            'city_id'         => $validated['city_id'] ?? $user->city_id,
             'cover_color'     => $validated['cover_color'] ?? '#1E8F88',
             'cover_image'     => $coverImagePath,
             'price'           => $validated['price'] ?? null,
             'max_attendees'   => $validated['max_attendees'] ?? null,
-            'created_by'      => $request->user()->id,
+            'created_by'      => $user->id,
             'is_public'       => true,
             'attendees_count' => 1,
         ]);
 
-        $event->attendees()->attach($request->user()->id, ['role' => 'organizer']);
+        $event->attendees()->attach($user->id, ['role' => 'organizer']);
 
         return response()->json([
             'message' => 'Event created successfully.',
-            'data'    => $this->formatEvent($event->load(['sector', 'creator']), [$event->id]),
+            'data'    => $this->formatEvent($event->load(['sector', 'creator', 'city']), [$event->id], $user->city_id),
         ], 201);
     }
 
@@ -157,7 +175,7 @@ class EventController extends Controller
         ]);
     }
 
-    private function formatEvent(Event $event, array $attendingIds): array
+    private function formatEvent(Event $event, array $attendingIds, ?int $userCityId = null): array
     {
         return [
             'id'              => $event->id,
@@ -178,7 +196,9 @@ class EventController extends Controller
             'attendees_count' => $event->attendees_count,
             'is_attending'    => in_array($event->id, $attendingIds),
             'is_upcoming'     => $event->starts_at->isFuture(),
+            'is_nearby'       => $userCityId !== null && $event->city_id === $userCityId,
             'sector'          => $event->sector ? ['id' => $event->sector->id, 'name' => $event->sector->name] : null,
+            'city'            => $event->city   ? ['id' => $event->city->id,   'name' => $event->city->name]   : null,
             'creator'         => $event->creator ? [
                 'id'   => $event->creator->id,
                 'name' => $event->creator->first_name . ' ' . $event->creator->last_name,
