@@ -47,7 +47,7 @@ class ProfileService
     public function updateBasicInfo(User $user, array $data): void
     {
         $userFields = array_filter(
-            array_intersect_key($data, array_flip(['first_name', 'last_name', 'gender', 'city_id', 'birthday'])),
+            array_intersect_key($data, array_flip(['first_name', 'last_name', 'gender', 'city_id', 'birthday', 'phone'])),
             fn($v) => $v !== null
         );
 

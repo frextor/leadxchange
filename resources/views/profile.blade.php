@@ -1,4 +1,4 @@
-extends('layouts.dashboard')
+@extends('layouts.dashboard')
 
 @section('title', $user['first_name'] . ' ' . $user['last_name'])
 
@@ -383,6 +383,9 @@ $currentServicesOffered = $profile?->services_offered ?? [];
                     @if ($user['birthday'])
                     <x-profile-kv label="Date de naissance">{{ \Carbon\Carbon::parse($user['birthday'])->format('d F Y') }}</x-profile-kv>
                     @endif
+                    @if ($user['phone'] ?? null)
+                    <x-profile-kv label="Téléphone">{{ $user['phone'] }}</x-profile-kv>
+                    @endif
                 </div>
             </x-profile-section>
 
@@ -471,17 +474,22 @@ $currentServicesOffered = $profile?->services_offered ?? [];
                 <input id="b_birthday" type="date" class="inp" value="{{ $user['birthday'] ?? '' }}">
             </div>
             <div>
+                <label class="lbl">Téléphone</label>
+                <input id="b_phone" type="tel" class="inp" placeholder="+33 6 00 00 00 00"
+                       value="{{ $user['phone'] ?? '' }}">
+            </div>
+            <div>
                 <label class="lbl">Ville actuelle</label>
                 <div class="relative">
-                    <input type="text" id="b_city_search" autocomplete="off"
+                    <input type="text" id="b_city_living_search" autocomplete="off"
                            placeholder="Rechercher une ville…"
                            class="inp"
                            value="{{ $user['city'] ?? '' }}"
                            oninput="filterCityDropdown('living', this.value)"
                            onfocus="showCityDropdown('living')"
                            onblur="hideCityDropdown('living')">
-                    <input type="hidden" id="b_city_id" value="{{ $user['city_id'] ?? '' }}">
-                    <div id="city_dropdown"
+                    <input type="hidden" id="b_city_living_id" value="{{ $user['city_id'] ?? '' }}">
+                    <div id="city_living_dropdown"
                          class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto hidden">
                         @foreach($cities as $city)
                         <button type="button"
@@ -699,11 +707,12 @@ $currentServicesOffered = $profile?->services_offered ?? [];
         setBtnLoading('btn-save-basic', true);
         try {
             await apiFetch('/api/profile/basic', 'PUT', {
-                first_name:      document.getElementById('b_first_name').value,
-                last_name:       document.getElementById('b_last_name').value,
-                gender:          document.getElementById('b_gender').value || null,
-                birthday:        document.getElementById('b_birthday').value || null,
-                city_id:  document.getElementById('b_city_id').value || null,
+                first_name: document.getElementById('b_first_name').value,
+                last_name:  document.getElementById('b_last_name').value,
+                gender:     document.getElementById('b_gender').value || null,
+                birthday:   document.getElementById('b_birthday').value || null,
+                phone:      document.getElementById('b_phone').value.trim() || null,
+                city_id:    document.getElementById('b_city_living_id').value || null,
             });
             closeModal('modal-basic');
             toast('Informations mises à jour !', 'success');

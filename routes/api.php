@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ProfileVisitorController;
 use App\Http\Controllers\Api\CountryController;
+use App\Http\Controllers\Api\ChatController as ApiChatController;
 use App\Http\Controllers\Api\EventController as ApiEventController;
 use App\Http\Controllers\Api\GroupController;
 use App\Http\Controllers\Api\LanguageController;
@@ -117,4 +118,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/events/{id}',          [ApiEventController::class, 'show']);
     Route::post('/events/{id}/join',    [ApiEventController::class, 'join']);
     Route::delete('/events/{id}/leave', [ApiEventController::class, 'leave']);
+
+    // Chat Routes
+    Route::get('/chat',                          [ApiChatController::class, 'index']);
+    Route::get('/chat/{userId}',                 [ApiChatController::class, 'show']);
+    Route::post('/chat/{userId}',                [ApiChatController::class, 'store']);
+    Route::get('/chat/{userId}/poll/{lastId}',   [ApiChatController::class, 'poll']);
 });
