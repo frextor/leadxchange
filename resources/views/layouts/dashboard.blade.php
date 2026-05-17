@@ -173,24 +173,6 @@
                     <span>Événements</span>
                 </a>
 
-                {{-- CHAT --}}
-                @php
-                    $unreadChat = \App\Models\Message::whereHas('conversation', fn($q) =>
-                        $q->where('user1_id', auth()->id())->orWhere('user2_id', auth()->id())
-                    )->where('sender_id', '!=', auth()->id())->whereNull('read_at')->count();
-                @endphp
-                <a href="{{ route('chat.index') }}"
-                   class="lx-nav-item {{ request()->routeIs('chat.*') ? 'active' : '' }}">
-                    <div class="relative">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                        </svg>
-                        @if($unreadChat > 0)
-                            <span class="lx-nav-badge">{{ $unreadChat > 9 ? '9+' : $unreadChat }}</span>
-                        @endif
-                    </div>
-                    <span>Messages</span>
-                </a>
 
             </nav>
 
