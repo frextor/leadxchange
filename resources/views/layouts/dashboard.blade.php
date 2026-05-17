@@ -32,7 +32,7 @@
             align-items: center;
             justify-content: center;
             gap: 4px;
-            padding: 0 22px;
+            padding: 0 16px;
             color: #94a3b8;
             font-size: 9px;
             font-weight: 700;
@@ -142,21 +142,6 @@
                     <span>Marketplace</span>
                 </a>
 
-                {{-- EXCHANGES / LEADS --}}
-                <a href="{{ route('leads.index') }}"
-                   class="lx-nav-item {{ request()->routeIs('leads.*') ? 'active' : '' }}">
-                    <div class="relative">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-                            <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-                        </svg>
-                        @php $navPending = \App\Models\Lead::where('receiver_id', auth()->id())->where('status','new')->count(); @endphp
-                        @if($navPending > 0)
-                        <span class="lx-nav-badge">{{ $navPending }}</span>
-                        @endif
-                    </div>
-                    <span>Exchanges</span>
-                </a>
 
                 {{-- NETWORK --}}
                 <a href="{{ route('connections.index') }}"
@@ -168,16 +153,43 @@
                     <span>Network</span>
                 </a>
 
-                {{-- INBOX --}}
-                <a href="{{ route('inbox.index') }}"
-                   class="lx-nav-item {{ request()->routeIs('inbox.*') ? 'active' : '' }}">
+                {{-- GROUPS --}}
+                <a href="{{ route('groups.index') }}"
+                   class="lx-nav-item {{ request()->routeIs('groups.*') ? 'active' : '' }}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    <span>Groupes</span>
+                </a>
+
+                {{-- EVENTS --}}
+                <a href="{{ route('events.index') }}"
+                   class="lx-nav-item {{ request()->routeIs('events.*') ? 'active' : '' }}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <span>Événements</span>
+                </a>
+
+                {{-- CHAT --}}
+                @php
+                    $unreadChat = \App\Models\Message::whereHas('conversation', fn($q) =>
+                        $q->where('user1_id', auth()->id())->orWhere('user2_id', auth()->id())
+                    )->where('sender_id', '!=', auth()->id())->whereNull('read_at')->count();
+                @endphp
+                <a href="{{ route('chat.index') }}"
+                   class="lx-nav-item {{ request()->routeIs('chat.*') ? 'active' : '' }}">
                     <div class="relative">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
-                            <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                         </svg>
+                        @if($unreadChat > 0)
+                            <span class="lx-nav-badge">{{ $unreadChat > 9 ? '9+' : $unreadChat }}</span>
+                        @endif
                     </div>
-                    <span>Inbox</span>
+                    <span>Messages</span>
                 </a>
 
             </nav>

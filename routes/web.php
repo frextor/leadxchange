@@ -9,7 +9,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\GroupController;
-use App\Http\Controllers\InboxController;
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\ProfileController;
@@ -114,12 +114,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/leads/{id}/rate',       [LeadController::class, 'rate'])->name('leads.rate');
     Route::post('/leads/{id}/report',     [LeadController::class, 'report'])->name('leads.report');
 
-    // Inbox
-    Route::get('/inbox',                    [InboxController::class, 'index'])->name('inbox.index');
-    Route::post('/inbox/compose',           [InboxController::class, 'compose'])->name('inbox.compose');
-    Route::post('/inbox/{id}/read',         [InboxController::class, 'read'])->name('inbox.read');
-    Route::post('/inbox/{id}/archive',      [InboxController::class, 'archive'])->name('inbox.archive');
-    Route::post('/inbox/{id}/reply',        [InboxController::class, 'reply'])->name('inbox.reply');
+    // Chat
+    Route::get('/chat',                              [ChatController::class, 'index'])->name('chat.index');
+    Route::post('/chat/{userId}',                    [ChatController::class, 'store'])->name('chat.store');
+    Route::get('/chat/{userId}/poll/{lastId}',       [ChatController::class, 'poll'])->name('chat.poll');
+    Route::post('/chat/{userId}/typing',             [ChatController::class, 'typing'])->name('chat.typing');
 
     // Profile Routes
     Route::get('/profile', function () {

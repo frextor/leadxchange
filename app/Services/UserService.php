@@ -240,7 +240,7 @@ class UserService
     public function getProfileById(int $userId, int $currentUserId): ?array
     {
         $user = User::with(['company:id,name,sector_id,website', 'company.sector:id,name', 'city:id,name'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'birthday', 'company_id', 'created_at'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'birthday', 'phone', 'company_id', 'created_at'])
             ->find($userId);
 
         if (!$user) return null;
@@ -249,7 +249,8 @@ class UserService
 
         return array_merge($base, [
             'gender'       => $user->gender,
-            'birthday'     => $user->birthday,
+            'birthday'     => $user->birthday?->format('Y-m-d'),
+            'phone'        => $user->phone,
             'member_since' => $user->created_at?->format('F Y'),
             'company'      => $user->company ? [
                 'id'      => $user->company->id,

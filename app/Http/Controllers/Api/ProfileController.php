@@ -24,7 +24,8 @@ class ProfileController extends Controller
             'last_name'      => 'sometimes|string|max:100',
             'gender'         => 'nullable|in:male,female,other',
             'birthday'       => 'nullable|date',
-            'city_id' => 'nullable|integer|exists:cities,id',
+            'phone'          => 'nullable|string|max:20',
+            'city_id'        => 'nullable|integer|exists:cities,id',
         ]);
 
         $this->profileService->updateBasicInfo($request->user(), $data);
