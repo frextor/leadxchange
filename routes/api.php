@@ -93,11 +93,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/profile/visitors',         [ProfileVisitorController::class, 'index']);
 
     // Group Routes
-    Route::get('/groups',              [GroupController::class, 'index']);
-    Route::post('/groups',             [GroupController::class, 'store']);
-    Route::get('/groups/{id}',         [GroupController::class, 'show']);
-    Route::post('/groups/{id}/join',   [GroupController::class, 'join']);
-    Route::delete('/groups/{id}/leave',[GroupController::class, 'leave']);
+    Route::get('/groups',                   [GroupController::class, 'index']);
+    Route::post('/groups',                  [GroupController::class, 'store']);
+    Route::get('/groups/{id}',              [GroupController::class, 'show']);
+    Route::put('/groups/{id}',              [GroupController::class, 'update']);
+    Route::post('/groups/{id}/join',        [GroupController::class, 'join']);
+    Route::delete('/groups/{id}/leave',     [GroupController::class, 'leave']);
+    Route::post('/groups/{id}/invite',      [GroupController::class, 'invite']);
+    Route::get('/groups/{id}/members',      [GroupController::class, 'members']);
 
     // Lead Routes
     Route::get('/leads',                   [ApiLeadController::class, 'index']);
