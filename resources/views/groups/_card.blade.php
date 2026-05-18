@@ -1,4 +1,4 @@
-<div class="group-card">
+<div class="group-card cursor-pointer" onclick="window.location='{{ route('groups.show', $group->id) }}'" style="position:relative;">
     {{-- Cover --}}
     <div class="h-24 relative overflow-hidden"
          @unless($group->cover_photo) style="background:linear-gradient(135deg,{{ $group->cover_color }},{{ $group->cover_color }}cc);" @endunless>

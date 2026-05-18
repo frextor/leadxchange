@@ -13,7 +13,7 @@
     $isAttending = in_array($event->id, $attendingEventIds);
 @endphp
 
-<div class="ev-card">
+<div class="ev-card cursor-pointer" onclick="window.location='{{ route('events.show', $event->id) }}'" style="position:relative;">
     {{-- Cover --}}
     <div class="relative h-[120px] overflow-hidden">
         @if($event->cover_image)

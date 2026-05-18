@@ -57,6 +57,21 @@ class EventController extends Controller
         ));
     }
 
+    public function show(Request $request, int $id)
+    {
+        $user  = $request->user();
+        $event = Event::with(['sector', 'city', 'creator.profile'])
+            ->withCount('attendees')
+            ->findOrFail($id);
+
+        abort_if(!$event->is_public, 403);
+
+        $attendees   = $event->attendees()->with('profile', 'company:id,name')->orderByPivot('role')->get();
+        $isAttending = $event->isAttending($user->id);
+
+        return view('events.show', compact('event', 'attendees', 'isAttending'));
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\City;
 use App\Models\Group;
+use App\Models\GroupPost;
+use App\Models\GroupPostComment;
 use App\Models\Sector;
 use Illuminate\Http\Request;
 
@@ -45,6 +47,75 @@ class GroupController extends Controller
             'groups', 'sectors', 'cities', 'recommended', 'others',
             'userSectorIds', 'memberGroupIds'
         ));
+    }
+
+    public function show(Request $request, int $id)
+    {
+        $user  = $request->user();
+        $group = Group::with(['sector', 'city', 'creator.profile'])
+            ->withCount('members')
+            ->findOrFail($id);
+
+        abort_if(!$group->is_public && !$group->isMember($user->id), 403);
+
+        $members  = $group->members()->with('profile', 'company:id,name')->orderByPivot('role')->get();
+        $posts    = GroupPost::with(['author.profile', 'comments.author.profile'])
+            ->where('group_id', $id)
+            ->latest()
+            ->paginate(20);
+        $isMember = $group->isMember($user->id);
+
+        return view('groups.show', compact('group', 'members', 'posts', 'isMember'));
+    }
+
+    public function storePost(Request $request, int $id)
+    {
+        $group = Group::findOrFail($id);
+        $user  = $request->user();
+
+        abort_unless($group->isMember($user->id), 403, 'Rejoignez le groupe pour publier.');
+
+        $request->validate(['body' => ['required', 'string', 'max:2000']]);
+
+        GroupPost::create([
+            'group_id' => $id,
+            'user_id'  => $user->id,
+            'body'     => $request->body,
+        ]);
+
+        return back()->with('success', 'Publication ajoutée.');
+    }
+
+    public function storeComment(Request $request, int $id, int $postId)
+    {
+        $group = Group::findOrFail($id);
+        $user  = $request->user();
+
+        abort_unless($group->isMember($user->id), 403, 'Rejoignez le groupe pour commenter.');
+
+        $post = GroupPost::where('group_id', $id)->findOrFail($postId);
+
+        $request->validate(['body' => ['required', 'string', 'max:1000']]);
+
+        GroupPostComment::create([
+            'post_id' => $post->id,
+            'user_id' => $user->id,
+            'body'    => $request->body,
+        ]);
+
+        return back()->with('success', 'Commentaire ajouté.');
+    }
+
+    public function destroyPost(Request $request, int $id, int $postId)
+    {
+        $user = $request->user();
+        $post = GroupPost::where('group_id', $id)->findOrFail($postId);
+
+        abort_unless($post->user_id === $user->id, 403);
+
+        $post->delete();
+
+        return back()->with('success', 'Publication supprimée.');
     }
 
     public function store(Request $request)
