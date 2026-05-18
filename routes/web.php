@@ -93,14 +93,19 @@ Route::middleware('auth')->group(function () {
     Route::get('/connections', [MemberController::class, 'index'])->name('connections.index');
 
     // Groups
-    Route::get('/groups',               [GroupController::class, 'index'])->name('groups.index');
-    Route::post('/groups',              [GroupController::class, 'store'])->name('groups.store');
-    Route::post('/groups/{id}/join',    [GroupController::class, 'join'])->name('groups.join');
-    Route::delete('/groups/{id}/leave', [GroupController::class, 'leave'])->name('groups.leave');
+    Route::get('/groups',                                       [GroupController::class, 'index'])->name('groups.index');
+    Route::post('/groups',                                      [GroupController::class, 'store'])->name('groups.store');
+    Route::get('/groups/{id}',                                  [GroupController::class, 'show'])->name('groups.show');
+    Route::post('/groups/{id}/join',                            [GroupController::class, 'join'])->name('groups.join');
+    Route::delete('/groups/{id}/leave',                         [GroupController::class, 'leave'])->name('groups.leave');
+    Route::post('/groups/{id}/posts',                           [GroupController::class, 'storePost'])->name('groups.posts.store');
+    Route::delete('/groups/{id}/posts/{postId}',                [GroupController::class, 'destroyPost'])->name('groups.posts.destroy');
+    Route::post('/groups/{id}/posts/{postId}/comments',         [GroupController::class, 'storeComment'])->name('groups.comments.store');
 
     // Events
     Route::get('/events',               [EventController::class, 'index'])->name('events.index');
     Route::post('/events',              [EventController::class, 'store'])->name('events.store');
+    Route::get('/events/{id}',          [EventController::class, 'show'])->name('events.show');
     Route::post('/events/{id}/join',    [EventController::class, 'join'])->name('events.join');
     Route::delete('/events/{id}/leave', [EventController::class, 'leave'])->name('events.leave');
 
