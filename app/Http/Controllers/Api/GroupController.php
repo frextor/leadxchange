@@ -116,7 +116,7 @@ class GroupController extends Controller
             'members_count' => 1,
         ]);
 
-        $group->members()->attach($user->id, ['role' => 'admin']);
+        $group->members()->attach($user->id, ['role' => 'owner']);
         $group->load(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name']);
         $group->loadCount('members');
 
@@ -135,8 +135,8 @@ class GroupController extends Controller
         $group = Group::findOrFail($id);
         $user  = $request->user();
 
-        $pivot = $group->members()->where('user_id', $user->id)->first();
-        if (!$pivot || $pivot->pivot->role !== 'admin') {
+        $member = $group->members()->find($user->id);
+        if (!$member || !in_array($member->pivot->role, ['owner', 'admin'])) {
             return response()->json(['message' => 'Only group admins can update this group.'], 403);
         }
 
@@ -179,8 +179,8 @@ class GroupController extends Controller
         $group = Group::findOrFail($id);
         $user  = $request->user();
 
-        $pivot = $group->members()->where('user_id', $user->id)->first();
-        if (!$pivot || $pivot->pivot->role !== 'admin') {
+        $member = $group->members()->find($user->id);
+        if (!$member || !in_array($member->pivot->role, ['owner', 'admin'])) {
             return response()->json(['message' => 'Only group admins can invite members.'], 403);
         }
 
@@ -228,6 +228,38 @@ class GroupController extends Controller
         return response()->json([
             'data'  => $members,
             'total' => $members->count(),
+        ]);
+    }
+
+    /**
+     * POST /api/groups/{id}/members/{userId}/promote
+     * Promote a member to admin (owner only).
+     */
+    public function promote(int $id, int $userId, Request $request): JsonResponse
+    {
+        $group  = Group::findOrFail($id);
+        $caller = $request->user();
+
+        $callerMember = $group->members()->find($caller->id);
+        if (!$callerMember || $callerMember->pivot->role !== 'owner') {
+            return response()->json(['message' => 'Only the group owner can promote members.'], 403);
+        }
+
+        $targetMember = $group->members()->find($userId);
+        if (!$targetMember) {
+            return response()->json(['message' => 'User is not a member of this group.'], 404);
+        }
+
+        $group->members()->updateExistingPivot($userId, ['role' => 'admin']);
+
+        return response()->json([
+            'message' => 'Member promoted to admin.',
+            'user'    => [
+                'id'         => $targetMember->id,
+                'first_name' => $targetMember->first_name,
+                'last_name'  => $targetMember->last_name,
+                'role'       => 'admin',
+            ],
         ]);
     }
 

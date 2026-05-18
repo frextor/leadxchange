@@ -31,7 +31,7 @@ class GroupApiTest extends TestCase
             'members_count' => 1,
         ], $overrides));
 
-        $group->members()->attach($creator->id, ['role' => 'admin']);
+        $group->members()->attach($creator->id, ['role' => 'owner']);
 
         return $group;
     }
@@ -78,7 +78,7 @@ class GroupApiTest extends TestCase
                  ->assertJsonPath('data.is_creator', true);
 
         $this->assertDatabaseHas('groups', ['name' => 'Growth Hackers', 'created_by' => $user->id]);
-        $this->assertDatabaseHas('group_user', ['user_id' => $user->id, 'role' => 'admin']);
+        $this->assertDatabaseHas('group_user', ['user_id' => $user->id, 'role' => 'owner']);
     }
 
     public function test_store_with_cover_photo_upload(): void
@@ -276,7 +276,7 @@ class GroupApiTest extends TestCase
 
     public function test_invite_adds_user_as_member(): void
     {
-        $admin   = User::factory()->create();
+        $admin   = User::factory()->create(); // owner by default
         $invitee = User::factory()->create();
         $group   = $this->createGroup($admin);
 
@@ -352,7 +352,7 @@ class GroupApiTest extends TestCase
         $this->assertEquals(2, $response->json('total'));
 
         $roles = collect($response->json('data'))->pluck('role')->sort()->values();
-        $this->assertEquals(['admin', 'member'], $roles->toArray());
+        $this->assertEquals(['member', 'owner'], $roles->toArray());
     }
 
     public function test_members_returns_404_for_missing_group(): void
@@ -360,5 +360,70 @@ class GroupApiTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAsApi($user)->getJson('/api/groups/9999/members')->assertStatus(404);
+    }
+
+    // ── POST /api/groups/{id}/members/{userId}/promote ────────────────────────
+
+    public function test_promote_succeeds_for_owner(): void
+    {
+        $owner  = User::factory()->create();
+        $member = User::factory()->create();
+        $group  = $this->createGroup($owner);
+
+        $group->members()->attach($member->id, ['role' => 'member']);
+
+        $response = $this->actingAsApi($owner)
+            ->postJson("/api/groups/{$group->id}/members/{$member->id}/promote");
+
+        $response->assertStatus(200)
+                 ->assertJsonPath('user.id', $member->id)
+                 ->assertJsonPath('user.role', 'admin');
+
+        $this->assertDatabaseHas('group_user', [
+            'group_id' => $group->id,
+            'user_id'  => $member->id,
+            'role'     => 'admin',
+        ]);
+    }
+
+    public function test_promote_fails_for_admin(): void
+    {
+        $owner  = User::factory()->create();
+        $admin  = User::factory()->create();
+        $target = User::factory()->create();
+        $group  = $this->createGroup($owner);
+
+        $group->members()->attach($admin->id,  ['role' => 'admin']);
+        $group->members()->attach($target->id, ['role' => 'member']);
+
+        $this->actingAsApi($admin)
+            ->postJson("/api/groups/{$group->id}/members/{$target->id}/promote")
+            ->assertStatus(403);
+    }
+
+    public function test_promote_fails_for_regular_member(): void
+    {
+        $owner  = User::factory()->create();
+        $member = User::factory()->create();
+        $target = User::factory()->create();
+        $group  = $this->createGroup($owner);
+
+        $group->members()->attach($member->id, ['role' => 'member']);
+        $group->members()->attach($target->id, ['role' => 'member']);
+
+        $this->actingAsApi($member)
+            ->postJson("/api/groups/{$group->id}/members/{$target->id}/promote")
+            ->assertStatus(403);
+    }
+
+    public function test_promote_fails_for_non_member_target(): void
+    {
+        $owner    = User::factory()->create();
+        $outsider = User::factory()->create();
+        $group    = $this->createGroup($owner);
+
+        $this->actingAsApi($owner)
+            ->postJson("/api/groups/{$group->id}/members/{$outsider->id}/promote")
+            ->assertStatus(404);
     }
 }

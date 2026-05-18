@@ -99,8 +99,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/groups/{id}',              [GroupController::class, 'update']);
     Route::post('/groups/{id}/join',        [GroupController::class, 'join']);
     Route::delete('/groups/{id}/leave',     [GroupController::class, 'leave']);
-    Route::post('/groups/{id}/invite',      [GroupController::class, 'invite']);
-    Route::get('/groups/{id}/members',      [GroupController::class, 'members']);
+    Route::post('/groups/{id}/invite',                    [GroupController::class, 'invite']);
+    Route::get('/groups/{id}/members',                    [GroupController::class, 'members']);
+    Route::post('/groups/{id}/members/{userId}/promote',  [GroupController::class, 'promote']);
 
     // Lead Routes
     Route::get('/leads',                   [ApiLeadController::class, 'index']);
