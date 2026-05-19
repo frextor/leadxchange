@@ -279,7 +279,7 @@
             const empty   = document.getElementById('emptyState');
             try {
                 loading.style.display = 'block'; list.style.display = 'none'; empty.style.display = 'none';
-                const res  = await fetch('/api/connections?type=received&status=pending', { headers: {'Accept':'application/json'}, credentials: 'same-origin' });
+                const res  = await fetch('/api/connections?type=received&status=pending', { headers: {'Accept':'application/json','Authorization':'Bearer '+window.API_TOKEN}, credentials: 'same-origin' });
                 if (!res.ok) throw new Error();
                 const data = await res.json();
                 displayRequests(data.data || []);
@@ -320,7 +320,7 @@
             const el = document.getElementById(`req-${id}`);
             el.style.opacity='0.5'; el.style.pointerEvents='none';
             try {
-                await fetch(`/api/connections/${id}/accept`, { method:'POST', headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF}, credentials:'same-origin' });
+                await fetch(`/api/connections/${id}/accept`, { method:'POST', headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF,'Authorization':'Bearer '+window.API_TOKEN}, credentials:'same-origin' });
                 el.remove(); loadRequests(); toast('Request accepted! 🎉','success');
             } catch { el.style.opacity='1'; el.style.pointerEvents='auto'; }
         }
@@ -329,7 +329,7 @@
             const el = document.getElementById(`req-${id}`);
             el.style.opacity='0.5'; el.style.pointerEvents='none';
             try {
-                await fetch(`/api/connections/${id}/reject`, { method:'POST', headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF}, credentials:'same-origin' });
+                await fetch(`/api/connections/${id}/reject`, { method:'POST', headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF,'Authorization':'Bearer '+window.API_TOKEN}, credentials:'same-origin' });
                 el.remove(); loadRequests(); toast('Request rejected','info');
             } catch { el.style.opacity='1'; el.style.pointerEvents='auto'; }
         }
@@ -358,7 +358,7 @@
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            fetch('/api/connections?type=received&status=pending', { headers:{'Accept':'application/json'}, credentials:'same-origin' })
+            fetch('/api/connections?type=received&status=pending', { headers:{'Accept':'application/json','Authorization':'Bearer '+window.API_TOKEN}, credentials:'same-origin' })
                 .then(r=>r.json()).then(d=>{ const n=(d.data||[]).length; if(n>0){const b=document.getElementById('membersBadge'); b.textContent=n; b.style.display='flex';} }).catch(()=>{});
             setInterval(()=>{ if(notifLoaded) loadRequests(); }, 30000);
         });
