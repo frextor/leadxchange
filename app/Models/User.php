@@ -208,7 +208,8 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return !is_null($this->gender)
             && !is_null($this->city_id)
-            && !is_null($this->birthday);
+            && !is_null($this->birthday)
+            && $this->onboarding_completed;
     }
 
     /**
