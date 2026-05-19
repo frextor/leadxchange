@@ -93,15 +93,26 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/profile/visitors',         [ProfileVisitorController::class, 'index']);
 
     // Group Routes
-    Route::get('/groups',                   [GroupController::class, 'index']);
-    Route::post('/groups',                  [GroupController::class, 'store']);
-    Route::get('/groups/{id}',              [GroupController::class, 'show']);
-    Route::put('/groups/{id}',              [GroupController::class, 'update']);
-    Route::post('/groups/{id}/join',        [GroupController::class, 'join']);
-    Route::delete('/groups/{id}/leave',     [GroupController::class, 'leave']);
-    Route::post('/groups/{id}/invite',                    [GroupController::class, 'invite']);
-    Route::get('/groups/{id}/members',                    [GroupController::class, 'members']);
-    Route::post('/groups/{id}/members/{userId}/promote',  [GroupController::class, 'promote']);
+    Route::get('/groups',                                       [GroupController::class, 'index']);
+    Route::post('/groups',                                      [GroupController::class, 'store']);
+    Route::get('/groups/invitations',                           [GroupController::class, 'invitations']);
+    Route::post('/groups/invitations/{invId}/accept',           [GroupController::class, 'acceptInvitation']);
+    Route::post('/groups/invitations/{invId}/decline',          [GroupController::class, 'declineInvitation']);
+    Route::get('/groups/{id}',                                  [GroupController::class, 'show']);
+    Route::put('/groups/{id}',                                  [GroupController::class, 'update']);
+    Route::delete('/groups/{id}',                               [GroupController::class, 'destroy']);
+    Route::post('/groups/{id}/join',                            [GroupController::class, 'join']);
+    Route::delete('/groups/{id}/leave',                         [GroupController::class, 'leave']);
+    Route::post('/groups/{id}/invite',                          [GroupController::class, 'invite']);
+    Route::get('/groups/{id}/members',                          [GroupController::class, 'members']);
+    Route::delete('/groups/{id}/members/{userId}',              [GroupController::class, 'removeMember']);
+    Route::post('/groups/{id}/members/{userId}/promote',        [GroupController::class, 'promote']);
+    Route::post('/groups/{id}/members/{userId}/demote',         [GroupController::class, 'demote']);
+    Route::get('/groups/{id}/posts',                            [GroupController::class, 'posts']);
+    Route::post('/groups/{id}/posts',                           [GroupController::class, 'storePost']);
+    Route::delete('/groups/{id}/posts/{postId}',                [GroupController::class, 'destroyPost']);
+    Route::post('/groups/{id}/posts/{postId}/comments',         [GroupController::class, 'storeComment']);
+    Route::post('/groups/{id}/activities',                      [GroupController::class, 'storeActivity']);
 
     // Lead Routes
     Route::get('/leads',                   [ApiLeadController::class, 'index']);

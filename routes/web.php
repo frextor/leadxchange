@@ -101,6 +101,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/groups/{id}/posts',                           [GroupController::class, 'storePost'])->name('groups.posts.store');
     Route::delete('/groups/{id}/posts/{postId}',                [GroupController::class, 'destroyPost'])->name('groups.posts.destroy');
     Route::post('/groups/{id}/posts/{postId}/comments',         [GroupController::class, 'storeComment'])->name('groups.comments.store');
+    Route::post('/groups/{id}/activities',                      [GroupController::class, 'storeActivity'])->name('groups.activities.store');
+    Route::delete('/groups/{id}',                               [GroupController::class, 'destroy'])->name('groups.destroy');
+    Route::post('/groups/{id}/invite',                          [GroupController::class, 'invite'])->name('groups.invite');
+    Route::post('/groups/invitations/{invId}/accept',           [GroupController::class, 'acceptInvitation'])->name('groups.invitations.accept');
+    Route::post('/groups/invitations/{invId}/decline',          [GroupController::class, 'declineInvitation'])->name('groups.invitations.decline');
+    Route::delete('/groups/{id}/members/{userId}',              [GroupController::class, 'removeMember'])->name('groups.members.destroy');
+    Route::post('/groups/{id}/members/{userId}/promote',        [GroupController::class, 'promoteAdmin'])->name('groups.members.promote');
+    Route::post('/groups/{id}/members/{userId}/demote',         [GroupController::class, 'demoteAdmin'])->name('groups.members.demote');
 
     // Events
     Route::get('/events',               [EventController::class, 'index'])->name('events.index');

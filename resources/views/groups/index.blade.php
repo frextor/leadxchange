@@ -212,6 +212,53 @@
             </div>
             @endif
 
+            {{-- Pending invitations --}}
+            @if($pendingInvitations->isNotEmpty())
+            <div class="mb-6 bg-white rounded-2xl border border-amber-200 overflow-hidden shadow-sm">
+                <div class="px-5 py-3 border-b border-amber-100 flex items-center gap-2" style="background:#FFFBEB;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.9a16 16 0 0 0 6 6l.91-1a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 21.73 16h-.19"/></svg>
+                    <span class="text-sm font-semibold text-amber-800">
+                        {{ $pendingInvitations->count() }} invitation{{ $pendingInvitations->count() > 1 ? 's' : '' }} en attente
+                    </span>
+                </div>
+                <div class="divide-y divide-gray-100">
+                    @foreach($pendingInvitations as $inv)
+                    <div class="flex items-center gap-4 px-5 py-4">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                             style="background:{{ $inv->group->cover_color ?? '#1E8F88' }};">
+                            {{ strtoupper(substr($inv->group->name, 0, 1)) }}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-gray-900 truncate">{{ $inv->group->name }}</p>
+                            <p class="text-xs text-gray-400">
+                                Invité par {{ $inv->inviter?->first_name }} {{ $inv->inviter?->last_name }}
+                                @if($inv->group->sector) · {{ $inv->group->sector->name }} @endif
+                            </p>
+                        </div>
+                        <div class="flex gap-2 flex-shrink-0">
+                            <form method="POST" action="{{ route('groups.invitations.accept', $inv->id) }}">
+                                @csrf
+                                <button type="submit"
+                                    class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition"
+                                    style="background:#1E8F88;"
+                                    onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
+                                    Accepter
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('groups.invitations.decline', $inv->id) }}">
+                                @csrf
+                                <button type="submit"
+                                    class="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-500 border border-gray-200 hover:bg-gray-50 transition">
+                                    Refuser
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
             @if($groups->isEmpty())
             <div class="bg-white rounded-2xl border border-gray-200 p-16 text-center">
                 <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background:#E6F7F4;">
