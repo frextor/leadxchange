@@ -58,6 +58,42 @@ class GroupController extends Controller
     }
 
     /**
+     * GET /api/groups/mine?page=1&per_page=15
+     * Groups the authenticated user belongs to (paginated).
+     */
+    public function mine(Request $request): JsonResponse
+    {
+        $user    = $request->user();
+        $perPage = min((int) ($request->per_page ?? 15), 50);
+
+        $paginator = $user->groups()
+            ->with(['sector:id,name', 'city:id,name'])
+            ->withCount('members')
+            ->withPivot('role')
+            ->orderByPivot('role')   // owner → admin → member
+            ->latest('group_user.created_at')
+            ->paginate($perPage);
+
+        $userRole = $paginator->getCollection()
+            ->pluck('pivot.role', 'id')
+            ->toArray();
+
+        $data = $paginator->getCollection()->map(
+            fn($g) => $this->formatGroup($g, $paginator->pluck('id')->toArray(), [], $user->city_id, $user->id, $userRole)
+        );
+
+        return response()->json([
+            'data' => $data,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'per_page'     => $paginator->perPage(),
+                'total'        => $paginator->total(),
+            ],
+        ]);
+    }
+
+    /**
      * GET /api/groups/{id}
      */
     public function show(int $id, Request $request): JsonResponse
