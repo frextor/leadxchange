@@ -95,6 +95,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Group Routes
     Route::get('/groups',                                       [GroupController::class, 'index']);
     Route::post('/groups',                                      [GroupController::class, 'store']);
+    Route::get('/groups/mine',                                  [GroupController::class, 'mine']);
     Route::get('/groups/invitations',                           [GroupController::class, 'invitations']);
     Route::post('/groups/invitations/{invId}/accept',           [GroupController::class, 'acceptInvitation']);
     Route::post('/groups/invitations/{invId}/decline',          [GroupController::class, 'declineInvitation']);
