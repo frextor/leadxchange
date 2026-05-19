@@ -21,6 +21,8 @@ class Profile extends Model
         'sector_ids'       => 'array',
     ];
 
+    protected $appends = ['avatar_url'];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -28,6 +30,6 @@ class Profile extends Model
 
     public function getAvatarUrlAttribute(): ?string
     {
-        return $this->avatar ? Storage::url($this->avatar) : null;
+        return $this->avatar ? Storage::disk('public')->url($this->avatar) : null;
     }
 }
