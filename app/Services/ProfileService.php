@@ -12,7 +12,7 @@ class ProfileService
 {
     public function getProfile(User $user): array
     {
-        $user->loadMissing(['profile', 'interests', 'company', 'city', 'cityBirth']);
+        $user->loadMissing(['profile', 'interests', 'company', 'city']);
 
         $sectorIds = array_unique(array_merge(
             $user->profile?->looking_for      ?? [],
@@ -90,7 +90,7 @@ class ProfileService
         $path = $file->store('avatars', 'public');
         $profile->update(['avatar' => $path]);
 
-        return Storage::url($path);
+        return Storage::disk('public')->url($path);
     }
 
     public function syncInterests(User $user, array $interestIds): void

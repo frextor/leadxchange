@@ -27,7 +27,7 @@ class Event extends Model
     public function getCoverUrlAttribute(): ?string
     {
         return $this->cover_image
-            ? \Illuminate\Support\Facades\Storage::url($this->cover_image)
+            ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->cover_image)
             : null;
     }
 
