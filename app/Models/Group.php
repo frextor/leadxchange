@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Group extends Model
 {
@@ -13,9 +14,7 @@ class Group extends Model
         'cover_color', 'cover_photo', 'is_public', 'members_count',
     ];
 
-    protected $casts = [
-        'is_public' => 'boolean',
-    ];
+    protected $casts = ['is_public' => 'boolean'];
 
     public function sector(): BelongsTo
     {
@@ -38,8 +37,33 @@ class Group extends Model
                     ->withPivot('role', 'joined_at');
     }
 
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(GroupInvitation::class);
+    }
+
+    public function posts(): HasMany
+    {
+        return $this->hasMany(GroupPost::class);
+    }
+
+    public function userRole(int $userId): ?string
+    {
+        return $this->members()->where('user_id', $userId)->value('role');
+    }
+
     public function isMember(int $userId): bool
     {
         return $this->members()->where('user_id', $userId)->exists();
+    }
+
+    public function isOwner(int $userId): bool
+    {
+        return $this->members()->where('user_id', $userId)->where('role', 'owner')->exists();
+    }
+
+    public function isAdmin(int $userId): bool
+    {
+        return $this->members()->where('user_id', $userId)->whereIn('role', ['owner', 'admin'])->exists();
     }
 }

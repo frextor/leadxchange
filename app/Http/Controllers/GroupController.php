@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\City;
 use App\Models\Group;
+use App\Models\GroupInvitation;
 use App\Models\GroupPost;
 use App\Models\GroupPostComment;
 use App\Models\Sector;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class GroupController extends Controller
 {
@@ -32,7 +35,6 @@ class GroupController extends Controller
         if ($request->filled('category')) {
             $query->where('sector_id', $request->category);
         }
-
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
@@ -43,9 +45,15 @@ class GroupController extends Controller
         $others         = $groups->filter(fn($g) => !in_array($g->sector_id, $userSectorIds));
         $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
 
+        $pendingInvitations = GroupInvitation::with(['group.sector', 'inviter'])
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->latest()
+            ->get();
+
         return view('groups.index', compact(
             'groups', 'sectors', 'cities', 'recommended', 'others',
-            'userSectorIds', 'memberGroupIds'
+            'userSectorIds', 'memberGroupIds', 'pendingInvitations'
         ));
     }
 
@@ -58,65 +66,215 @@ class GroupController extends Controller
 
         abort_if(!$group->is_public && !$group->isMember($user->id), 403);
 
-        $members  = $group->members()->with('profile', 'company:id,name')->orderByPivot('role')->get();
+        $userRole = $group->userRole($user->id);
+        $isMember = $userRole !== null;
+        $isAdmin  = in_array($userRole, ['owner', 'admin']);
+        $isOwner  = $userRole === 'owner';
+
+        $members  = $group->members()->with('profile', 'company:id,name')->orderByRaw("FIELD(role,'owner','admin','member')")->get();
         $posts    = GroupPost::with(['author.profile', 'comments.author.profile'])
             ->where('group_id', $id)
             ->latest()
             ->paginate(20);
-        $isMember = $group->isMember($user->id);
 
-        return view('groups.show', compact('group', 'members', 'posts', 'isMember'));
+        $connections = $isAdmin
+            ? User::with('profile')
+                ->whereIn('id', $user->connectionIds())
+                ->whereNotIn('id', $members->pluck('id')->toArray())
+                ->orderBy('first_name')
+                ->get()
+            : collect();
+
+        return view('groups.show', compact(
+            'group', 'members', 'posts', 'isMember', 'isAdmin', 'isOwner', 'userRole', 'connections'
+        ));
     }
+
+    // ── Posts ───────────────────────────────────────────────
 
     public function storePost(Request $request, int $id)
     {
         $group = Group::findOrFail($id);
         $user  = $request->user();
 
-        abort_unless($group->isMember($user->id), 403, 'Rejoignez le groupe pour publier.');
+        abort_unless($group->isMember($user->id), 403);
 
-        $request->validate(['body' => ['required', 'string', 'max:2000']]);
+        $request->validate([
+            'body'  => ['required_without:photo', 'nullable', 'string', 'max:2000'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+        ]);
+
+        $photoPath = null;
+        if ($request->hasFile('photo')) {
+            $photoPath = $request->file('photo')->store('groups/posts', 'public');
+        }
 
         GroupPost::create([
-            'group_id' => $id,
-            'user_id'  => $user->id,
-            'body'     => $request->body,
+            'group_id'   => $id,
+            'user_id'    => $user->id,
+            'type'       => 'post',
+            'body'       => $request->body ?? '',
+            'photo_path' => $photoPath,
         ]);
 
         return back()->with('success', 'Publication ajoutée.');
     }
 
-    public function storeComment(Request $request, int $id, int $postId)
+    public function storeActivity(Request $request, int $id)
     {
         $group = Group::findOrFail($id);
         $user  = $request->user();
 
-        abort_unless($group->isMember($user->id), 403, 'Rejoignez le groupe pour commenter.');
+        abort_unless($group->isAdmin($user->id), 403, 'Réservé aux admins et au owner.');
+
+        $request->validate([
+            'activity_title' => ['required', 'string', 'max:150'],
+            'body'           => ['nullable', 'string', 'max:1000'],
+            'activity_date'  => ['required', 'date', 'after:now'],
+        ]);
+
+        GroupPost::create([
+            'group_id'       => $id,
+            'user_id'        => $user->id,
+            'type'           => 'activity',
+            'activity_title' => $request->activity_title,
+            'body'           => $request->body ?? '',
+            'activity_date'  => $request->activity_date,
+        ]);
+
+        return back()->with('success', 'Activité créée.');
+    }
+
+    public function destroyPost(Request $request, int $id, int $postId)
+    {
+        $user  = $request->user();
+        $group = Group::findOrFail($id);
+        $post  = GroupPost::where('group_id', $id)->findOrFail($postId);
+
+        abort_unless($post->user_id === $user->id || $group->isAdmin($user->id), 403);
+
+        if ($post->photo_path) Storage::disk('public')->delete($post->photo_path);
+        $post->delete();
+
+        return back()->with('success', 'Publication supprimée.');
+    }
+
+    public function storeComment(Request $request, int $id, int $postId)
+    {
+        $group = Group::findOrFail($id);
+        abort_unless($group->isMember($request->user()->id), 403);
 
         $post = GroupPost::where('group_id', $id)->findOrFail($postId);
-
         $request->validate(['body' => ['required', 'string', 'max:1000']]);
 
         GroupPostComment::create([
             'post_id' => $post->id,
-            'user_id' => $user->id,
+            'user_id' => $request->user()->id,
             'body'    => $request->body,
         ]);
 
         return back()->with('success', 'Commentaire ajouté.');
     }
 
-    public function destroyPost(Request $request, int $id, int $postId)
+    // ── Invitations ──────────────────────────────────────────
+
+    public function invite(Request $request, int $id)
     {
-        $user = $request->user();
-        $post = GroupPost::where('group_id', $id)->findOrFail($postId);
+        $group = Group::findOrFail($id);
+        $user  = $request->user();
 
-        abort_unless($post->user_id === $user->id, 403);
+        abort_unless($group->isAdmin($user->id), 403);
 
-        $post->delete();
+        $request->validate(['user_id' => ['required', 'integer', 'exists:users,id']]);
 
-        return back()->with('success', 'Publication supprimée.');
+        $targetId = (int) $request->user_id;
+
+        if ($group->isMember($targetId)) {
+            return back()->with('info', 'Cet utilisateur est déjà membre du groupe.');
+        }
+
+        GroupInvitation::updateOrCreate(
+            ['group_id' => $id, 'user_id' => $targetId],
+            ['invited_by' => $user->id, 'status' => 'pending']
+        );
+
+        return back()->with('success', 'Invitation envoyée.');
     }
+
+    public function acceptInvitation(Request $request, int $invId)
+    {
+        $invitation = GroupInvitation::where('user_id', $request->user()->id)
+            ->where('status', 'pending')
+            ->findOrFail($invId);
+
+        $group = $invitation->group;
+
+        if (!$group->isMember($invitation->user_id)) {
+            $group->members()->attach($invitation->user_id, ['role' => 'member']);
+            $group->increment('members_count');
+        }
+
+        $invitation->update(['status' => 'accepted']);
+
+        return redirect()->route('groups.show', $group->id)
+            ->with('success', 'Vous avez rejoint le groupe "' . $group->name . '".');
+    }
+
+    public function declineInvitation(Request $request, int $invId)
+    {
+        $invitation = GroupInvitation::where('user_id', $request->user()->id)
+            ->where('status', 'pending')
+            ->findOrFail($invId);
+
+        $invitation->update(['status' => 'declined']);
+
+        return back()->with('success', 'Invitation refusée.');
+    }
+
+    // ── Member management ────────────────────────────────────
+
+    public function removeMember(Request $request, int $id, int $userId)
+    {
+        $group = Group::findOrFail($id);
+        $user  = $request->user();
+
+        abort_unless($group->isAdmin($user->id), 403);
+
+        $targetRole = $group->userRole($userId);
+        // Admins cannot remove owners or other admins
+        if (in_array($targetRole, ['owner', 'admin']) && !$group->isOwner($user->id)) {
+            return back()->with('error', 'Vous n\'avez pas la permission de retirer un admin ou le owner.');
+        }
+        // Prevent owner from removing themselves (use leave instead)
+        abort_if($userId === $user->id && $targetRole === 'owner', 403);
+
+        $group->members()->detach($userId);
+        $group->decrement('members_count');
+
+        return back()->with('success', 'Membre retiré du groupe.');
+    }
+
+    public function promoteAdmin(Request $request, int $id, int $userId)
+    {
+        $group = Group::findOrFail($id);
+        abort_unless($group->isOwner($request->user()->id), 403, 'Réservé au owner.');
+
+        $group->members()->updateExistingPivot($userId, ['role' => 'admin']);
+
+        return back()->with('success', 'Membre promu administrateur.');
+    }
+
+    public function demoteAdmin(Request $request, int $id, int $userId)
+    {
+        $group = Group::findOrFail($id);
+        abort_unless($group->isOwner($request->user()->id), 403, 'Réservé au owner.');
+
+        $group->members()->updateExistingPivot($userId, ['role' => 'member']);
+
+        return back()->with('success', 'Administrateur rétrogradé en membre.');
+    }
+
+    // ── Group CRUD ───────────────────────────────────────────
 
     public function store(Request $request)
     {
@@ -147,10 +305,22 @@ class GroupController extends Controller
             'members_count' => 1,
         ]);
 
-        $group->members()->attach($user->id, ['role' => 'admin']);
+        $group->members()->attach($user->id, ['role' => 'owner']);
+
+        return redirect()->route('groups.show', $group->id)
+            ->with('success', 'Groupe "' . $group->name . '" créé avec succès !');
+    }
+
+    public function destroy(Request $request, int $id)
+    {
+        $group = Group::findOrFail($id);
+        abort_unless($group->isOwner($request->user()->id), 403, 'Réservé au owner.');
+
+        if ($group->cover_photo) Storage::disk('public')->delete($group->cover_photo);
+        $group->delete();
 
         return redirect()->route('groups.index')
-            ->with('success', 'Groupe "' . $group->name . '" créé avec succès !');
+            ->with('success', 'Groupe supprimé.');
     }
 
     public function join(Request $request, int $id)
@@ -171,11 +341,15 @@ class GroupController extends Controller
         $group = Group::findOrFail($id);
         $user  = $request->user();
 
+        if ($group->isOwner($user->id)) {
+            return back()->with('error', 'Le owner ne peut pas quitter le groupe. Transférez la propriété d\'abord.');
+        }
+
         if ($group->isMember($user->id)) {
             $group->members()->detach($user->id);
             $group->decrement('members_count');
         }
 
-        return back()->with('success', 'Vous avez quitté le groupe.');
+        return redirect()->route('groups.index')->with('success', 'Vous avez quitté le groupe.');
     }
 }

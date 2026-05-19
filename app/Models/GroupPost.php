@@ -8,7 +8,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GroupPost extends Model
 {
-    protected $fillable = ['group_id', 'user_id', 'body'];
+    protected $fillable = ['group_id', 'user_id', 'body', 'type', 'photo_path', 'activity_title', 'activity_date'];
+
+    protected $casts = ['activity_date' => 'datetime'];
+
+    public function getPhotoUrlAttribute(): ?string
+    {
+        return $this->photo_path
+            ? \Illuminate\Support\Facades\Storage::url($this->photo_path)
+            : null;
+    }
 
     public function group(): BelongsTo
     {
