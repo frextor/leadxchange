@@ -583,7 +583,7 @@
         try {
             const res = await fetch('/api/connections', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Authorization': 'Bearer ' + window.API_TOKEN },
                 credentials: 'same-origin',
                 body: JSON.stringify({ receiver_id: userId })
             });
@@ -603,7 +603,7 @@
         try {
             const res = await fetch('/api/connections', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Authorization': 'Bearer ' + window.API_TOKEN },
                 credentials: 'same-origin',
                 body: JSON.stringify({ receiver_id: userId })
             });

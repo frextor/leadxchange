@@ -71,7 +71,7 @@ class GroupController extends Controller
         $isAdmin  = in_array($userRole, ['owner', 'admin']);
         $isOwner  = $userRole === 'owner';
 
-        $members  = $group->members()->with('profile', 'company:id,name')->orderByRaw("FIELD(role,'owner','admin','member')")->get();
+        $members  = $group->members()->with('profile', 'company:id,name')->orderByRaw("FIELD(group_user.role,'owner','admin','member')")->get();
         $posts    = GroupPost::with(['author.profile', 'comments.author.profile'])
             ->where('group_id', $id)
             ->latest()

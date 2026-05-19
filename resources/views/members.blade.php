@@ -299,7 +299,8 @@
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': CSRF
+                    'X-CSRF-TOKEN': CSRF,
+                    'Authorization': 'Bearer ' + window.API_TOKEN
                 },
                 credentials: 'same-origin',
                 body: JSON.stringify({
@@ -338,7 +339,8 @@
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': CSRF
+                    'X-CSRF-TOKEN': CSRF,
+                    'Authorization': 'Bearer ' + window.API_TOKEN
                 },
                 credentials: 'same-origin'
             });
@@ -380,7 +382,8 @@
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': CSRF
+                    'X-CSRF-TOKEN': CSRF,
+                    'Authorization': 'Bearer ' + window.API_TOKEN
                 },
                 credentials: 'same-origin'
             });

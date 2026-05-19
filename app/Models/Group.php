@@ -49,21 +49,21 @@ class Group extends Model
 
     public function userRole(int $userId): ?string
     {
-        return $this->members()->where('user_id', $userId)->value('role');
+        return $this->members()->where('group_user.user_id', $userId)->value('group_user.role');
     }
 
     public function isMember(int $userId): bool
     {
-        return $this->members()->where('user_id', $userId)->exists();
+        return $this->members()->where('group_user.user_id', $userId)->exists();
     }
 
     public function isOwner(int $userId): bool
     {
-        return $this->members()->where('user_id', $userId)->where('role', 'owner')->exists();
+        return $this->members()->where('group_user.user_id', $userId)->where('group_user.role', 'owner')->exists();
     }
 
     public function isAdmin(int $userId): bool
     {
-        return $this->members()->where('user_id', $userId)->whereIn('role', ['owner', 'admin'])->exists();
+        return $this->members()->where('group_user.user_id', $userId)->whereIn('group_user.role', ['owner', 'admin'])->exists();
     }
 }
