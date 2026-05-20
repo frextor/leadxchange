@@ -259,6 +259,11 @@ class GroupController extends Controller
         $group->members()->attach($user->id, ['role' => 'member']);
         $group->increment('members_count');
 
+        GroupInvitation::where('group_id', $id)
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->update(['status' => 'accepted']);
+
         return response()->json([
             'message'       => 'Joined group successfully.',
             'members_count' => $group->members_count + 1,
