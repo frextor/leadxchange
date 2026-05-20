@@ -138,9 +138,13 @@ class GroupController extends Controller
         $user           = $request->user();
         $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
         $userRole       = $user->groups()->pluck('role', 'groups.id')->toArray();
+        $isInvited      = GroupInvitation::where('group_id', $id)
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->exists();
 
         return response()->json([
-            'data' => $this->formatGroup($group, $memberGroupIds, [], $user->city_id, $user->id, $userRole),
+            'data' => $this->formatGroup($group, $memberGroupIds, [], $user->city_id, $user->id, $userRole, $isInvited),
         ]);
     }
 
