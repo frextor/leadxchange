@@ -39,7 +39,7 @@ class GroupController extends Controller
             ->where('status', 'pending')
             ->pluck('group_id')
             ->toArray();
-        $invitedQuery = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+        $invitedQuery = Group::with(['sector:id,name', 'creator' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email')->with('profile'), 'city:id,name'])
             ->withCount('members')
             ->whereIn('id', $invitedGroupIds);
         if ($request->filled('search')) $invitedQuery->where('name', 'like', '%' . $request->search . '%');
@@ -49,7 +49,7 @@ class GroupController extends Controller
             ->values();
 
         // ── My groups (paginated) ─────────────────────────────────────────
-        $myGroupsQuery = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+        $myGroupsQuery = Group::with(['sector:id,name', 'creator' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email')->with('profile'), 'city:id,name'])
             ->withCount('members')
             ->whereIn('id', $memberGroupIds);
         if ($request->filled('search')) $myGroupsQuery->where('name', 'like', '%' . $request->search . '%');
@@ -59,7 +59,7 @@ class GroupController extends Controller
             ->values();
 
         // ── Public groups not yet joined (paginated) ──────────────────────
-        $publicQuery = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+        $publicQuery = Group::with(['sector:id,name', 'creator' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email')->with('profile'), 'city:id,name'])
             ->withCount('members')
             ->where('is_public', true)
             ->whereNotIn('id', $memberGroupIds);
@@ -131,7 +131,7 @@ class GroupController extends Controller
      */
     public function show(int $id, Request $request): JsonResponse
     {
-        $group = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+        $group = Group::with(['sector:id,name', 'creator' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email')->with('profile'), 'city:id,name'])
             ->withCount('members')
             ->findOrFail($id);
 
@@ -182,7 +182,7 @@ class GroupController extends Controller
         ]);
 
         $group->members()->attach($user->id, ['role' => 'owner']);
-        $group->load(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name']);
+        $group->load(['sector:id,name', 'creator' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email')->with('profile'), 'city:id,name']);
         $group->loadCount('members');
 
         return response()->json([
@@ -219,7 +219,7 @@ class GroupController extends Controller
         }
 
         $group->update(array_filter($validated, fn($v) => $v !== null));
-        $group->load(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name']);
+        $group->load(['sector:id,name', 'creator' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email')->with('profile'), 'city:id,name']);
         $group->loadCount('members');
 
         $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
@@ -666,7 +666,12 @@ class GroupController extends Controller
             'is_nearby'       => $userCityId !== null && $group->city_id === $userCityId,
             'sector'          => $group->sector  ? ['id' => $group->sector->id,  'name' => $group->sector->name]  : null,
             'city'            => $group->city    ? ['id' => $group->city->id,    'name' => $group->city->name]    : null,
-            'creator'         => $group->creator ? ['id' => $group->creator->id, 'name' => $group->creator->first_name . ' ' . $group->creator->last_name] : null,
+            'creator'         => $group->creator ? [
+                'id'         => $group->creator->id,
+                'name'       => $group->creator->first_name . ' ' . $group->creator->last_name,
+                'email'      => $group->creator->email,
+                'avatar_url' => $group->creator->profile?->avatar_url,
+            ] : null,
             'created_at'      => $group->created_at,
         ];
     }
