@@ -17,7 +17,7 @@
     {{-- Cover --}}
     <div class="relative h-[120px] overflow-hidden">
         @if($event->cover_image)
-        <img src="{{ Storage::url($event->cover_image) }}" alt="{{ $event->title }}"
+        <img src="{{ Storage::disk('public')->url($event->cover_image) }}" alt="{{ $event->title }}"
              class="absolute inset-0 w-full h-full object-cover">
         <div class="absolute inset-0" style="background:linear-gradient(to bottom,transparent 40%,rgba(0,0,0,.35));"></div>
         @else

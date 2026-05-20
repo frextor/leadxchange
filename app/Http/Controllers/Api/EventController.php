@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
-use App\Models\Sector;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -68,6 +67,22 @@ class EventController extends Controller
                 'nearby' => $upcoming->filter(fn($e) => $e['is_nearby'])->count(),
             ],
         ]);
+    }
+
+    public function mine(Request $request): JsonResponse
+    {
+        $user         = $request->user();
+        $attendingIds = $user->events()->pluck('events.id')->toArray();
+
+        $events = Event::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+            ->whereHas('attendees', fn($q) => $q->where('user_id', $user->id))
+            ->orderBy('starts_at')
+            ->paginate(20);
+
+        $mapped = $events->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id));
+        $events->setCollection($mapped);
+
+        return response()->json(['data' => $events]);
     }
 
     public function show(int $id, Request $request): JsonResponse
@@ -171,6 +186,49 @@ class EventController extends Controller
 
         return response()->json([
             'message'         => 'Registration cancelled.',
+            'attendees_count' => $event->attendees_count,
+        ]);
+    }
+
+    public function destroy(int $id, Request $request): JsonResponse
+    {
+        $event = Event::findOrFail($id);
+        $user  = $request->user();
+
+        if ($event->created_by !== $user->id) {
+            return response()->json(['message' => 'Only the organizer can delete this event.'], 403);
+        }
+
+        if ($event->cover_image) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($event->cover_image);
+        }
+
+        $event->delete();
+
+        return response()->json(['message' => 'Event deleted successfully.']);
+    }
+
+    public function removeAttendee(int $id, int $userId, Request $request): JsonResponse
+    {
+        $event = Event::findOrFail($id);
+        $user  = $request->user();
+
+        if ($event->created_by !== $user->id) {
+            return response()->json(['message' => 'Only the organizer can remove attendees.'], 403);
+        }
+
+        if ($userId === $user->id) {
+            return response()->json(['message' => 'You cannot remove yourself as organizer.'], 422);
+        }
+
+        if ($event->attendees()->where('user_id', $userId)->exists()) {
+            $event->attendees()->detach($userId);
+            $event->decrement('attendees_count');
+            $event->refresh();
+        }
+
+        return response()->json([
+            'message'         => 'Attendee removed.',
             'attendees_count' => $event->attendees_count,
         ]);
     }

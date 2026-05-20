@@ -32,7 +32,7 @@
         <div class="h-36 relative"
              @unless($group->cover_photo) style="background:linear-gradient(135deg,{{ $group->cover_color }},{{ $group->cover_color }}cc);" @endunless>
             @if($group->cover_photo)
-                <img src="{{ Storage::url($group->cover_photo) }}" alt="" class="absolute inset-0 w-full h-full object-cover">
+                <img src="{{ Storage::disk('public')->url($group->cover_photo) }}" alt="" class="absolute inset-0 w-full h-full object-cover">
                 <div class="absolute inset-0 bg-black/40"></div>
             @endif
         </div>

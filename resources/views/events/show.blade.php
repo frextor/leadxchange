@@ -25,14 +25,15 @@
 
 @section('content')
 @php
-    $typeColors = ['virtual' => '#6366F1', 'in_person' => '#1E8F88', 'hybrid' => '#F59E0B'];
-    $typeLabels = ['virtual' => 'Virtuel', 'in_person' => 'Présentiel', 'hybrid' => 'Hybride'];
-    $typeColor  = $typeColors[$event->type] ?? $event->cover_color;
-    $typeLabel  = $typeLabels[$event->type] ?? $event->type;
-    $isPast     = $event->starts_at->isPast();
-    $catLabel   = App\Models\Event::$categoryLabels[$event->category ?? ''] ?? null;
-    $capacity   = $event->max_attendees;
-    $pct        = $capacity ? min(100, round($event->attendees_count / $capacity * 100)) : null;
+    $typeColors   = ['virtual' => '#6366F1', 'in_person' => '#1E8F88', 'hybrid' => '#F59E0B'];
+    $typeLabels   = ['virtual' => 'Virtual', 'in_person' => 'In-person', 'hybrid' => 'Hybrid'];
+    $typeColor    = $typeColors[$event->type] ?? $event->cover_color;
+    $typeLabel    = $typeLabels[$event->type] ?? $event->type;
+    $isPast       = $event->starts_at->isPast();
+    $catLabel     = App\Models\Event::$categoryLabels[$event->category ?? ''] ?? null;
+    $capacity     = $event->max_attendees;
+    $pct          = $capacity ? min(100, round($event->attendees_count / $capacity * 100)) : null;
+    $isOrganizer  = $event->created_by === auth()->id();
 @endphp
 
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -42,7 +43,7 @@
         <div class="h-48 sm:h-64 relative"
              @unless($event->cover_image) style="background:linear-gradient(135deg,{{ $event->cover_color }},{{ $event->cover_color }}99);" @endunless>
             @if($event->cover_image)
-                <img src="{{ Storage::url($event->cover_image) }}" alt="{{ $event->title }}"
+                <img src="{{ Storage::disk('public')->url($event->cover_image) }}" alt="{{ $event->title }}"
                      class="absolute inset-0 w-full h-full object-cover">
                 <div class="absolute inset-0 bg-black/40"></div>
             @else
@@ -79,19 +80,37 @@
         {{-- Title bar --}}
         <div class="bg-white px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900 leading-tight">{{ $event->title }}</h1>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="text-2xl font-bold text-gray-900 leading-tight">{{ $event->title }}</h1>
+                    @if($isOrganizer)
+                    <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold" style="background:#FEF3C7;color:#92400E;">Organizer</span>
+                    @endif
+                </div>
                 <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-400">
-                    <span>Organisé par <strong class="text-gray-700">{{ $event->creator->first_name }} {{ $event->creator->last_name }}</strong></span>
+                    <span>Organized by <strong class="text-gray-700">{{ $event->creator->first_name }} {{ $event->creator->last_name }}</strong></span>
                     @if($event->sector)
                     <span>·</span>
                     <span class="px-2 py-0.5 rounded-full font-medium" style="background:#E6F7F4;color:#1E8F88;">{{ $event->sector->name }}</span>
                     @endif
                 </div>
             </div>
-            <a href="{{ route('events.index') }}"
-               class="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
-                ← Événements
-            </a>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <a href="{{ route('events.index') }}"
+                   class="px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
+                    ← Events
+                </a>
+                @if($isOrganizer && !$isPast)
+                <form method="POST" action="{{ route('events.destroy', $event->id) }}"
+                      onsubmit="return confirm('Delete this event? This action cannot be undone.')">
+                    @csrf @method('DELETE')
+                    <button type="submit" class="px-4 py-2 rounded-xl text-sm font-semibold border transition"
+                            style="border-color:#EF4444;color:#EF4444;"
+                            onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background='transparent'">
+                        Delete event
+                    </button>
+                </form>
+                @endif
+            </div>
         </div>
     </div>
 
@@ -291,32 +310,43 @@
                 @if($attendees->isEmpty())
                 <p class="text-xs text-gray-400 text-center py-4">Aucun participant pour le moment.</p>
                 @else
-                <div class="space-y-3">
+                <div class="space-y-2">
                     @foreach($attendees->take(12) as $attendee)
-                    <a href="{{ route('profile.show', $attendee->id) }}"
-                       class="flex items-center gap-3 hover:bg-gray-50 rounded-xl p-1.5 -mx-1.5 transition">
-                        @if($attendee->profile?->avatar)
-                            <img src="{{ $attendee->profile->avatar_url }}"
-                                 class="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-gray-100">
-                        @else
-                            <div class="avatar-circle" style="width:36px;height:36px;font-size:12px;">
-                                {{ strtoupper(substr($attendee->first_name,0,1).substr($attendee->last_name,0,1)) }}
-                            </div>
-                        @endif
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-gray-900 truncate leading-tight">
-                                {{ $attendee->first_name }} {{ $attendee->last_name }}
-                                @if($attendee->pivot->role === 'organizer')
-                                <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium" style="background:#E6F7F4;color:#1E8F88;">Orga</span>
-                                @endif
-                            </p>
-                            @if($attendee->profile?->job_title)
-                            <p class="text-xs text-gray-400 truncate">{{ $attendee->profile->job_title }}</p>
-                            @elseif($attendee->company)
-                            <p class="text-xs text-gray-400 truncate">{{ $attendee->company->name }}</p>
+                    <div class="flex items-center gap-3 group/att rounded-xl p-1.5 -mx-1.5 hover:bg-gray-50 transition">
+                        <a href="{{ route('profile.show', $attendee->id) }}" class="flex items-center gap-3 flex-1 min-w-0">
+                            @if($attendee->profile?->avatar)
+                                <img src="{{ $attendee->profile->avatar_url }}"
+                                     class="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-gray-100">
+                            @else
+                                <div class="avatar-circle" style="width:36px;height:36px;font-size:12px;">
+                                    {{ strtoupper(substr($attendee->first_name,0,1).substr($attendee->last_name,0,1)) }}
+                                </div>
                             @endif
-                        </div>
-                    </a>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-gray-900 truncate leading-tight">
+                                    {{ $attendee->first_name }} {{ $attendee->last_name }}
+                                    @if($attendee->pivot->role === 'organizer')
+                                    <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium" style="background:#FEF3C7;color:#92400E;">Organizer</span>
+                                    @endif
+                                </p>
+                                @if($attendee->profile?->job_title)
+                                <p class="text-xs text-gray-400 truncate">{{ $attendee->profile->job_title }}</p>
+                                @elseif($attendee->company)
+                                <p class="text-xs text-gray-400 truncate">{{ $attendee->company->name }}</p>
+                                @endif
+                            </div>
+                        </a>
+                        @if($isOrganizer && $attendee->id !== auth()->id())
+                        <form method="POST" action="{{ route('events.attendees.destroy', [$event->id, $attendee->id]) }}"
+                              class="opacity-0 group-hover/att:opacity-100 transition flex-shrink-0">
+                            @csrf @method('DELETE')
+                            <button type="submit" title="Remove attendee"
+                                    class="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-red-400 hover:bg-red-50 transition">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                            </button>
+                        </form>
+                        @endif
+                    </div>
                     @endforeach
                     @if($attendees->count() > 12)
                     <p class="text-xs text-center text-gray-400 pt-1">+ {{ $attendees->count() - 12 }} autres</p>
