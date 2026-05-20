@@ -115,7 +115,22 @@ class EventController extends Controller
         $isAttending = $event->isAttending($user->id);
         $isOrganizer = $event->created_by === $user->id;
 
-        return view('events.show', compact('event', 'attendees', 'isAttending', 'isOrganizer'));
+        $eventConnections = collect();
+        if ($isOrganizer) {
+            $attendeeIds = $attendees->pluck('id')->toArray();
+            $eventConnections = User::whereIn('id', $user->connectionIds())
+                ->whereNotIn('id', $attendeeIds)
+                ->with('profile:id,user_id,job_title')
+                ->orderBy('first_name')
+                ->get()
+                ->map(fn($u) => [
+                    'id'        => $u->id,
+                    'name'      => $u->first_name . ' ' . $u->last_name,
+                    'job_title' => $u->profile?->job_title,
+                ]);
+        }
+
+        return view('events.show', compact('event', 'attendees', 'isAttending', 'isOrganizer', 'eventConnections'));
     }
 
     public function store(Request $request)
