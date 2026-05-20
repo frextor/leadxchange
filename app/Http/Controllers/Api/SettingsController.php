@@ -8,6 +8,7 @@ use App\Models\Country;
 use App\Models\Interest;
 use App\Models\Language;
 use App\Models\Nationality;
+use App\Models\Plan;
 use App\Models\Sector;
 use Illuminate\Http\JsonResponse;
 
@@ -37,6 +38,10 @@ class SettingsController extends Controller
 
             'countries'     => Country::orderBy('name')
                                    ->get(['id', 'name', 'code', 'flag']),
+
+            'plans'         => Plan::where('is_active', true)
+                                   ->orderBy('sort_order')
+                                   ->get(['id', 'name', 'label', 'description', 'price', 'billing_period', 'max_leads', 'max_groups', 'features']),
 
             'cities'        => City::with('country:id,name,code,flag')
                                    ->orderByRaw("CASE WHEN country_id = (SELECT id FROM countries WHERE code = 'MA') THEN 0 ELSE 1 END")
