@@ -31,7 +31,10 @@ class GroupController extends Controller
 
         $query = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
             ->withCount('members')
-            ->where('is_public', true);
+            ->where(function ($q) use ($user) {
+                $q->where('is_public', true)
+                  ->orWhereHas('members', fn($m) => $m->where('group_user.user_id', $user->id));
+            });
 
         if ($request->filled('city_id'))   $query->where('city_id', $request->city_id);
         if ($request->filled('category'))  $query->where('sector_id', $request->category);
