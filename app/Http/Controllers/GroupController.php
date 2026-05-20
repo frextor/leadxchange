@@ -347,7 +347,7 @@ class GroupController extends Controller
         $group = Group::findOrFail($id);
         abort_unless($group->isOwner($request->user()->id), 403, 'Réservé au owner.');
 
-        if ($group->cover_photo) Storage::disk('public')->delete($group->cover_photo);
+        if ($group->cover_photo && !str_starts_with($group->cover_photo, 'http')) Storage::disk('public')->delete($group->cover_photo);
         $group->delete();
 
         return redirect()->route('groups.index')
