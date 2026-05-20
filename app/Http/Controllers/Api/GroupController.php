@@ -22,40 +22,56 @@ class GroupController extends Controller
         $user = $request->user();
         $user->loadMissing('profile');
 
-        $userSectorIds = array_unique(array_merge(
+        $userSectorIds  = array_unique(array_merge(
             $user->profile?->looking_for      ?? [],
             $user->profile?->services_offered ?? [],
             $user->profile?->sector_ids       ?? [],
         ));
-        $userCityId = $user->city_id;
-
-        $query = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
-            ->withCount('members')
-            ->where(function ($q) use ($user) {
-                $q->where('is_public', true)
-                  ->orWhereHas('members', fn($m) => $m->where('group_user.user_id', $user->id));
-            });
-
-        if ($request->filled('city_id'))   $query->where('city_id', $request->city_id);
-        if ($request->filled('category'))  $query->where('sector_id', $request->category);
-        if ($request->filled('search'))    $query->where('name', 'like', '%' . $request->search . '%');
-
-        $groups         = $query->orderBy('members_count', 'desc')->get();
+        $userCityId     = $user->city_id;
         $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
         $userRole       = $user->groups()->pluck('role', 'groups.id')->toArray();
 
-        $mapped = $groups->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole));
+        // ── My groups (already a member) ──────────────────────────────────
+        $myGroupsQuery = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+            ->withCount('members')
+            ->whereIn('id', $memberGroupIds);
+        if ($request->filled('search')) $myGroupsQuery->where('name', 'like', '%' . $request->search . '%');
+        $myGroups = $myGroupsQuery->get()
+            ->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole))
+            ->values();
+
+        // ── Pending invitations ───────────────────────────────────────────
+        $invitedGroupIds = GroupInvitation::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->pluck('group_id')
+            ->toArray();
+        $invited = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+            ->withCount('members')
+            ->whereIn('id', $invitedGroupIds)
+            ->get()
+            ->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole))
+            ->values();
+
+        // ── Public groups not yet joined ──────────────────────────────────
+        $query = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+            ->withCount('members')
+            ->where('is_public', true)
+            ->whereNotIn('id', $memberGroupIds);
+
+        if ($request->filled('city_id'))  $query->where('city_id', $request->city_id);
+        if ($request->filled('category')) $query->where('sector_id', $request->category);
+        if ($request->filled('search'))   $query->where('name', 'like', '%' . $request->search . '%');
+
+        $mapped = $query->orderBy('members_count', 'desc')->get()
+            ->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole));
 
         return response()->json([
             'data' => [
+                'my_groups'   => $myGroups,
+                'invited'     => $invited,
                 'nearby'      => $mapped->filter(fn($g) => $g['is_nearby'])->values(),
                 'recommended' => $mapped->filter(fn($g) => $g['is_recommended'] && !$g['is_nearby'])->values(),
                 'others'      => $mapped->filter(fn($g) => !$g['is_recommended'] && !$g['is_nearby'])->values(),
-            ],
-            'meta' => [
-                'total'       => $groups->count(),
-                'nearby'      => $mapped->filter(fn($g) => $g['is_nearby'])->count(),
-                'recommended' => $mapped->filter(fn($g) => $g['is_recommended'])->count(),
             ],
         ]);
     }
