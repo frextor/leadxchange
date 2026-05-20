@@ -19,7 +19,7 @@ return new class extends Migration
             } else {
                 $companyIds[$name] = DB::table('companies')->insertGetId([
                     'name'       => $name,
-                    'siret'      => '',
+                    'siret'      => strtolower(str_replace(' ', '-', $name)),
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
