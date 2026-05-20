@@ -52,7 +52,10 @@ class GroupController extends Controller
             ->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole))
             ->values();
 
-        // ── Public groups not yet joined ──────────────────────────────────
+        // ── Public groups not yet joined (paginated) ─────────────────────
+        $page    = max(1, (int) ($request->page    ?? 1));
+        $perPage = min(50, max(1, (int) ($request->per_page ?? 20)));
+
         $query = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
             ->withCount('members')
             ->where('is_public', true)
@@ -62,16 +65,23 @@ class GroupController extends Controller
         if ($request->filled('category')) $query->where('sector_id', $request->category);
         if ($request->filled('search'))   $query->where('name', 'like', '%' . $request->search . '%');
 
-        $mapped = $query->orderBy('members_count', 'desc')->get()
+        $paginator = $query->orderBy('members_count', 'desc')->paginate($perPage, ['*'], 'page', $page);
+        $mapped = $paginator->getCollection()
             ->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole));
 
         return response()->json([
             'data' => [
-                'my_groups'   => $myGroups,
-                'invited'     => $invited,
+                'invited'     => $page === 1 ? $invited     : collect(),
+                'my_groups'   => $page === 1 ? $myGroups    : collect(),
                 'nearby'      => $mapped->filter(fn($g) => $g['is_nearby'])->values(),
                 'recommended' => $mapped->filter(fn($g) => $g['is_recommended'] && !$g['is_nearby'])->values(),
                 'others'      => $mapped->filter(fn($g) => !$g['is_recommended'] && !$g['is_nearby'])->values(),
+            ],
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'per_page'     => $paginator->perPage(),
+                'total'        => $paginator->total(),
             ],
         ]);
     }
