@@ -655,7 +655,7 @@ class GroupController extends Controller
             'name'            => $group->name,
             'description'     => $group->description,
             'cover_color'     => $group->cover_color,
-            'cover_photo_url' => $group->cover_photo ? Storage::disk('public')->url($group->cover_photo) : null,
+            'cover_photo_url' => $group->cover_photo ? (str_starts_with($group->cover_photo, 'http') ? $group->cover_photo : Storage::disk('public')->url($group->cover_photo)) : null,
             'is_public'       => $group->is_public,
             'members_count'   => $group->members_count,
             'is_member'       => in_array($group->id, $memberGroupIds),
