@@ -46,7 +46,7 @@ class ProfileVisitorController extends Controller
         }
 
         $myId = $me->id;
-        $items = $paginated->getCollection()->map(function (ProfileVisitor $visit) use ($myId) {
+        $items = $paginated->getCollection()->filter(fn ($v) => $v->visitor !== null)->map(function (ProfileVisitor $visit) use ($myId) {
             $u = $visit->visitor;
 
             // Connection status
