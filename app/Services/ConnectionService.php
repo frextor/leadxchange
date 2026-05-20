@@ -197,7 +197,7 @@ class ConnectionService
      * @param string|null $status
      * @return Collection
      */
-    public function getReceivedRequests(User $user, ?string $status = null): Collection
+    public function getReceivedRequests(User $user, ?string $status = null, ?int $groupId = null): Collection
     {
         $query = Connection::where('receiver_id', $user->id)
             ->with(['sender' => function ($query) {
@@ -206,6 +206,12 @@ class ConnectionService
 
         if ($status) {
             $query->where('status', $status);
+        }
+
+        if ($groupId) {
+            $query->whereNotIn('sender_id', function ($sub) use ($groupId) {
+                $sub->select('user_id')->from('group_user')->where('group_id', $groupId);
+            });
         }
 
         return $query->orderBy('created_at', 'desc')->get();
@@ -218,7 +224,7 @@ class ConnectionService
      * @param string|null $status
      * @return Collection
      */
-    public function getSentRequests(User $user, ?string $status = null): Collection
+    public function getSentRequests(User $user, ?string $status = null, ?int $groupId = null): Collection
     {
         $query = Connection::where('sender_id', $user->id)
             ->with(['receiver' => function ($query) {
@@ -227,6 +233,12 @@ class ConnectionService
 
         if ($status) {
             $query->where('status', $status);
+        }
+
+        if ($groupId) {
+            $query->whereNotIn('receiver_id', function ($sub) use ($groupId) {
+                $sub->select('user_id')->from('group_user')->where('group_id', $groupId);
+            });
         }
 
         return $query->orderBy('created_at', 'desc')->get();

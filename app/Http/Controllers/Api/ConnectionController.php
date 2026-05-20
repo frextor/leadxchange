@@ -67,22 +67,25 @@ class ConnectionController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $type = $request->get('type', 'all'); // all, sent, received, connections
-        $status = $request->get('status'); // pending, accepted, rejected
+        $type    = $request->get('type', 'all'); // all, sent, received, connections
+        $status  = $request->get('status'); // pending, accepted, rejected
+        $groupId = $request->integer('group_id') ?: null;
 
         try {
             switch ($type) {
                 case 'received':
                     $connections = $this->connectionService->getReceivedRequests(
                         $request->user(),
-                        $status
+                        $status,
+                        $groupId
                     );
                     break;
 
                 case 'sent':
                     $connections = $this->connectionService->getSentRequests(
                         $request->user(),
-                        $status
+                        $status,
+                        $groupId
                     );
                     break;
 
@@ -93,9 +96,9 @@ class ConnectionController extends Controller
                     break;
 
                 default: // 'all'
-                    $received = $this->connectionService->getReceivedRequests($request->user());
-                    $sent = $this->connectionService->getSentRequests($request->user());
-                    
+                    $received = $this->connectionService->getReceivedRequests($request->user(), $status, $groupId);
+                    $sent     = $this->connectionService->getSentRequests($request->user(), $status, $groupId);
+
                     return response()->json([
                         'success' => true,
                         'data' => [
