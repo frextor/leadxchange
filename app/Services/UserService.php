@@ -230,11 +230,37 @@ class UserService
 
     public function getUserById(int $userId, int $currentUserId): ?array
     {
-        $user = User::with(['company:id,name,sector_id,website', 'company.sector:id,name', 'city:id,name'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'birthday', 'company_id', 'created_at'])
+        $user = User::with(['company:id,name,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'birthday', 'company_id', 'position', 'created_at'])
             ->find($userId);
 
-        return $user ? $this->enrichUserWithConnectionStatus($user, $currentUserId) : null;
+        if (!$user) return null;
+
+        $currentUser    = User::with('profile:user_id,sector_ids')->find($currentUserId);
+        $mySectorIds    = $currentUser?->profile?->sector_ids ?? [];
+        $theirSectorIds = $user->profile?->sector_ids ?? [];
+
+        $sharedSectorIds = array_intersect($mySectorIds, $theirSectorIds);
+        $sharedInterests = [];
+        if (!empty($sharedSectorIds)) {
+            $sharedInterests = \Illuminate\Support\Facades\DB::table('sectors')
+                ->whereIn('id', $sharedSectorIds)
+                ->get(['id', 'name'])
+                ->map(fn ($s) => ['id' => $s->id, 'name' => $s->name])
+                ->values()
+                ->toArray();
+        }
+
+        $base = $this->enrichUserWithConnectionStatus($user, $currentUserId);
+        $base['shared_interests']  = $sharedInterests;
+        $base['position']          = $user->position;
+        $base['services_offered']  = $user->profile?->services_offered ?? [];
+        $base['looking_for']       = $user->profile?->looking_for ?? [];
+        $base['sector_ids']        = $theirSectorIds;
+        $base['bio']               = $user->profile?->bio;
+        $base['open_to_network']   = $user->profile?->open_to_network ?? false;
+
+        return $base;
     }
 
     public function getProfileById(int $userId, int $currentUserId): ?array
