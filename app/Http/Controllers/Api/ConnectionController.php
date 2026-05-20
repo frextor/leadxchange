@@ -210,6 +210,28 @@ class ConnectionController extends Controller
     }
 
     /**
+     * Remove an accepted connection.
+     *
+     * POST /api/connections/{id}/remove
+     */
+    public function remove(int $id, Request $request): JsonResponse
+    {
+        try {
+            $this->connectionService->removeConnection($id, $request->user());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Connection removed',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    /**
      * Format connections for response.
      */
     private function formatConnections($connections): array

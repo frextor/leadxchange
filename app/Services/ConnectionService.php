@@ -290,6 +290,28 @@ class ConnectionService
     }
 
     /**
+     * Remove an accepted connection (either party can remove).
+     */
+    public function removeConnection(int $connectionId, User $user): bool
+    {
+        $connection = Connection::find($connectionId);
+
+        if (!$connection) {
+            throw new \Exception('Connection not found');
+        }
+
+        if ($connection->sender_id !== $user->id && $connection->receiver_id !== $user->id) {
+            throw new \Exception('You are not part of this connection');
+        }
+
+        if ($connection->status !== 'accepted') {
+            throw new \Exception('Only accepted connections can be removed');
+        }
+
+        return $connection->delete();
+    }
+
+    /**
      * Cancel a pending sent request.
      *
      * @param int $connectionId
@@ -305,14 +327,9 @@ class ConnectionService
             throw new \Exception('Connection request not found');
         }
 
-        // Only sender can cancel
-        if ($connection->sender_id !== $user->id) {
-            throw new \Exception('Only the sender can cancel this connection request');
-        }
-
-        // Must be pending
-        if (!$connection->isPending()) {
-            throw new \Exception('Only pending requests can be cancelled');
+        // Must be sender or receiver
+        if ($connection->sender_id !== $user->id && $connection->receiver_id !== $user->id) {
+            throw new \Exception('You are not part of this connection');
         }
 
         return $connection->delete();

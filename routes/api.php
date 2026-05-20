@@ -67,7 +67,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/', [ConnectionController::class, 'store']);             // Send connection request
         Route::post('/{id}/accept', [ConnectionController::class, 'accept']); // Accept request
         Route::post('/{id}/reject', [ConnectionController::class, 'reject']); // Reject request
-        Route::delete('/{id}', [ConnectionController::class, 'destroy']);     // Cancel request
+        Route::delete('/{id}', [ConnectionController::class, 'destroy']);     // Cancel pending request
+        Route::post('/{id}/remove', [ConnectionController::class, 'remove']); // Remove accepted connection
     });
 
     // User Routes
