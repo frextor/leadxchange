@@ -45,7 +45,7 @@ class GroupController extends Controller
         if ($request->filled('search')) $invitedQuery->where('name', 'like', '%' . $request->search . '%');
         $invitedPaginator = $invitedQuery->paginate($perPage, ['*'], 'page', $page);
         $invited = $invitedPaginator->getCollection()
-            ->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole))
+            ->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole, true))
             ->values();
 
         // ── My groups (paginated) ─────────────────────────────────────────
@@ -640,7 +640,7 @@ class GroupController extends Controller
         ];
     }
 
-    private function formatGroup(Group $group, array $memberGroupIds, array $userSectorIds, ?int $userCityId, ?int $authUserId, array $userRoles = []): array
+    private function formatGroup(Group $group, array $memberGroupIds, array $userSectorIds, ?int $userCityId, ?int $authUserId, array $userRoles = [], bool $isInvited = false): array
     {
         return [
             'id'              => $group->id,
@@ -651,6 +651,7 @@ class GroupController extends Controller
             'is_public'       => $group->is_public,
             'members_count'   => $group->members_count,
             'is_member'       => in_array($group->id, $memberGroupIds),
+            'is_invited'      => $isInvited,
             'user_role'       => $userRoles[$group->id] ?? null,
             'is_creator'      => $authUserId !== null && $group->created_by === $authUserId,
             'is_recommended'  => in_array($group->sector_id, $userSectorIds),
