@@ -111,13 +111,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/groups/{id}/members/{userId}/demote',         [GroupController::class, 'demoteAdmin'])->name('groups.members.demote');
 
     // Events
-    Route::get('/events',                                  [EventController::class, 'index'])->name('events.index');
-    Route::post('/events',                                 [EventController::class, 'store'])->name('events.store');
-    Route::get('/events/{id}',                             [EventController::class, 'show'])->name('events.show');
-    Route::post('/events/{id}/join',                       [EventController::class, 'join'])->name('events.join');
-    Route::delete('/events/{id}/leave',                    [EventController::class, 'leave'])->name('events.leave');
-    Route::delete('/events/{id}',                          [EventController::class, 'destroy'])->name('events.destroy');
-    Route::delete('/events/{id}/attendees/{userId}',       [EventController::class, 'removeAttendee'])->name('events.attendees.destroy');
+    Route::get('/events',                                       [EventController::class, 'index'])->name('events.index');
+    Route::post('/events',                                      [EventController::class, 'store'])->name('events.store');
+    Route::post('/events/invitations/{invId}/accept',           [EventController::class, 'acceptInvitation'])->name('events.invitations.accept');
+    Route::post('/events/invitations/{invId}/decline',          [EventController::class, 'declineInvitation'])->name('events.invitations.decline');
+    Route::get('/events/{id}',                                  [EventController::class, 'show'])->name('events.show');
+    Route::post('/events/{id}/join',                            [EventController::class, 'join'])->name('events.join');
+    Route::delete('/events/{id}/leave',                         [EventController::class, 'leave'])->name('events.leave');
+    Route::post('/events/{id}/invite',                          [EventController::class, 'invite'])->name('events.invite');
+    Route::delete('/events/{id}',                               [EventController::class, 'destroy'])->name('events.destroy');
+    Route::delete('/events/{id}/attendees/{userId}',            [EventController::class, 'removeAttendee'])->name('events.attendees.destroy');
 
     // Leads (Exchanges)
     Route::get('/leads',                  [LeadController::class, 'index'])->name('leads.index');

@@ -129,14 +129,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/users/me/points/history', [ApiLeadController::class, 'pointsHistory']);
 
     // Event Routes
-    Route::get('/events',                            [ApiEventController::class, 'index']);
-    Route::post('/events',                           [ApiEventController::class, 'store']);
-    Route::get('/events/mine',                       [ApiEventController::class, 'mine']);
-    Route::get('/events/{id}',                       [ApiEventController::class, 'show']);
-    Route::post('/events/{id}/join',                 [ApiEventController::class, 'join']);
-    Route::delete('/events/{id}/leave',              [ApiEventController::class, 'leave']);
-    Route::delete('/events/{id}',                    [ApiEventController::class, 'destroy']);
-    Route::delete('/events/{id}/attendees/{userId}', [ApiEventController::class, 'removeAttendee']);
+    Route::get('/events',                                       [ApiEventController::class, 'index']);
+    Route::post('/events',                                      [ApiEventController::class, 'store']);
+    Route::get('/events/mine',                                  [ApiEventController::class, 'mine']);
+    Route::get('/events/invitations',                           [ApiEventController::class, 'invitations']);
+    Route::post('/events/invitations/{invId}/accept',           [ApiEventController::class, 'acceptInvitation']);
+    Route::post('/events/invitations/{invId}/decline',          [ApiEventController::class, 'declineInvitation']);
+    Route::get('/events/{id}',                                  [ApiEventController::class, 'show']);
+    Route::post('/events/{id}/join',                            [ApiEventController::class, 'join']);
+    Route::delete('/events/{id}/leave',                         [ApiEventController::class, 'leave']);
+    Route::post('/events/{id}/invite',                          [ApiEventController::class, 'invite']);
+    Route::delete('/events/{id}',                               [ApiEventController::class, 'destroy']);
+    Route::delete('/events/{id}/attendees/{userId}',            [ApiEventController::class, 'removeAttendee']);
 
     // Chat Routes
     Route::get('/chat',                          [ApiChatController::class, 'index']);
