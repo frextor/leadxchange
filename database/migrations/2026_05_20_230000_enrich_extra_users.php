@@ -19,7 +19,7 @@ return new class extends Migration
             } else {
                 $companyIds[$name] = DB::table('companies')->insertGetId([
                     'name'       => $name,
-                    'siret'      => strtolower(str_replace(' ', '-', $name)),
+                    'siret'      => str_pad(abs(crc32($name)), 14, '0', STR_PAD_LEFT),
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
@@ -99,7 +99,7 @@ return new class extends Migration
             $existing = DB::table('companies')->where('name', $name)->value('id');
             if (!$existing) {
                 $companyIds[$name] = DB::table('companies')->insertGetId([
-                    'name' => $name, 'siret' => '', 'created_at' => $now, 'updated_at' => $now,
+                    'name' => $name, 'siret' => str_pad(abs(crc32($name)), 14, '0', STR_PAD_LEFT), 'created_at' => $now, 'updated_at' => $now,
                 ]);
             } else {
                 $companyIds[$name] = $existing;
