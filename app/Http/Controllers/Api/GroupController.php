@@ -214,7 +214,7 @@ class GroupController extends Controller
         ]);
 
         if ($request->hasFile('cover_photo')) {
-            if ($group->cover_photo) Storage::disk('public')->delete($group->cover_photo);
+            if ($group->cover_photo && !str_starts_with($group->cover_photo, 'http')) Storage::disk('public')->delete($group->cover_photo);
             $validated['cover_photo'] = $request->file('cover_photo')->store('group-covers', 'public');
         }
 
@@ -242,7 +242,7 @@ class GroupController extends Controller
             return response()->json(['message' => 'Only the group owner can delete this group.'], 403);
         }
 
-        if ($group->cover_photo) Storage::disk('public')->delete($group->cover_photo);
+        if ($group->cover_photo && !str_starts_with($group->cover_photo, 'http')) Storage::disk('public')->delete($group->cover_photo);
         $group->delete();
 
         return response()->json(['message' => 'Group deleted successfully.']);
@@ -374,7 +374,7 @@ class GroupController extends Controller
                     'id'              => $inv->group->id,
                     'name'            => $inv->group->name,
                     'cover_color'     => $inv->group->cover_color,
-                    'cover_photo_url' => $inv->group->cover_photo ? Storage::disk('public')->url($inv->group->cover_photo) : null,
+                    'cover_photo_url' => $inv->group->cover_photo ? (str_starts_with($inv->group->cover_photo, 'http') ? $inv->group->cover_photo : Storage::disk('public')->url($inv->group->cover_photo)) : null,
                 ],
                 'inviter'    => $inv->inviter ? ['id' => $inv->inviter->id, 'name' => $inv->inviter->first_name . ' ' . $inv->inviter->last_name] : null,
                 'created_at' => $inv->created_at,
