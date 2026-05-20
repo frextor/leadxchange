@@ -30,6 +30,8 @@ class Profile extends Model
 
     public function getAvatarUrlAttribute(): ?string
     {
-        return $this->avatar ? Storage::disk('public')->url($this->avatar) : null;
+        if (!$this->avatar) return null;
+        if (str_starts_with($this->avatar, 'http')) return $this->avatar;
+        return Storage::disk('public')->url($this->avatar);
     }
 }
