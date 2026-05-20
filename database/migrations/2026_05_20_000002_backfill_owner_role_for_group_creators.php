@@ -10,7 +10,7 @@ return new class extends Migration
         // Set role = 'owner' in group_user for every group's creator
         DB::statement("
             UPDATE group_user gu
-            INNER JOIN groups g ON g.id = gu.group_id
+            INNER JOIN `groups` g ON g.id = gu.group_id
             SET gu.role = 'owner'
             WHERE g.created_by = gu.user_id
         ");
@@ -21,7 +21,7 @@ return new class extends Migration
         // Revert creators back to 'member' (best-effort rollback)
         DB::statement("
             UPDATE group_user gu
-            INNER JOIN groups g ON g.id = gu.group_id
+            INNER JOIN `groups` g ON g.id = gu.group_id
             SET gu.role = 'member'
             WHERE g.created_by = gu.user_id AND gu.role = 'owner'
         ");
