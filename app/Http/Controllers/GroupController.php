@@ -19,41 +19,72 @@ class GroupController extends Controller
         $user = $request->user();
         $user->loadMissing('profile');
 
-        $userSectorIds = array_unique(array_merge(
+        $userSectorIds  = array_unique(array_merge(
             $user->profile?->looking_for      ?? [],
             $user->profile?->services_offered ?? [],
             $user->profile?->sector_ids       ?? [],
         ));
 
-        $sectors = Sector::orderBy('name')->get();
-        $cities  = City::orderBy('name')->get();
-
-        $query = Group::with(['sector', 'creator', 'city'])
-            ->withCount('members')
-            ->where('is_public', true);
-
-        if ($request->filled('category')) {
-            $query->where('sector_id', $request->category);
-        }
-        if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
-        }
-
-        $groups = $query->orderBy('members_count', 'desc')->get();
-
-        $recommended    = $groups->filter(fn($g) => in_array($g->sector_id, $userSectorIds));
-        $others         = $groups->filter(fn($g) => !in_array($g->sector_id, $userSectorIds));
+        $sectors        = Sector::orderBy('name')->get();
+        $cities         = City::orderBy('name')->get();
         $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
+        $userRoles      = $user->groups()->pluck('group_user.role', 'groups.id')->toArray();
 
+        // ── Pending invitations ──────────────────────────────────
         $pendingInvitations = GroupInvitation::with(['group.sector', 'inviter'])
             ->where('user_id', $user->id)
             ->where('status', 'pending')
             ->latest()
             ->get();
 
+        // ── My groups (member of) ─────────────────────────────────
+        $myGroupsQuery = Group::with(['sector', 'creator', 'city'])
+            ->withCount('members')
+            ->whereIn('id', $memberGroupIds);
+        if ($request->filled('search')) {
+            $myGroupsQuery->where('name', 'like', '%' . $request->search . '%');
+        }
+        $myGroups = $myGroupsQuery->get()
+            ->sortBy(fn($g) => match($userRoles[$g->id] ?? 'member') {
+                'owner' => 0, 'admin' => 1, default => 2,
+            })->values();
+
+        // ── Public groups not yet joined ──────────────────────────
+        $publicQuery = Group::with(['sector', 'creator', 'city'])
+            ->withCount('members')
+            ->where('is_public', true)
+            ->whereNotIn('id', $memberGroupIds);
+
+        if ($request->filled('category')) $publicQuery->where('sector_id', $request->category);
+        if ($request->filled('search'))   $publicQuery->where('name', 'like', '%' . $request->search . '%');
+
+        $publicGroups = $publicQuery->orderBy('members_count', 'desc')->get();
+
+        $nearby      = $publicGroups->filter(fn($g) => $user->city_id && $g->city_id === $user->city_id)->values();
+        $recommended = $publicGroups->filter(fn($g) => in_array($g->sector_id, $userSectorIds)
+            && (!$user->city_id || $g->city_id !== $user->city_id))->values();
+        $others      = $publicGroups->filter(fn($g) => !in_array($g->sector_id, $userSectorIds)
+            && (!$user->city_id || $g->city_id !== $user->city_id))->values();
+
+        // Used only for sidebar sector counts
+        $groups = $publicGroups->merge($myGroups);
+
+        // Connections list for the invite modal (admin/owner only needs it)
+        $groupConnections = User::whereIn('id', $user->connectionIds())
+            ->with('profile:id,user_id,job_title')
+            ->orderBy('first_name')
+            ->get()
+            ->map(fn($u) => [
+                'id'        => $u->id,
+                'name'      => $u->first_name . ' ' . $u->last_name,
+                'job_title' => $u->profile?->job_title,
+            ]);
+
         return view('groups.index', compact(
-            'groups', 'sectors', 'cities', 'recommended', 'others',
-            'userSectorIds', 'memberGroupIds', 'pendingInvitations'
+            'groups', 'sectors', 'cities',
+            'myGroups', 'userRoles', 'memberGroupIds',
+            'nearby', 'recommended', 'others',
+            'userSectorIds', 'pendingInvitations', 'groupConnections'
         ));
     }
 

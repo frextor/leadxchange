@@ -29,7 +29,7 @@ class GroupController extends Controller
         ));
         $userCityId     = $user->city_id;
         $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
-        $userRole       = $user->groups()->pluck('role', 'groups.id')->toArray();
+        $userRole       = $user->groups()->pluck('group_user.role', 'groups.id')->toArray();
 
         $page    = max(1, (int) ($request->page    ?? 1));
         $perPage = min(50, max(1, (int) ($request->per_page ?? 20)));
@@ -137,7 +137,7 @@ class GroupController extends Controller
 
         $user           = $request->user();
         $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
-        $userRole       = $user->groups()->pluck('role', 'groups.id')->toArray();
+        $userRole       = $user->groups()->pluck('group_user.role', 'groups.id')->toArray();
         $isInvited      = GroupInvitation::where('group_id', $id)
             ->where('user_id', $user->id)
             ->where('status', 'pending')
@@ -223,7 +223,7 @@ class GroupController extends Controller
         $group->loadCount('members');
 
         $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
-        $userRole       = $user->groups()->pluck('role', 'groups.id')->toArray();
+        $userRole       = $user->groups()->pluck('group_user.role', 'groups.id')->toArray();
 
         return response()->json([
             'message' => 'Group updated successfully.',
@@ -262,6 +262,7 @@ class GroupController extends Controller
 
         $group->members()->attach($user->id, ['role' => 'member']);
         $group->increment('members_count');
+        $group->refresh();
 
         GroupInvitation::where('group_id', $id)
             ->where('user_id', $user->id)
@@ -270,7 +271,7 @@ class GroupController extends Controller
 
         return response()->json([
             'message'       => 'Joined group successfully.',
-            'members_count' => $group->members_count + 1,
+            'members_count' => $group->members_count,
         ]);
     }
 
@@ -306,13 +307,16 @@ class GroupController extends Controller
         abort_if(!$group->is_public && !$group->isMember($request->user()->id), 403);
 
         $members = $group->members()
-            ->select('users.id', 'users.first_name', 'users.last_name')
+            ->with('profile:id,user_id,avatar,job_title')
             ->withPivot('role', 'joined_at')
+            ->orderByRaw("FIELD(group_user.role,'owner','admin','member')")
             ->get()
             ->map(fn($u) => [
                 'id'         => $u->id,
                 'first_name' => $u->first_name,
                 'last_name'  => $u->last_name,
+                'avatar_url' => $u->profile?->avatar_url,
+                'job_title'  => $u->profile?->job_title,
                 'role'       => $u->pivot->role,
                 'joined_at'  => $u->pivot->joined_at,
             ]);

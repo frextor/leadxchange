@@ -205,7 +205,7 @@
         @endphp
         <div class="ev-featured mb-8" style="background: linear-gradient(140deg, {{ $featured->cover_color }}, {{ $featured->cover_color }}99);">
             @if($featured->cover_image)
-            <img src="{{ Storage::url($featured->cover_image) }}" alt="{{ $featured->title }}"
+            <img src="{{ Storage::disk('public')->url($featured->cover_image) }}" alt="{{ $featured->title }}"
                  class="absolute inset-0 w-full h-full object-cover">
             <div class="absolute inset-0" style="background:linear-gradient(to top, rgba(0,0,0,.75) 50%, rgba(0,0,0,.15));"></div>
             @else

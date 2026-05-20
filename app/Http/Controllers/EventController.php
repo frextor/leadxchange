@@ -154,4 +154,37 @@ class EventController extends Controller
 
         return back()->with('success', 'You have cancelled your registration.');
     }
+
+    public function destroy(Request $request, int $id)
+    {
+        $event = Event::findOrFail($id);
+        $user  = $request->user();
+
+        abort_if($event->created_by !== $user->id, 403);
+
+        if ($event->cover_image) {
+            Storage::disk('public')->delete($event->cover_image);
+        }
+
+        $event->delete();
+
+        return redirect()->route('events.index')
+            ->with('success', 'Event "' . $event->title . '" has been deleted.');
+    }
+
+    public function removeAttendee(Request $request, int $id, int $userId)
+    {
+        $event = Event::findOrFail($id);
+        $user  = $request->user();
+
+        abort_if($event->created_by !== $user->id, 403);
+        abort_if($userId === $user->id, 422);
+
+        if ($event->attendees()->where('user_id', $userId)->exists()) {
+            $event->attendees()->detach($userId);
+            $event->decrement('attendees_count');
+        }
+
+        return back()->with('success', 'Attendee removed.');
+    }
 }
