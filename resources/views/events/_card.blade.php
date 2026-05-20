@@ -10,7 +10,8 @@
     $catLabel    = $catLabels[$event->category ?? ''] ?? null;
     $capacity    = $event->max_attendees;
     $pct         = $capacity ? min(100, round($event->attendees_count / $capacity * 100)) : null;
-    $isAttending = in_array($event->id, $attendingEventIds);
+    $isAttending = in_array($event->id, $attendingIds);
+    $isOrganizer = $event->created_by === auth()->id();
 @endphp
 
 <div class="ev-card cursor-pointer" onclick="window.location='{{ route('events.show', $event->id) }}'" style="position:relative;">
@@ -42,8 +43,21 @@
             {{ $typeLabel }}
         </span>
 
+        {{-- Organizer badge --}}
+        @if($isOrganizer)
+        <span class="absolute bottom-3 left-3 px-2 py-0.5 rounded-full text-[11px] font-semibold"
+              style="background:#FEF3C7;color:#92400E;">
+            Organizer
+        </span>
+        @endif
+
         {{-- Price badge --}}
-        @if(!$isPast)
+        @if(!$isPast && !$isOrganizer)
+        <span class="absolute bottom-3 right-3 px-2 py-0.5 rounded-full text-[11px] font-semibold"
+              style="{{ $event->is_free ? 'background:#10B981;color:white;' : 'background:rgba(0,0,0,.45);color:white;' }}">
+            {{ $event->is_free ? 'Free' : number_format($event->price, 0) . ' MAD' }}
+        </span>
+        @elseif(!$isPast && $isOrganizer)
         <span class="absolute bottom-3 right-3 px-2 py-0.5 rounded-full text-[11px] font-semibold"
               style="{{ $event->is_free ? 'background:#10B981;color:white;' : 'background:rgba(0,0,0,.45);color:white;' }}">
             {{ $event->is_free ? 'Free' : number_format($event->price, 0) . ' MAD' }}
@@ -129,8 +143,28 @@
         <button disabled class="w-full py-2 rounded-xl text-xs font-semibold bg-gray-100 text-gray-400 cursor-default">
             Event ended
         </button>
+        @elseif($isOrganizer)
+        <div class="flex gap-2" onclick="event.stopPropagation()">
+            <a href="{{ route('events.show', $event->id) }}"
+               class="flex-1 py-2 rounded-xl text-xs font-semibold text-center border transition"
+               style="border-color:#1E8F88;color:#1E8F88;"
+               onmouseover="this.style.background='#E6F7F4'" onmouseout="this.style.background='transparent'">
+                Manage
+            </a>
+            <button type="button"
+                    onclick="openInviteModal({{ $event->id }}, '{{ addslashes($event->title) }}')"
+                    class="px-3 py-2 rounded-xl text-xs font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <line x1="19" y1="8" x2="19" y2="14"/>
+                    <line x1="22" y1="11" x2="16" y2="11"/>
+                </svg>
+                Invite
+            </button>
+        </div>
         @elseif($isAttending)
-        <form method="POST" action="{{ route('events.leave', $event->id) }}">
+        <form method="POST" action="{{ route('events.leave', $event->id) }}" onclick="event.stopPropagation()">
             @csrf @method('DELETE')
             <button type="submit" class="w-full py-2 rounded-xl text-xs font-semibold border transition"
                     style="border-color:#1E8F88;color:#1E8F88;"
@@ -139,7 +173,7 @@
             </button>
         </form>
         @else
-        <form method="POST" action="{{ route('events.join', $event->id) }}">
+        <form method="POST" action="{{ route('events.join', $event->id) }}" onclick="event.stopPropagation()">
             @csrf
             <button type="submit" class="w-full py-2 rounded-xl text-xs font-semibold text-white transition"
                     style="background:{{ $typeColor }};"

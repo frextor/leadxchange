@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Models\EventInvitation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -11,62 +12,184 @@ class EventController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $user       = $request->user();
-        $userCityId = $user->city_id;
+        $user = $request->user();
+        $user->loadMissing('profile');
 
-        $query = Event::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
-            ->where('is_public', true);
+        $attendingIds = $user->events()->pluck('events.id')->toArray();
 
-        if ($request->filled('search')) {
-            $query->where('title', 'like', '%' . $request->search . '%');
-        }
-        if ($request->filled('type')) {
-            $query->where('type', $request->type);
-        }
-        if ($request->filled('category')) {
-            $query->where('category', $request->category);
-        }
-        if ($request->filled('sector_id')) {
-            $query->where('sector_id', $request->sector_id);
-        }
-        if ($request->filled('city_id')) {
-            $query->where('city_id', $request->city_id);
-        }
+        $userSectorIds = array_unique(array_merge(
+            $user->profile?->looking_for      ?? [],
+            $user->profile?->services_offered ?? [],
+            $user->profile?->sector_ids       ?? [],
+        ));
+
+        // ── Pending invitations ──────────────────────────────────
+        $invitations = EventInvitation::with(['event.sector', 'event.city', 'event.creator', 'inviter'])
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->whereHas('event', fn($q) => $q->where('starts_at', '>=', now()))
+            ->latest()
+            ->get()
+            ->map(fn($inv) => [
+                'id'      => $inv->id,
+                'status'  => $inv->status,
+                'inviter' => $inv->inviter ? [
+                    'id'   => $inv->inviter->id,
+                    'name' => $inv->inviter->first_name . ' ' . $inv->inviter->last_name,
+                ] : null,
+                'event' => $this->formatEvent($inv->event, $attendingIds, $user->city_id),
+            ]);
+
+        // ── My events (attending, upcoming) ───────────────────────
+        $myEvents = Event::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+            ->whereIn('id', $attendingIds)
+            ->where('starts_at', '>=', now())
+            ->orderBy('starts_at')
+            ->get();
+
+        // ── Public upcoming not attending ─────────────────────────
+        $publicQuery = Event::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+            ->where('is_public', true)
+            ->where('starts_at', '>=', now())
+            ->whereNotIn('id', $attendingIds);
+
+        if ($request->filled('search'))      $publicQuery->where('title', 'like', '%' . $request->search . '%');
+        if ($request->filled('type'))        $publicQuery->where('type', $request->type);
+        if ($request->filled('category'))    $publicQuery->where('category', $request->category);
+        if ($request->filled('sector_id'))   $publicQuery->where('sector_id', $request->sector_id);
+        if ($request->filled('city_id'))     $publicQuery->where('city_id', $request->city_id);
         if ($request->filled('price_filter')) {
-            if ($request->price_filter === 'free') {
-                $query->where(fn($q) => $q->whereNull('price')->orWhere('price', 0));
-            } elseif ($request->price_filter === 'paid') {
-                $query->where('price', '>', 0);
-            }
+            $request->price_filter === 'free'
+                ? $publicQuery->where(fn($q) => $q->whereNull('price')->orWhere('price', 0))
+                : $publicQuery->where('price', '>', 0);
         }
         if ($request->filled('when')) {
             $now = now();
             match ($request->when) {
-                'today'      => $query->whereDate('starts_at', $now->toDateString()),
-                'this_week'  => $query->whereBetween('starts_at', [$now->startOfDay(), $now->copy()->endOfWeek()]),
-                'this_month' => $query->whereBetween('starts_at', [$now->startOfDay(), $now->copy()->endOfMonth()]),
+                'today'      => $publicQuery->whereDate('starts_at', $now->toDateString()),
+                'this_week'  => $publicQuery->whereBetween('starts_at', [$now->startOfDay(), $now->copy()->endOfWeek()]),
+                'this_month' => $publicQuery->whereBetween('starts_at', [$now->startOfDay(), $now->copy()->endOfMonth()]),
                 default      => null,
             };
         }
 
-        $events       = $query->orderBy('starts_at')->get();
-        $attendingIds = $user->events()->pluck('events.id')->toArray();
+        $publicEvents = $publicQuery->orderBy('starts_at')->get();
 
-        $mapped   = $events->map(fn($e) => $this->formatEvent($e, $attendingIds, $userCityId));
-        $upcoming = $mapped->filter(fn($e) => $e['is_upcoming']);
-        $past     = $mapped->filter(fn($e) => !$e['is_upcoming']);
+        $nearby      = $publicEvents->filter(fn($e) => $user->city_id && $e->city_id === $user->city_id)->values();
+        $recommended = $publicEvents->filter(fn($e) => in_array($e->sector_id, $userSectorIds)
+            && (!$user->city_id || $e->city_id !== $user->city_id))->values();
+        $others      = $publicEvents->filter(fn($e) => !in_array($e->sector_id, $userSectorIds)
+            && (!$user->city_id || $e->city_id !== $user->city_id))->values();
+
+        // ── Past events (attending) ───────────────────────────────
+        $pastEvents = Event::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+            ->whereIn('id', $attendingIds)
+            ->where('starts_at', '<', now())
+            ->orderBy('starts_at', 'desc')
+            ->limit(10)
+            ->get();
 
         return response()->json([
             'data' => [
-                'nearby'   => $upcoming->filter(fn($e) => $e['is_nearby'])->values(),
-                'upcoming' => $upcoming->filter(fn($e) => !$e['is_nearby'])->values(),
-                'past'     => $past->values(),
+                'invitations' => $invitations,
+                'my_events'   => $myEvents->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id))->values(),
+                'nearby'      => $nearby->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id))->values(),
+                'recommended' => $recommended->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id))->values(),
+                'others'      => $others->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id))->values(),
+                'past'        => $pastEvents->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id))->values(),
             ],
             'meta' => [
-                'total'  => $events->count(),
-                'nearby' => $upcoming->filter(fn($e) => $e['is_nearby'])->count(),
+                'total_public' => $publicEvents->count(),
+                'invitations'  => $invitations->count(),
             ],
         ]);
+    }
+
+    public function invitations(Request $request): JsonResponse
+    {
+        $user         = $request->user();
+        $attendingIds = $user->events()->pluck('events.id')->toArray();
+
+        $invitations = EventInvitation::with(['event.sector', 'event.city', 'event.creator', 'inviter'])
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->whereHas('event', fn($q) => $q->where('starts_at', '>=', now()))
+            ->latest()
+            ->get()
+            ->map(fn($inv) => [
+                'id'      => $inv->id,
+                'status'  => $inv->status,
+                'inviter' => $inv->inviter ? [
+                    'id'   => $inv->inviter->id,
+                    'name' => $inv->inviter->first_name . ' ' . $inv->inviter->last_name,
+                ] : null,
+                'event' => $this->formatEvent($inv->event, $attendingIds, $user->city_id),
+            ]);
+
+        return response()->json(['data' => $invitations]);
+    }
+
+    public function invite(int $id, Request $request): JsonResponse
+    {
+        $event = Event::findOrFail($id);
+        $user  = $request->user();
+
+        if ($event->created_by !== $user->id) {
+            return response()->json(['message' => 'Only the organizer can send invitations.'], 403);
+        }
+
+        $request->validate(['user_id' => ['required', 'integer', 'exists:users,id']]);
+        $targetId = (int) $request->user_id;
+
+        if ($event->isAttending($targetId)) {
+            return response()->json(['message' => 'User is already attending this event.'], 422);
+        }
+
+        EventInvitation::updateOrCreate(
+            ['event_id' => $id, 'user_id' => $targetId],
+            ['invited_by' => $user->id, 'status' => 'pending']
+        );
+
+        return response()->json(['message' => 'Invitation sent.']);
+    }
+
+    public function acceptInvitation(int $invId, Request $request): JsonResponse
+    {
+        $invitation = EventInvitation::where('user_id', $request->user()->id)
+            ->where('status', 'pending')
+            ->findOrFail($invId);
+
+        $event = $invitation->event;
+
+        if (!$event->isAttending($invitation->user_id)) {
+            if ($event->max_attendees !== null && $event->attendees_count >= $event->max_attendees) {
+                $invitation->update(['status' => 'declined']);
+                return response()->json(['message' => 'Event is at full capacity.'], 422);
+            }
+            $event->attendees()->attach($invitation->user_id, ['role' => 'attendee']);
+            $event->increment('attendees_count');
+        }
+
+        $invitation->update(['status' => 'accepted']);
+        $event->refresh();
+
+        $attendingIds = $request->user()->events()->pluck('events.id')->toArray();
+
+        return response()->json([
+            'message' => 'Invitation accepted.',
+            'data'    => $this->formatEvent($event->load(['sector', 'city', 'creator']), $attendingIds, $request->user()->city_id),
+        ]);
+    }
+
+    public function declineInvitation(int $invId, Request $request): JsonResponse
+    {
+        $invitation = EventInvitation::where('user_id', $request->user()->id)
+            ->where('status', 'pending')
+            ->findOrFail($invId);
+
+        $invitation->update(['status' => 'declined']);
+
+        return response()->json(['message' => 'Invitation declined.']);
     }
 
     public function mine(Request $request): JsonResponse
@@ -165,6 +288,12 @@ class EventController extends Controller
 
         $event->attendees()->attach($user->id, ['role' => 'attendee']);
         $event->increment('attendees_count');
+
+        EventInvitation::where('event_id', $id)
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->update(['status' => 'accepted']);
+
         $event->refresh();
 
         return response()->json([
@@ -177,6 +306,10 @@ class EventController extends Controller
     {
         $event = Event::findOrFail($id);
         $user  = $request->user();
+
+        if ($event->created_by === $user->id) {
+            return response()->json(['message' => 'The organizer cannot leave the event.'], 422);
+        }
 
         if ($event->isAttending($user->id)) {
             $event->attendees()->detach($user->id);
@@ -261,7 +394,7 @@ class EventController extends Controller
                 'id'   => $event->creator->id,
                 'name' => $event->creator->first_name . ' ' . $event->creator->last_name,
             ] : null,
-            'created_at'      => $event->created_at,
+            'created_at' => $event->created_at,
         ];
     }
 }

@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\City;
 use App\Models\Event;
+use App\Models\EventInvitation;
 use App\Models\Sector;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -12,48 +14,91 @@ class EventController extends Controller
 {
     public function index(Request $request)
     {
-        $user    = $request->user();
-        $sectors = Sector::orderBy('name')->get();
-        $cities  = City::orderBy('name')->get();
+        $user = $request->user();
+        $user->loadMissing('profile');
 
-        $query = Event::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
-            ->where('is_public', true);
+        $userSectorIds = array_unique(array_merge(
+            $user->profile?->looking_for      ?? [],
+            $user->profile?->services_offered ?? [],
+            $user->profile?->sector_ids       ?? [],
+        ));
 
+        $sectors      = Sector::orderBy('name')->get();
+        $cities       = City::orderBy('name')->get();
+        $attendingIds = $user->events()->pluck('events.id')->toArray();
+
+        // ── Pending invitations ──────────────────────────────────
+        $pendingInvitations = EventInvitation::with(['event.sector', 'event.city', 'inviter'])
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->whereHas('event', fn($q) => $q->where('starts_at', '>=', now()))
+            ->latest()
+            ->get();
+
+        // ── My events (attending, upcoming) ───────────────────────
+        $myEventsQuery = Event::with(['sector:id,name', 'city:id,name', 'creator:id,first_name,last_name'])
+            ->whereIn('id', $attendingIds)
+            ->where('starts_at', '>=', now());
         if ($request->filled('search')) {
-            $query->where('title', 'like', '%' . $request->search . '%');
+            $myEventsQuery->where('title', 'like', '%' . $request->search . '%');
         }
-        if ($request->filled('type')) {
-            $query->where('type', $request->type);
-        }
-        if ($request->filled('category')) {
-            $query->where('category', $request->category);
-        }
+        $myEvents = $myEventsQuery->orderBy('starts_at')->get();
+
+        // ── Public upcoming not attending ─────────────────────────
+        $publicQuery = Event::with(['sector:id,name', 'city:id,name', 'creator:id,first_name,last_name'])
+            ->where('is_public', true)
+            ->where('starts_at', '>=', now())
+            ->whereNotIn('id', $attendingIds);
+
+        if ($request->filled('search'))   $publicQuery->where('title', 'like', '%' . $request->search . '%');
+        if ($request->filled('type'))     $publicQuery->where('type', $request->type);
+        if ($request->filled('category')) $publicQuery->where('category', $request->category);
         if ($request->filled('price_filter')) {
-            if ($request->price_filter === 'free') {
-                $query->where(fn($q) => $q->whereNull('price')->orWhere('price', 0));
-            } elseif ($request->price_filter === 'paid') {
-                $query->where('price', '>', 0);
-            }
+            $request->price_filter === 'free'
+                ? $publicQuery->where(fn($q) => $q->whereNull('price')->orWhere('price', 0))
+                : $publicQuery->where('price', '>', 0);
         }
         if ($request->filled('when')) {
             $now = now();
             match ($request->when) {
-                'today'      => $query->whereDate('starts_at', $now->toDateString()),
-                'this_week'  => $query->whereBetween('starts_at', [$now->startOfDay(), $now->copy()->endOfWeek()]),
-                'this_month' => $query->whereBetween('starts_at', [$now->startOfDay(), $now->copy()->endOfMonth()]),
+                'today'      => $publicQuery->whereDate('starts_at', $now->toDateString()),
+                'this_week'  => $publicQuery->whereBetween('starts_at', [$now->startOfDay(), $now->copy()->endOfWeek()]),
+                'this_month' => $publicQuery->whereBetween('starts_at', [$now->startOfDay(), $now->copy()->endOfMonth()]),
                 default      => null,
             };
         }
 
-        $all      = $query->orderBy('starts_at')->get();
-        $upcoming = $all->filter(fn($e) => $e->starts_at->isFuture());
-        $past     = $all->filter(fn($e) => $e->starts_at->isPast());
+        $publicEvents = $publicQuery->orderBy('starts_at')->get();
 
-        $attendingEventIds = $user->events()->pluck('events.id')->toArray();
-        $featured          = $upcoming->first();
+        $nearby      = $publicEvents->filter(fn($e) => $user->city_id && $e->city_id === $user->city_id)->values();
+        $recommended = $publicEvents->filter(fn($e) => in_array($e->sector_id, $userSectorIds)
+            && (!$user->city_id || $e->city_id !== $user->city_id))->values();
+        $others      = $publicEvents->filter(fn($e) => !in_array($e->sector_id, $userSectorIds)
+            && (!$user->city_id || $e->city_id !== $user->city_id))->values();
+
+        // ── Past events (attending) ───────────────────────────────
+        $pastEvents = Event::with(['sector:id,name', 'city:id,name'])
+            ->whereIn('id', $attendingIds)
+            ->where('starts_at', '<', now())
+            ->orderBy('starts_at', 'desc')
+            ->limit(6)
+            ->get();
+
+        // Connections for invite modal (organizer only needs it)
+        $eventConnections = User::whereIn('id', $user->connectionIds())
+            ->with('profile:id,user_id,job_title')
+            ->orderBy('first_name')
+            ->get()
+            ->map(fn($u) => [
+                'id'        => $u->id,
+                'name'      => $u->first_name . ' ' . $u->last_name,
+                'job_title' => $u->profile?->job_title,
+            ]);
 
         return view('events.index', compact(
-            'upcoming', 'past', 'sectors', 'cities', 'attendingEventIds', 'featured'
+            'sectors', 'cities',
+            'pendingInvitations', 'myEvents', 'nearby', 'recommended', 'others', 'pastEvents',
+            'attendingIds', 'userSectorIds', 'eventConnections'
         ));
     }
 
@@ -68,8 +113,9 @@ class EventController extends Controller
 
         $attendees   = $event->attendees()->with('profile', 'company:id,name')->orderByPivot('role')->get();
         $isAttending = $event->isAttending($user->id);
+        $isOrganizer = $event->created_by === $user->id;
 
-        return view('events.show', compact('event', 'attendees', 'isAttending'));
+        return view('events.show', compact('event', 'attendees', 'isAttending', 'isOrganizer'));
     }
 
     public function store(Request $request)
@@ -119,7 +165,7 @@ class EventController extends Controller
 
         $event->attendees()->attach($user->id, ['role' => 'organizer']);
 
-        return redirect()->route('events.index')
+        return redirect()->route('events.show', $event->id)
             ->with('success', 'Event "' . $event->title . '" created successfully!');
     }
 
@@ -139,6 +185,11 @@ class EventController extends Controller
         $event->attendees()->attach($user->id, ['role' => 'attendee']);
         $event->increment('attendees_count');
 
+        EventInvitation::where('event_id', $id)
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->update(['status' => 'accepted']);
+
         return back()->with('success', 'You have registered for "' . $event->title . '".');
     }
 
@@ -146,6 +197,10 @@ class EventController extends Controller
     {
         $event = Event::findOrFail($id);
         $user  = $request->user();
+
+        if ($event->created_by === $user->id) {
+            return back()->with('error', 'The organizer cannot leave the event.');
+        }
 
         if ($event->isAttending($user->id)) {
             $event->attendees()->detach($user->id);
@@ -158,9 +213,7 @@ class EventController extends Controller
     public function destroy(Request $request, int $id)
     {
         $event = Event::findOrFail($id);
-        $user  = $request->user();
-
-        abort_if($event->created_by !== $user->id, 403);
+        abort_if($event->created_by !== $request->user()->id, 403);
 
         if ($event->cover_image) {
             Storage::disk('public')->delete($event->cover_image);
@@ -175,10 +228,8 @@ class EventController extends Controller
     public function removeAttendee(Request $request, int $id, int $userId)
     {
         $event = Event::findOrFail($id);
-        $user  = $request->user();
-
-        abort_if($event->created_by !== $user->id, 403);
-        abort_if($userId === $user->id, 422);
+        abort_if($event->created_by !== $request->user()->id, 403);
+        abort_if($userId === $request->user()->id, 422);
 
         if ($event->attendees()->where('user_id', $userId)->exists()) {
             $event->attendees()->detach($userId);
@@ -186,5 +237,63 @@ class EventController extends Controller
         }
 
         return back()->with('success', 'Attendee removed.');
+    }
+
+    // ── Invitations ──────────────────────────────────────────────
+
+    public function invite(Request $request, int $id)
+    {
+        $event = Event::findOrFail($id);
+        $user  = $request->user();
+
+        abort_if($event->created_by !== $user->id, 403);
+
+        $request->validate(['user_id' => ['required', 'integer', 'exists:users,id']]);
+        $targetId = (int) $request->user_id;
+
+        if ($event->isAttending($targetId)) {
+            return back()->with('info', 'This user is already attending the event.');
+        }
+
+        EventInvitation::updateOrCreate(
+            ['event_id' => $id, 'user_id' => $targetId],
+            ['invited_by' => $user->id, 'status' => 'pending']
+        );
+
+        return back()->with('success', 'Invitation sent.');
+    }
+
+    public function acceptInvitation(Request $request, int $invId)
+    {
+        $invitation = EventInvitation::where('user_id', $request->user()->id)
+            ->where('status', 'pending')
+            ->findOrFail($invId);
+
+        $event = $invitation->event;
+
+        if (!$event->isAttending($invitation->user_id)) {
+            if ($event->max_attendees !== null && $event->attendees_count >= $event->max_attendees) {
+                $invitation->update(['status' => 'declined']);
+                return back()->with('error', 'This event is at full capacity.');
+            }
+            $event->attendees()->attach($invitation->user_id, ['role' => 'attendee']);
+            $event->increment('attendees_count');
+        }
+
+        $invitation->update(['status' => 'accepted']);
+
+        return redirect()->route('events.show', $event->id)
+            ->with('success', 'You are now registered for "' . $event->title . '".');
+    }
+
+    public function declineInvitation(Request $request, int $invId)
+    {
+        $invitation = EventInvitation::where('user_id', $request->user()->id)
+            ->where('status', 'pending')
+            ->findOrFail($invId);
+
+        $invitation->update(['status' => 'declined']);
+
+        return back()->with('success', 'Invitation declined.');
     }
 }
