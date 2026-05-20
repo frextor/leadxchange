@@ -67,7 +67,7 @@ return new class extends Migration
             'created_at'    => $now,
             'updated_at'    => $now,
         ]);
-        DB::table('group_user')->insert(['group_id' => $g1, 'user_id' => 52, 'role' => 'owner', 'created_at' => $now, 'updated_at' => $now]);
+        DB::table('group_user')->insert(['group_id' => $g1, 'user_id' => 52, 'role' => 'owner']);
 
         $g2 = DB::table('groups')->insertGetId([
             'name'          => 'Entrepreneurs Maroc',
@@ -81,7 +81,7 @@ return new class extends Migration
             'created_at'    => $now,
             'updated_at'    => $now,
         ]);
-        DB::table('group_user')->insert(['group_id' => $g2, 'user_id' => 52, 'role' => 'owner', 'created_at' => $now, 'updated_at' => $now]);
+        DB::table('group_user')->insert(['group_id' => $g2, 'user_id' => 52, 'role' => 'owner']);
 
         // ── Add some demo users as members of each group ──────────────────────
         $demoUserIds = DB::table('users')->whereIn('email', [
@@ -95,14 +95,14 @@ return new class extends Migration
 
         $memberships = [];
         foreach ($demoUserIds as $uid) {
-            $memberships[] = ['group_id' => 3,   'user_id' => $uid, 'role' => 'member', 'created_at' => $now, 'updated_at' => $now];
-            $memberships[] = ['group_id' => $g1, 'user_id' => $uid, 'role' => 'member', 'created_at' => $now, 'updated_at' => $now];
+            $memberships[] = ['group_id' => 3,   'user_id' => $uid, 'role' => 'member'];
+            $memberships[] = ['group_id' => $g1, 'user_id' => $uid, 'role' => 'member'];
         }
         // Subset for other groups
         foreach ($demoUserIds->take(3) as $uid) {
-            $memberships[] = ['group_id' => 6,   'user_id' => $uid, 'role' => 'member', 'created_at' => $now, 'updated_at' => $now];
-            $memberships[] = ['group_id' => 9,   'user_id' => $uid, 'role' => 'member', 'created_at' => $now, 'updated_at' => $now];
-            $memberships[] = ['group_id' => $g2, 'user_id' => $uid, 'role' => 'member', 'created_at' => $now, 'updated_at' => $now];
+            $memberships[] = ['group_id' => 6,   'user_id' => $uid, 'role' => 'member'];
+            $memberships[] = ['group_id' => 9,   'user_id' => $uid, 'role' => 'member'];
+            $memberships[] = ['group_id' => $g2, 'user_id' => $uid, 'role' => 'member'];
         }
         DB::table('group_user')->insert($memberships);
 
