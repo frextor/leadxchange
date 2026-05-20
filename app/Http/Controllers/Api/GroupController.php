@@ -31,57 +31,61 @@ class GroupController extends Controller
         $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
         $userRole       = $user->groups()->pluck('role', 'groups.id')->toArray();
 
-        // ── My groups (already a member) ──────────────────────────────────
-        $myGroupsQuery = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
-            ->withCount('members')
-            ->whereIn('id', $memberGroupIds);
-        if ($request->filled('search')) $myGroupsQuery->where('name', 'like', '%' . $request->search . '%');
-        $myGroups = $myGroupsQuery->get()
-            ->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole))
-            ->values();
+        $page    = max(1, (int) ($request->page    ?? 1));
+        $perPage = min(50, max(1, (int) ($request->per_page ?? 20)));
 
-        // ── Pending invitations ───────────────────────────────────────────
+        // ── Pending invitations (paginated) ──────────────────────────────
         $invitedGroupIds = GroupInvitation::where('user_id', $user->id)
             ->where('status', 'pending')
             ->pluck('group_id')
             ->toArray();
-        $invited = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+        $invitedQuery = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
             ->withCount('members')
-            ->whereIn('id', $invitedGroupIds)
-            ->get()
+            ->whereIn('id', $invitedGroupIds);
+        if ($request->filled('search')) $invitedQuery->where('name', 'like', '%' . $request->search . '%');
+        $invitedPaginator = $invitedQuery->paginate($perPage, ['*'], 'page', $page);
+        $invited = $invitedPaginator->getCollection()
             ->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole))
             ->values();
 
-        // ── Public groups not yet joined (paginated) ─────────────────────
-        $page    = max(1, (int) ($request->page    ?? 1));
-        $perPage = min(50, max(1, (int) ($request->per_page ?? 20)));
+        // ── My groups (paginated) ─────────────────────────────────────────
+        $myGroupsQuery = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+            ->withCount('members')
+            ->whereIn('id', $memberGroupIds);
+        if ($request->filled('search')) $myGroupsQuery->where('name', 'like', '%' . $request->search . '%');
+        $myGroupsPaginator = $myGroupsQuery->paginate($perPage, ['*'], 'page', $page);
+        $myGroups = $myGroupsPaginator->getCollection()
+            ->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole))
+            ->values();
 
-        $query = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+        // ── Public groups not yet joined (paginated) ──────────────────────
+        $publicQuery = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
             ->withCount('members')
             ->where('is_public', true)
             ->whereNotIn('id', $memberGroupIds);
 
-        if ($request->filled('city_id'))  $query->where('city_id', $request->city_id);
-        if ($request->filled('category')) $query->where('sector_id', $request->category);
-        if ($request->filled('search'))   $query->where('name', 'like', '%' . $request->search . '%');
+        if ($request->filled('city_id'))  $publicQuery->where('city_id', $request->city_id);
+        if ($request->filled('category')) $publicQuery->where('sector_id', $request->category);
+        if ($request->filled('search'))   $publicQuery->where('name', 'like', '%' . $request->search . '%');
 
-        $paginator = $query->orderBy('members_count', 'desc')->paginate($perPage, ['*'], 'page', $page);
-        $mapped = $paginator->getCollection()
+        $publicPaginator = $publicQuery->orderBy('members_count', 'desc')->paginate($perPage, ['*'], 'page', $page);
+        $mapped = $publicPaginator->getCollection()
             ->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole));
+
+        $lastPage = max($invitedPaginator->lastPage(), $myGroupsPaginator->lastPage(), $publicPaginator->lastPage());
 
         return response()->json([
             'data' => [
-                'invited'     => $page === 1 ? $invited     : collect(),
-                'my_groups'   => $page === 1 ? $myGroups    : collect(),
+                'invited'     => $invited,
+                'my_groups'   => $myGroups,
                 'nearby'      => $mapped->filter(fn($g) => $g['is_nearby'])->values(),
                 'recommended' => $mapped->filter(fn($g) => $g['is_recommended'] && !$g['is_nearby'])->values(),
                 'others'      => $mapped->filter(fn($g) => !$g['is_recommended'] && !$g['is_nearby'])->values(),
             ],
             'meta' => [
-                'current_page' => $paginator->currentPage(),
-                'last_page'    => $paginator->lastPage(),
-                'per_page'     => $paginator->perPage(),
-                'total'        => $paginator->total(),
+                'current_page' => $page,
+                'last_page'    => $lastPage,
+                'per_page'     => $perPage,
             ],
         ]);
     }
