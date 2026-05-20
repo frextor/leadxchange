@@ -22,11 +22,11 @@ return new class extends Migration
         DB::table('profiles')->whereIn('user_id', $removeIds)->delete();
         DB::table('device_tokens')->whereIn('user_id', $removeIds)->delete();
 
-        // Delete posts and comments by removed users
-        $postIds = DB::table('posts')->whereIn('user_id', $removeIds)->pluck('id');
-        DB::table('comments')->whereIn('post_id', $postIds)->delete();
-        DB::table('posts')->whereIn('user_id', $removeIds)->delete();
-        DB::table('comments')->whereIn('user_id', $removeIds)->delete();
+        // Delete group posts and comments by removed users
+        $postIds = DB::table('group_posts')->whereIn('user_id', $removeIds)->pluck('id');
+        DB::table('group_post_comments')->whereIn('post_id', $postIds)->delete();
+        DB::table('group_posts')->whereIn('user_id', $removeIds)->delete();
+        DB::table('group_post_comments')->whereIn('user_id', $removeIds)->delete();
 
         DB::table('users')->where('id', '!=', $keepId)->delete();
 
