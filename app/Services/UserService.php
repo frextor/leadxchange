@@ -27,12 +27,12 @@ class UserService
         array $filters = []
     ): LengthAwarePaginator {
 
-        // Load current user's interest IDs once for shared-interest computation
-        $myInterestIds = User::find($currentUserId)?->interests()->pluck('interests.id')->toArray() ?? [];
+        // Load current user's sector IDs once for shared-interest computation
+        $mySectorIds = User::with('profile:user_id,sector_ids')->find($currentUserId)?->profile?->sector_ids ?? [];
 
         $query = User::query()
             ->where('id', '!=', $currentUserId)
-            ->with(['company:id,name,sector_id,website', 'company.sector:id,name', 'interests:id,name,icon', 'profile:user_id,avatar,job_title', 'city:id,name'])
+            ->with(['company:id,name,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network', 'city:id,name'])
             ->select(['id', 'first_name', 'last_name', 'email', 'city_id', 'birthday', 'gender', 'company_id', 'position']);
 
         // Basic search — name, email, city, position, job_title, company
@@ -92,7 +92,7 @@ class UserService
         $users = $query->paginate($perPage, ['*'], 'page', $page);
 
         $users->getCollection()->transform(
-            fn ($user) => $this->enrichUserWithConnectionStatus($user, $currentUserId, $myInterestIds)
+            fn ($user) => $this->enrichUserWithConnectionStatus($user, $currentUserId, $mySectorIds)
         );
 
         return $users;
@@ -112,9 +112,10 @@ class UserService
         ?string $search = null,
         int $perPage = 10
     ): LengthAwarePaginator {
-        $myCityId     = $currentUser->city_id;
-        $myRegion     = $currentUser->profile?->region ?? '';
-        $myInterestIds = $currentUser->interests()->pluck('interests.id')->toArray();
+        $myCityId    = $currentUser->city_id;
+        $myRegion    = $currentUser->profile?->region ?? '';
+        $mySectorIds = $currentUser->profile?->sector_ids ?? [];
+        $myInterestIds = $mySectorIds; // kept for scoring SQL compatibility (unused now)
 
         if (empty($myInterestIds)) {
             $interestSql      = '0';
@@ -159,7 +160,7 @@ class UserService
                 {$interestSql} as rec_score
             ", $scoreBindings)
             ->leftJoin('profiles', 'profiles.user_id', '=', 'users.id')
-            ->with(['company:id,name,sector_id', 'company.sector:id,name', 'interests:id,name,icon', 'profile:user_id,avatar,job_title', 'city:id,name'])
+            ->with(['company:id,name,sector_id', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network', 'city:id,name'])
             ->tap($applyWhere)
             ->orderBy('rec_score', 'desc')
             ->orderBy('users.created_at', 'desc')
@@ -168,7 +169,7 @@ class UserService
             ->get();
 
         $enriched = $users->map(fn ($u) => array_merge(
-            $this->enrichUserWithConnectionStatus($u, $currentUser->id, $myInterestIds),
+            $this->enrichUserWithConnectionStatus($u, $currentUser->id, $mySectorIds),
             [
                 'same_city' => $myCityId !== null && $u->city_id === $myCityId,
                 'rec_score' => (int) ($u->rec_score ?? 0),
@@ -181,12 +182,12 @@ class UserService
     }
 
     /**
-     * Enrich a user with connection status and shared interests.
+     * Enrich a user with connection status, shared sectors, and profile fields.
      */
     public function enrichUserWithConnectionStatus(
         User $user,
         int $currentUserId,
-        array $myInterestIds = []
+        array $mySectorIds = []
     ): array {
         $connection = Connection::where(function ($q) use ($user, $currentUserId) {
             $q->where('sender_id', $currentUserId)->where('receiver_id', $user->id);
@@ -194,13 +195,15 @@ class UserService
             $q->where('sender_id', $user->id)->where('receiver_id', $currentUserId);
         })->first();
 
-        // Shared interests (only when interests are eager-loaded)
+        $theirSectorIds  = $user->profile?->sector_ids ?? [];
+        $sharedSectorIds = !empty($mySectorIds) ? array_intersect($mySectorIds, $theirSectorIds) : [];
         $sharedInterests = [];
-        if (!empty($myInterestIds) && $user->relationLoaded('interests')) {
-            $sharedInterests = $user->interests
-                ->filter(fn ($i) => in_array($i->id, $myInterestIds))
+        if (!empty($sharedSectorIds)) {
+            $sharedInterests = \Illuminate\Support\Facades\DB::table('sectors')
+                ->whereIn('id', $sharedSectorIds)
+                ->get(['id', 'name'])
+                ->map(fn ($s) => ['id' => $s->id, 'name' => $s->name])
                 ->values()
-                ->map(fn ($i) => ['id' => $i->id, 'name' => $i->name, 'icon' => $i->icon])
                 ->toArray();
         }
 
@@ -209,11 +212,16 @@ class UserService
             'first_name'       => $user->first_name,
             'last_name'        => $user->last_name,
             'email'            => $user->email,
-            'city_id'   => $user->city_id,
-            'city'      => $user->relationLoaded('city') ? $user->city?->name : null,
+            'city_id'          => $user->city_id,
+            'city'             => $user->relationLoaded('city') ? $user->city?->name : null,
             'position'         => $user->position,
             'avatar'           => $user->profile?->avatar_url,
             'job_title'        => $user->profile?->job_title,
+            'bio'              => $user->profile?->bio,
+            'sector_ids'       => $theirSectorIds,
+            'services_offered' => $user->profile?->services_offered ?? [],
+            'looking_for'      => $user->profile?->looking_for ?? [],
+            'open_to_network'  => $user->profile?->open_to_network ?? false,
             'company'          => $user->company ? [
                 'id'     => $user->company->id,
                 'name'   => $user->company->name,
