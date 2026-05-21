@@ -81,13 +81,14 @@ class EventController extends Controller
         $others      = $publicEvents->filter(fn($e) => !in_array($e->sector_id, $userSectorIds)
             && (!$user->city_id || $e->city_id !== $user->city_id))->values();
 
-        // ── Past events (attending) ───────────────────────────────
-        $pastEvents = Event::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
-            ->whereIn('id', $attendingIds)
+        // ── Past events (all public, paginated) ───────────────────
+        $pastPage    = max(1, (int) $request->input('past_page', 1));
+        $pastPerPage = 10;
+        $pastEvents  = Event::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+            ->where('is_public', true)
             ->where('starts_at', '<', now())
             ->orderBy('starts_at', 'desc')
-            ->limit(10)
-            ->get();
+            ->paginate($pastPerPage, ['*'], 'past_page', $pastPage);
 
         return response()->json([
             'data' => [
@@ -96,11 +97,14 @@ class EventController extends Controller
                 'nearby'      => $nearby->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id))->values(),
                 'recommended' => $recommended->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id))->values(),
                 'others'      => $others->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id))->values(),
-                'past'        => $pastEvents->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id))->values(),
+                'past'        => $pastEvents->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id))->values(),
             ],
             'meta' => [
-                'total_public' => $publicEvents->count(),
-                'invitations'  => $invitations->count(),
+                'total_public'       => $publicEvents->count(),
+                'invitations'        => $invitations->count(),
+                'past_current_page'  => $pastEvents->currentPage(),
+                'past_last_page'     => $pastEvents->lastPage(),
+                'past_has_more'      => $pastEvents->hasMorePages(),
             ],
         ]);
     }
