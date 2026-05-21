@@ -106,11 +106,17 @@ class UserService
      *   +10 — same profile.region
      *   +5  — per shared interest (user_interests pivot)
      */
+    /**
+     * @param array $excludeConnectionStatuses  Statuses to exclude from results.
+     *                                           Default ['pending','accepted'] = exclude everyone already connected or pending.
+     *                                           Pass ['accepted'] to keep pending users visible in recommendations.
+     */
     public function getRecommendedUsers(
         User $currentUser,
         int $page = 1,
         ?string $search = null,
-        int $perPage = 10
+        int $perPage = 10,
+        array $excludeConnectionStatuses = ['pending', 'accepted']
     ): LengthAwarePaginator {
         $myCityId    = $currentUser->city_id;
         $myRegion    = $currentUser->profile?->region ?? '';
@@ -129,9 +135,9 @@ class UserService
         // Closure applied to both count and data queries
         $applyWhere = function ($q) use ($currentUser, $search) {
             $q->where('users.id', '!=', $currentUser->id)
-              ->whereNotExists(function ($sub) use ($currentUser) {
+              ->whereNotExists(function ($sub) use ($currentUser, $excludeConnectionStatuses) {
                   $sub->from('connections')
-                      ->whereIn('status', ['pending', 'accepted'])
+                      ->whereIn('status', $excludeConnectionStatuses)
                       ->where(function ($c) use ($currentUser) {
                           $c->where(function ($c2) use ($currentUser) {
                               $c2->where('sender_id', $currentUser->id)

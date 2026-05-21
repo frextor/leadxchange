@@ -88,7 +88,12 @@ class UserController extends Controller
             $page        = (int) $request->get('page', 1);
             $search      = $request->get('search', '') ?: null;
 
-            $users = $this->userService->getRecommendedUsers($currentUser, $page, $search);
+            // ?include_pending=1  → keep users with a pending request visible
+            $excludeStatuses = $request->boolean('include_pending')
+                ? ['accepted']
+                : ['pending', 'accepted'];
+
+            $users = $this->userService->getRecommendedUsers($currentUser, $page, $search, 10, $excludeStatuses);
 
             return response()->json([
                 'success'       => true,
