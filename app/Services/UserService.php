@@ -128,7 +128,20 @@ class UserService
 
         // Closure applied to both count and data queries
         $applyWhere = function ($q) use ($currentUser, $search) {
-            $q->where('users.id', '!=', $currentUser->id);
+            $q->where('users.id', '!=', $currentUser->id)
+              ->whereNotExists(function ($sub) use ($currentUser) {
+                  $sub->from('connections')
+                      ->where('status', 'pending')
+                      ->where(function ($c) use ($currentUser) {
+                          $c->where(function ($c2) use ($currentUser) {
+                              $c2->where('sender_id', $currentUser->id)
+                                 ->whereColumn('receiver_id', 'users.id');
+                          })->orWhere(function ($c2) use ($currentUser) {
+                              $c2->where('receiver_id', $currentUser->id)
+                                 ->whereColumn('sender_id', 'users.id');
+                          });
+                      });
+              });
             if ($search) {
                 $like = "%{$search}%";
                 $q->where(function ($q2) use ($like) {
