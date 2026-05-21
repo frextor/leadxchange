@@ -120,7 +120,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Lead Routes
     Route::get('/leads',                   [ApiLeadController::class, 'index']);
     Route::post('/leads',                  [ApiLeadController::class, 'store']);
+    Route::get('/leads/stats',             [ApiLeadController::class, 'stats']);
     Route::get('/leads/{id}',              [ApiLeadController::class, 'show']);
+    Route::delete('/leads/{id}',           [ApiLeadController::class, 'destroy']);
     Route::post('/leads/{id}/accept',      [ApiLeadController::class, 'accept']);
     Route::post('/leads/{id}/reject',      [ApiLeadController::class, 'reject']);
     Route::post('/leads/{id}/convert',     [ApiLeadController::class, 'convert']);

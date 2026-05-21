@@ -159,7 +159,15 @@ class LeadService
             throw new \Exception('Seuls les leads acceptés peuvent être convertis.');
         }
 
-        $lead->update(['status' => Lead::STATUS_CONVERTED]);
+        DB::beginTransaction();
+        try {
+            $lead->update(['status' => Lead::STATUS_CONVERTED]);
+            $user->adjustPoints(+2, 'lead_converted');
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
 
         Log::info('Lead converted', ['lead_id' => $lead->id, 'user' => $user->id]);
 
@@ -284,14 +292,39 @@ class LeadService
     // Read helpers
     // ─────────────────────────────────────────────────────────────────────────
 
-    public function getUserLeads(User $user): array
+    public function getUserLeadsPaginated(User $user, string $tab, ?string $status, ?string $qualification, ?int $sectorId, int $perPage = 15): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
-        $with = ['sender:id,first_name,last_name', 'receiver:id,first_name,last_name', 'ratings', 'sector:id,name'];
+        $with  = ['sender:id,first_name,last_name', 'sender.profile:user_id,avatar', 'receiver:id,first_name,last_name', 'receiver.profile:user_id,avatar', 'ratings', 'sector:id,name'];
+        $query = Lead::with($with);
 
-        $received = Lead::with($with)->where('receiver_id', $user->id)->latest()->get();
-        $sent     = Lead::with($with)->where('sender_id',   $user->id)->latest()->get();
+        if ($tab === 'sent') {
+            $query->where('sender_id', $user->id);
+        } else {
+            $query->where('receiver_id', $user->id);
+        }
 
-        return compact('received', 'sent');
+        if ($status)        $query->where('status', $status);
+        if ($qualification) $query->where('qualification', $qualification);
+        if ($sectorId)      $query->where('sector_id', $sectorId);
+
+        return $query->latest()->paginate($perPage);
+    }
+
+    public function cancelLead(User $user, int $leadId): void
+    {
+        $lead = Lead::findOrFail($leadId);
+
+        if ($lead->sender_id !== $user->id) {
+            throw new \Exception('Seul l\'expéditeur peut annuler ce lead.');
+        }
+
+        if (!$lead->isNew()) {
+            throw new \Exception('Seuls les leads en attente peuvent être annulés.');
+        }
+
+        $lead->delete();
+
+        Log::info('Lead cancelled', ['lead_id' => $leadId, 'user' => $user->id]);
     }
 
     public function getDashboardStats(User $user): array
