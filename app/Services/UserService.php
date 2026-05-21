@@ -231,6 +231,7 @@ class UserService
             'first_name'       => $user->first_name,
             'last_name'        => $user->last_name,
             'email'            => $user->email,
+            'phone'            => $user->phone,
             'city_id'          => $user->city_id,
             'city'             => $user->relationLoaded('city') ? $user->city?->name : null,
             'position'         => $user->position,
