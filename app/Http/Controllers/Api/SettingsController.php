@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\City;
 use App\Models\Country;
+use App\Models\Event;
 use App\Models\Interest;
 use App\Models\Language;
 use App\Models\Nationality;
@@ -23,7 +24,10 @@ class SettingsController extends Controller
     public function index(): JsonResponse
     {
         return response()->json([
-            'version'       => 'v2',
+            'version'           => 'v2',
+            'event_categories'  => collect(Event::$categoryLabels)
+                                       ->map(fn($label, $key) => ['key' => $key, 'label' => $label])
+                                       ->values(),
             'interests'     => Interest::orderBy('name')
                                    ->get(['id', 'name', 'icon']),
 
