@@ -202,7 +202,7 @@ class ConnectionService
         $query = Connection::where('receiver_id', $user->id)
             ->with(['sender' => function ($query) {
                 $query->select('id', 'first_name', 'last_name', 'email', 'company_id');
-            }]);
+            }, 'sender.profile:user_id,avatar']);
 
         if ($status) {
             $query->where('status', $status);
@@ -229,7 +229,7 @@ class ConnectionService
         $query = Connection::where('sender_id', $user->id)
             ->with(['receiver' => function ($query) {
                 $query->select('id', 'first_name', 'last_name', 'email', 'company_id');
-            }]);
+            }, 'receiver.profile:user_id,avatar']);
 
         if ($status) {
             $query->where('status', $status);
@@ -257,14 +257,14 @@ class ConnectionService
             ->where('status', Connection::STATUS_ACCEPTED)
             ->with(['receiver' => function ($query) {
                 $query->select('id', 'first_name', 'last_name', 'email', 'company_id');
-            }])
+            }, 'receiver.profile:user_id,avatar'])
             ->get();
 
         $asReceiver = Connection::where('receiver_id', $user->id)
             ->where('status', Connection::STATUS_ACCEPTED)
             ->with(['sender' => function ($query) {
                 $query->select('id', 'first_name', 'last_name', 'email', 'company_id');
-            }])
+            }, 'sender.profile:user_id,avatar'])
             ->get();
 
         return $asSender->merge($asReceiver)->sortByDesc('created_at');

@@ -248,6 +248,8 @@ class ConnectionController extends Controller
                     'first_name' => $otherUser->first_name,
                     'last_name' => $otherUser->last_name,
                     'email' => $otherUser->email,
+                    'avatar' => $otherUser->profile?->avatar_url,
+                    'avatar_url' => $otherUser->profile?->avatar_url,
                 ] : null,
                 'status' => $connection->status,
                 'type' => $connection->sender_id === auth()->id() ? 'sent' : 'received',
