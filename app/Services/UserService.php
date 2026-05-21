@@ -133,7 +133,7 @@ class UserService
         }
 
         // Closure applied to both count and data queries
-        $applyWhere = function ($q) use ($currentUser, $search) {
+        $applyWhere = function ($q) use ($currentUser, $search, $excludeConnectionStatuses) {
             $q->where('users.id', '!=', $currentUser->id)
               ->whereNotExists(function ($sub) use ($currentUser, $excludeConnectionStatuses) {
                   $sub->from('connections')
