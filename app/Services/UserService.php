@@ -131,7 +131,7 @@ class UserService
             $q->where('users.id', '!=', $currentUser->id)
               ->whereNotExists(function ($sub) use ($currentUser) {
                   $sub->from('connections')
-                      ->where('status', 'pending')
+                      ->whereIn('status', ['pending', 'accepted'])
                       ->where(function ($c) use ($currentUser) {
                           $c->where(function ($c2) use ($currentUser) {
                               $c2->where('sender_id', $currentUser->id)
