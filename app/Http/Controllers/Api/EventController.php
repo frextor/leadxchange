@@ -350,7 +350,6 @@ class EventController extends Controller
         $event = Event::findOrFail($id);
 
         $attendees = $event->attendees()
-            ->select(['users.id', 'users.first_name', 'users.last_name', 'users.company_id', 'users.position'])
             ->with(['company:id,name', 'profile:user_id,avatar,job_title'])
             ->withPivot('role', 'registered_at')
             ->orderByPivot('registered_at')
