@@ -82,6 +82,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Profile Routes
     Route::get('/profile',                  [ProfileController::class, 'show']);
+    Route::put('/profile/location',         [ProfileController::class, 'updateLocation']);
     Route::put('/profile/basic',            [ProfileController::class, 'updateBasic']);
     Route::put('/profile/professional',     [ProfileController::class, 'updateProfessional']);
     Route::put('/profile/bio',              [ProfileController::class, 'updateBio']);
