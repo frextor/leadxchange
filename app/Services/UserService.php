@@ -232,6 +232,7 @@ class UserService
             'last_name'        => $user->last_name,
             'email'            => $user->email,
             'phone'            => $user->phone,
+            'phone_country_code' => $user->phone_country_code,
             'city_id'          => $user->city_id,
             'city'             => $user->relationLoaded('city') ? $user->city?->name : null,
             'position'         => $user->position,
@@ -259,7 +260,7 @@ class UserService
     public function getUserById(int $userId, int $currentUserId): ?array
     {
         $user = User::with(['company:id,name,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'birthday', 'phone', 'company_id', 'position', 'created_at'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'position', 'created_at'])
             ->find($userId);
 
         if (!$user) return null;
@@ -294,7 +295,7 @@ class UserService
     public function getProfileById(int $userId, int $currentUserId): ?array
     {
         $user = User::with(['company:id,name,sector_id,website', 'company.sector:id,name', 'city:id,name'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'birthday', 'phone', 'company_id', 'created_at'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'created_at'])
             ->find($userId);
 
         if (!$user) return null;
@@ -304,7 +305,8 @@ class UserService
         return array_merge($base, [
             'gender'       => $user->gender,
             'birthday'     => $user->birthday?->format('Y-m-d'),
-            'phone'        => $user->phone,
+            'phone'              => $user->phone,
+            'phone_country_code' => $user->phone_country_code,
             'member_since' => $user->created_at?->format('F Y'),
             'company'      => $user->company ? [
                 'id'      => $user->company->id,
