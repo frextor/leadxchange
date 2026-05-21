@@ -157,6 +157,59 @@ class EventController extends Controller
         return response()->json(['message' => 'Invitation sent.']);
     }
 
+    public function inviteBulk(int $id, Request $request): JsonResponse
+    {
+        $event = Event::findOrFail($id);
+        $user  = $request->user();
+
+        if ($event->created_by !== $user->id) {
+            return response()->json(['message' => 'Only the organizer can send invitations.'], 403);
+        }
+
+        $validated = $request->validate([
+            'user_ids'   => ['required', 'array', 'min:1'],
+            'user_ids.*' => ['integer', 'exists:users,id'],
+        ]);
+
+        $targetIds = collect($validated['user_ids'])
+            ->map(fn($targetId) => (int) $targetId)
+            ->unique()
+            ->values();
+
+        $attendingIds = $event->attendees()
+            ->whereIn('users.id', $targetIds)
+            ->pluck('users.id')
+            ->all();
+
+        $invitableIds = $targetIds
+            ->reject(fn($targetId) => in_array($targetId, $attendingIds, true))
+            ->values();
+
+        $created = 0;
+        $updated = 0;
+
+        foreach ($invitableIds as $targetId) {
+            $invitation = EventInvitation::updateOrCreate(
+                ['event_id' => $id, 'user_id' => $targetId],
+                ['invited_by' => $user->id, 'status' => 'pending']
+            );
+
+            $invitation->wasRecentlyCreated ? $created++ : $updated++;
+        }
+
+        return response()->json([
+            'message' => 'Invitations sent.',
+            'data' => [
+                'requested_count' => $targetIds->count(),
+                'sent_count'      => $invitableIds->count(),
+                'created_count'   => $created,
+                'updated_count'   => $updated,
+                'skipped_count'   => count($attendingIds),
+                'skipped_user_ids' => array_values($attendingIds),
+            ],
+        ]);
+    }
+
     public function acceptInvitation(int $invId, Request $request): JsonResponse
     {
         $invitation = EventInvitation::where('user_id', $request->user()->id)

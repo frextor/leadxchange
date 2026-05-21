@@ -141,6 +141,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/events/{id}/join',                            [ApiEventController::class, 'join']);
     Route::delete('/events/{id}/leave',                         [ApiEventController::class, 'leave']);
     Route::post('/events/{id}/invite',                          [ApiEventController::class, 'invite']);
+    Route::post('/events/{id}/invite/bulk',                     [ApiEventController::class, 'inviteBulk']);
     Route::delete('/events/{id}',                               [ApiEventController::class, 'destroy']);
     Route::get('/events/{id}/attendees',                        [ApiEventController::class, 'attendees']);
     Route::delete('/events/{id}/attendees/{userId}',            [ApiEventController::class, 'removeAttendee']);
