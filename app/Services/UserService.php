@@ -259,7 +259,7 @@ class UserService
     public function getUserById(int $userId, int $currentUserId): ?array
     {
         $user = User::with(['company:id,name,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'birthday', 'company_id', 'position', 'created_at'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'birthday', 'phone', 'company_id', 'position', 'created_at'])
             ->find($userId);
 
         if (!$user) return null;
