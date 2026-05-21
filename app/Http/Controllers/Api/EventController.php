@@ -345,6 +345,30 @@ class EventController extends Controller
         return response()->json(['message' => 'Event deleted successfully.']);
     }
 
+    public function attendees(int $id, Request $request): JsonResponse
+    {
+        $event = Event::findOrFail($id);
+
+        $attendees = $event->attendees()
+            ->select(['users.id', 'users.first_name', 'users.last_name', 'users.company_id', 'users.position'])
+            ->with(['company:id,name', 'profile:user_id,avatar,job_title'])
+            ->withPivot('role', 'registered_at')
+            ->orderByPivot('registered_at')
+            ->paginate(20);
+
+        $attendees->getCollection()->transform(fn($user) => [
+            'id'         => $user->id,
+            'first_name' => $user->first_name,
+            'last_name'  => $user->last_name,
+            'job_title'  => $user->profile?->job_title ?? $user->position,
+            'avatar'     => $user->profile?->avatar_url,
+            'company'    => $user->company?->name,
+            'role'       => $user->pivot->role,
+        ]);
+
+        return response()->json(['data' => $attendees]);
+    }
+
     public function removeAttendee(int $id, int $userId, Request $request): JsonResponse
     {
         $event = Event::findOrFail($id);
