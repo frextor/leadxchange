@@ -28,7 +28,6 @@ class ProfileRequest extends FormRequest
             'city_id'     => ['nullable', 'integer', 'exists:cities,id'],
             'nationality_id'     => ['nullable', 'integer', 'exists:nationalities,id'],
             'company_id'         => ['nullable', 'integer', 'exists:companies,id'],
-            'position'           => ['nullable', 'string', 'max:100'],
             'newsletter'         => ['nullable', 'boolean'],
             'notifications'      => ['nullable', 'boolean'],
 

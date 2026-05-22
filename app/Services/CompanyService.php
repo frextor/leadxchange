@@ -44,7 +44,6 @@ class CompanyService
             // Update user with company and mark onboarding as completed
             $user->update([
                 'company_id'           => $company->id,
-                'position'             => $data['position'] ?? null,
                 'onboarding_completed' => true,
             ]);
 
@@ -71,7 +70,7 @@ class CompanyService
      * @return Company
      * @throws \Exception
      */
-    public function joinCompany(User $user, int $companyId, ?string $position = null): Company
+    public function joinCompany(User $user, int $companyId): Company
     {
         $company = Company::with('sector')->find($companyId);
 
@@ -88,7 +87,6 @@ class CompanyService
         try {
             $user->update([
                 'company_id'           => $company->id,
-                'position'             => $position,
                 'onboarding_completed' => true,
             ]);
 

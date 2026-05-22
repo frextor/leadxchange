@@ -23,7 +23,7 @@ class UsersSeeder extends Seeder
                 'city_id'      => 1, // Casablanca
                 
                 'nationality_id'      => 1, // Marocain
-                'position'            => 'Directeur Commercial',
+                'job_title'           => 'Directeur Commercial',
                 'points_balance'      => 42,
                 'badge_level'         => 'bronze',
                 'languages'           => [
@@ -42,7 +42,7 @@ class UsersSeeder extends Seeder
                 'city_id'      => 2, // Rabat
                  // Marrakech
                 'nationality_id'      => 1,
-                'position'            => 'Product Manager',
+                'job_title'           => 'Product Manager',
                 'points_balance'      => 87,
                 'badge_level'         => 'argent',
                 'languages'           => [
@@ -61,7 +61,7 @@ class UsersSeeder extends Seeder
                 'city_id'      => 1, // Casablanca
                  // Fès
                 'nationality_id'      => 1,
-                'position'            => 'CEO & Co-Fondateur',
+                'job_title'           => 'CEO & Co-Fondateur',
                 'points_balance'      => 165,
                 'badge_level'         => 'or',
                 'languages'           => [
@@ -81,7 +81,7 @@ class UsersSeeder extends Seeder
                 'city_id'      => 91, // Paris
                 
                 'nationality_id'      => 6, // (France — on prend ce qui existe)
-                'position'            => 'Business Developer',
+                'job_title'           => 'Business Developer',
                 'points_balance'      => 55,
                 'badge_level'         => 'argent',
                 'languages'           => [
@@ -100,7 +100,7 @@ class UsersSeeder extends Seeder
                 'city_id'      => 5, // Tanger
                 
                 'nationality_id'      => 1,
-                'position'            => 'Développeur Full-Stack',
+                'job_title'           => 'Développeur Full-Stack',
                 'points_balance'      => 18,
                 'badge_level'         => 'bronze',
                 'languages'           => [
@@ -119,7 +119,7 @@ class UsersSeeder extends Seeder
                 'city_id'      => 74, // Dubaï
                   // Casablanca
                 'nationality_id'      => 1,
-                'position'            => 'Head of Marketing',
+                'job_title'           => 'Head of Marketing',
                 'points_balance'      => 210,
                 'badge_level'         => 'or',
                 'languages'           => [
@@ -139,7 +139,7 @@ class UsersSeeder extends Seeder
                 'city_id'      => 91, // Paris
                 
                 'nationality_id'      => 6,
-                'position'            => 'Directeur Général',
+                'job_title'           => 'Directeur Général',
                 'points_balance'      => 73,
                 'badge_level'         => 'argent',
                 'languages'           => [
@@ -158,7 +158,7 @@ class UsersSeeder extends Seeder
                 'city_id'      => 3, // Marrakech
                 
                 'nationality_id'      => 1,
-                'position'            => 'Avocate d\'affaires',
+                'job_title'           => 'Avocate d\'affaires',
                 'points_balance'      => 31,
                 'badge_level'         => 'bronze',
                 'languages'           => [
@@ -177,7 +177,7 @@ class UsersSeeder extends Seeder
                 'city_id'      => 6, // Agadir
                 
                 'nationality_id'      => 1,
-                'position'            => 'Responsable Logistique',
+                'job_title'           => 'Responsable Logistique',
                 'points_balance'      => 26,
                 'badge_level'         => 'bronze',
                 'languages'           => [
@@ -196,7 +196,7 @@ class UsersSeeder extends Seeder
                 'city_id'      => 2, // Rabat
                  // Oujda
                 'nationality_id'      => 1,
-                'position'            => 'RH & Talent Acquisition',
+                'job_title'           => 'RH & Talent Acquisition',
                 'points_balance'      => 48,
                 'badge_level'         => 'bronze',
                 'languages'           => [
@@ -211,7 +211,8 @@ class UsersSeeder extends Seeder
         foreach ($users as $data) {
             $languages = $data['languages'];
             $interests  = $data['interests'];
-            unset($data['languages'], $data['interests']);
+            $jobTitle = $data['job_title'];
+            unset($data['languages'], $data['interests'], $data['job_title']);
 
             $user = User::updateOrCreate(
                 ['email' => $data['email']],
@@ -220,6 +221,11 @@ class UsersSeeder extends Seeder
                     'email_verified_at'    => now(),
                     'onboarding_completed' => true,
                 ])
+            );
+
+            $user->profile()->updateOrCreate(
+                ['user_id' => $user->id],
+                ['job_title' => $jobTitle]
             );
 
             // Langues

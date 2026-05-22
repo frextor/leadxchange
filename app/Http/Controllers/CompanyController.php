@@ -125,14 +125,9 @@ class CompanyController extends Controller
         try {
             // Case 1: join existing company (selected from autocomplete)
             if ($request->filled('existing_company_id')) {
-                $request->validate([
-                    'position' => ['nullable', 'string', 'max:100'],
-                ]);
-
                 $company = $this->companyService->joinCompany(
                     $user,
-                    $request->input('existing_company_id'),
-                    $request->input('position')
+                    $request->input('existing_company_id')
                 );
 
                 return redirect()->route('dashboard')
@@ -145,7 +140,6 @@ class CompanyController extends Controller
                 'siret'     => ['required', 'string', 'size:14', 'unique:companies,siret', 'regex:/^[0-9]{14}$/'],
                 'sector_id' => ['required', 'exists:sectors,id'],
                 'website'   => ['nullable', 'url', 'max:255'],
-                'position'  => ['nullable', 'string', 'max:100'],
             ], [
                 'name.required'     => "Le nom de l'entreprise est requis.",
                 'siret.required'    => 'Le SIRET est requis.',

@@ -454,7 +454,7 @@ class EventController extends Controller
             'id'         => $user->id,
             'first_name' => $user->first_name,
             'last_name'  => $user->last_name,
-            'job_title'  => $user->profile?->job_title ?? $user->position,
+            'job_title'  => $user->profile?->job_title,
             'avatar'     => $user->profile?->avatar_url,
             'company'    => $user->company?->name,
             'role'       => $user->pivot->role,

@@ -129,6 +129,7 @@ class ProfileController extends Controller
         return response()->json([
             'message'              => 'Profil marqué comme complété.',
             'onboarding_completed' => true,
+            'profile_completed'    => $user->fresh()->hasCompletedProfile(),
             'completion'           => $this->profileService->getCompletionPercentage($user->fresh()),
         ]);
     }

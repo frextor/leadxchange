@@ -27,7 +27,7 @@ class LeadService
         $receiver = User::findOrFail($receiverId);
 
         if (!$sender->isConnectedWith($receiverId)) {
-            throw new \Exception('Vous ne pouvez envoyer des leads qu\'à vos connexions.');
+            throw new \Exception("Vous ne pouvez envoyer des leads qu'à vos connexions.");
         }
 
         if (($receiver->points_balance ?? 0) < 1) {
@@ -152,7 +152,7 @@ class LeadService
         $lead = Lead::findOrFail($leadId);
 
         if ($lead->sender_id !== $user->id) {
-            throw new \Exception('Seul l\'expéditeur peut marquer un lead comme converti.');
+            throw new \Exception("Seul l'expéditeur peut marquer un lead comme converti.");
         }
 
         if (!$lead->isAccepted()) {
@@ -162,7 +162,6 @@ class LeadService
         DB::beginTransaction();
         try {
             $lead->update(['status' => Lead::STATUS_CONVERTED]);
-            $user->adjustPoints(+2, 'lead_converted');
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -192,6 +191,10 @@ class LeadService
 
         if ($lead->hasRatingBy($rater->id)) {
             throw new \Exception('Vous avez déjà noté ce lead.');
+        }
+
+        if ($lead->created_at->lt(now()->subDays(30))) {
+            throw new \Exception('Le délai de notation de ce lead est dépassé.');
         }
 
         DB::beginTransaction();
@@ -257,6 +260,13 @@ class LeadService
             throw new \Exception('Ce lead a déjà été signalé.');
         }
 
+        $reasonAliases = [
+            'false_info' => 'fausses_coordonnees',
+            'no_need'    => 'besoin_inexistant',
+            'duplicate'  => 'doublon',
+        ];
+        $reason = $reasonAliases[$reason] ?? $reason;
+
         $allowedReasons = ['fausses_coordonnees', 'besoin_inexistant', 'doublon'];
         if (!in_array($reason, $allowedReasons)) {
             throw new \Exception('Motif invalide.');
@@ -269,9 +279,6 @@ class LeadService
                 'fraud_reason'      => $reason,
                 'fraud_reported_at' => now(),
             ]);
-
-            // Additional -1 point penalty for the sender (CDC: "Lead déclaré frauduleux: −1 supplémentaire")
-            $lead->sender?->adjustPoints(-1, 'lead_fraud_penalty');
 
             DB::commit();
         } catch (\Exception $e) {
@@ -315,7 +322,7 @@ class LeadService
         $lead = Lead::findOrFail($leadId);
 
         if ($lead->sender_id !== $user->id) {
-            throw new \Exception('Seul l\'expéditeur peut annuler ce lead.');
+            throw new \Exception("Seul l'expéditeur peut annuler ce lead.");
         }
 
         if (!$lead->isNew()) {
