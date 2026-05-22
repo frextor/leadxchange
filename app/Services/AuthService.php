@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Plan;
+use App\Models\LeadRating;
 use App\Models\Sector;
 use App\Models\Subscription;
 use App\Models\User;
@@ -90,6 +91,7 @@ class AuthService
         $data['phone_country_code'] = $data['phone_code']    ?? $data['phone_country_code'] ?? null;
         $data['looking_for']        = $data['leads_wanted']  ?? $data['looking_for']        ?? null;
         $data['services_offered']   = $data['leads_offered'] ?? $data['services_offered']   ?? null;
+        $data['job_title']          = $data['job_title']     ?? null;
 
         // ── users table ───────────────────────────────────────────────────
         $userFields = array_filter([
@@ -102,7 +104,6 @@ class AuthService
             'city_id'     => $data['city_id']     ?? null,
             'nationality_id'     => $data['nationality_id']     ?? null,
             'company_id'         => $data['company_id']         ?? null,
-            'position'           => $data['position']           ?? null,
             'newsletter'         => $data['newsletter']         ?? null,
             'notifications'      => $data['notifications']      ?? null,
         ], fn($v) => $v !== null);
@@ -222,6 +223,8 @@ class AuthService
             ? Sector::whereIn('id', $sectorIds)->pluck('name', 'id')
             : collect();
 
+        $rating = $this->ratingPayload($user);
+
         return [
             'user' => [
                 'id'                 => $user->id,
@@ -243,10 +246,16 @@ class AuthService
                     'code'    => $user->nationality->code,
                     'flag'    => $user->nationality->flag,
                 ] : null,
-                'position'           => $user->position,
                 'newsletter'         => $user->newsletter,
                 'notifications'      => $user->notifications,
                 'role'               => $user->role,
+                'balance'            => (int) ($user->points_balance ?? 0),
+                'points_balance'     => (int) ($user->points_balance ?? 0),
+                'badge_level'        => $user->badge_level ?? 'bronze',
+                'badge'              => $this->badgePayload($user->badge_level ?? 'bronze'),
+                'rating'             => $rating,
+                'average_rating'     => $rating['average'],
+                'rating_count'       => $rating['count'],
                 'email_verified_at'  => $user->email_verified_at,
                 'created_at'         => $user->created_at,
             ],
@@ -285,8 +294,44 @@ class AuthService
                 'price'    => $user->subscription->plan->price,
                 'features' => $user->subscription->plan->features,
             ] : null,
-            'onboarding_completed' => $user->onboarding_completed,
-            'profile_completed'    => $user->hasCompletedProfile(),
+            'onboarding_completed' => (bool) ($user->onboarding_completed ?? false),
+            'profile_completed'    => (bool) $user->hasCompletedProfile(),
         ];
+    }
+
+    private function ratingPayload(User $user): array
+    {
+        $stats = LeadRating::whereHas('lead', fn ($q) => $q->where('sender_id', $user->id))
+            ->selectRaw('ROUND(AVG(average_note), 2) as average_rating, COUNT(*) as rating_count')
+            ->first();
+
+        return [
+            'average' => $stats?->average_rating !== null ? (float) $stats->average_rating : null,
+            'count'   => (int) ($stats?->rating_count ?? 0),
+        ];
+    }
+
+    private function badgePayload(string $level): array
+    {
+        return match ($level) {
+            'or' => [
+                'level' => 'or',
+                'label' => 'Or',
+                'color' => '#B45309',
+                'background' => '#FEF3C7',
+            ],
+            'argent' => [
+                'level' => 'argent',
+                'label' => 'Argent',
+                'color' => '#475569',
+                'background' => '#F1F5F9',
+            ],
+            default => [
+                'level' => 'bronze',
+                'label' => 'Bronze',
+                'color' => '#92400E',
+                'background' => '#FFEDD5',
+            ],
+        };
     }
 }

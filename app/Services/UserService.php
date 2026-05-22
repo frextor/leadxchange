@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\Connection;
+use App\Models\LeadRating;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
 
@@ -33,16 +34,15 @@ class UserService
         $query = User::query()
             ->where('id', '!=', $currentUserId)
             ->with(['company:id,name,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network', 'city:id,name'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'city_id', 'birthday', 'gender', 'company_id', 'position']);
+            ->select(['id', 'first_name', 'last_name', 'email', 'phone', 'phone_country_code', 'city_id', 'birthday', 'gender', 'company_id', 'points_balance', 'badge_level']);
 
-        // Basic search — name, email, city, position, job_title, company
+        // Basic search — name, email, city, job_title, company
         if ($search) {
             $like = "%{$search}%";
             $query->where(function ($q) use ($like) {
                 $q->where('first_name',  'LIKE', $like)
                   ->orWhere('last_name',  'LIKE', $like)
                   ->orWhere('email',      'LIKE', $like)
-                  ->orWhere('position',   'LIKE', $like)
                   ->orWhereHas('city', fn ($c) => $c->where('name', 'LIKE', $like))
                   ->orWhereHas('profile',    fn ($p) => $p->where('job_title', 'LIKE', $like))
                   ->orWhereHas('company',    fn ($c) => $c->where('name', 'LIKE', $like));
@@ -153,7 +153,6 @@ class UserService
                 $q->where(function ($q2) use ($like) {
                     $q2->where('users.first_name',   'LIKE', $like)
                        ->orWhere('users.last_name',   'LIKE', $like)
-                       ->orWhere('users.position',    'LIKE', $like)
                        ->orWhere('profiles.job_title','LIKE', $like)
                        ->orWhereExists(function ($sub) use ($like) {
                            $sub->from('cities')
@@ -235,7 +234,6 @@ class UserService
             'phone_country_code' => $user->phone_country_code,
             'city_id'          => $user->city_id,
             'city'             => $user->relationLoaded('city') ? $user->city?->name : null,
-            'position'         => $user->position,
             'avatar'           => $user->profile?->avatar_url,
             'job_title'        => $user->profile?->job_title,
             'bio'              => $user->profile?->bio,
@@ -243,6 +241,13 @@ class UserService
             'services_offered' => $user->profile?->services_offered ?? [],
             'looking_for'      => $user->profile?->looking_for ?? [],
             'open_to_network'  => $user->profile?->open_to_network ?? false,
+            'balance'          => (int) ($user->points_balance ?? 0),
+            'points_balance'   => (int) ($user->points_balance ?? 0),
+            'badge_level'      => $user->badge_level ?? 'bronze',
+            'badge'            => $this->badgePayload($user->badge_level ?? 'bronze'),
+            'rating'           => $rating = $this->ratingPayload($user),
+            'average_rating'   => $rating['average'],
+            'rating_count'     => $rating['count'],
             'company'          => $user->company ? [
                 'id'     => $user->company->id,
                 'name'   => $user->company->name,
@@ -260,7 +265,7 @@ class UserService
     public function getUserById(int $userId, int $currentUserId): ?array
     {
         $user = User::with(['company:id,name,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'position', 'created_at'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'created_at'])
             ->find($userId);
 
         if (!$user) return null;
@@ -282,7 +287,6 @@ class UserService
 
         $base = $this->enrichUserWithConnectionStatus($user, $currentUserId);
         $base['shared_interests']  = $sharedInterests;
-        $base['position']          = $user->position;
         $base['services_offered']  = $user->profile?->services_offered ?? [];
         $base['looking_for']       = $user->profile?->looking_for ?? [];
         $base['sector_ids']        = $theirSectorIds;
@@ -295,7 +299,7 @@ class UserService
     public function getProfileById(int $userId, int $currentUserId): ?array
     {
         $user = User::with(['company:id,name,sector_id,website', 'company.sector:id,name', 'city:id,name'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'created_at'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'created_at'])
             ->find($userId);
 
         if (!$user) return null;
@@ -320,5 +324,41 @@ class UserService
     public function getTotalUsersCount(int $currentUserId): int
     {
         return User::where('id', '!=', $currentUserId)->count();
+    }
+
+    private function ratingPayload(User $user): array
+    {
+        $stats = LeadRating::whereHas('lead', fn ($q) => $q->where('sender_id', $user->id))
+            ->selectRaw('ROUND(AVG(average_note), 2) as average_rating, COUNT(*) as rating_count')
+            ->first();
+
+        return [
+            'average' => $stats?->average_rating !== null ? (float) $stats->average_rating : null,
+            'count'   => (int) ($stats?->rating_count ?? 0),
+        ];
+    }
+
+    private function badgePayload(string $level): array
+    {
+        return match ($level) {
+            'or' => [
+                'level' => 'or',
+                'label' => 'Or',
+                'color' => '#B45309',
+                'background' => '#FEF3C7',
+            ],
+            'argent' => [
+                'level' => 'argent',
+                'label' => 'Argent',
+                'color' => '#475569',
+                'background' => '#F1F5F9',
+            ],
+            default => [
+                'level' => 'bronze',
+                'label' => 'Bronze',
+                'color' => '#92400E',
+                'background' => '#FFEDD5',
+            ],
+        };
     }
 }
