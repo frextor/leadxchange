@@ -13,7 +13,7 @@
     $avgRating      = $lead->average_rating;
     $deadlinePassed = $lead->deadline && $lead->deadline->isPast();
     $daysLeft       = $deadlinePassed ? 0 : (int) now()->diffInDays($lead->deadline, false);
-    $fraudLabels    = ['fausses_coordonnees' => 'Fausses coordonnées', 'besoin_inexistant' => 'Besoin inexistant', 'doublon' => 'Doublon'];
+    $fraudLabels    = ['faux_profil' => 'Faux profil', 'lead_frauduleux' => 'Lead frauduleux', 'spam' => 'Spam', 'comportement_inapproprie' => 'Comportement inapproprié', 'autre' => 'Autre'];
 
     // J-N badge classes
     $jBadgeClass = $deadlinePassed
@@ -188,9 +188,11 @@
                 <select name="fraud_reason" required
                         class="flex-1 h-8 px-2 rounded-lg border border-orange-200 bg-white text-xs text-gray-700 outline-none focus:border-orange-400">
                     <option value="">— Motif du signalement —</option>
-                    <option value="fausses_coordonnees">Fausses coordonnées</option>
-                    <option value="besoin_inexistant">Besoin inexistant</option>
-                    <option value="doublon">Doublon</option>
+                    <option value="faux_profil">Faux profil</option>
+                    <option value="lead_frauduleux">Lead frauduleux</option>
+                    <option value="spam">Spam</option>
+                    <option value="comportement_inapproprie">Comportement inapproprié</option>
+                    <option value="autre">Autre</option>
                 </select>
                 <button type="submit"
                         class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 transition flex-shrink-0">

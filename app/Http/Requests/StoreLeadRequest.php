@@ -26,11 +26,11 @@ class StoreLeadRequest extends FormRequest
             'contact_name'     => ['required', 'string', 'max:100'],
             'contact_email'    => ['required', 'email', 'max:150'],
             'contact_phone'    => ['required', 'string', 'max:30'],
-            'contact_position' => ['nullable', 'string', 'max:100'],
+            'contact_position' => ['required', 'string', 'max:100'],
             'deadline'         => ['required', 'date', 'after:today'],
             'qualification'    => ['required', 'in:chaud,tiede,froid'],
             'sector_id'        => ['required', 'integer', 'exists:sectors,id'],
-            'description'      => ['nullable', 'string', 'max:2000'],
+            'description'      => ['required', 'string', 'max:500'],
         ];
     }
 
@@ -43,8 +43,11 @@ class StoreLeadRequest extends FormRequest
             'contact_name.required'  => 'Le nom du contact est obligatoire.',
             'contact_email.required' => 'L\'email du contact est obligatoire.',
             'contact_email.email'    => 'Veuillez saisir une adresse email valide.',
-            'contact_phone.required' => 'Le téléphone du contact est obligatoire.',
-            'deadline.required'      => 'Veuillez définir une deadline.',
+            'contact_phone.required'    => 'Le téléphone du contact est obligatoire.',
+            'contact_position.required' => 'Le poste du contact est obligatoire.',
+            'description.required'      => 'La description du besoin est obligatoire.',
+            'description.max'           => 'La description ne doit pas dépasser 500 caractères.',
+            'deadline.required'         => 'Veuillez définir une deadline.',
             'deadline.after'         => 'La deadline doit être une date future.',
             'qualification.required' => 'Veuillez sélectionner un niveau de qualification.',
             'qualification.in'       => 'La qualification doit être Chaud, Tiède ou Froid.',

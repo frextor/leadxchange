@@ -75,6 +75,19 @@
 </head>
 <body class="bg-gray-50 antialiased">
 
+    @php
+        $authId = auth()->id();
+        $pendingLeadsCount = \DB::table('leads')->where('receiver_id', $authId)->where('status', 'pending')->count();
+        $unreadChatCount = \DB::table('messages')
+            ->join('conversations', 'messages.conversation_id', '=', 'conversations.id')
+            ->where(function ($q) use ($authId) {
+                $q->where('conversations.user1_id', $authId)->orWhere('conversations.user2_id', $authId);
+            })
+            ->where('messages.sender_id', '!=', $authId)
+            ->whereNull('messages.read_at')
+            ->count();
+    @endphp
+
     <!-- Navbar -->
     <header class="bg-white border-b border-gray-200 sticky top-0 z-50" style="height:72px;">
         <div class="max-w-7xl mx-auto px-6 lg:px-8 h-full flex items-stretch justify-between">
@@ -173,6 +186,34 @@
                     <span>Événements</span>
                 </a>
 
+                {{-- LEADS --}}
+                <a href="{{ route('leads.index') }}"
+                   class="lx-nav-item {{ request()->routeIs('leads.*') ? 'active' : '' }}">
+                    <div class="relative">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        @if($pendingLeadsCount > 0)
+                        <span class="lx-nav-badge">{{ $pendingLeadsCount > 9 ? '9+' : $pendingLeadsCount }}</span>
+                        @endif
+                    </div>
+                    <span>Leads</span>
+                </a>
+
+                {{-- CHAT --}}
+                <a href="{{ route('chat.index') }}"
+                   class="lx-nav-item {{ request()->routeIs('chat.*') ? 'active' : '' }}">
+                    <div class="relative">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        @if($unreadChatCount > 0)
+                        <span class="lx-nav-badge">{{ $unreadChatCount > 9 ? '9+' : $unreadChatCount }}</span>
+                        @endif
+                    </div>
+                    <span>Chat</span>
+                </a>
 
             </nav>
 
@@ -225,6 +266,24 @@
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 flex-shrink-0"><circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M12 7v4M12 11l-5.5 6M12 11l5.5 6"/></svg>
                             Network
                         </a>
+                        <a href="{{ route('leads.index') }}" class="flex items-center justify-between gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
+                            <span class="flex items-center gap-3">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 flex-shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                Leads
+                            </span>
+                            @if($pendingLeadsCount > 0)
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white flex-shrink-0" style="background:#EF4444;">{{ $pendingLeadsCount }}</span>
+                            @endif
+                        </a>
+                        <a href="{{ route('chat.index') }}" class="flex items-center justify-between gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
+                            <span class="flex items-center gap-3">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 flex-shrink-0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                Chat
+                            </span>
+                            @if($unreadChatCount > 0)
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white flex-shrink-0" style="background:#EF4444;">{{ $unreadChatCount }}</span>
+                            @endif
+                        </a>
                     </div>
                     <div class="border-t border-gray-100">
                         <form action="{{ route('logout') }}" method="POST">
@@ -241,7 +300,7 @@
     </header>
 
     <!-- Main Content -->
-    <main class="min-h-screen">
+    <main class="min-h-screen" id="main-content">
         @yield('content')
     </main>
 
