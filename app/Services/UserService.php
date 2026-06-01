@@ -33,7 +33,7 @@ class UserService
 
         $query = User::query()
             ->where('id', '!=', $currentUserId)
-            ->with(['company:id,name,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network', 'city:id,name'])
+            ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network', 'city:id,name'])
             ->select(['id', 'first_name', 'last_name', 'email', 'phone', 'phone_country_code', 'city_id', 'birthday', 'gender', 'company_id', 'points_balance', 'badge_level']);
 
         // Basic search — name, email, city, job_title, company
@@ -103,7 +103,6 @@ class UserService
      *
      * Scoring (per user):
      *   +30 — same city as current user
-     *   +10 — same profile.region
      *   +5  — per shared interest (user_interests pivot)
      */
     /**
@@ -119,7 +118,6 @@ class UserService
         array $excludeConnectionStatuses = ['pending', 'accepted']
     ): LengthAwarePaginator {
         $myCityId    = $currentUser->city_id;
-        $myRegion    = $currentUser->profile?->region ?? '';
         $mySectorIds = $currentUser->profile?->sector_ids ?? [];
         $myInterestIds = $mySectorIds; // kept for scoring SQL compatibility (unused now)
 
@@ -169,16 +167,15 @@ class UserService
             ->count('users.id');
 
         // Data — scored and ordered
-        $scoreBindings = array_merge([$myCityId, $myRegion], $interestBindings);
+        $scoreBindings = array_merge([$myCityId], $interestBindings);
 
         $users = User::select('users.*')
             ->selectRaw("
                 (CASE WHEN users.city_id = ? AND users.city_id IS NOT NULL THEN 30 ELSE 0 END) +
-                (CASE WHEN profiles.region      = ? AND profiles.region      != ''       THEN 10 ELSE 0 END) +
                 {$interestSql} as rec_score
             ", $scoreBindings)
             ->leftJoin('profiles', 'profiles.user_id', '=', 'users.id')
-            ->with(['company:id,name,sector_id', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network', 'city:id,name'])
+            ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network', 'city:id,name'])
             ->tap($applyWhere)
             ->orderBy('rec_score', 'desc')
             ->orderBy('users.created_at', 'desc')
@@ -214,111 +211,66 @@ class UserService
         })->first();
 
         $theirSectorIds  = $user->profile?->sector_ids ?? [];
-        $sharedSectorIds = !empty($mySectorIds) ? array_intersect($mySectorIds, $theirSectorIds) : [];
-        $sharedInterests = [];
-        if (!empty($sharedSectorIds)) {
-            $sharedInterests = \Illuminate\Support\Facades\DB::table('sectors')
-                ->whereIn('id', $sharedSectorIds)
-                ->get(['id', 'name'])
-                ->map(fn ($s) => ['id' => $s->id, 'name' => $s->name])
-                ->values()
-                ->toArray();
-        }
 
         return [
             'id'               => $user->id,
             'first_name'       => $user->first_name,
             'last_name'        => $user->last_name,
             'email'            => $user->email,
-            'phone'            => $user->phone,
-            'phone_country_code' => $user->phone_country_code,
-            'city_id'          => $user->city_id,
-            'city'             => $user->relationLoaded('city') ? $user->city?->name : null,
+            'phone'            => ['number' => $user->phone, 'code' => $user->phone_country_code],
+            'city'             => $user->relationLoaded('city') ? ['id' => $user->city_id, 'name' => $user->city?->name] : null,
             'avatar'           => $user->profile?->avatar_url,
             'job_title'        => $user->profile?->job_title,
             'bio'              => $user->profile?->bio,
             'sector_ids'       => $theirSectorIds,
             'services_offered' => $user->profile?->services_offered ?? [],
             'looking_for'      => $user->profile?->looking_for ?? [],
-            'open_to_network'  => $user->profile?->open_to_network ?? false,
             'balance'          => (int) ($user->points_balance ?? 0),
-            'points_balance'   => (int) ($user->points_balance ?? 0),
-            'badge_level'      => $user->badge_level ?? 'bronze',
             'badge'            => $this->badgePayload($user->badge_level ?? 'bronze'),
-            'rating'           => $rating = $this->ratingPayload($user),
-            'average_rating'   => $rating['average'],
-            'rating_count'     => $rating['count'],
+            'rating'           => $this->ratingPayload($user),
             'company'          => $user->company ? [
-                'id'     => $user->company->id,
-                'name'   => $user->company->name,
-                'sector' => $user->company->sector?->name,
+                'id'      => $user->company->id,
+                'name'    => $user->company->name,
+                'siret'   => $user->company->siret,
+                'website' => $user->company->website,
+                'sector'  => $user->company->sector ? ['id' => $user->company->sector->id, 'name' => $user->company->sector->name] : null,
             ] : null,
             'connection_status' => $connection?->status,
             'connection_id'     => $connection?->id,
             'i_am_sender'       => $connection ? ($connection->sender_id === $currentUserId) : false,
             'i_am_receiver'     => $connection ? ($connection->receiver_id === $currentUserId) : false,
-            'shared_interests'  => $sharedInterests,
             'is_online'         => false,
         ];
     }
 
     public function getUserById(int $userId, int $currentUserId): ?array
     {
-        $user = User::with(['company:id,name,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'created_at'])
+        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network', 'nationality:id,name,flag'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'created_at'])
             ->find($userId);
 
         if (!$user) return null;
 
-        $currentUser    = User::with('profile:user_id,sector_ids')->find($currentUserId);
-        $mySectorIds    = $currentUser?->profile?->sector_ids ?? [];
-        $theirSectorIds = $user->profile?->sector_ids ?? [];
-
-        $sharedSectorIds = array_intersect($mySectorIds, $theirSectorIds);
-        $sharedInterests = [];
-        if (!empty($sharedSectorIds)) {
-            $sharedInterests = \Illuminate\Support\Facades\DB::table('sectors')
-                ->whereIn('id', $sharedSectorIds)
-                ->get(['id', 'name'])
-                ->map(fn ($s) => ['id' => $s->id, 'name' => $s->name])
-                ->values()
-                ->toArray();
-        }
-
         $base = $this->enrichUserWithConnectionStatus($user, $currentUserId);
-        $base['shared_interests']  = $sharedInterests;
-        $base['services_offered']  = $user->profile?->services_offered ?? [];
-        $base['looking_for']       = $user->profile?->looking_for ?? [];
-        $base['sector_ids']        = $theirSectorIds;
-        $base['bio']               = $user->profile?->bio;
-        $base['open_to_network']   = $user->profile?->open_to_network ?? false;
+        $base['nationality'] = $user->nationality ? ['name' => $user->nationality->name, 'flag' => $user->nationality->flag] : null;
 
         return $base;
     }
 
     public function getProfileById(int $userId, int $currentUserId): ?array
     {
-        $user = User::with(['company:id,name,sector_id,website', 'company.sector:id,name', 'city:id,name'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'created_at'])
+        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'created_at'])
             ->find($userId);
 
         if (!$user) return null;
 
         $base = $this->enrichUserWithConnectionStatus($user, $currentUserId);
 
-        return array_merge($base, [
-            'gender'       => $user->gender,
-            'birthday'     => $user->birthday?->format('Y-m-d'),
-            'phone'              => $user->phone,
-            'phone_country_code' => $user->phone_country_code,
-            'member_since' => $user->created_at?->format('F Y'),
-            'company'      => $user->company ? [
-                'id'      => $user->company->id,
-                'name'    => $user->company->name,
-                'sector'  => $user->company->sector?->name,
-                'website' => $user->company->website,
-            ] : null,
-        ]);
+        $base['gender']       = $user->gender;
+        $base['birthday']     = $user->birthday?->format('Y-m-d');
+        $base['member_since'] = $user->created_at?->format('F Y');
+        return $base;
     }
 
     public function getTotalUsersCount(int $currentUserId): int

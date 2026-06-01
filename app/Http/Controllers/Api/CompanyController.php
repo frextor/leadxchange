@@ -142,12 +142,11 @@ class CompanyController extends Controller
     private function companyData($company): array
     {
         return [
-            'id'         => $company->id,
-            'name'       => $company->name,
-            'siret'      => $company->siret,
-            'sector_id'  => $company->sector_id,
-            'sector'     => $company->sector?->name ?? $company->sector_name,
-            'website'    => $company->website,
+            'id'      => $company->id,
+            'name'    => $company->name,
+            'siret'   => $company->siret,
+            'website' => $company->website,
+            'sector'  => $company->sector ? ['id' => $company->sector->id, 'name' => $company->sector->name] : ($company->sector_name ? ['id' => null, 'name' => $company->sector_name] : null),
             'created_at' => $company->created_at,
         ];
     }

@@ -48,7 +48,6 @@ class ProfileRequest extends FormRequest
             'sector_id.*'        => ['integer', 'exists:sectors,id'],
             'open_to_network'    => ['nullable', 'boolean'],
             'website'            => ['nullable', 'url', 'max:255'],
-            'region'             => ['nullable', 'string', 'max:100'],
             'linkedin'           => ['nullable', 'url', 'max:255'],
             'profile_picture'    => ['nullable', 'image', 'mimes:jpeg,png,webp,jpg', 'max:3072'],
         ];

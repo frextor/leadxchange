@@ -11,7 +11,7 @@ class Profile extends Model
     protected $fillable = [
         'user_id', 'avatar', 'bio', 'motto', 'job_title', 'sector',
         'experience_level', 'looking_for', 'services_offered', 'open_to_network',
-        'website', 'region', 'linkedin', 'sector_ids',
+        'website', 'linkedin', 'sector_ids',
     ];
 
     protected $casts = [

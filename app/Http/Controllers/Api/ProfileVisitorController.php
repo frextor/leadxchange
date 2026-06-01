@@ -64,7 +64,7 @@ class ProfileVisitorController extends Controller
                 'city'      => $u->city?->name,
                 'avatar'           => $u->profile?->avatar_url,
                 'job_title'        => $u->profile?->job_title,
-                'company'          => $u->company ? ['name' => $u->company->name, 'sector' => $u->company->sector?->name] : null,
+                'company'          => $u->company ? ['id' => $u->company->id, 'name' => $u->company->name, 'sector' => $u->company->sector ? ['id' => $u->company->sector->id, 'name' => $u->company->sector->name] : null] : null,
                 'connection_status' => $conn?->status,
                 'connection_id'     => $conn?->id,
                 'i_am_sender'       => $conn ? ($conn->sender_id === $myId) : false,

@@ -32,8 +32,7 @@ class ProfileService
             'last_name'       => $user->last_name,
             'email'           => $user->email,
             'gender'          => $user->gender,
-            'city_id'  => $user->city_id,
-            'city'     => $user->city?->name,
+            'city'     => ['id' => $user->city_id, 'name' => $user->city?->name],
             'birthday'        => $user->birthday?->format('Y-m-d'),
             'member_since' => $user->created_at?->format('F Y'),
             'profile'      => $profile ? array_merge($profile->toArray(), [
@@ -41,14 +40,16 @@ class ProfileService
                 'services_offered' => collect($profile->services_offered ?? [])->map(fn($id) => ['id' => $id, 'name' => $sectorMap[$id] ?? null])->values(),
             ]) : null,
             'interests'    => $user->interests,
-            'company'      => $user->company,
+            'company'      => $user->company ? [
+                'id'      => $user->company->id,
+                'name'    => $user->company->name,
+                'siret'   => $user->company->siret,
+                'website' => $user->company->website,
+                'sector'  => $user->company->sector ? ['id' => $user->company->sector->id, 'name' => $user->company->sector->name] : null,
+            ] : null,
             'balance'      => (int) ($user->points_balance ?? 0),
-            'points_balance' => (int) ($user->points_balance ?? 0),
-            'badge_level'  => $user->badge_level ?? 'bronze',
             'badge'        => $this->badgePayload($user->badge_level ?? 'bronze'),
             'rating'       => $rating,
-            'average_rating' => $rating['average'],
-            'rating_count' => $rating['count'],
             'completion'   => $this->getCompletionPercentage($user),
         ];
     }
