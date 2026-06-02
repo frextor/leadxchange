@@ -18,7 +18,7 @@ class PollController extends Controller
 
     private function pollResponse(Poll $poll): array
     {
-        $poll->load('options', 'user');
+        $poll->load(['options', 'user.profile:id,user_id,avatar']);
         $totalVotes = $poll->votes()->count();
         $userVote = $poll->votes()->where('user_id', auth()->id())->first();
 
@@ -29,7 +29,7 @@ class PollController extends Controller
             'ends_at' => $poll->ends_at?->toIso8601String(),
             'creator_id' => $poll->user_id,
             'creator_name' => $poll->user->full_name,
-            'creator_avatar' => $poll->user->avatar_url ?? null,
+            'creator_avatar' => $poll->user->profile?->avatar_url,
             'total_votes' => $totalVotes,
             'user_vote_option_id' => $userVote?->poll_option_id,
             'created_at' => $poll->created_at->toIso8601String(),
@@ -44,7 +44,7 @@ class PollController extends Controller
     public function index(Group $group)
     {
         if (!$this->isMember($group)) return response()->json(['message' => 'Forbidden'], 403);
-        $polls = $group->polls()->with(['options', 'user'])->latest()->get();
+        $polls = $group->polls()->with(['options', 'user.profile:id,user_id,avatar'])->latest()->get();
         return response()->json([
             'data' => $polls->map(fn($p) => $this->pollResponse($p))->toArray(),
         ]);
