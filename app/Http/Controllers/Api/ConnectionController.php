@@ -237,8 +237,8 @@ class ConnectionController extends Controller
     private function formatConnections($connections): array
     {
         return $connections->map(function ($connection) {
-            $otherUser = $connection->sender_id === auth()->id() 
-                ? $connection->receiver 
+            $otherUser = $connection->sender_id === auth()->id()
+                ? $connection->receiver
                 : $connection->sender;
 
             return [
@@ -256,6 +256,6 @@ class ConnectionController extends Controller
                 'created_at' => $connection->created_at,
                 'updated_at' => $connection->updated_at,
             ];
-        })->toArray();
+        })->values()->toArray();
     }
 }
