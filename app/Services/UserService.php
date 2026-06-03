@@ -226,11 +226,11 @@ class UserService
             'services_offered' => $user->profile?->services_offered ?? [],
             'looking_for'      => $user->profile?->looking_for ?? [],
             'presentation_video' => [
-                'url' => $user->profile?->presentation_video_status === ProfileVideoService::STATUS_APPROVED
+                'url' => $user->profile?->presentation_video_status === 'approved'
                     ? $user->profile?->presentation_video_url
                     : null,
-                'status' => $user->profile?->presentation_video_status === ProfileVideoService::STATUS_APPROVED
-                    ? ProfileVideoService::STATUS_APPROVED
+                'status' => $user->profile?->presentation_video_status === 'approved'
+                    ? 'approved'
                     : null,
             ],
             'balance'          => (int) ($user->points_balance ?? 0),
