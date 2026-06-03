@@ -33,7 +33,7 @@ class UserService
 
         $query = User::query()
             ->where('id', '!=', $currentUserId)
-            ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network', 'city:id,name'])
+            ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'city:id,name'])
             ->select(['id', 'first_name', 'last_name', 'email', 'phone', 'phone_country_code', 'city_id', 'birthday', 'gender', 'company_id', 'points_balance', 'badge_level']);
 
         // Basic search — name, email, city, job_title, company
@@ -175,7 +175,7 @@ class UserService
                 {$interestSql} as rec_score
             ", $scoreBindings)
             ->leftJoin('profiles', 'profiles.user_id', '=', 'users.id')
-            ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network', 'city:id,name'])
+            ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'city:id,name'])
             ->tap($applyWhere)
             ->orderBy('rec_score', 'desc')
             ->orderBy('users.created_at', 'desc')
@@ -225,6 +225,14 @@ class UserService
             'sector_ids'       => $theirSectorIds,
             'services_offered' => $user->profile?->services_offered ?? [],
             'looking_for'      => $user->profile?->looking_for ?? [],
+            'presentation_video' => [
+                'url' => $user->profile?->presentation_video_status === ProfileVideoService::STATUS_APPROVED
+                    ? $user->profile?->presentation_video_url
+                    : null,
+                'status' => $user->profile?->presentation_video_status === ProfileVideoService::STATUS_APPROVED
+                    ? ProfileVideoService::STATUS_APPROVED
+                    : null,
+            ],
             'balance'          => (int) ($user->points_balance ?? 0),
             'badge'            => $this->badgePayload($user->badge_level ?? 'bronze'),
             'rating'           => $this->ratingPayload($user),
@@ -245,7 +253,7 @@ class UserService
 
     public function getUserById(int $userId, int $currentUserId): ?array
     {
-        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network', 'nationality:id,name,flag'])
+        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'nationality:id,name,flag', 'subscription.plan:id,name,label'])
             ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'created_at'])
             ->find($userId);
 
@@ -253,19 +261,27 @@ class UserService
 
         $base = $this->enrichUserWithConnectionStatus($user, $currentUserId);
         $base['nationality'] = $user->nationality ? ['name' => $user->nationality->name, 'flag' => $user->nationality->flag] : null;
+        $base['plan'] = $user->subscription?->plan ? [
+            'name'  => $user->subscription->plan->name,
+            'label' => $user->subscription->plan->label,
+        ] : null;
 
         return $base;
     }
 
     public function getProfileById(int $userId, int $currentUserId): ?array
     {
-        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name'])
+        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'subscription.plan:id,name,label'])
             ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'created_at'])
             ->find($userId);
 
         if (!$user) return null;
 
         $base = $this->enrichUserWithConnectionStatus($user, $currentUserId);
+        $base['plan'] = $user->subscription?->plan ? [
+            'name'  => $user->subscription->plan->name,
+            'label' => $user->subscription->plan->label,
+        ] : null;
 
         $base['gender']       = $user->gender;
         $base['birthday']     = $user->birthday?->format('Y-m-d');
