@@ -169,6 +169,36 @@ class LeadController extends Controller
         }
     }
 
+    public function reschedule(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'deadline' => ['required', 'date', 'after:today'],
+        ]);
+
+        try {
+            $lead = $this->leadService->rescheduleDeadline($request->user(), $id, $request->deadline);
+
+            return response()->json(['message' => 'Date échéance mise à jour.', 'data' => $this->format($lead)]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function transfer(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'receiver_id' => ['required', 'integer', 'exists:users,id'],
+        ]);
+
+        try {
+            $lead = $this->leadService->transferLead($request->user(), $id, (int) $request->receiver_id);
+
+            return response()->json(['message' => 'Lead transféré avec succès.', 'data' => $this->format($lead)]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
     public function pointsHistory(Request $request): JsonResponse
     {
         $paginator = PointsHistory::where('user_id', $request->user()->id)

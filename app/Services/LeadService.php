@@ -27,7 +27,7 @@ class LeadService
         $receiver = User::findOrFail($receiverId);
 
         if (!$sender->isConnectedWith($receiverId)) {
-            throw new \Exception('Vous ne pouvez envoyer des leads qu\'à vos connexions.');
+            throw new \Exception("Vous ne pouvez envoyer des leads qu'à vos connexions.");
         }
 
         if (($receiver->points_balance ?? 0) < 1) {
@@ -51,7 +51,7 @@ class LeadService
                 'status'           => Lead::STATUS_NEW,
             ]);
 
-            $sender->adjustPoints(+1, 'lead_sent');
+            // Points are granted when the receiver accepts, not on send
 
             DB::commit();
         } catch (\Exception $e) {
@@ -89,7 +89,10 @@ class LeadService
 
         DB::beginTransaction();
         try {
-            $lead->update(['status' => Lead::STATUS_ACCEPTED]);
+            $lead->update(['status' => Lead::STATUS_ACCEPTED, 'points_deducted' => true]);
+            $lead->load('sender');
+            $lead->sender?->adjustPoints(+1, 'lead_accepted');
+            $lead->receiver->adjustPoints(-1, 'lead_received');
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -152,7 +155,7 @@ class LeadService
         $lead = Lead::findOrFail($leadId);
 
         if ($lead->sender_id !== $user->id) {
-            throw new \Exception('Seul l\'expéditeur peut marquer un lead comme converti.');
+            throw new \Exception("Seul l'expéditeur peut marquer un lead comme converti.");
         }
 
         if (!$lead->isAccepted()) {
@@ -162,7 +165,6 @@ class LeadService
         DB::beginTransaction();
         try {
             $lead->update(['status' => Lead::STATUS_CONVERTED]);
-            $user->adjustPoints(+2, 'lead_converted');
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -192,6 +194,13 @@ class LeadService
 
         if ($lead->hasRatingBy($rater->id)) {
             throw new \Exception('Vous avez déjà noté ce lead.');
+        }
+
+        $ratingDeadline = $lead->deadline
+            ? \Carbon\Carbon::parse($lead->deadline)->addDays(30)
+            : $lead->created_at->addDays(60);
+        if (now()->gt($ratingDeadline)) {
+            throw new \Exception('Le délai de notation de ce lead est dépassé.');
         }
 
         DB::beginTransaction();
@@ -257,6 +266,13 @@ class LeadService
             throw new \Exception('Ce lead a déjà été signalé.');
         }
 
+        $reasonAliases = [
+            'false_info' => 'fausses_coordonnees',
+            'no_need'    => 'besoin_inexistant',
+            'duplicate'  => 'doublon',
+        ];
+        $reason = $reasonAliases[$reason] ?? $reason;
+
         $allowedReasons = ['fausses_coordonnees', 'besoin_inexistant', 'doublon'];
         if (!in_array($reason, $allowedReasons)) {
             throw new \Exception('Motif invalide.');
@@ -270,8 +286,7 @@ class LeadService
                 'fraud_reported_at' => now(),
             ]);
 
-            // Additional -1 point penalty for the sender (CDC: "Lead déclaré frauduleux: −1 supplémentaire")
-            $lead->sender?->adjustPoints(-1, 'lead_fraud_penalty');
+            $lead->sender?->adjustPoints(-1, 'lead_fraud');
 
             DB::commit();
         } catch (\Exception $e) {
@@ -286,6 +301,75 @@ class LeadService
         ]);
 
         return $lead->fresh(['sender', 'receiver']);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Reschedule deadline (receiver only, after accept)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function rescheduleDeadline(User $user, int $leadId, string $newDeadline): Lead
+    {
+        $lead = Lead::findOrFail($leadId);
+
+        if ($lead->receiver_id !== $user->id) {
+            throw new \Exception('Seul le destinataire peut modifier la date échéance.');
+        }
+
+        if (!$lead->isAccepted()) {
+            throw new \Exception('La date échéance ne peut être modifiée que sur un lead accepté.');
+        }
+
+        $lead->update(['deadline' => $newDeadline]);
+
+        Log::info('Lead deadline rescheduled', ['lead_id' => $lead->id, 'new_deadline' => $newDeadline]);
+
+        return $lead->fresh(['sender', 'receiver', 'sector']);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Transfer lead to another connection (sender only, when pending/rejected)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function transferLead(User $sender, int $leadId, int $newReceiverId): Lead
+    {
+        $lead = Lead::findOrFail($leadId);
+
+        if ($lead->sender_id !== $sender->id) {
+            throw new \Exception("Seul l'expéditeur peut transférer ce lead.");
+        }
+
+        if (!$lead->isNew() && !$lead->isRejected()) {
+            throw new \Exception('Seuls les leads en attente ou refusés peuvent être transférés.');
+        }
+
+        if ($lead->receiver_id === $newReceiverId) {
+            throw new \Exception('Le nouveau destinataire est identique au destinataire actuel.');
+        }
+
+        $newReceiver = User::findOrFail($newReceiverId);
+
+        if (!$sender->isConnectedWith($newReceiverId)) {
+            throw new \Exception("Vous ne pouvez transférer des leads qu'à vos connexions.");
+        }
+
+        if (($newReceiver->points_balance ?? 0) < 1) {
+            throw new \Exception('Ce membre ne peut pas recevoir de leads pour le moment. Son solde est insuffisant.');
+        }
+
+        $lead->update([
+            'receiver_id' => $newReceiverId,
+            'status'      => Lead::STATUS_NEW,
+        ]);
+
+        try {
+            $this->firebase->sendLeadNotification($lead->fresh(), $sender, 'sent');
+        } catch (\Exception $e) {
+            Log::warning('Firebase lead transfer notification failed', ['error' => $e->getMessage()]);
+        }
+
+        Log::info('Lead transferred', ['lead_id' => $lead->id, 'new_receiver' => $newReceiverId]);
+
+        return $lead->fresh(['sender', 'receiver', 'sector']);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -315,7 +399,7 @@ class LeadService
         $lead = Lead::findOrFail($leadId);
 
         if ($lead->sender_id !== $user->id) {
-            throw new \Exception('Seul l\'expéditeur peut annuler ce lead.');
+            throw new \Exception("Seul l'expéditeur peut annuler ce lead.");
         }
 
         if (!$lead->isNew()) {

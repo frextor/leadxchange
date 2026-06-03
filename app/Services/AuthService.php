@@ -162,12 +162,18 @@ class AuthService
             return null;
         }
 
-        return Subscription::create([
+        $subscription = Subscription::create([
             'user_id' => $user->id,
             'plan_id' => $basicPlan->id,
             'status' => 'active',
             'trial_ends_at' => now()->addDays(14),
         ]);
+
+        if (($basicPlan->initial_points ?? 0) > 0) {
+            $user->adjustPoints($basicPlan->initial_points, 'initial_balance');
+        }
+
+        return $subscription;
     }
 
     /**
