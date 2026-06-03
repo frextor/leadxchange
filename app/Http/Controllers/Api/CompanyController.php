@@ -45,10 +45,10 @@ class CompanyController extends Controller
      * Create a new company OR join an existing one.
      *
      * Create body:
-     *   { name, siret, sector_id, website?, position? }
+     *   { name, siret, sector_id, website? }
      *
      * Join body:
-     *   { existing_company_id, position? }
+     *   { existing_company_id }
      */
     public function store(Request $request): JsonResponse
     {
@@ -59,13 +59,11 @@ class CompanyController extends Controller
             if ($request->filled('existing_company_id')) {
                 $request->validate([
                     'existing_company_id' => ['required', 'integer', 'exists:companies,id'],
-                    'position'            => ['nullable', 'string', 'max:100'],
                 ]);
 
                 $company = $this->companyService->joinCompany(
                     $user,
-                    $request->integer('existing_company_id'),
-                    $request->input('position')
+                    $request->integer('existing_company_id')
                 );
 
                 return response()->json([
@@ -85,7 +83,6 @@ class CompanyController extends Controller
                 'siret'     => ['required', 'string', 'size:14', 'unique:companies,siret', 'regex:/^[0-9]{14}$/'],
                 'sector_id' => ['required', 'integer', 'exists:sectors,id'],
                 'website'   => ['nullable', 'url', 'max:255'],
-                'position'  => ['nullable', 'string', 'max:100'],
             ]);
 
             $company = $this->companyService->createCompany($user, $validated);
@@ -145,12 +142,11 @@ class CompanyController extends Controller
     private function companyData($company): array
     {
         return [
-            'id'         => $company->id,
-            'name'       => $company->name,
-            'siret'      => $company->siret,
-            'sector_id'  => $company->sector_id,
-            'sector'     => $company->sector?->name ?? $company->sector_name,
-            'website'    => $company->website,
+            'id'      => $company->id,
+            'name'    => $company->name,
+            'siret'   => $company->siret,
+            'website' => $company->website,
+            'sector'  => $company->sector ? ['id' => $company->sector->id, 'name' => $company->sector->name] : ($company->sector_name ? ['id' => null, 'name' => $company->sector_name] : null),
             'created_at' => $company->created_at,
         ];
     }

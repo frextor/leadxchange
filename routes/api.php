@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\CountryController;
 use App\Http\Controllers\Api\ChatController as ApiChatController;
 use App\Http\Controllers\Api\EventController as ApiEventController;
 use App\Http\Controllers\Api\GroupController;
+use App\Http\Controllers\Api\PollController;
 use App\Http\Controllers\Api\LanguageController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\UserController;
@@ -75,6 +76,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/users',                  [UserController::class, 'index']);           // Paginated list + search
     Route::get('/users/recommendations',  [UserController::class, 'recommendations']); // Location + interest scoring
     Route::get('/users/{id}',             [UserController::class, 'show']);            // User details
+    Route::post('/users/{id}/visit',        [UserController::class, 'recordVisit']);    // Record profile visit
 
     // FCM Device Token Routes
     Route::post('/device-token', [DeviceTokenController::class, 'store']);
@@ -116,6 +118,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/groups/{id}/posts/{postId}',                [GroupController::class, 'destroyPost']);
     Route::post('/groups/{id}/posts/{postId}/comments',         [GroupController::class, 'storeComment']);
     Route::post('/groups/{id}/activities',                      [GroupController::class, 'storeActivity']);
+    Route::get('/groups/{group}/polls',              [PollController::class, 'index']);
+    Route::post('/groups/{group}/polls',             [PollController::class, 'store']);
+    Route::post('/groups/{group}/polls/{poll}/vote', [PollController::class, 'vote']);
+    Route::patch('/groups/{group}/polls/{poll}',     [PollController::class, 'update']);
+    Route::delete('/groups/{group}/polls/{poll}',    [PollController::class, 'destroy']);
 
     // Lead Routes
     Route::get('/leads',                   [ApiLeadController::class, 'index']);

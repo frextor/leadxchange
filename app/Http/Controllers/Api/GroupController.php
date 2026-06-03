@@ -27,7 +27,13 @@ class GroupController extends Controller
             $user->profile?->services_offered ?? [],
             $user->profile?->sector_ids       ?? [],
         ));
-        $userCityId     = $user->city_id;
+        $request->validate([
+            'city_id' => ['nullable', 'integer', 'exists:cities,id'],
+        ]);
+        $userCityId = $request->filled('city_id') ? (int) $request->city_id : $user->city_id;
+        if (!$userCityId) {
+            return response()->json(['message' => 'city_id is required'], 422);
+        }
         $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
         $userRole       = $user->groups()->pluck('group_user.role', 'groups.id')->toArray();
 
@@ -64,7 +70,7 @@ class GroupController extends Controller
             ->where('is_public', true)
             ->whereNotIn('id', $memberGroupIds);
 
-        if ($request->filled('city_id'))  $publicQuery->where('city_id', $request->city_id);
+        $publicQuery->where('city_id', $userCityId);
         if ($request->filled('category')) $publicQuery->where('sector_id', $request->category);
         if ($request->filled('search'))   $publicQuery->where('name', 'like', '%' . $request->search . '%');
 
@@ -157,7 +163,7 @@ class GroupController extends Controller
             'name'        => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:500'],
             'sector_id'   => ['nullable', 'integer', 'exists:sectors,id'],
-            'city_id'     => ['nullable', 'integer', 'exists:cities,id'],
+            'city_id'     => ['required', 'integer', 'exists:cities,id'],
             'cover_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'cover_photo' => ['nullable', 'image', 'mimes:jpeg,png,webp,jpg', 'max:3072'],
             'is_public'   => ['nullable', 'boolean'],
@@ -173,7 +179,7 @@ class GroupController extends Controller
             'name'          => $validated['name'],
             'description'   => $validated['description'] ?? null,
             'sector_id'     => $validated['sector_id'] ?? null,
-            'city_id'       => $validated['city_id'] ?? $user->city_id,
+            'city_id'       => $validated['city_id'],
             'cover_color'   => $validated['cover_color'] ?? '#1E8F88',
             'cover_photo'   => $coverPhoto,
             'created_by'    => $user->id,
@@ -536,7 +542,7 @@ class GroupController extends Controller
             'photo_path' => $photoPath,
         ]);
 
-        $post->load('author:id,first_name,last_name');
+        $post->load(['author:id,first_name,last_name', 'author.profile:id,user_id,avatar']);
 
         return response()->json(['message' => 'Post created.', 'data' => $this->formatPost($post, $user->id)], 201);
     }
@@ -582,7 +588,7 @@ class GroupController extends Controller
             'body'    => $request->body,
         ]);
 
-        $comment->load('author:id,first_name,last_name');
+        $comment->load(['author:id,first_name,last_name', 'author.profile:id,user_id,avatar']);
 
         return response()->json([
             'message' => 'Comment added.',
@@ -590,7 +596,7 @@ class GroupController extends Controller
                 'id'         => $comment->id,
                 'body'       => $comment->body,
                 'created_at' => $comment->created_at,
-                'author'     => ['id' => $comment->author->id, 'name' => $comment->author->first_name . ' ' . $comment->author->last_name],
+                'author'     => ['id' => $comment->author->id, 'name' => $comment->author->first_name . ' ' . $comment->author->last_name, 'avatar' => $comment->author->profile?->avatar_url],
             ],
         ], 201);
     }
@@ -622,7 +628,7 @@ class GroupController extends Controller
             'activity_date'  => $request->activity_date,
         ]);
 
-        $post->load('author:id,first_name,last_name');
+        $post->load(['author:id,first_name,last_name', 'author.profile:id,user_id,avatar']);
 
         return response()->json(['message' => 'Activity created.', 'data' => $this->formatPost($post, $user->id)], 201);
     }
@@ -638,12 +644,12 @@ class GroupController extends Controller
             'activity_date'  => $post->activity_date?->toIso8601String(),
             'created_at'     => $post->created_at,
             'is_own'         => $post->user_id === $authUserId,
-            'author'         => $post->author ? ['id' => $post->author->id, 'name' => $post->author->first_name . ' ' . $post->author->last_name] : null,
+            'author'         => $post->author ? ['id' => $post->author->id, 'name' => $post->author->first_name . ' ' . $post->author->last_name, 'avatar' => $post->author->profile?->avatar_url] : null,
             'comments'       => $post->relationLoaded('comments') ? $post->comments->map(fn($c) => [
                 'id'         => $c->id,
                 'body'       => $c->body,
                 'created_at' => $c->created_at,
-                'author'     => $c->author ? ['id' => $c->author->id, 'name' => $c->author->first_name . ' ' . $c->author->last_name] : null,
+                'author'     => $c->author ? ['id' => $c->author->id, 'name' => $c->author->first_name . ' ' . $c->author->last_name, 'avatar' => $c->author->profile?->avatar_url] : null,
             ]) : [],
         ];
     }

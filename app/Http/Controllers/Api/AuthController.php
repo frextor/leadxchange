@@ -12,8 +12,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rules\Password as PasswordRule;
+use Throwable;
 
 /**
  * AuthController (REFACTORED)
@@ -159,7 +161,18 @@ class AuthController extends Controller
     {
         $request->validate(['email' => ['required', 'email']]);
 
-        $status = Password::sendResetLink($request->only('email'));
+        try {
+            $status = Password::sendResetLink($request->only('email'));
+        } catch (Throwable $e) {
+            Log::error('Password reset email failed', [
+                'email' => $request->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Password reset email could not be sent right now. Please try again later.',
+            ], 503);
+        }
 
         if ($status === Password::RESET_LINK_SENT) {
             return response()->json(['message' => 'Reset link sent to your email.']);
@@ -207,7 +220,6 @@ class AuthController extends Controller
                 'siret'     => ['required', 'string', 'size:14', 'unique:companies,siret', 'regex:/^[0-9]{14}$/'],
                 'sector_id' => ['required', 'integer', 'exists:sectors,id'],
                 'website'   => ['nullable', 'url', 'max:255'],
-                'position'  => ['nullable', 'string', 'max:100'],
             ]);
 
             $this->companyService->createCompany($request->user(), $validated);

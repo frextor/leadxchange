@@ -21,14 +21,13 @@ class InboxController extends Controller
         $connectionIds = $user->connectionIds();
         $connections   = User::with('company')
             ->whereIn('id', $connectionIds)
-            ->select('id', 'first_name', 'last_name', 'position', 'points_balance')
+            ->select('id', 'first_name', 'last_name', 'points_balance')
             ->orderBy('first_name')
             ->get()
             ->map(fn($u) => [
                 'id'       => $u->id,
                 'name'     => trim($u->first_name . ' ' . $u->last_name),
                 'initials' => strtoupper(mb_substr($u->first_name, 0, 1) . mb_substr($u->last_name, 0, 1)),
-                'position' => $u->position,
                 'company'  => $u->company?->name,
                 'points'   => $u->points_balance ?? 0,
             ]);
@@ -87,7 +86,7 @@ class InboxController extends Controller
                 'ts'            => now(),
                 'actor_id'      => $sender->id,
                 'actor_name'    => trim($sender->first_name . ' ' . $sender->last_name),
-                'actor_title'   => $sender->position,
+                'actor_title'   => $sender->profile?->job_title,
                 'actor_company' => $sender->company?->name,
                 'title'         => 'Re : ' . $item->title,
                 'preview'       => mb_strimwidth($request->body, 0, 80, '…'),
@@ -126,7 +125,7 @@ class InboxController extends Controller
                 'ts'            => now(),
                 'actor_id'      => $sender->id,
                 'actor_name'    => trim($sender->first_name . ' ' . $sender->last_name),
-                'actor_title'   => $sender->position,
+                'actor_title'   => $sender->profile?->job_title,
                 'actor_company' => $sender->company?->name,
                 'lead_ref'      => $lead ? 'L-' . $lead->id : null,
                 'lead_id'       => $lead?->id,

@@ -50,7 +50,7 @@ class ChatController extends Controller
         $connectionIds = $user->connectionIds();
         $connections   = User::with('company')
             ->whereIn('id', $connectionIds)
-            ->select('id', 'first_name', 'last_name', 'position', 'company_id')
+            ->select('id', 'first_name', 'last_name', 'company_id')
             ->orderBy('first_name')
             ->get();
 
