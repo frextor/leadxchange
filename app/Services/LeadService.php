@@ -154,8 +154,8 @@ class LeadService
     {
         $lead = Lead::findOrFail($leadId);
 
-        if ($lead->sender_id !== $user->id) {
-            throw new \Exception("Seul l'expéditeur peut marquer un lead comme converti.");
+        if ($lead->receiver_id !== $user->id) {
+            throw new \Exception("Seul le destinataire peut marquer un lead comme converti.");
         }
 
         if (!$lead->isAccepted()) {
