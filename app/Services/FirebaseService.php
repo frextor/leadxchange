@@ -47,9 +47,10 @@ class FirebaseService
             $response = Http::withToken($accessToken)
                 ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
                     'message' => [
-                        'token' => $token,
-                        'data'  => array_merge($data, ['title' => $title, 'body' => $body]),
+                        'token'   => $token,
+                        'data'    => array_merge($data, ['title' => $title, 'body' => $body]),
                         'android' => ['priority' => 'high'],
+                        'apns'    => ['payload' => ['aps' => ['alert' => ['title' => $title, 'body' => $body], 'sound' => 'default']]],
                     ],
                 ]);
 
@@ -128,6 +129,7 @@ class FirebaseService
                             'type'             => 'lead',
                         ],
                         'android' => ['priority' => 'high'],
+                        'apns'    => ['payload' => ['aps' => ['alert' => ['title' => $title, 'body' => $body], 'sound' => 'default']]],
                     ],
                 ]);
 
@@ -236,6 +238,7 @@ class FirebaseService
                         'token'   => $token,
                         'data'    => array_merge($data, ['title' => $title, 'body' => $body]),
                         'android' => ['priority' => 'high'],
+                        'apns'    => ['payload' => ['aps' => ['alert' => ['title' => $title, 'body' => $body], 'sound' => 'default']]],
                     ],
                 ]);
 
