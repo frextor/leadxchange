@@ -11,7 +11,7 @@ class Profile extends Model
     protected $fillable = [
         'user_id', 'avatar', 'bio', 'motto', 'job_title', 'sector',
         'experience_level', 'looking_for', 'services_offered', 'open_to_network',
-        'website', 'region', 'linkedin', 'sector_ids',
+        'website', 'linkedin', 'sector_ids',
     ];
 
     protected $casts = [
@@ -30,6 +30,8 @@ class Profile extends Model
 
     public function getAvatarUrlAttribute(): ?string
     {
-        return $this->avatar ? Storage::disk('public')->url($this->avatar) : null;
+        if (!$this->avatar) return null;
+        if (str_starts_with($this->avatar, 'http')) return $this->avatar;
+        return Storage::disk('public')->url($this->avatar);
     }
 }

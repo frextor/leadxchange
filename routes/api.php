@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\CountryController;
 use App\Http\Controllers\Api\ChatController as ApiChatController;
 use App\Http\Controllers\Api\EventController as ApiEventController;
 use App\Http\Controllers\Api\GroupController;
+use App\Http\Controllers\Api\PollController;
 use App\Http\Controllers\Api\LanguageController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\UserController;
@@ -67,13 +68,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/', [ConnectionController::class, 'store']);             // Send connection request
         Route::post('/{id}/accept', [ConnectionController::class, 'accept']); // Accept request
         Route::post('/{id}/reject', [ConnectionController::class, 'reject']); // Reject request
-        Route::delete('/{id}', [ConnectionController::class, 'destroy']);     // Cancel request
+        Route::delete('/{id}', [ConnectionController::class, 'destroy']);     // Cancel pending request
+        Route::post('/{id}/remove', [ConnectionController::class, 'remove']); // Remove accepted connection
     });
 
     // User Routes
     Route::get('/users',                  [UserController::class, 'index']);           // Paginated list + search
     Route::get('/users/recommendations',  [UserController::class, 'recommendations']); // Location + interest scoring
     Route::get('/users/{id}',             [UserController::class, 'show']);            // User details
+    Route::post('/users/{id}/visit',        [UserController::class, 'recordVisit']);    // Record profile visit
 
     // FCM Device Token Routes
     Route::post('/device-token', [DeviceTokenController::class, 'store']);
@@ -81,6 +84,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Profile Routes
     Route::get('/profile',                  [ProfileController::class, 'show']);
+    Route::put('/profile/location',         [ProfileController::class, 'updateLocation']);
     Route::put('/profile/basic',            [ProfileController::class, 'updateBasic']);
     Route::put('/profile/professional',     [ProfileController::class, 'updateProfessional']);
     Route::put('/profile/bio',              [ProfileController::class, 'updateBio']);
@@ -114,16 +118,25 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/groups/{id}/posts/{postId}',                [GroupController::class, 'destroyPost']);
     Route::post('/groups/{id}/posts/{postId}/comments',         [GroupController::class, 'storeComment']);
     Route::post('/groups/{id}/activities',                      [GroupController::class, 'storeActivity']);
+    Route::get('/groups/{group}/polls',              [PollController::class, 'index']);
+    Route::post('/groups/{group}/polls',             [PollController::class, 'store']);
+    Route::post('/groups/{group}/polls/{poll}/vote', [PollController::class, 'vote']);
+    Route::patch('/groups/{group}/polls/{poll}',     [PollController::class, 'update']);
+    Route::delete('/groups/{group}/polls/{poll}',    [PollController::class, 'destroy']);
 
     // Lead Routes
     Route::get('/leads',                   [ApiLeadController::class, 'index']);
     Route::post('/leads',                  [ApiLeadController::class, 'store']);
+    Route::get('/leads/stats',             [ApiLeadController::class, 'stats']);
     Route::get('/leads/{id}',              [ApiLeadController::class, 'show']);
+    Route::delete('/leads/{id}',           [ApiLeadController::class, 'destroy']);
     Route::post('/leads/{id}/accept',      [ApiLeadController::class, 'accept']);
     Route::post('/leads/{id}/reject',      [ApiLeadController::class, 'reject']);
     Route::post('/leads/{id}/convert',     [ApiLeadController::class, 'convert']);
     Route::post('/leads/{id}/rate',        [ApiLeadController::class, 'rate']);
     Route::post('/leads/{id}/report',      [ApiLeadController::class, 'report']);
+    Route::patch('/leads/{id}/reschedule', [ApiLeadController::class, 'reschedule']);
+    Route::post('/leads/{id}/transfer',    [ApiLeadController::class, 'transfer']);
 
     // Points history (CDC: GET /api/users/me/points/history)
     Route::get('/users/me/points/history', [ApiLeadController::class, 'pointsHistory']);
@@ -139,7 +152,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/events/{id}/join',                            [ApiEventController::class, 'join']);
     Route::delete('/events/{id}/leave',                         [ApiEventController::class, 'leave']);
     Route::post('/events/{id}/invite',                          [ApiEventController::class, 'invite']);
+    Route::post('/events/{id}/invite/bulk',                     [ApiEventController::class, 'inviteBulk']);
     Route::delete('/events/{id}',                               [ApiEventController::class, 'destroy']);
+    Route::get('/events/{id}/attendees',                        [ApiEventController::class, 'attendees']);
     Route::delete('/events/{id}/attendees/{userId}',            [ApiEventController::class, 'removeAttendee']);
 
     // Chat Routes

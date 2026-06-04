@@ -27,7 +27,13 @@ class GroupController extends Controller
             $user->profile?->services_offered ?? [],
             $user->profile?->sector_ids       ?? [],
         ));
-        $userCityId     = $user->city_id;
+        $request->validate([
+            'city_id' => ['nullable', 'integer', 'exists:cities,id'],
+        ]);
+        $userCityId = $request->filled('city_id') ? (int) $request->city_id : $user->city_id;
+        if (!$userCityId) {
+            return response()->json(['message' => 'city_id is required'], 422);
+        }
         $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
         $userRole       = $user->groups()->pluck('group_user.role', 'groups.id')->toArray();
 
@@ -39,7 +45,7 @@ class GroupController extends Controller
             ->where('status', 'pending')
             ->pluck('group_id')
             ->toArray();
-        $invitedQuery = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+        $invitedQuery = Group::with(['sector:id,name', 'creator' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email')->with('profile'), 'city:id,name'])
             ->withCount('members')
             ->whereIn('id', $invitedGroupIds);
         if ($request->filled('search')) $invitedQuery->where('name', 'like', '%' . $request->search . '%');
@@ -49,7 +55,7 @@ class GroupController extends Controller
             ->values();
 
         // ── My groups (paginated) ─────────────────────────────────────────
-        $myGroupsQuery = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+        $myGroupsQuery = Group::with(['sector:id,name', 'creator' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email')->with('profile'), 'city:id,name'])
             ->withCount('members')
             ->whereIn('id', $memberGroupIds);
         if ($request->filled('search')) $myGroupsQuery->where('name', 'like', '%' . $request->search . '%');
@@ -59,12 +65,12 @@ class GroupController extends Controller
             ->values();
 
         // ── Public groups not yet joined (paginated) ──────────────────────
-        $publicQuery = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+        $publicQuery = Group::with(['sector:id,name', 'creator' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email')->with('profile'), 'city:id,name'])
             ->withCount('members')
             ->where('is_public', true)
             ->whereNotIn('id', $memberGroupIds);
 
-        if ($request->filled('city_id'))  $publicQuery->where('city_id', $request->city_id);
+        $publicQuery->where('city_id', $userCityId);
         if ($request->filled('category')) $publicQuery->where('sector_id', $request->category);
         if ($request->filled('search'))   $publicQuery->where('name', 'like', '%' . $request->search . '%');
 
@@ -131,7 +137,7 @@ class GroupController extends Controller
      */
     public function show(int $id, Request $request): JsonResponse
     {
-        $group = Group::with(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name'])
+        $group = Group::with(['sector:id,name', 'creator' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email')->with('profile'), 'city:id,name'])
             ->withCount('members')
             ->findOrFail($id);
 
@@ -157,7 +163,7 @@ class GroupController extends Controller
             'name'        => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:500'],
             'sector_id'   => ['nullable', 'integer', 'exists:sectors,id'],
-            'city_id'     => ['nullable', 'integer', 'exists:cities,id'],
+            'city_id'     => ['required', 'integer', 'exists:cities,id'],
             'cover_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'cover_photo' => ['nullable', 'image', 'mimes:jpeg,png,webp,jpg', 'max:3072'],
             'is_public'   => ['nullable', 'boolean'],
@@ -173,7 +179,7 @@ class GroupController extends Controller
             'name'          => $validated['name'],
             'description'   => $validated['description'] ?? null,
             'sector_id'     => $validated['sector_id'] ?? null,
-            'city_id'       => $validated['city_id'] ?? $user->city_id,
+            'city_id'       => $validated['city_id'],
             'cover_color'   => $validated['cover_color'] ?? '#1E8F88',
             'cover_photo'   => $coverPhoto,
             'created_by'    => $user->id,
@@ -182,7 +188,7 @@ class GroupController extends Controller
         ]);
 
         $group->members()->attach($user->id, ['role' => 'owner']);
-        $group->load(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name']);
+        $group->load(['sector:id,name', 'creator' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email')->with('profile'), 'city:id,name']);
         $group->loadCount('members');
 
         return response()->json([
@@ -214,12 +220,12 @@ class GroupController extends Controller
         ]);
 
         if ($request->hasFile('cover_photo')) {
-            if ($group->cover_photo) Storage::disk('public')->delete($group->cover_photo);
+            if ($group->cover_photo && !str_starts_with($group->cover_photo, 'http')) Storage::disk('public')->delete($group->cover_photo);
             $validated['cover_photo'] = $request->file('cover_photo')->store('group-covers', 'public');
         }
 
         $group->update(array_filter($validated, fn($v) => $v !== null));
-        $group->load(['sector:id,name', 'creator:id,first_name,last_name', 'city:id,name']);
+        $group->load(['sector:id,name', 'creator' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email')->with('profile'), 'city:id,name']);
         $group->loadCount('members');
 
         $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
@@ -242,7 +248,7 @@ class GroupController extends Controller
             return response()->json(['message' => 'Only the group owner can delete this group.'], 403);
         }
 
-        if ($group->cover_photo) Storage::disk('public')->delete($group->cover_photo);
+        if ($group->cover_photo && !str_starts_with($group->cover_photo, 'http')) Storage::disk('public')->delete($group->cover_photo);
         $group->delete();
 
         return response()->json(['message' => 'Group deleted successfully.']);
@@ -374,7 +380,7 @@ class GroupController extends Controller
                     'id'              => $inv->group->id,
                     'name'            => $inv->group->name,
                     'cover_color'     => $inv->group->cover_color,
-                    'cover_photo_url' => $inv->group->cover_photo ? Storage::disk('public')->url($inv->group->cover_photo) : null,
+                    'cover_photo_url' => $inv->group->cover_photo ? (str_starts_with($inv->group->cover_photo, 'http') ? $inv->group->cover_photo : Storage::disk('public')->url($inv->group->cover_photo)) : null,
                 ],
                 'inviter'    => $inv->inviter ? ['id' => $inv->inviter->id, 'name' => $inv->inviter->first_name . ' ' . $inv->inviter->last_name] : null,
                 'created_at' => $inv->created_at,
@@ -536,7 +542,7 @@ class GroupController extends Controller
             'photo_path' => $photoPath,
         ]);
 
-        $post->load('author:id,first_name,last_name');
+        $post->load(['author:id,first_name,last_name', 'author.profile:id,user_id,avatar']);
 
         return response()->json(['message' => 'Post created.', 'data' => $this->formatPost($post, $user->id)], 201);
     }
@@ -582,7 +588,7 @@ class GroupController extends Controller
             'body'    => $request->body,
         ]);
 
-        $comment->load('author:id,first_name,last_name');
+        $comment->load(['author:id,first_name,last_name', 'author.profile:id,user_id,avatar']);
 
         return response()->json([
             'message' => 'Comment added.',
@@ -590,7 +596,7 @@ class GroupController extends Controller
                 'id'         => $comment->id,
                 'body'       => $comment->body,
                 'created_at' => $comment->created_at,
-                'author'     => ['id' => $comment->author->id, 'name' => $comment->author->first_name . ' ' . $comment->author->last_name],
+                'author'     => ['id' => $comment->author->id, 'name' => $comment->author->first_name . ' ' . $comment->author->last_name, 'avatar' => $comment->author->profile?->avatar_url],
             ],
         ], 201);
     }
@@ -622,7 +628,7 @@ class GroupController extends Controller
             'activity_date'  => $request->activity_date,
         ]);
 
-        $post->load('author:id,first_name,last_name');
+        $post->load(['author:id,first_name,last_name', 'author.profile:id,user_id,avatar']);
 
         return response()->json(['message' => 'Activity created.', 'data' => $this->formatPost($post, $user->id)], 201);
     }
@@ -638,12 +644,12 @@ class GroupController extends Controller
             'activity_date'  => $post->activity_date?->toIso8601String(),
             'created_at'     => $post->created_at,
             'is_own'         => $post->user_id === $authUserId,
-            'author'         => $post->author ? ['id' => $post->author->id, 'name' => $post->author->first_name . ' ' . $post->author->last_name] : null,
+            'author'         => $post->author ? ['id' => $post->author->id, 'name' => $post->author->first_name . ' ' . $post->author->last_name, 'avatar' => $post->author->profile?->avatar_url] : null,
             'comments'       => $post->relationLoaded('comments') ? $post->comments->map(fn($c) => [
                 'id'         => $c->id,
                 'body'       => $c->body,
                 'created_at' => $c->created_at,
-                'author'     => $c->author ? ['id' => $c->author->id, 'name' => $c->author->first_name . ' ' . $c->author->last_name] : null,
+                'author'     => $c->author ? ['id' => $c->author->id, 'name' => $c->author->first_name . ' ' . $c->author->last_name, 'avatar' => $c->author->profile?->avatar_url] : null,
             ]) : [],
         ];
     }
@@ -655,7 +661,7 @@ class GroupController extends Controller
             'name'            => $group->name,
             'description'     => $group->description,
             'cover_color'     => $group->cover_color,
-            'cover_photo_url' => $group->cover_photo ? Storage::disk('public')->url($group->cover_photo) : null,
+            'cover_photo_url' => $group->cover_photo ? (str_starts_with($group->cover_photo, 'http') ? $group->cover_photo : Storage::disk('public')->url($group->cover_photo)) : null,
             'is_public'       => $group->is_public,
             'members_count'   => $group->members_count,
             'is_member'       => in_array($group->id, $memberGroupIds),
@@ -666,7 +672,12 @@ class GroupController extends Controller
             'is_nearby'       => $userCityId !== null && $group->city_id === $userCityId,
             'sector'          => $group->sector  ? ['id' => $group->sector->id,  'name' => $group->sector->name]  : null,
             'city'            => $group->city    ? ['id' => $group->city->id,    'name' => $group->city->name]    : null,
-            'creator'         => $group->creator ? ['id' => $group->creator->id, 'name' => $group->creator->first_name . ' ' . $group->creator->last_name] : null,
+            'creator'         => $group->creator ? [
+                'id'         => $group->creator->id,
+                'name'       => $group->creator->first_name . ' ' . $group->creator->last_name,
+                'email'      => $group->creator->email,
+                'avatar_url' => $group->creator->profile?->avatar_url,
+            ] : null,
             'created_at'      => $group->created_at,
         ];
     }

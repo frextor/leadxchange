@@ -17,7 +17,7 @@ class DeductLeadPoints extends Command
         // Leads that are accepted or converted, older than 15 days,
         // have no rating, and haven't had the deduction applied yet.
         $leads = Lead::with('receiver')
-            ->where('status', '!=', Lead::STATUS_REJECTED)
+            ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
             ->where('created_at', '<=', $cutoff)
             ->where('points_deducted', false)
             ->whereDoesntHave('ratings')

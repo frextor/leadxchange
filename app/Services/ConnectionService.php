@@ -197,15 +197,21 @@ class ConnectionService
      * @param string|null $status
      * @return Collection
      */
-    public function getReceivedRequests(User $user, ?string $status = null): Collection
+    public function getReceivedRequests(User $user, ?string $status = null, ?int $groupId = null): Collection
     {
         $query = Connection::where('receiver_id', $user->id)
             ->with(['sender' => function ($query) {
                 $query->select('id', 'first_name', 'last_name', 'email', 'company_id');
-            }]);
+            }, 'sender.profile:user_id,avatar']);
 
         if ($status) {
             $query->where('status', $status);
+        }
+
+        if ($groupId) {
+            $query->whereNotIn('sender_id', function ($sub) use ($groupId) {
+                $sub->select('user_id')->from('group_user')->where('group_id', $groupId);
+            });
         }
 
         return $query->orderBy('created_at', 'desc')->get();
@@ -218,15 +224,21 @@ class ConnectionService
      * @param string|null $status
      * @return Collection
      */
-    public function getSentRequests(User $user, ?string $status = null): Collection
+    public function getSentRequests(User $user, ?string $status = null, ?int $groupId = null): Collection
     {
         $query = Connection::where('sender_id', $user->id)
             ->with(['receiver' => function ($query) {
                 $query->select('id', 'first_name', 'last_name', 'email', 'company_id');
-            }]);
+            }, 'receiver.profile:user_id,avatar']);
 
         if ($status) {
             $query->where('status', $status);
+        }
+
+        if ($groupId) {
+            $query->whereNotIn('receiver_id', function ($sub) use ($groupId) {
+                $sub->select('user_id')->from('group_user')->where('group_id', $groupId);
+            });
         }
 
         return $query->orderBy('created_at', 'desc')->get();
@@ -245,14 +257,14 @@ class ConnectionService
             ->where('status', Connection::STATUS_ACCEPTED)
             ->with(['receiver' => function ($query) {
                 $query->select('id', 'first_name', 'last_name', 'email', 'company_id');
-            }])
+            }, 'receiver.profile:user_id,avatar'])
             ->get();
 
         $asReceiver = Connection::where('receiver_id', $user->id)
             ->where('status', Connection::STATUS_ACCEPTED)
             ->with(['sender' => function ($query) {
                 $query->select('id', 'first_name', 'last_name', 'email', 'company_id');
-            }])
+            }, 'sender.profile:user_id,avatar'])
             ->get();
 
         return $asSender->merge($asReceiver)->sortByDesc('created_at');
@@ -278,6 +290,28 @@ class ConnectionService
     }
 
     /**
+     * Remove an accepted connection (either party can remove).
+     */
+    public function removeConnection(int $connectionId, User $user): bool
+    {
+        $connection = Connection::find($connectionId);
+
+        if (!$connection) {
+            throw new \Exception('Connection not found');
+        }
+
+        if ($connection->sender_id !== $user->id && $connection->receiver_id !== $user->id) {
+            throw new \Exception('You are not part of this connection');
+        }
+
+        if ($connection->status !== 'accepted') {
+            throw new \Exception('Only accepted connections can be removed');
+        }
+
+        return $connection->delete();
+    }
+
+    /**
      * Cancel a pending sent request.
      *
      * @param int $connectionId
@@ -293,14 +327,9 @@ class ConnectionService
             throw new \Exception('Connection request not found');
         }
 
-        // Only sender can cancel
-        if ($connection->sender_id !== $user->id) {
-            throw new \Exception('Only the sender can cancel this connection request');
-        }
-
-        // Must be pending
-        if (!$connection->isPending()) {
-            throw new \Exception('Only pending requests can be cancelled');
+        // Must be sender or receiver
+        if ($connection->sender_id !== $user->id && $connection->receiver_id !== $user->id) {
+            throw new \Exception('You are not part of this connection');
         }
 
         return $connection->delete();

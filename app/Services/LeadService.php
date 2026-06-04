@@ -27,7 +27,7 @@ class LeadService
         $receiver = User::findOrFail($receiverId);
 
         if (!$sender->isConnectedWith($receiverId)) {
-            throw new \Exception('Vous ne pouvez envoyer des leads qu\'à vos connexions.');
+            throw new \Exception("Vous ne pouvez envoyer des leads qu'à vos connexions.");
         }
 
         if (($sender->points_balance ?? 0) < 1) {
@@ -51,7 +51,7 @@ class LeadService
                 'status'           => Lead::STATUS_NEW,
             ]);
 
-            $sender->adjustPoints(+1, 'lead_sent');
+            // Points are granted when the receiver accepts, not on send
 
             DB::commit();
         } catch (\Exception $e) {
@@ -89,7 +89,10 @@ class LeadService
 
         DB::beginTransaction();
         try {
-            $lead->update(['status' => Lead::STATUS_ACCEPTED]);
+            $lead->update(['status' => Lead::STATUS_ACCEPTED, 'points_deducted' => true]);
+            $lead->load('sender');
+            $lead->sender?->adjustPoints(+1, 'lead_accepted');
+            $lead->receiver->adjustPoints(-1, 'lead_received');
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -151,15 +154,22 @@ class LeadService
     {
         $lead = Lead::findOrFail($leadId);
 
-        if ($lead->sender_id !== $user->id) {
-            throw new \Exception('Seul l\'expéditeur peut marquer un lead comme converti.');
+        if ($lead->receiver_id !== $user->id) {
+            throw new \Exception("Seul le destinataire peut marquer un lead comme converti.");
         }
 
         if (!$lead->isAccepted()) {
             throw new \Exception('Seuls les leads acceptés peuvent être convertis.');
         }
 
-        $lead->update(['status' => Lead::STATUS_CONVERTED]);
+        DB::beginTransaction();
+        try {
+            $lead->update(['status' => Lead::STATUS_CONVERTED]);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
 
         Log::info('Lead converted', ['lead_id' => $lead->id, 'user' => $user->id]);
 
@@ -266,8 +276,7 @@ class LeadService
                 'fraud_reported_at' => now(),
             ]);
 
-            // Additional -1 point penalty for the sender (CDC: "Lead déclaré frauduleux: −1 supplémentaire")
-            $lead->sender?->adjustPoints(-1, 'lead_fraud_penalty');
+            $lead->sender?->adjustPoints(-1, 'lead_fraud');
 
             DB::commit();
         } catch (\Exception $e) {
@@ -285,17 +294,111 @@ class LeadService
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Reschedule deadline (receiver only, after accept)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function rescheduleDeadline(User $user, int $leadId, string $newDeadline): Lead
+    {
+        $lead = Lead::findOrFail($leadId);
+
+        if ($lead->receiver_id !== $user->id) {
+            throw new \Exception('Seul le destinataire peut modifier la date échéance.');
+        }
+
+        if (!$lead->isAccepted()) {
+            throw new \Exception('La date échéance ne peut être modifiée que sur un lead accepté.');
+        }
+
+        $lead->update(['deadline' => $newDeadline]);
+
+        Log::info('Lead deadline rescheduled', ['lead_id' => $lead->id, 'new_deadline' => $newDeadline]);
+
+        return $lead->fresh(['sender', 'receiver', 'sector']);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Transfer lead to another connection (sender only, when pending/rejected)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function transferLead(User $sender, int $leadId, int $newReceiverId): Lead
+    {
+        $lead = Lead::findOrFail($leadId);
+
+        if ($lead->sender_id !== $sender->id) {
+            throw new \Exception("Seul l'expéditeur peut transférer ce lead.");
+        }
+
+        if (!$lead->isNew() && !$lead->isRejected()) {
+            throw new \Exception('Seuls les leads en attente ou refusés peuvent être transférés.');
+        }
+
+        if ($lead->receiver_id === $newReceiverId) {
+            throw new \Exception('Le nouveau destinataire est identique au destinataire actuel.');
+        }
+
+        $newReceiver = User::findOrFail($newReceiverId);
+
+        if (!$sender->isConnectedWith($newReceiverId)) {
+            throw new \Exception("Vous ne pouvez transférer des leads qu'à vos connexions.");
+        }
+
+        if (($newReceiver->points_balance ?? 0) < 1) {
+            throw new \Exception('Ce membre ne peut pas recevoir de leads pour le moment. Son solde est insuffisant.');
+        }
+
+        $lead->update([
+            'receiver_id' => $newReceiverId,
+            'status'      => Lead::STATUS_NEW,
+        ]);
+
+        try {
+            $this->firebase->sendLeadNotification($lead->fresh(), $sender, 'sent');
+        } catch (\Exception $e) {
+            Log::warning('Firebase lead transfer notification failed', ['error' => $e->getMessage()]);
+        }
+
+        Log::info('Lead transferred', ['lead_id' => $lead->id, 'new_receiver' => $newReceiverId]);
+
+        return $lead->fresh(['sender', 'receiver', 'sector']);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Read helpers
     // ─────────────────────────────────────────────────────────────────────────
 
-    public function getUserLeads(User $user): array
+    public function getUserLeadsPaginated(User $user, string $tab, ?string $status, ?string $qualification, ?int $sectorId, int $perPage = 15): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
-        $with = ['sender:id,first_name,last_name', 'receiver:id,first_name,last_name', 'ratings', 'sector:id,name'];
+        $with  = ['sender:id,first_name,last_name', 'sender.profile:user_id,avatar', 'receiver:id,first_name,last_name', 'receiver.profile:user_id,avatar', 'ratings', 'sector:id,name'];
+        $query = Lead::with($with);
 
-        $received = Lead::with($with)->where('receiver_id', $user->id)->latest()->get();
-        $sent     = Lead::with($with)->where('sender_id',   $user->id)->latest()->get();
+        if ($tab === 'sent') {
+            $query->where('sender_id', $user->id);
+        } else {
+            $query->where('receiver_id', $user->id);
+        }
 
-        return compact('received', 'sent');
+        if ($status)        $query->where('status', $status);
+        if ($qualification) $query->where('qualification', $qualification);
+        if ($sectorId)      $query->where('sector_id', $sectorId);
+
+        return $query->latest()->paginate($perPage);
+    }
+
+    public function cancelLead(User $user, int $leadId): void
+    {
+        $lead = Lead::findOrFail($leadId);
+
+        if ($lead->sender_id !== $user->id) {
+            throw new \Exception("Seul l'expéditeur peut annuler ce lead.");
+        }
+
+        if (!$lead->isNew()) {
+            throw new \Exception('Seuls les leads en attente peuvent être annulés.');
+        }
+
+        $lead->delete();
+
+        Log::info('Lead cancelled', ['lead_id' => $leadId, 'user' => $user->id]);
     }
 
     public function getDashboardStats(User $user): array

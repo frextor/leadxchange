@@ -16,19 +16,42 @@ class LeadController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $leads = $this->leadService->getUserLeads($request->user());
+        $tab           = $request->input('tab', 'received');
+        $status        = $request->input('status');
+        $qualification = $request->input('qualification');
+        $sectorId      = $request->filled('sector_id') ? (int) $request->sector_id : null;
+        $perPage       = min((int) $request->input('per_page', 15), 50);
+
+        $paginator = $this->leadService->getUserLeadsPaginated(
+            $request->user(), $tab, $status, $qualification, $sectorId, $perPage
+        );
 
         return response()->json([
-            'data' => [
-                'received' => $leads['received']->map(fn($l) => $this->format($l)),
-                'sent'     => $leads['sent']->map(fn($l) => $this->format($l)),
-            ],
+            'data' => $paginator->getCollection()->map(fn($l) => $this->format($l))->values(),
             'meta' => [
-                'total_received' => $leads['received']->count(),
-                'total_sent'     => $leads['sent']->count(),
-                'pending'        => $leads['received']->where('status', Lead::STATUS_NEW)->count(),
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'total'        => $paginator->total(),
+                'per_page'     => $paginator->perPage(),
             ],
         ]);
+    }
+
+    public function stats(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->leadService->getDashboardStats($request->user()),
+        ]);
+    }
+
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        try {
+            $this->leadService->cancelLead($request->user(), $id);
+            return response()->json(null, 204);
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 
     public function store(StoreLeadRequest $request): JsonResponse
@@ -49,7 +72,9 @@ class LeadController extends Controller
     {
         $lead = Lead::with([
             'sender:id,first_name,last_name',
+            'sender.profile:user_id,avatar',
             'receiver:id,first_name,last_name',
+            'receiver.profile:user_id,avatar',
             'ratings',
             'sector:id,name',
         ])->findOrFail($id);
@@ -144,16 +169,48 @@ class LeadController extends Controller
         }
     }
 
+    public function reschedule(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'deadline' => ['required', 'date', 'after:today'],
+        ]);
+
+        try {
+            $lead = $this->leadService->rescheduleDeadline($request->user(), $id, $request->deadline);
+
+            return response()->json(['message' => 'Date échéance mise à jour.', 'data' => $this->format($lead)]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function transfer(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'receiver_id' => ['required', 'integer', 'exists:users,id'],
+        ]);
+
+        try {
+            $lead = $this->leadService->transferLead($request->user(), $id, (int) $request->receiver_id);
+
+            return response()->json(['message' => 'Lead transféré avec succès.', 'data' => $this->format($lead)]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
     public function pointsHistory(Request $request): JsonResponse
     {
-        $history = PointsHistory::where('user_id', $request->user()->id)
+        $paginator = PointsHistory::where('user_id', $request->user()->id)
             ->orderByDesc('created_at')
-            ->limit(100)
-            ->get(['id', 'delta', 'reason', 'balance_after', 'created_at']);
+            ->paginate(20, ['id', 'delta', 'reason', 'balance_after', 'created_at']);
 
         return response()->json([
-            'data' => $history,
+            'data' => $paginator->items(),
             'meta' => [
+                'current_page'    => $paginator->currentPage(),
+                'last_page'       => $paginator->lastPage(),
+                'total'           => $paginator->total(),
                 'current_balance' => $request->user()->points_balance ?? 0,
                 'badge_level'     => $request->user()->badge_level ?? 'bronze',
             ],
@@ -185,12 +242,14 @@ class LeadController extends Controller
             'fraud_reported'   => (bool) $lead->fraud_reported,
             'fraud_reason'     => $lead->fraud_reason,
             'sender'           => $lead->sender ? [
-                'id'   => $lead->sender->id,
-                'name' => $lead->sender->first_name . ' ' . $lead->sender->last_name,
+                'id'     => $lead->sender->id,
+                'name'   => $lead->sender->first_name . ' ' . $lead->sender->last_name,
+                'avatar' => $lead->sender->profile?->avatar_url,
             ] : null,
             'receiver'         => $lead->receiver ? [
-                'id'   => $lead->receiver->id,
-                'name' => $lead->receiver->first_name . ' ' . $lead->receiver->last_name,
+                'id'     => $lead->receiver->id,
+                'name'   => $lead->receiver->first_name . ' ' . $lead->receiver->last_name,
+                'avatar' => $lead->receiver->profile?->avatar_url,
             ] : null,
             'created_at'       => $lead->created_at->toIso8601String(),
         ];

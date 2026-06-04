@@ -37,7 +37,7 @@ class ChatController extends Controller
                     'other_user' => [
                         'id'       => $other->id,
                         'name'     => $other->full_name,
-                        'position' => $other->position,
+                        'job_title' => $other->profile?->job_title,
                         'company'  => $other->company?->name,
                         'avatar'   => $other->profile?->avatar_url,
                     ],
@@ -79,7 +79,7 @@ class ChatController extends Controller
                 'other_user' => [
                     'id'       => $otherUser->id,
                     'name'     => $otherUser->full_name,
-                    'position' => $otherUser->position,
+                    'job_title' => $otherUser->profile?->job_title,
                     'company'  => $otherUser->company?->name,
                     'avatar'   => $otherUser->profile?->avatar_url,
                 ],

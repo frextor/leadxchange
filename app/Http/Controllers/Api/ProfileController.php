@@ -17,6 +17,26 @@ class ProfileController extends Controller
         return response()->json($this->profileService->getProfile($request->user()));
     }
 
+    public function updateLocation(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'city_id' => 'required|integer|exists:cities,id',
+        ]);
+
+        $this->profileService->updateBasicInfo($request->user(), $data);
+
+        $user = $request->user()->fresh()->load('city:id,name');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Location updated',
+            'city'    => [
+                'id'   => $user->city_id,
+                'name' => $user->city?->name,
+            ],
+        ]);
+    }
+
     public function updateBasic(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -109,6 +129,7 @@ class ProfileController extends Controller
         return response()->json([
             'message'              => 'Profil marqué comme complété.',
             'onboarding_completed' => true,
+            'profile_completed'    => $user->fresh()->hasCompletedProfile(),
             'completion'           => $this->profileService->getCompletionPercentage($user->fresh()),
         ]);
     }

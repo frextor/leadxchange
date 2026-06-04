@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Plan;
+use App\Models\LeadRating;
 use App\Models\Sector;
 use App\Models\Subscription;
 use App\Models\User;
@@ -90,6 +91,7 @@ class AuthService
         $data['phone_country_code'] = $data['phone_code']    ?? $data['phone_country_code'] ?? null;
         $data['looking_for']        = $data['leads_wanted']  ?? $data['looking_for']        ?? null;
         $data['services_offered']   = $data['leads_offered'] ?? $data['services_offered']   ?? null;
+        $data['job_title']          = $data['job_title']     ?? null;
 
         // ── users table ───────────────────────────────────────────────────
         $userFields = array_filter([
@@ -102,7 +104,6 @@ class AuthService
             'city_id'     => $data['city_id']     ?? null,
             'nationality_id'     => $data['nationality_id']     ?? null,
             'company_id'         => $data['company_id']         ?? null,
-            'position'           => $data['position']           ?? null,
             'newsletter'         => $data['newsletter']         ?? null,
             'notifications'      => $data['notifications']      ?? null,
         ], fn($v) => $v !== null);
@@ -120,7 +121,6 @@ class AuthService
             'services_offered' => $data['services_offered'] ?? null,
             'open_to_network'  => $data['open_to_network']  ?? null,
             'website'          => $data['website']          ?? null,
-            'region'           => $data['region']           ?? null,
             'linkedin'         => $data['linkedin']         ?? null,
             'sector_ids'       => $data['sector_id']        ?? null,
         ], fn($v) => $v !== null);
@@ -161,12 +161,18 @@ class AuthService
             return null;
         }
 
-        return Subscription::create([
+        $subscription = Subscription::create([
             'user_id' => $user->id,
             'plan_id' => $basicPlan->id,
             'status' => 'active',
             'trial_ends_at' => now()->addDays(14),
         ]);
+
+        if (($basicPlan->initial_points ?? 0) > 0) {
+            $user->adjustPoints($basicPlan->initial_points, 'initial_balance');
+        }
+
+        return $subscription;
     }
 
     /**
@@ -222,6 +228,8 @@ class AuthService
             ? Sector::whereIn('id', $sectorIds)->pluck('name', 'id')
             : collect();
 
+        $rating = $this->ratingPayload($user);
+
         return [
             'user' => [
                 'id'                 => $user->id,
@@ -229,13 +237,10 @@ class AuthService
                 'last_name'          => $user->last_name,
                 'full_name'          => $user->full_name,
                 'email'              => $user->email,
-                'phone'              => $user->phone,
-                'phone_country_code' => $user->phone_country_code,
+                'phone'              => ['number' => $user->phone, 'code' => $user->phone_country_code],
                 'gender'             => $user->gender,
                 'birthday'           => $user->birthday?->format('Y-m-d'),
-                'city_id'     => $user->city_id,
-                'city'        => $user->city?->name,
-                'nationality_id'     => $user->nationality_id,
+                'city'        => ['id' => $user->city_id, 'name' => $user->city?->name],
                 'nationality'        => $user->nationality ? [
                     'id'      => $user->nationality->id,
                     'name'    => $user->nationality->name,
@@ -243,10 +248,12 @@ class AuthService
                     'code'    => $user->nationality->code,
                     'flag'    => $user->nationality->flag,
                 ] : null,
-                'position'           => $user->position,
                 'newsletter'         => $user->newsletter,
                 'notifications'      => $user->notifications,
                 'role'               => $user->role,
+                'balance'            => (int) ($user->points_balance ?? 0),
+                'badge'              => $this->badgePayload($user->badge_level ?? 'bronze'),
+                'rating'             => $rating,
                 'email_verified_at'  => $user->email_verified_at,
                 'created_at'         => $user->created_at,
             ],
@@ -259,18 +266,15 @@ class AuthService
                 'looking_for'      => collect($user->profile->looking_for ?? [])->map(fn($id) => ['id' => $id, 'name' => $sectorMap[$id] ?? null])->values(),
                 'services_offered' => collect($user->profile->services_offered ?? [])->map(fn($id) => ['id' => $id, 'name' => $sectorMap[$id] ?? null])->values(),
                 'sector_ids'       => collect($user->profile->sector_ids ?? [])->map(fn($id) => ['id' => $id, 'name' => $sectorMap[$id] ?? null])->values(),
-                'open_to_network'  => $user->profile->open_to_network,
                 'website'          => $user->profile->website,
-                'region'           => $user->profile->region,
                 'linkedin'         => $user->profile->linkedin,
             ] : null,
             'company' => $user->company ? [
-                'id'        => $user->company->id,
-                'name'      => $user->company->name,
-                'siret'     => $user->company->siret,
-                'sector_id' => $user->company->sector_id,
-                'sector'    => $user->company->sector?->name,
-                'website'   => $user->company->website,
+                'id'      => $user->company->id,
+                'name'    => $user->company->name,
+                'siret'   => $user->company->siret,
+                'website' => $user->company->website,
+                'sector'  => $user->company->sector ? ['id' => $user->company->sector->id, 'name' => $user->company->sector->name] : null,
             ] : null,
             'subscription' => $user->subscription ? [
                 'id'            => $user->subscription->id,
@@ -285,8 +289,44 @@ class AuthService
                 'price'    => $user->subscription->plan->price,
                 'features' => $user->subscription->plan->features,
             ] : null,
-            'onboarding_completed' => $user->onboarding_completed,
-            'profile_completed'    => $user->hasCompletedProfile(),
+            'onboarding_completed' => (bool) ($user->onboarding_completed ?? false),
+            'profile_completed'    => (bool) $user->hasCompletedProfile(),
         ];
+    }
+
+    private function ratingPayload(User $user): array
+    {
+        $stats = LeadRating::whereHas('lead', fn ($q) => $q->where('sender_id', $user->id))
+            ->selectRaw('ROUND(AVG(average_note), 2) as average_rating, COUNT(*) as rating_count')
+            ->first();
+
+        return [
+            'average' => $stats?->average_rating !== null ? (float) $stats->average_rating : null,
+            'count'   => (int) ($stats?->rating_count ?? 0),
+        ];
+    }
+
+    private function badgePayload(string $level): array
+    {
+        return match ($level) {
+            'or' => [
+                'level' => 'or',
+                'label' => 'Or',
+                'color' => '#B45309',
+                'background' => '#FEF3C7',
+            ],
+            'argent' => [
+                'level' => 'argent',
+                'label' => 'Argent',
+                'color' => '#475569',
+                'background' => '#F1F5F9',
+            ],
+            default => [
+                'level' => 'bronze',
+                'label' => 'Bronze',
+                'color' => '#92400E',
+                'background' => '#FFEDD5',
+            ],
+        };
     }
 }

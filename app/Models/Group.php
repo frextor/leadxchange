@@ -59,11 +59,18 @@ class Group extends Model
 
     public function isOwner(int $userId): bool
     {
-        return $this->members()->where('group_user.user_id', $userId)->where('group_user.role', 'owner')->exists();
+        return $this->created_by === $userId ||
+            $this->members()->where('group_user.user_id', $userId)->where('group_user.role', 'owner')->exists();
+    }
+
+    public function polls(): HasMany
+    {
+        return $this->hasMany(Poll::class);
     }
 
     public function isAdmin(int $userId): bool
     {
-        return $this->members()->where('group_user.user_id', $userId)->whereIn('group_user.role', ['owner', 'admin'])->exists();
+        return $this->created_by === $userId ||
+            $this->members()->where('group_user.user_id', $userId)->whereIn('group_user.role', ['owner', 'admin'])->exists();
     }
 }

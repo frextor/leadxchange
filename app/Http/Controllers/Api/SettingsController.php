@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\City;
 use App\Models\Country;
+use App\Models\Event;
 use App\Models\Interest;
 use App\Models\Language;
 use App\Models\Nationality;
+use App\Models\Plan;
 use App\Models\Sector;
 use Illuminate\Http\JsonResponse;
 
@@ -22,7 +24,10 @@ class SettingsController extends Controller
     public function index(): JsonResponse
     {
         return response()->json([
-            'version'       => 'v2',
+            'version'           => 'v2',
+            'event_categories'  => collect(Event::$categoryLabels)
+                                       ->map(fn($label, $key) => ['key' => $key, 'label' => $label])
+                                       ->values(),
             'interests'     => Interest::orderBy('name')
                                    ->get(['id', 'name', 'icon']),
 
@@ -37,6 +42,10 @@ class SettingsController extends Controller
 
             'countries'     => Country::orderBy('name')
                                    ->get(['id', 'name', 'code', 'flag']),
+
+            'plans'         => Plan::where('is_active', true)
+                                   ->orderBy('sort_order')
+                                   ->get(['id', 'name', 'label', 'description', 'price', 'billing_period', 'max_leads', 'max_groups', 'features']),
 
             'cities'        => City::with('country:id,name,code,flag')
                                    ->orderByRaw("CASE WHEN country_id = (SELECT id FROM countries WHERE code = 'MA') THEN 0 ELSE 1 END")

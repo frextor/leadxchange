@@ -26,9 +26,9 @@ class Event extends Model
 
     public function getCoverUrlAttribute(): ?string
     {
-        return $this->cover_image
-            ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->cover_image)
-            : null;
+        if (!$this->cover_image) return null;
+        if (str_starts_with($this->cover_image, 'http')) return $this->cover_image;
+        return \Illuminate\Support\Facades\Storage::disk('public')->url($this->cover_image);
     }
 
     public function getIsFreeAttribute(): bool

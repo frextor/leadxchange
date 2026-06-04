@@ -14,6 +14,7 @@ class Lead extends Model
     const STATUS_ACCEPTED  = 'accepted';
     const STATUS_REJECTED  = 'rejected';
     const STATUS_CONVERTED = 'converted';
+    const STATUS_EXPIRED   = 'expired';
 
     // ── Qualification constants ─────────────────────────────────────────────
     const QUAL_CHAUD = 'chaud';
@@ -32,6 +33,7 @@ class Lead extends Model
         'accepted'  => ['label' => 'Accepté',    'classes' => 'bg-emerald-50 text-emerald-600', 'dot' => 'bg-emerald-500'],
         'rejected'  => ['label' => 'Refusé',     'classes' => 'bg-red-50 text-red-500',      'dot' => 'bg-red-500'],
         'converted' => ['label' => 'Converti',   'classes' => 'bg-teal-50 text-teal-700',    'dot' => 'bg-teal-500'],
+        'expired'   => ['label' => 'Expiré',     'classes' => 'bg-gray-50 text-gray-500',    'dot' => 'bg-gray-400'],
     ];
 
     protected $fillable = [
@@ -84,6 +86,7 @@ class Lead extends Model
     public function isAccepted(): bool  { return $this->status === self::STATUS_ACCEPTED; }
     public function isRejected(): bool  { return $this->status === self::STATUS_REJECTED; }
     public function isConverted(): bool { return $this->status === self::STATUS_CONVERTED; }
+    public function isExpired(): bool   { return $this->status === self::STATUS_EXPIRED; }
 
     public function getQualificationConfigAttribute(): array
     {

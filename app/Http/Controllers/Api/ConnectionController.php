@@ -67,22 +67,25 @@ class ConnectionController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $type = $request->get('type', 'all'); // all, sent, received, connections
-        $status = $request->get('status'); // pending, accepted, rejected
+        $type    = $request->get('type', 'all'); // all, sent, received, connections
+        $status  = $request->get('status'); // pending, accepted, rejected
+        $groupId = $request->integer('group_id') ?: null;
 
         try {
             switch ($type) {
                 case 'received':
                     $connections = $this->connectionService->getReceivedRequests(
                         $request->user(),
-                        $status
+                        $status,
+                        $groupId
                     );
                     break;
 
                 case 'sent':
                     $connections = $this->connectionService->getSentRequests(
                         $request->user(),
-                        $status
+                        $status,
+                        $groupId
                     );
                     break;
 
@@ -93,9 +96,9 @@ class ConnectionController extends Controller
                     break;
 
                 default: // 'all'
-                    $received = $this->connectionService->getReceivedRequests($request->user());
-                    $sent = $this->connectionService->getSentRequests($request->user());
-                    
+                    $received = $this->connectionService->getReceivedRequests($request->user(), $status, $groupId);
+                    $sent     = $this->connectionService->getSentRequests($request->user(), $status, $groupId);
+
                     return response()->json([
                         'success' => true,
                         'data' => [
@@ -207,13 +210,35 @@ class ConnectionController extends Controller
     }
 
     /**
+     * Remove an accepted connection.
+     *
+     * POST /api/connections/{id}/remove
+     */
+    public function remove(int $id, Request $request): JsonResponse
+    {
+        try {
+            $this->connectionService->removeConnection($id, $request->user());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Connection removed',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    /**
      * Format connections for response.
      */
     private function formatConnections($connections): array
     {
         return $connections->map(function ($connection) {
-            $otherUser = $connection->sender_id === auth()->id() 
-                ? $connection->receiver 
+            $otherUser = $connection->sender_id === auth()->id()
+                ? $connection->receiver
                 : $connection->sender;
 
             return [
@@ -223,12 +248,14 @@ class ConnectionController extends Controller
                     'first_name' => $otherUser->first_name,
                     'last_name' => $otherUser->last_name,
                     'email' => $otherUser->email,
+                    'avatar' => $otherUser->profile?->avatar_url,
+                    'avatar_url' => $otherUser->profile?->avatar_url,
                 ] : null,
                 'status' => $connection->status,
                 'type' => $connection->sender_id === auth()->id() ? 'sent' : 'received',
                 'created_at' => $connection->created_at,
                 'updated_at' => $connection->updated_at,
             ];
-        })->toArray();
+        })->values()->toArray();
     }
 }

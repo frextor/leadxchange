@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Profile;
+use App\Models\LeadRating;
 use App\Models\Sector;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -23,6 +24,7 @@ class ProfileService
             : collect();
 
         $profile = $user->profile;
+        $rating = $this->ratingPayload($user);
 
         return [
             'id'              => $user->id,
@@ -30,8 +32,7 @@ class ProfileService
             'last_name'       => $user->last_name,
             'email'           => $user->email,
             'gender'          => $user->gender,
-            'city_id'  => $user->city_id,
-            'city'     => $user->city?->name,
+            'city'     => ['id' => $user->city_id, 'name' => $user->city?->name],
             'birthday'        => $user->birthday?->format('Y-m-d'),
             'member_since' => $user->created_at?->format('F Y'),
             'profile'      => $profile ? array_merge($profile->toArray(), [
@@ -39,7 +40,16 @@ class ProfileService
                 'services_offered' => collect($profile->services_offered ?? [])->map(fn($id) => ['id' => $id, 'name' => $sectorMap[$id] ?? null])->values(),
             ]) : null,
             'interests'    => $user->interests,
-            'company'      => $user->company,
+            'company'      => $user->company ? [
+                'id'      => $user->company->id,
+                'name'    => $user->company->name,
+                'siret'   => $user->company->siret,
+                'website' => $user->company->website,
+                'sector'  => $user->company->sector ? ['id' => $user->company->sector->id, 'name' => $user->company->sector->name] : null,
+            ] : null,
+            'balance'      => (int) ($user->points_balance ?? 0),
+            'badge'        => $this->badgePayload($user->badge_level ?? 'bronze'),
+            'rating'       => $rating,
             'completion'   => $this->getCompletionPercentage($user),
         ];
     }
@@ -100,21 +110,20 @@ class ProfileService
 
     public function getCompletionPercentage(User $user): int
     {
-        $user->loadMissing(['profile', 'interests', 'company']);
+        $user->loadMissing(['profile', 'company']);
         $p = $user->profile;
 
         $checks = [
-            fn() => !is_null($p?->avatar),
-            fn() => !is_null($p?->bio) || !is_null($p?->motto),
-            fn() => !is_null($p?->job_title),
-            fn() => !is_null($p?->sector),
-            fn() => !is_null($p?->experience_level),
-            fn() => !is_null($user->city_id),
+            fn() => !empty($user->first_name) && !empty($user->last_name),
+            fn() => !empty($p?->job_title),
             fn() => !is_null($user->company_id),
-            fn() => $user->interests->isNotEmpty(),
+            fn() => !is_null($user->city_id),
+            fn() => !empty($p?->sector_ids),
+            fn() => !empty($p?->bio),
+            fn() => !empty($user->phone),
+            fn() => !empty($p?->avatar),
+            fn() => !empty($p?->services_offered),
             fn() => !empty($p?->looking_for),
-            fn() => !is_null($user->gender),
-            fn() => !is_null($user->phone),
         ];
 
         $done = collect($checks)->filter(fn($c) => $c())->count();
@@ -123,22 +132,57 @@ class ProfileService
 
     public function getMissingFields(User $user): array
     {
-        $user->loadMissing(['profile', 'interests', 'company']);
+        $user->loadMissing(['profile', 'company']);
         $p = $user->profile;
         $missing = [];
 
-        if (is_null($p?->avatar))                                      $missing[] = ['key' => 'avatar',      'label' => 'Photo de profil', 'icon' => 'fa-camera'];
-        if (is_null($p?->bio) && is_null($p?->motto))                  $missing[] = ['key' => 'bio',         'label' => 'Bio / Motto',      'icon' => 'fa-pen'];
-        if (is_null($p?->job_title))                                    $missing[] = ['key' => 'job_title',   'label' => 'Poste',            'icon' => 'fa-briefcase'];
-        if (is_null($p?->sector))                                       $missing[] = ['key' => 'sector',      'label' => 'Secteur',          'icon' => 'fa-industry'];
-        if (is_null($p?->experience_level))                             $missing[] = ['key' => 'experience',  'label' => 'Expérience',        'icon' => 'fa-chart-line'];
-        if (is_null($user->city_id))                             $missing[] = ['key' => 'location',    'label' => 'Localisation',     'icon' => 'fa-map-marker-alt'];
-        if (is_null($user->company_id))                                 $missing[] = ['key' => 'company',     'label' => 'Entreprise',       'icon' => 'fa-building'];
-        if ($user->interests->isEmpty())                                $missing[] = ['key' => 'interests',   'label' => 'Centres d\'intérêt', 'icon' => 'fa-star'];
-        if (empty($p?->looking_for))                                    $missing[] = ['key' => 'looking_for', 'label' => 'Recherche',        'icon' => 'fa-search'];
-        if (is_null($user->gender))                                     $missing[] = ['key' => 'gender',      'label' => 'Genre',            'icon' => 'fa-user'];
-        if (is_null($user->phone))                                      $missing[] = ['key' => 'phone',       'label' => 'Téléphone',         'icon' => 'fa-phone'];
+        if (empty($user->first_name) || empty($user->last_name)) $missing[] = ['key' => 'name',        'label' => 'Nom',              'icon' => 'fa-user'];
+        if (empty($p?->job_title))                              $missing[] = ['key' => 'job_title',   'label' => 'Poste',            'icon' => 'fa-briefcase'];
+        if (is_null($user->company_id))                         $missing[] = ['key' => 'company',     'label' => 'Entreprise',       'icon' => 'fa-building'];
+        if (is_null($user->city_id))                            $missing[] = ['key' => 'location',    'label' => 'Localisation',     'icon' => 'fa-map-marker-alt'];
+        if (empty($p?->sector_ids))                             $missing[] = ['key' => 'sector',      'label' => 'Secteur',          'icon' => 'fa-industry'];
+        if (empty($p?->bio))                                    $missing[] = ['key' => 'bio',         'label' => 'Bio',              'icon' => 'fa-pen'];
+        if (empty($user->phone))                                $missing[] = ['key' => 'phone',       'label' => 'Téléphone',        'icon' => 'fa-phone'];
+        if (empty($p?->avatar))                                 $missing[] = ['key' => 'avatar',      'label' => 'Photo de profil',  'icon' => 'fa-camera'];
+        if (empty($p?->services_offered))                       $missing[] = ['key' => 'services',    'label' => 'Services offerts', 'icon' => 'fa-handshake'];
+        if (empty($p?->looking_for))                            $missing[] = ['key' => 'looking_for', 'label' => 'Recherche',        'icon' => 'fa-search'];
 
         return $missing;
+    }
+
+    private function ratingPayload(User $user): array
+    {
+        $stats = LeadRating::whereHas('lead', fn ($q) => $q->where('sender_id', $user->id))
+            ->selectRaw('ROUND(AVG(average_note), 2) as average_rating, COUNT(*) as rating_count')
+            ->first();
+
+        return [
+            'average' => $stats?->average_rating !== null ? (float) $stats->average_rating : null,
+            'count'   => (int) ($stats?->rating_count ?? 0),
+        ];
+    }
+
+    private function badgePayload(string $level): array
+    {
+        return match ($level) {
+            'or' => [
+                'level' => 'or',
+                'label' => 'Or',
+                'color' => '#B45309',
+                'background' => '#FEF3C7',
+            ],
+            'argent' => [
+                'level' => 'argent',
+                'label' => 'Argent',
+                'color' => '#475569',
+                'background' => '#F1F5F9',
+            ],
+            default => [
+                'level' => 'bronze',
+                'label' => 'Bronze',
+                'color' => '#92400E',
+                'background' => '#FFEDD5',
+            ],
+        };
     }
 }

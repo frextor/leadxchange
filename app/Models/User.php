@@ -29,7 +29,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'phone_country_code',
         'nationality_id',
         'company_id',
-        'position',
         'onboarding_completed',
         'newsletter',
         'notifications',
@@ -206,10 +205,20 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function hasCompletedProfile(): bool
     {
-        return !is_null($this->gender)
+        $this->loadMissing(['profile', 'company']);
+        $profile = $this->profile;
+
+        return !empty($this->first_name)
+            && !empty($this->last_name)
+            && !empty($this->phone)
             && !is_null($this->city_id)
-            && !is_null($this->birthday)
-            && $this->onboarding_completed;
+            && !is_null($this->company_id)
+            && !empty($profile?->avatar)
+            && !empty($profile?->bio)
+            && !empty($profile?->job_title)
+            && !empty($profile?->sector_ids)
+            && !empty($profile?->services_offered)
+            && !empty($profile?->looking_for);
     }
 
     /**
