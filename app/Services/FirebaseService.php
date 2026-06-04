@@ -47,18 +47,15 @@ class FirebaseService
             $response = Http::withToken($accessToken)
                 ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
                     'message' => [
-                        'token'        => $token,
-                        'notification' => ['title' => $title, 'body' => $body],
-                        'data'         => $data,
+                        'token' => $token,
+                        'data'  => array_merge($data, ['title' => $title, 'body' => $body]),
+                        'android' => ['priority' => 'high'],
                     ],
                 ]);
 
             if (!$response->successful()) {
                 $errorCode = $response->json('error.details.0.errorCode') ?? '';
-                Log::warning('FCM send failed', [
-                    'token_prefix' => substr($token, 0, 20),
-                    'error'        => $response->json('error.message'),
-                ]);
+                Log::warning('FCM send failed', ['error' => $response->json('error.message')]);
                 if (in_array($errorCode, ['UNREGISTERED', 'INVALID_ARGUMENT'])) {
                     DeviceToken::where('token', $token)->delete();
                 }
@@ -118,9 +115,10 @@ class FirebaseService
             $response = Http::withToken($accessToken)
                 ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
                     'message' => [
-                        'token'        => $token,
-                        'notification' => ['title' => $title, 'body' => $body],
-                        'data'         => [
+                        'token'   => $token,
+                        'data'    => [
+                            'title'            => $title,
+                            'body'             => $body,
                             'lead_id'          => (string) $lead->id,
                             'lead_title'       => $lead->title ?? '',
                             'actor_id'         => (string) $actor->id,
@@ -129,6 +127,7 @@ class FirebaseService
                             'event'            => $event,
                             'type'             => 'lead',
                         ],
+                        'android' => ['priority' => 'high'],
                     ],
                 ]);
 
@@ -234,9 +233,9 @@ class FirebaseService
             $response = Http::withToken($accessToken)
                 ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
                     'message' => [
-                        'token'        => $token,
-                        'notification' => ['title' => $title, 'body' => $body],
-                        'data'         => $data,
+                        'token'   => $token,
+                        'data'    => array_merge($data, ['title' => $title, 'body' => $body]),
+                        'android' => ['priority' => 'high'],
                     ],
                 ]);
 
