@@ -82,7 +82,9 @@ class FirebaseService
         }
 
         $tokens = DeviceToken::where('user_id', $targetUserId)->pluck('token');
+        Log::info('FCM sendLeadNotification tokens', ['target_user_id' => $targetUserId, 'token_count' => count($tokens)]);
         if ($tokens->isEmpty()) {
+            Log::warning('FCM sendLeadNotification: no tokens for user', ['target_user_id' => $targetUserId]);
             return;
         }
 
@@ -114,9 +116,19 @@ class FirebaseService
         $accessToken = $this->getAccessToken();
         $projectId   = config('firebase.project_id');
 
+        Log::info('FCM sendLeadNotification', [
+            'project_id'    => $projectId,
+            'token_count'   => count($tokens),
+            'lead_id'       => $lead->id,
+            'target_user_id'=> $targetUserId,
+            'event'         => $event,
+            'title'         => $title,
+        ]);
+
         foreach ($tokens as $token) {
+            $url = "https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send";
             $response = Http::withToken($accessToken)
-                ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
+                ->post($url, [
                     'message' => [
                         'token'        => $token,
                         'notification' => ['title' => $title, 'body' => $body],
@@ -132,9 +144,17 @@ class FirebaseService
                     ],
                 ]);
 
-            if (!$response->successful()) {
+            if ($response->successful()) {
+                Log::info('FCM lead send OK', ['token_prefix' => substr($token, 0, 20), 'message_id' => $response->json('name')]);
+            } else {
                 $errorCode = $response->json('error.details.0.errorCode') ?? '';
-                Log::warning('FCM lead notification failed', ['error' => $response->json('error.message')]);
+                Log::error('FCM lead send FAILED', [
+                    'token_prefix'  => substr($token, 0, 20),
+                    'status'        => $response->status(),
+                    'error'         => $response->json('error.message'),
+                    'error_code'    => $errorCode,
+                    'full_response' => $response->body(),
+                ]);
                 if (in_array($errorCode, ['UNREGISTERED', 'INVALID_ARGUMENT'])) {
                     DeviceToken::where('token', $token)->delete();
                 }
@@ -230,9 +250,17 @@ class FirebaseService
         $accessToken = $this->getAccessToken();
         $projectId   = config('firebase.project_id');
 
+        Log::info('FCM sendToTokens', [
+            'project_id'   => $projectId,
+            'token_count'  => count($tokens),
+            'title'        => $title,
+            'data_keys'    => array_keys($data),
+        ]);
+
         foreach ($tokens as $token) {
+            $url = "https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send";
             $response = Http::withToken($accessToken)
-                ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
+                ->post($url, [
                     'message' => [
                         'token'        => $token,
                         'notification' => ['title' => $title, 'body' => $body],
@@ -240,9 +268,17 @@ class FirebaseService
                     ],
                 ]);
 
-            if (!$response->successful()) {
+            if ($response->successful()) {
+                Log::info('FCM send OK', ['token_prefix' => substr($token, 0, 20), 'message_id' => $response->json('name')]);
+            } else {
                 $errorCode = $response->json('error.details.0.errorCode') ?? '';
-                Log::warning('FCM notification failed', ['error' => $response->json('error.message')]);
+                Log::error('FCM send FAILED', [
+                    'token_prefix' => substr($token, 0, 20),
+                    'status'       => $response->status(),
+                    'error'        => $response->json('error.message'),
+                    'error_code'   => $errorCode,
+                    'full_response'=> $response->body(),
+                ]);
                 if (in_array($errorCode, ['UNREGISTERED', 'INVALID_ARGUMENT'])) {
                     DeviceToken::where('token', $token)->delete();
                 }
