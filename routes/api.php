@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\LeadController as ApiLeadController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\ConnectionController;
 use App\Http\Controllers\Api\DeviceTokenController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ProfileVisitorController;
 use App\Http\Controllers\Api\CountryController;
@@ -156,6 +157,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/events/{id}',                               [ApiEventController::class, 'destroy']);
     Route::get('/events/{id}/attendees',                        [ApiEventController::class, 'attendees']);
     Route::delete('/events/{id}/attendees/{userId}',            [ApiEventController::class, 'removeAttendee']);
+
+    // Notification Routes
+    Route::get('/notifications',                 [NotificationController::class, 'index']);
+    Route::post('/notifications/read-all',       [NotificationController::class, 'readAll']);
+    Route::delete('/notifications/{id}',         [NotificationController::class, 'destroy']);
 
     // Chat Routes
     Route::get('/chat',                          [ApiChatController::class, 'index']);

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\EventInvitation;
+use App\Models\User;
+use App\Services\FirebaseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -196,6 +198,11 @@ class EventController extends Controller
             ['invited_by' => $user->id, 'status' => 'pending']
         );
 
+        $invitee = User::find($targetId);
+        if ($invitee) {
+            app(FirebaseService::class)->sendEventInviteNotification($invitee, $event, $user);
+        }
+
         return response()->json(['message' => 'Invitation sent.']);
     }
 
@@ -230,6 +237,8 @@ class EventController extends Controller
         $created = 0;
         $updated = 0;
 
+        $firebase = app(FirebaseService::class);
+
         foreach ($invitableIds as $targetId) {
             $invitation = EventInvitation::updateOrCreate(
                 ['event_id' => $id, 'user_id' => $targetId],
@@ -237,6 +246,11 @@ class EventController extends Controller
             );
 
             $invitation->wasRecentlyCreated ? $created++ : $updated++;
+
+            $invitee = User::find($targetId);
+            if ($invitee) {
+                $firebase->sendEventInviteNotification($invitee, $event, $user);
+            }
         }
 
         return response()->json([

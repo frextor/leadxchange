@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Connection;
 use App\Models\DeviceToken;
+use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -24,23 +25,31 @@ class FirebaseService
         $accessToken = $this->getAccessToken();
         $projectId   = config('firebase.project_id');
 
+        $title = 'Nouvelle demande de connexion';
+        $body  = "{$sender->first_name} {$sender->last_name} vous a envoyé une demande de connexion";
+        $data  = [
+            'connection_id'     => (string) $connection->id,
+            'sender_id'         => (string) $sender->id,
+            'sender_first_name' => $sender->first_name,
+            'sender_last_name'  => $sender->last_name,
+            'sender_email'      => $sender->email,
+            'type'              => 'connection_request',
+        ];
+
+        $receiver = User::find($connection->receiver_id);
+        if ($receiver) {
+            Notification::storeForUser($receiver, 'connection_request', $title, $body, [
+                'user_id' => (string) $sender->id,
+            ]);
+        }
+
         foreach ($tokens as $token) {
             $response = Http::withToken($accessToken)
                 ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
                     'message' => [
                         'token'        => $token,
-                        'notification' => [
-                            'title' => 'Nouvelle demande de connexion',
-                            'body'  => "{$sender->first_name} {$sender->last_name} vous a envoyé une demande de connexion",
-                        ],
-                        'data' => [
-                            'connection_id'      => (string) $connection->id,
-                            'sender_id'          => (string) $sender->id,
-                            'sender_first_name'  => $sender->first_name,
-                            'sender_last_name'   => $sender->last_name,
-                            'sender_email'       => $sender->email,
-                            'type'               => 'connection_request',
-                        ],
+                        'notification' => ['title' => $title, 'body' => $body],
+                        'data'         => $data,
                     ],
                 ]);
 
@@ -95,6 +104,13 @@ class FirebaseService
             default    => ['Lead update', $leadLabel],
         };
 
+        $targetUser = User::find($targetUserId);
+        if ($targetUser) {
+            Notification::storeForUser($targetUser, 'lead', $title, $body, [
+                'lead_id' => (string) $lead->id,
+            ]);
+        }
+
         $accessToken = $this->getAccessToken();
         $projectId   = config('firebase.project_id');
 
@@ -106,7 +122,7 @@ class FirebaseService
                         'notification' => ['title' => $title, 'body' => $body],
                         'data'         => [
                             'lead_id'          => (string) $lead->id,
-                            'lead_title'       => $lead->title,
+                            'lead_title'       => $lead->title ?? '',
                             'actor_id'         => (string) $actor->id,
                             'actor_first_name' => $actor->first_name,
                             'actor_last_name'  => $actor->last_name,
@@ -129,12 +145,20 @@ class FirebaseService
     public function sendLeadReminderNotification(\App\Models\Lead $lead, int $dayNumber): void
     {
         $tokens = DeviceToken::where('user_id', $lead->receiver_id)->pluck('token');
-        if ($tokens->isEmpty()) {
-            return;
-        }
 
         $title = 'Rappel : lead en attente de notation';
         $body  = "Vous avez {$dayNumber} jours pour noter le lead de {$lead->company_name}. Votre avis compte !";
+
+        $receiver = User::find($lead->receiver_id);
+        if ($receiver) {
+            Notification::storeForUser($receiver, 'lead_reminder', $title, $body, [
+                'lead_id' => (string) $lead->id,
+            ]);
+        }
+
+        if ($tokens->isEmpty()) {
+            return;
+        }
 
         $this->sendToTokens($tokens, $title, $body, [
             'lead_id' => (string) $lead->id,
@@ -143,15 +167,57 @@ class FirebaseService
         ]);
     }
 
-    public function sendBadNoteWarning(User $sender, int $badNoteCount): void
+    public function sendGroupInviteNotification(User $invitee, \App\Models\Group $group, User $inviter): void
     {
-        $tokens = DeviceToken::where('user_id', $sender->id)->pluck('token');
+        $title = 'Invitation à un groupe';
+        $body  = "{$inviter->first_name} {$inviter->last_name} vous a invité à rejoindre le groupe : {$group->name}";
+
+        Notification::storeForUser($invitee, 'group_invite', $title, $body, [
+            'group_id' => (string) $group->id,
+        ]);
+
+        $tokens = DeviceToken::where('user_id', $invitee->id)->pluck('token');
         if ($tokens->isEmpty()) {
             return;
         }
 
+        $this->sendToTokens($tokens, $title, $body, [
+            'type'     => 'group_invite',
+            'group_id' => (string) $group->id,
+        ]);
+    }
+
+    public function sendEventInviteNotification(User $invitee, \App\Models\Event $event, User $inviter): void
+    {
+        $title = 'Invitation à un événement';
+        $body  = "{$inviter->first_name} {$inviter->last_name} vous a invité à : {$event->title}";
+
+        Notification::storeForUser($invitee, 'event_invite', $title, $body, [
+            'event_id' => (string) $event->id,
+        ]);
+
+        $tokens = DeviceToken::where('user_id', $invitee->id)->pluck('token');
+        if ($tokens->isEmpty()) {
+            return;
+        }
+
+        $this->sendToTokens($tokens, $title, $body, [
+            'type'     => 'event_invite',
+            'event_id' => (string) $event->id,
+        ]);
+    }
+
+    public function sendBadNoteWarning(User $sender, int $badNoteCount): void
+    {
         $title = 'Avertissement qualité lead';
         $body  = "Vous avez reçu {$badNoteCount} évaluations négatives. Améliorez la qualité de vos leads pour éviter des pénalités.";
+
+        Notification::storeForUser($sender, 'bad_note_warning', $title, $body);
+
+        $tokens = DeviceToken::where('user_id', $sender->id)->pluck('token');
+        if ($tokens->isEmpty()) {
+            return;
+        }
 
         $this->sendToTokens($tokens, $title, $body, [
             'type'           => 'bad_note_warning',
