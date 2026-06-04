@@ -154,7 +154,7 @@ class LeadController extends Controller
     public function report(Request $request, int $id): JsonResponse
     {
         $request->validate([
-            'fraud_reason' => ['required', 'in:fausses_coordonnees,besoin_inexistant,doublon'],
+            'fraud_reason' => ['required', 'in:faux_profil,lead_frauduleux,spam,comportement_inapproprie,autre'],
         ]);
 
         try {

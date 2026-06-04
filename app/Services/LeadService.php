@@ -30,8 +30,8 @@ class LeadService
             throw new \Exception("Vous ne pouvez envoyer des leads qu'à vos connexions.");
         }
 
-        if (($receiver->points_balance ?? 0) < 1) {
-            throw new \Exception('Ce membre ne peut pas recevoir de leads pour le moment. Son solde est insuffisant.');
+        if (($sender->points_balance ?? 0) < 1) {
+            throw new \Exception('Votre solde est insuffisant pour envoyer un lead (minimum 1 point requis).');
         }
 
         DB::beginTransaction();
@@ -196,11 +196,8 @@ class LeadService
             throw new \Exception('Vous avez déjà noté ce lead.');
         }
 
-        $ratingDeadline = $lead->deadline
-            ? \Carbon\Carbon::parse($lead->deadline)->addDays(30)
-            : $lead->created_at->addDays(60);
-        if (now()->gt($ratingDeadline)) {
-            throw new \Exception('Le délai de notation de ce lead est dépassé.');
+        if ($lead->created_at->lt(now()->subDays(30))) {
+            throw new \Exception('La fenêtre de notation de 30 jours est expirée pour ce lead.');
         }
 
         DB::beginTransaction();
@@ -266,14 +263,7 @@ class LeadService
             throw new \Exception('Ce lead a déjà été signalé.');
         }
 
-        $reasonAliases = [
-            'false_info' => 'fausses_coordonnees',
-            'no_need'    => 'besoin_inexistant',
-            'duplicate'  => 'doublon',
-        ];
-        $reason = $reasonAliases[$reason] ?? $reason;
-
-        $allowedReasons = ['fausses_coordonnees', 'besoin_inexistant', 'doublon'];
+        $allowedReasons = ['faux_profil', 'lead_frauduleux', 'spam', 'comportement_inapproprie', 'autre'];
         if (!in_array($reason, $allowedReasons)) {
             throw new \Exception('Motif invalide.');
         }

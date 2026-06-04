@@ -291,9 +291,11 @@
                         <select name="fraud_reason" required
                                 class="flex-1 h-9 px-3 rounded-lg border border-gray-200 text-sm text-gray-700 outline-none focus:border-gray-400">
                             <option value="">— Motif du signalement —</option>
-                            <option value="fausses_coordonnees">Fausses coordonnées</option>
-                            <option value="besoin_inexistant">Besoin inexistant</option>
-                            <option value="doublon">Doublon</option>
+                            <option value="faux_profil">Faux profil</option>
+                            <option value="lead_frauduleux">Lead frauduleux</option>
+                            <option value="spam">Spam</option>
+                            <option value="comportement_inapproprie">Comportement inapproprié</option>
+                            <option value="autre">Autre</option>
                         </select>
                         <button type="submit"
                                 class="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 transition flex-shrink-0">
