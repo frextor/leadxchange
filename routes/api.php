@@ -49,6 +49,21 @@ Route::get('/settings', [SettingsController::class, 'index']);
 // ==========================================
 Route::middleware(['auth:sanctum'])->group(function () {
 
+    // FCM debug — remove after diagnosis
+    Route::get('/debug/fcm', function (\Illuminate\Http\Request $request) {
+        $user   = $request->user();
+        $tokens = \App\Models\DeviceToken::where('user_id', $user->id)->get(['token', 'platform', 'updated_at']);
+        return response()->json([
+            'firebase_project_id' => config('firebase.project_id'),
+            'user_id'             => $user->id,
+            'tokens'              => $tokens->map(fn($t) => [
+                'platform'   => $t->platform,
+                'token_prefix' => substr($t->token, 0, 30),
+                'updated_at' => $t->updated_at,
+            ]),
+        ]);
+    });
+
     // Auth Routes
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
