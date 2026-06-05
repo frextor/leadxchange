@@ -108,11 +108,9 @@ class ProfileService
 
     public function updatePresentationVideo(User $user, UploadedFile $file): array
     {
-        $profile = $user->profile ?? Profile::create(['user_id' => $user->id]);
+        $this->profileVideoService->store($user, $file);
 
-        $this->profileVideoService->store($profile, $file);
-
-        return $this->presentationVideoPayload($profile->fresh());
+        return $this->presentationVideoPayload($user->fresh('profile')->profile);
     }
 
     public function syncInterests(User $user, array $interestIds): void

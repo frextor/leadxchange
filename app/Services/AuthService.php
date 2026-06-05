@@ -145,8 +145,7 @@ class AuthService
         }
 
         if ($presentationVideo) {
-            $profile = $user->profile()->firstOrCreate(['user_id' => $user->id]);
-            $this->profileVideoService->store($profile, $presentationVideo);
+            $this->profileVideoService->store($user, $presentationVideo);
         }
 
         Log::info('User profile updated', ['user_id' => $user->id]);
