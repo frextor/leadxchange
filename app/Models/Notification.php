@@ -22,9 +22,9 @@ class Notification extends Model
     /**
      * Store a notification for a user and prune old ones (keep last 20).
      */
-    public static function storeForUser(User $user, string $type, string $title, string $body, ?array $data = null): void
+    public static function storeForUser(User $user, string $type, string $title, string $body, ?array $data = null): static
     {
-        self::create([
+        $notification = self::create([
             'user_id' => $user->id,
             'type'    => $type,
             'title'   => $title,
@@ -42,5 +42,7 @@ class Notification extends Model
         self::where('user_id', $user->id)
             ->whereNotIn('id', $keepIds)
             ->delete();
+
+        return $notification;
     }
 }

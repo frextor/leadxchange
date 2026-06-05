@@ -36,11 +36,12 @@ class FirebaseService
             'type'              => 'connection_request',
         ];
 
+        $notificationId = null;
         $receiver = User::find($connection->receiver_id);
         if ($receiver) {
-            Notification::storeForUser($receiver, 'connection_request', $title, $body, [
+            $notificationId = (string) Notification::storeForUser($receiver, 'connection_request', $title, $body, [
                 'user_id' => (string) $sender->id,
-            ]);
+            ])->id;
         }
 
         foreach ($tokens as $token) {
@@ -48,7 +49,7 @@ class FirebaseService
                 ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
                     'message' => [
                         'token'   => $token,
-                        'data'    => array_merge($data, ['title' => $title, 'body' => $body]),
+                        'data'    => array_merge($data, ['title' => $title, 'body' => $body, 'notification_id' => $notificationId ?? '']),
                         'android' => ['priority' => 'high'],
                         'apns'    => ['payload' => ['aps' => ['alert' => ['title' => $title, 'body' => $body], 'sound' => 'default']]],
                     ],
@@ -102,11 +103,12 @@ class FirebaseService
             default    => ['Lead update', $leadLabel],
         };
 
+        $notificationId = null;
         $targetUser = User::find($targetUserId);
         if ($targetUser) {
-            Notification::storeForUser($targetUser, 'lead', $title, $body, [
+            $notificationId = (string) Notification::storeForUser($targetUser, 'lead', $title, $body, [
                 'lead_id' => (string) $lead->id,
-            ]);
+            ])->id;
         }
 
         $accessToken = $this->getAccessToken();
@@ -120,6 +122,7 @@ class FirebaseService
                         'data'    => [
                             'title'            => $title,
                             'body'             => $body,
+                            'notification_id'  => $notificationId ?? '',
                             'lead_id'          => (string) $lead->id,
                             'lead_title'       => $lead->title ?? '',
                             'actor_id'         => (string) $actor->id,
@@ -150,11 +153,12 @@ class FirebaseService
         $title = 'Rappel : lead en attente de notation';
         $body  = "Vous avez {$dayNumber} jours pour noter le lead de {$lead->company_name}. Votre avis compte !";
 
+        $notificationId = null;
         $receiver = User::find($lead->receiver_id);
         if ($receiver) {
-            Notification::storeForUser($receiver, 'lead_reminder', $title, $body, [
+            $notificationId = (string) Notification::storeForUser($receiver, 'lead_reminder', $title, $body, [
                 'lead_id' => (string) $lead->id,
-            ]);
+            ])->id;
         }
 
         if ($tokens->isEmpty()) {
@@ -162,9 +166,10 @@ class FirebaseService
         }
 
         $this->sendToTokens($tokens, $title, $body, [
-            'lead_id' => (string) $lead->id,
-            'type'    => 'lead_reminder',
-            'day'     => (string) $dayNumber,
+            'lead_id'         => (string) $lead->id,
+            'type'            => 'lead_reminder',
+            'day'             => (string) $dayNumber,
+            'notification_id' => $notificationId ?? '',
         ]);
     }
 
@@ -173,9 +178,9 @@ class FirebaseService
         $title = 'Invitation à un groupe';
         $body  = "{$inviter->first_name} {$inviter->last_name} vous a invité à rejoindre le groupe : {$group->name}";
 
-        Notification::storeForUser($invitee, 'group_invite', $title, $body, [
+        $notificationId = (string) Notification::storeForUser($invitee, 'group_invite', $title, $body, [
             'group_id' => (string) $group->id,
-        ]);
+        ])->id;
 
         $tokens = DeviceToken::where('user_id', $invitee->id)->pluck('token');
         if ($tokens->isEmpty()) {
@@ -183,8 +188,9 @@ class FirebaseService
         }
 
         $this->sendToTokens($tokens, $title, $body, [
-            'type'     => 'group_invite',
-            'group_id' => (string) $group->id,
+            'type'            => 'group_invite',
+            'group_id'        => (string) $group->id,
+            'notification_id' => $notificationId,
         ]);
     }
 
@@ -193,9 +199,9 @@ class FirebaseService
         $title = 'Invitation à un événement';
         $body  = "{$inviter->first_name} {$inviter->last_name} vous a invité à : {$event->title}";
 
-        Notification::storeForUser($invitee, 'event_invite', $title, $body, [
+        $notificationId = (string) Notification::storeForUser($invitee, 'event_invite', $title, $body, [
             'event_id' => (string) $event->id,
-        ]);
+        ])->id;
 
         $tokens = DeviceToken::where('user_id', $invitee->id)->pluck('token');
         if ($tokens->isEmpty()) {
@@ -203,8 +209,9 @@ class FirebaseService
         }
 
         $this->sendToTokens($tokens, $title, $body, [
-            'type'     => 'event_invite',
-            'event_id' => (string) $event->id,
+            'type'            => 'event_invite',
+            'event_id'        => (string) $event->id,
+            'notification_id' => $notificationId,
         ]);
     }
 
@@ -213,7 +220,7 @@ class FirebaseService
         $title = 'Avertissement qualité lead';
         $body  = "Vous avez reçu {$badNoteCount} évaluations négatives. Améliorez la qualité de vos leads pour éviter des pénalités.";
 
-        Notification::storeForUser($sender, 'bad_note_warning', $title, $body);
+        $notificationId = (string) Notification::storeForUser($sender, 'bad_note_warning', $title, $body)->id;
 
         $tokens = DeviceToken::where('user_id', $sender->id)->pluck('token');
         if ($tokens->isEmpty()) {
@@ -221,8 +228,9 @@ class FirebaseService
         }
 
         $this->sendToTokens($tokens, $title, $body, [
-            'type'           => 'bad_note_warning',
-            'bad_note_count' => (string) $badNoteCount,
+            'type'            => 'bad_note_warning',
+            'bad_note_count'  => (string) $badNoteCount,
+            'notification_id' => $notificationId,
         ]);
     }
 
