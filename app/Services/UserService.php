@@ -131,7 +131,7 @@ class UserService
         }
 
         // Closure applied to both count and data queries
-        $applyWhere = function ($q) use ($currentUser, $search, $excludeConnectionStatuses) {
+        $applyWhere = function ($q) use ($currentUser, $search, $excludeConnectionStatuses, $myCityId) {
             $q->where('users.id', '!=', $currentUser->id)
               ->whereNotExists(function ($sub) use ($currentUser, $excludeConnectionStatuses) {
                   $sub->from('connections')
@@ -146,6 +146,9 @@ class UserService
                           });
                       });
               });
+            if ($myCityId !== null) {
+                $q->where('users.city_id', $myCityId);
+            }
             if ($search) {
                 $like = "%{$search}%";
                 $q->where(function ($q2) use ($like) {
