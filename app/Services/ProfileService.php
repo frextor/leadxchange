@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Storage;
 
 class ProfileService
 {
+    public function __construct(private ProfileVideoService $profileVideoService) {}
+
     public function getProfile(User $user): array
     {
         $user->loadMissing(['profile', 'interests', 'company', 'city']);
@@ -38,6 +40,7 @@ class ProfileService
             'profile'      => $profile ? array_merge($profile->toArray(), [
                 'looking_for'      => collect($profile->looking_for ?? [])->map(fn($id) => ['id' => $id, 'name' => $sectorMap[$id] ?? null])->values(),
                 'services_offered' => collect($profile->services_offered ?? [])->map(fn($id) => ['id' => $id, 'name' => $sectorMap[$id] ?? null])->values(),
+                'presentation_video' => $this->presentationVideoPayload($profile),
             ]) : null,
             'interests'    => $user->interests,
             'company'      => $user->company ? [
@@ -103,6 +106,15 @@ class ProfileService
         return Storage::disk('public')->url($path);
     }
 
+    public function updatePresentationVideo(User $user, UploadedFile $file): array
+    {
+        $profile = $user->profile ?? Profile::create(['user_id' => $user->id]);
+
+        $this->profileVideoService->store($profile, $file);
+
+        return $this->presentationVideoPayload($profile->fresh());
+    }
+
     public function syncInterests(User $user, array $interestIds): void
     {
         $user->interests()->sync($interestIds);
@@ -159,6 +171,23 @@ class ProfileService
         return [
             'average' => $stats?->average_rating !== null ? (float) $stats->average_rating : null,
             'count'   => (int) ($stats?->rating_count ?? 0),
+        ];
+    }
+
+    private function presentationVideoPayload(?Profile $profile): ?array
+    {
+        if (!$profile || !$profile->presentation_video) {
+            return null;
+        }
+
+        $isApproved = $profile->presentation_video_status === ProfileVideoService::STATUS_APPROVED;
+
+        return [
+            'url' => $isApproved ? $profile->presentation_video_url : null,
+            'status' => $profile->presentation_video_status,
+            'rejection_reason' => $profile->presentation_video_rejection_reason,
+            'uploaded_at' => $profile->presentation_video_uploaded_at,
+            'reviewed_at' => $profile->presentation_video_reviewed_at,
         ];
     }
 

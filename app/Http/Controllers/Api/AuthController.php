@@ -140,7 +140,8 @@ class AuthController extends Controller
             $user = $this->authService->updateProfile(
                 $request->user(),
                 $request->validated(),
-                $request->file('profile_picture')
+                $request->file('profile_picture'),
+                $request->file('presentation_video')
             );
 
             return response()->json([

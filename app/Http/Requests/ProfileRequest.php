@@ -50,6 +50,12 @@ class ProfileRequest extends FormRequest
             'website'            => ['nullable', 'url', 'max:255'],
             'linkedin'           => ['nullable', 'url', 'max:255'],
             'profile_picture'    => ['nullable', 'image', 'mimes:jpeg,png,webp,jpg', 'max:3072'],
+            'presentation_video'  => [
+                'nullable',
+                'file',
+                'mimes:mp4,mov,webm,avi,m4v',
+                'max:' . config('profile_video.max_upload_size_kb', 51200),
+            ],
         ];
     }
 

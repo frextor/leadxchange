@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ProfileVisitorController;
+use App\Http\Controllers\Api\ProfileVideoModerationController;
 use App\Http\Controllers\Api\CountryController;
 use App\Http\Controllers\Api\ChatController as ApiChatController;
 use App\Http\Controllers\Api\EventController as ApiEventController;
@@ -96,6 +97,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/languages',                [LanguageController::class, 'index']);
     Route::get('/countries',                [CountryController::class, 'index']);
     Route::get('/profile/visitors',         [ProfileVisitorController::class, 'index']);
+
+    Route::prefix('admin/profile-videos')->group(function () {
+        Route::get('/', [ProfileVideoModerationController::class, 'index']);
+        Route::patch('/{userId}/approve', [ProfileVideoModerationController::class, 'approve']);
+        Route::patch('/{userId}/reject', [ProfileVideoModerationController::class, 'reject']);
+    });
 
     // Group Routes
     Route::get('/groups',                                       [GroupController::class, 'index']);

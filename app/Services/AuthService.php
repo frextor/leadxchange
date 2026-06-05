@@ -8,6 +8,7 @@ use App\Models\Sector;
 use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -20,6 +21,8 @@ use Illuminate\Support\Facades\Log;
  */
 class AuthService
 {
+    public function __construct(private ProfileVideoService $profileVideoService) {}
+
     /**
      * Register a new user with basic plan.
      *
@@ -85,7 +88,7 @@ class AuthService
      * @param array $data  Validated data from ProfileRequest
      * @return User
      */
-    public function updateProfile(User $user, array $data, ?\Illuminate\Http\UploadedFile $picture = null): User
+    public function updateProfile(User $user, array $data, ?UploadedFile $picture = null, ?UploadedFile $presentationVideo = null): User
     {
         // ── Normalize mobile aliases ──────────────────────────────────────
         $data['phone_country_code'] = $data['phone_code']    ?? $data['phone_country_code'] ?? null;
@@ -139,6 +142,11 @@ class AuthService
             }
             $path = $picture->store('avatars', 'public');
             $user->profile()->updateOrCreate(['user_id' => $user->id], ['avatar' => $path]);
+        }
+
+        if ($presentationVideo) {
+            $profile = $user->profile()->firstOrCreate(['user_id' => $user->id]);
+            $this->profileVideoService->store($profile, $presentationVideo);
         }
 
         Log::info('User profile updated', ['user_id' => $user->id]);
@@ -268,6 +276,7 @@ class AuthService
                 'sector_ids'       => collect($user->profile->sector_ids ?? [])->map(fn($id) => ['id' => $id, 'name' => $sectorMap[$id] ?? null])->values(),
                 'website'          => $user->profile->website,
                 'linkedin'         => $user->profile->linkedin,
+                'presentation_video' => $this->presentationVideoPayload($user->profile, true),
             ] : null,
             'company' => $user->company ? [
                 'id'      => $user->company->id,
@@ -291,6 +300,23 @@ class AuthService
             ] : null,
             'onboarding_completed' => (bool) ($user->onboarding_completed ?? false),
             'profile_completed'    => (bool) $user->hasCompletedProfile(),
+        ];
+    }
+
+    private function presentationVideoPayload(?\App\Models\Profile $profile, bool $includePrivateStatus = false): ?array
+    {
+        if (!$profile || !$profile->presentation_video) {
+            return null;
+        }
+
+        $isApproved = $profile->presentation_video_status === ProfileVideoService::STATUS_APPROVED;
+
+        return [
+            'url' => $isApproved ? $profile->presentation_video_url : null,
+            'status' => $includePrivateStatus ? $profile->presentation_video_status : ($isApproved ? $profile->presentation_video_status : null),
+            'rejection_reason' => $includePrivateStatus ? $profile->presentation_video_rejection_reason : null,
+            'uploaded_at' => $includePrivateStatus ? $profile->presentation_video_uploaded_at : null,
+            'reviewed_at' => $includePrivateStatus ? $profile->presentation_video_reviewed_at : null,
         ];
     }
 
