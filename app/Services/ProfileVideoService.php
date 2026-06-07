@@ -32,7 +32,7 @@ class ProfileVideoService
 
         if ($duration > $maxDuration) {
             throw ValidationException::withMessages([
-                'presentation_video' => 'Presentation video must not be longer than 5 minutes.',
+                'presentation_video' => 'Presentation video must not be longer than 1 minute.',
             ]);
         }
 

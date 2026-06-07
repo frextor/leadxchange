@@ -5,7 +5,7 @@ return [
 
     'requires_approval' => env('PROFILE_VIDEO_REQUIRES_APPROVAL', true),
 
-    'max_duration_seconds' => (int) env('PROFILE_VIDEO_MAX_DURATION_SECONDS', 300),
+    'max_duration_seconds' => (int) env('PROFILE_VIDEO_MAX_DURATION_SECONDS', 60),
 
     'max_size_mb' => (int) env('PROFILE_VIDEO_MAX_SIZE_MB', 100),
 
