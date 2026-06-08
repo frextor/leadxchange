@@ -179,6 +179,26 @@ class PaymentController extends Controller
                 ->latest()
                 ->first();
 
+            // If payment exists but local status is still pending, verify with Stripe directly
+            // (handles missed or delayed webhooks)
+            if ($payment && $payment->stripe_payment_intent_id && $payment->status !== 'succeeded') {
+                $this->configureStripe();
+                try {
+                    $pi = PaymentIntent::retrieve($payment->stripe_payment_intent_id);
+                    if ($pi->status === 'succeeded') {
+                        $payment->update(['status' => 'succeeded']);
+                        if (!$event->isAttending($user->id)) {
+                            $event->attendees()->attach($user->id, ['role' => 'attendee']);
+                            $event->increment('attendees_count');
+                        }
+                    } elseif (in_array($pi->status, ['canceled', 'requires_payment_method'], true)) {
+                        $payment->update(['status' => $pi->status]);
+                    }
+                } catch (\Exception) {
+                    // Stripe unreachable — fall through with local status
+                }
+            }
+
             return response()->json([
                 'type' => 'event',
                 'event_id' => $event->id,
