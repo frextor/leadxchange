@@ -16,7 +16,7 @@ class Plan extends Model
      */
     protected $fillable = [
         'name', 'label', 'description',
-        'price', 'billing_period',
+        'price', 'billing_period', 'stripe_product_id', 'stripe_price_id',
         'max_leads', 'max_groups',
         'features', 'is_active', 'sort_order',
     ];

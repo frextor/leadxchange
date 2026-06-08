@@ -13,6 +13,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\ProfileController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -33,6 +34,18 @@ Route::get('/', function () {
     }
     return view('landing');
 })->name('home');
+
+// LinkedIn OAuth callback fallback for mobile app links.
+Route::get('/auth/linkedin/callback', function (Request $request) {
+    $query = http_build_query($request->only([
+        'code',
+        'state',
+        'error',
+        'error_description',
+    ]));
+
+    return redirect()->away('x-tensia://auth/linkedin/callback' . ($query !== '' ? "?{$query}" : ''));
+})->name('linkedin.mobile.callback');
 
 // Firebase Messaging Service Worker (must be at root scope, no auth required)
 Route::get('/firebase-messaging-sw.js', function () {

@@ -12,6 +12,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * AuthService
@@ -78,6 +79,62 @@ class AuthService
         Log::info('User registered successfully', ['user_id' => $user->id]);
 
         return $user;
+    }
+
+    /**
+     * Find or create a user from LinkedIn OpenID profile data.
+     * New LinkedIn users receive a token but remain onboarding-incomplete.
+     */
+    public function loginWithLinkedIn(array $linkedinUser): User
+    {
+        $email = strtolower((string) ($linkedinUser['email'] ?? ''));
+        if ($email === '') {
+            throw new \InvalidArgumentException('LinkedIn did not return an email address.');
+        }
+
+        $firstName = trim((string) ($linkedinUser['given_name'] ?? ''));
+        $lastName = trim((string) ($linkedinUser['family_name'] ?? ''));
+
+        if ($firstName === '' && $lastName === '') {
+            $name = trim((string) ($linkedinUser['name'] ?? ''));
+            $parts = preg_split('/\s+/', $name, 2) ?: [];
+            $firstName = $parts[0] ?? 'LinkedIn';
+            $lastName = $parts[1] ?? 'User';
+        }
+
+        $firstName = $firstName !== '' ? $firstName : 'LinkedIn';
+        $lastName = $lastName !== '' ? $lastName : 'User';
+
+        return DB::transaction(function () use ($email, $firstName, $lastName, $linkedinUser) {
+            $user = User::where('email', $email)->first();
+
+            if (!$user) {
+                $user = User::create([
+                    'first_name' => $firstName,
+                    'last_name' => $lastName,
+                    'email' => $email,
+                    'password' => Hash::make(Str::random(48)),
+                    'role' => 'user',
+                    'onboarding_completed' => false,
+                ]);
+
+                $user->forceFill(['email_verified_at' => now()])->save();
+
+                $this->assignBasicPlan($user);
+            } elseif (!$user->email_verified_at) {
+                $user->forceFill(['email_verified_at' => now()])->save();
+            }
+
+            $profileFields = array_filter([
+                'avatar' => $linkedinUser['picture'] ?? null,
+            ], fn($value) => $value !== null && $value !== '');
+
+            if (!empty($profileFields)) {
+                $user->profile()->updateOrCreate(['user_id' => $user->id], $profileFields);
+            }
+
+            return $user->fresh();
+        });
     }
 
     /**

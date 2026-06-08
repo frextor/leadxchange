@@ -35,6 +35,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'role',
         'points_balance',
         'badge_level',
+        'stripe_customer_id',
     ];
 
     /**
@@ -181,6 +182,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function subscriptions()
     {
         return $this->hasMany(Subscription::class);
+    }
+
+    public function eventPayments()
+    {
+        return $this->hasMany(EventPayment::class);
     }
 
     /**

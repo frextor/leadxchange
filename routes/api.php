@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\ConnectionController;
 use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ProfileVisitorController;
 use App\Http\Controllers\Api\ProfileVideoModerationController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Api\GroupController;
 use App\Http\Controllers\Api\PollController;
 use App\Http\Controllers\Api\LanguageController;
 use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -36,6 +38,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->group(function () {
     Route::post('/register',        [AuthController::class, 'register']);
     Route::post('/login',           [AuthController::class, 'login']);
+    Route::post('/linkedin',        [AuthController::class, 'linkedin']);
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password',  [AuthController::class, 'resetPassword']);
 });
@@ -43,6 +46,7 @@ Route::prefix('auth')->group(function () {
 // Reference data — public, no auth needed
 Route::get('/ping',     fn() => response()->json(['status' => 'ok']));
 Route::get('/settings', [SettingsController::class, 'index']);
+Route::post('/stripe/webhook', StripeWebhookController::class);
 
 
 // ==========================================
@@ -148,6 +152,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Points history (CDC: GET /api/users/me/points/history)
     Route::get('/users/me/points/history', [ApiLeadController::class, 'pointsHistory']);
+
+    // Payment Routes
+    Route::get('/payments/config',                         [PaymentController::class, 'config']);
+    Route::post('/payments/events/{event}/intent',         [PaymentController::class, 'eventIntent']);
+    Route::post('/payments/plans/{plan}/subscription',     [PaymentController::class, 'planSubscription']);
+    Route::get('/payments/status',                         [PaymentController::class, 'status']);
 
     // Event Routes
     Route::get('/events',                                       [ApiEventController::class, 'index']);

@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rules\Password as PasswordRule;
@@ -97,6 +98,86 @@ class AuthController extends Controller
             'token' => $token,
             'token_type' => 'Bearer',
         ]);
+    }
+
+    /**
+     * Login or register a user with LinkedIn OpenID Connect.
+     */
+    public function linkedin(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'code' => ['required', 'string'],
+        ]);
+
+        $clientId = config('services.linkedin.client_id');
+        $clientSecret = config('services.linkedin.client_secret');
+        $redirectUri = config('services.linkedin.redirect_uri');
+
+        if (!$clientId || !$clientSecret || !$redirectUri) {
+            return response()->json([
+                'message' => 'LinkedIn login is not configured.',
+            ], 500);
+        }
+
+        try {
+            $tokenResponse = Http::asForm()->post('https://www.linkedin.com/oauth/v2/accessToken', [
+                'grant_type' => 'authorization_code',
+                'code' => $validated['code'],
+                'redirect_uri' => $redirectUri,
+                'client_id' => $clientId,
+                'client_secret' => $clientSecret,
+            ]);
+
+            if (!$tokenResponse->successful()) {
+                Log::warning('LinkedIn token exchange failed', [
+                    'status' => $tokenResponse->status(),
+                    'body' => $tokenResponse->json() ?: $tokenResponse->body(),
+                ]);
+
+                return response()->json([
+                    'message' => 'LinkedIn login failed. Please try again.',
+                ], 422);
+            }
+
+            $accessToken = $tokenResponse->json('access_token');
+            if (!$accessToken) {
+                return response()->json([
+                    'message' => 'LinkedIn login failed. Please try again.',
+                ], 422);
+            }
+
+            $userInfoResponse = Http::withToken($accessToken)
+                ->acceptJson()
+                ->get('https://api.linkedin.com/v2/userinfo');
+
+            if (!$userInfoResponse->successful()) {
+                Log::warning('LinkedIn userinfo request failed', [
+                    'status' => $userInfoResponse->status(),
+                    'body' => $userInfoResponse->json() ?: $userInfoResponse->body(),
+                ]);
+
+                return response()->json([
+                    'message' => 'LinkedIn profile could not be loaded.',
+                ], 422);
+            }
+
+            $user = $this->authService->loginWithLinkedIn($userInfoResponse->json());
+            $this->authService->revokeAllTokens($user);
+            $token = $this->authService->createToken($user);
+
+            return response()->json([
+                'message' => 'LinkedIn login successful',
+                'data' => $this->authService->getUserData($user),
+                'token' => $token,
+                'token_type' => 'Bearer',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('LinkedIn login failed', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'message' => 'LinkedIn login failed. Please try again.',
+            ], 500);
+        }
     }
 
     /**
