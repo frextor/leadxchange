@@ -38,19 +38,29 @@ class PaymentController extends Controller
             return response()->json(['message' => 'This event is free. Use the regular join endpoint.'], 422);
         }
 
+        // Already paid: re-attach if they left (no re-charge), return empty client_secret as signal
+        if (EventPayment::where('user_id', $user->id)
+            ->where('event_id', $event->id)
+            ->where('status', 'succeeded')
+            ->exists()) {
+            if (!$event->isAttending($user->id)) {
+                $event->attendees()->attach($user->id, ['role' => 'attendee']);
+                $event->increment('attendees_count');
+            }
+            return response()->json([
+                'client_secret'   => '',
+                'customer_id'     => '',
+                'ephemeral_key'   => '',
+                'publishable_key' => '',
+            ]);
+        }
+
         if ($event->isAttending($user->id)) {
             return response()->json(['message' => 'Already registered for this event.'], 422);
         }
 
         if ($event->max_attendees !== null && $event->attendees_count >= $event->max_attendees) {
             return response()->json(['message' => 'Event is at full capacity.'], 422);
-        }
-
-        if (EventPayment::where('user_id', $user->id)
-            ->where('event_id', $event->id)
-            ->where('status', 'succeeded')
-            ->exists()) {
-            return response()->json(['message' => 'This event has already been paid.'], 422);
         }
 
         $customerId = $this->ensureStripeCustomer($user);
