@@ -109,8 +109,15 @@ class PaymentController extends Controller
             return response()->json(['message' => 'This plan does not require Stripe payment.'], 422);
         }
 
-        if ($user->subscription && $user->subscription->plan_id === $plan->id) {
+        $currentSubscription = $user->subscription;
+        $currentPlan = $currentSubscription?->plan;
+
+        if ($currentPlan && $currentPlan->id === $plan->id) {
             return response()->json(['message' => 'This plan is already active.'], 422);
+        }
+
+        if ($currentPlan && $this->planPriority($plan) < $this->planPriority($currentPlan)) {
+            return response()->json(['message' => 'You already have a higher plan.'], 422);
         }
 
         $stripePriceId = $plan->stripe_price_id ?: config('services.stripe.premium_price_id');
@@ -260,5 +267,10 @@ class PaymentController extends Controller
     private function localSubscriptionStatus(string $stripeStatus): string
     {
         return in_array($stripeStatus, ['active', 'trialing'], true) ? 'active' : 'canceled';
+    }
+
+    private function planPriority(Plan $plan): float
+    {
+        return (float) ($plan->sort_order ?: $plan->price);
     }
 }

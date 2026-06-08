@@ -142,9 +142,29 @@ class StripeWebhookController extends Controller
             $localStatus = $this->localSubscriptionStatus($stripeSubscription->status);
 
             if ($localStatus === 'active') {
+                $currentLocalSubscriptionId = optional($user->subscriptions()
+                    ->where('stripe_subscription_id', $stripeSubscription->id)
+                    ->first())->id;
+
+                $oldSubscriptions = $user->subscriptions()
+                    ->when($currentLocalSubscriptionId, fn($query) => $query->where('id', '!=', $currentLocalSubscriptionId))
+                    ->where('status', 'active')
+                    ->whereNotNull('stripe_subscription_id')
+                    ->get();
+
+                foreach ($oldSubscriptions as $oldSubscription) {
+                    try {
+                        \Stripe\Subscription::update($oldSubscription->stripe_subscription_id, [
+                            'cancel_at_period_end' => true,
+                        ]);
+                    } catch (\Throwable) {
+                        // Keep local state consistent even if Stripe cancellation is retried manually later.
+                    }
+                }
+
                 $user->subscriptions()
-                    ->where('id', '!=', optional($user->subscriptions()->where('stripe_subscription_id', $stripeSubscription->id)->first())->id)
-                    ->update(['status' => 'canceled']);
+                    ->when($currentLocalSubscriptionId, fn($query) => $query->where('id', '!=', $currentLocalSubscriptionId))
+                    ->update(['status' => 'canceled', 'cancel_at_period_end' => true]);
             }
 
             Subscription::updateOrCreate(
