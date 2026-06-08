@@ -11,6 +11,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Stripe\Exception\InvalidRequestException;
 use Stripe\Customer;
 use Stripe\EphemeralKey;
 use Stripe\PaymentIntent;
@@ -235,7 +236,16 @@ class PaymentController extends Controller
     private function ensureStripeCustomer(User $user): string
     {
         if ($user->stripe_customer_id) {
-            return $user->stripe_customer_id;
+            try {
+                $customer = Customer::retrieve($user->stripe_customer_id);
+                if ($customer->deleted ?? false) {
+                    $user->forceFill(['stripe_customer_id' => null])->save();
+                } else {
+                    return $user->stripe_customer_id;
+                }
+            } catch (InvalidRequestException) {
+                $user->forceFill(['stripe_customer_id' => null])->save();
+            }
         }
 
         $customer = Customer::create([
