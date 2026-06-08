@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\LeadController as ApiLeadController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\ConnectionController;
 use App\Http\Controllers\Api\DeviceTokenController;
+use App\Http\Controllers\Api\EnterpriseInvitationController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProfileController;
@@ -46,6 +47,7 @@ Route::prefix('auth')->group(function () {
 // Reference data — public, no auth needed
 Route::get('/ping',     fn() => response()->json(['status' => 'ok']));
 Route::get('/settings', [SettingsController::class, 'index']);
+Route::get('/enterprise/invitations/{token}', [EnterpriseInvitationController::class, 'show']);
 Route::post('/stripe/webhook', StripeWebhookController::class);
 
 
@@ -158,6 +160,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/payments/events/{event}/intent',         [PaymentController::class, 'eventIntent']);
     Route::post('/payments/plans/{plan}/subscription',     [PaymentController::class, 'planSubscription']);
     Route::get('/payments/status',                         [PaymentController::class, 'status']);
+
+    // Enterprise invitation Routes
+    Route::get('/enterprise/invitations',                  [EnterpriseInvitationController::class, 'index']);
+    Route::post('/enterprise/invitations',                 [EnterpriseInvitationController::class, 'store']);
+    Route::post('/enterprise/invitations/{token}/accept',  [EnterpriseInvitationController::class, 'accept']);
 
     // Event Routes
     Route::get('/events',                                       [ApiEventController::class, 'index']);

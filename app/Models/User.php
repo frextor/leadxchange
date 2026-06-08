@@ -189,6 +189,16 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(EventPayment::class);
     }
 
+    public function sentEnterpriseInvitations()
+    {
+        return $this->hasMany(EnterpriseInvitation::class, 'owner_id');
+    }
+
+    public function acceptedEnterpriseInvitation()
+    {
+        return $this->hasOne(EnterpriseInvitation::class, 'accepted_user_id');
+    }
+
     /**
      * Get the user's active plan through subscription.
      */

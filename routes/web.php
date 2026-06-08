@@ -47,6 +47,12 @@ Route::get('/auth/linkedin/callback', function (Request $request) {
     return redirect()->away('x-tensia://auth/linkedin/callback' . ($query !== '' ? "?{$query}" : ''));
 })->name('linkedin.mobile.callback');
 
+// Enterprise invitation fallback: app handles the deep link when installed;
+// otherwise the browser lands on the regular registration page with the token.
+Route::get('/enterprise/invitations/{token}', function (string $token) {
+    return redirect()->route('register', ['invitation_token' => $token]);
+})->name('enterprise.invitations.redirect');
+
 // Firebase Messaging Service Worker (must be at root scope, no auth required)
 Route::get('/firebase-messaging-sw.js', function () {
     return response()

@@ -17,7 +17,7 @@ class Plan extends Model
     protected $fillable = [
         'name', 'label', 'description',
         'price', 'billing_period', 'stripe_product_id', 'stripe_price_id',
-        'max_leads', 'max_groups',
+        'max_leads', 'max_groups', 'max_users',
         'features', 'is_active', 'sort_order',
     ];
 
@@ -26,6 +26,7 @@ class Plan extends Model
         'price'      => 'decimal:2',
         'max_leads'  => 'integer',
         'max_groups' => 'integer',
+        'max_users'  => 'integer',
         'is_active'  => 'boolean',
         'sort_order' => 'integer',
     ];

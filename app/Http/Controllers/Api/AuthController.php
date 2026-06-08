@@ -8,6 +8,7 @@ use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\ProfileRequest;
 use App\Services\AuthService;
 use App\Services\CompanyService;
+use App\Services\EnterpriseInvitationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,14 +29,20 @@ class AuthController extends Controller
 {
     protected AuthService $authService;
     protected CompanyService $companyService;
+    protected EnterpriseInvitationService $enterpriseInvitationService;
 
     /**
      * Inject services via constructor.
      */
-    public function __construct(AuthService $authService, CompanyService $companyService)
+    public function __construct(
+        AuthService $authService,
+        CompanyService $companyService,
+        EnterpriseInvitationService $enterpriseInvitationService,
+    )
     {
         $this->authService = $authService;
         $this->companyService = $companyService;
+        $this->enterpriseInvitationService = $enterpriseInvitationService;
     }
 
     /**
@@ -47,8 +54,23 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
         try {
+            $validated = $request->validated();
+            $invitationToken = $validated['invitation_token'] ?? null;
+
+            if ($invitationToken) {
+                $this->enterpriseInvitationService->assertTokenCanBeAcceptedByEmail(
+                    $invitationToken,
+                    $validated['email'],
+                );
+            }
+
             // Service handles ALL business logic
-            $user = $this->authService->register($request->validated());
+            $user = $this->authService->register($validated);
+
+            if ($invitationToken) {
+                $this->enterpriseInvitationService->acceptForUser($invitationToken, $user);
+                $user = $user->fresh();
+            }
 
             // Create token
             $token = $this->authService->createToken($user);
@@ -60,6 +82,10 @@ class AuthController extends Controller
                 'token' => $token,
                 'token_type' => 'Bearer',
             ], 201);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Registration failed',
