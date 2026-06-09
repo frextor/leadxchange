@@ -47,10 +47,50 @@ Route::get('/auth/linkedin/callback', function (Request $request) {
     return redirect()->away('x-tensia://auth/linkedin/callback' . ($query !== '' ? "?{$query}" : ''));
 })->name('linkedin.mobile.callback');
 
+Route::get('/.well-known/assetlinks.json', function () {
+    return response()->json([
+        [
+            'relation' => ['delegate_permission/common.handle_all_urls'],
+            'target' => [
+                'namespace' => 'android_app',
+                'package_name' => 'com.leadxchange.app',
+                'sha256_cert_fingerprints' => [
+                    '95:05:C4:C8:5D:09:97:80:4B:C6:68:35:9E:D4:98:18:E6:2C:04:72:A6:53:F1:12:74:D9:E6:10:5A:EC:95:AD',
+                ],
+            ],
+        ],
+    ])->header('Content-Type', 'application/json');
+})->name('android.assetlinks');
+
 // Enterprise invitation fallback: app handles the deep link when installed;
 // otherwise the browser lands on the regular registration page with the token.
 Route::get('/enterprise/invitations/{token}', function (string $token) {
-    return redirect()->route('register', ['invitation_token' => $token]);
+    $appUrl = 'x-tensia://enterprise/invitations/' . rawurlencode($token);
+    $fallbackUrl = route('register', ['invitation_token' => $token]);
+    $escapedAppUrl = e($appUrl);
+    $escapedFallbackUrl = e($fallbackUrl);
+
+    return response(<<<HTML
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Invitation LeadXchange</title>
+    <meta http-equiv="refresh" content="2;url={$escapedFallbackUrl}">
+    <script>
+        window.location.replace('{$escapedAppUrl}');
+        setTimeout(function () {
+            window.location.href = '{$escapedFallbackUrl}';
+        }, 1500);
+    </script>
+</head>
+<body style="font-family: Arial, sans-serif; padding: 24px; color: #0D2B45;">
+    <p>Ouverture de LeadXchange...</p>
+    <p>Si l'application ne s'ouvre pas, <a href="{$escapedFallbackUrl}">continuer sur le web</a>.</p>
+</body>
+</html>
+HTML);
 })->name('enterprise.invitations.redirect');
 
 // Firebase Messaging Service Worker (must be at root scope, no auth required)
