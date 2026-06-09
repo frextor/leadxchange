@@ -17,6 +17,7 @@ class EnterpriseInvitationService
         return $owner->subscriptions()
             ->with('plan')
             ->where('status', 'active')
+            ->whereNotNull('stripe_subscription_id')
             ->latest()
             ->get()
             ->first(fn(Subscription $subscription) => ($subscription->plan?->max_users ?? 1) > 1);

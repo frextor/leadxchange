@@ -256,7 +256,7 @@ class UserService
 
     public function getUserById(int $userId, int $currentUserId): ?array
     {
-        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'nationality:id,name,flag', 'subscription.plan:id,name,label'])
+        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'nationality:id,name,flag', 'subscription.plan:id,name,label,max_users'])
             ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'created_at'])
             ->find($userId);
 
@@ -267,6 +267,7 @@ class UserService
         $base['plan'] = $user->subscription?->plan ? [
             'name'  => $user->subscription->plan->name,
             'label' => $user->subscription->plan->label,
+            'is_enterprise_owner' => $this->isEnterpriseOwnerSubscription($user->subscription),
         ] : null;
 
         return $base;
@@ -274,7 +275,7 @@ class UserService
 
     public function getProfileById(int $userId, int $currentUserId): ?array
     {
-        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'subscription.plan:id,name,label'])
+        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'subscription.plan:id,name,label,max_users'])
             ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'created_at'])
             ->find($userId);
 
@@ -284,12 +285,20 @@ class UserService
         $base['plan'] = $user->subscription?->plan ? [
             'name'  => $user->subscription->plan->name,
             'label' => $user->subscription->plan->label,
+            'is_enterprise_owner' => $this->isEnterpriseOwnerSubscription($user->subscription),
         ] : null;
 
         $base['gender']       = $user->gender;
         $base['birthday']     = $user->birthday?->format('Y-m-d');
         $base['member_since'] = $user->created_at?->format('F Y');
         return $base;
+    }
+
+    private function isEnterpriseOwnerSubscription(?\App\Models\Subscription $subscription): bool
+    {
+        return $subscription !== null
+            && $subscription->stripe_subscription_id !== null
+            && ($subscription->plan?->max_users ?? 1) > 1;
     }
 
     public function getTotalUsersCount(int $currentUserId): int

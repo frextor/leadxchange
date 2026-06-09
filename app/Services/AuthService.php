@@ -353,6 +353,7 @@ class AuthService
                 'name'     => $user->subscription->plan->name,
                 'price'    => $user->subscription->plan->price,
                 'features' => $user->subscription->plan->features,
+                'is_enterprise_owner' => $this->isEnterpriseOwnerSubscription($user->subscription),
             ] : null,
             'onboarding_completed' => (bool) ($user->onboarding_completed ?? false),
             'profile_completed'    => (bool) $user->hasCompletedProfile(),
@@ -374,6 +375,13 @@ class AuthService
             'uploaded_at' => $includePrivateStatus ? $profile->presentation_video_uploaded_at : null,
             'reviewed_at' => $includePrivateStatus ? $profile->presentation_video_reviewed_at : null,
         ];
+    }
+
+    private function isEnterpriseOwnerSubscription(?Subscription $subscription): bool
+    {
+        return $subscription !== null
+            && $subscription->stripe_subscription_id !== null
+            && ($subscription->plan?->max_users ?? 1) > 1;
     }
 
     private function ratingPayload(User $user): array
