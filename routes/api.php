@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\ProfileVisitorController;
 use App\Http\Controllers\Api\ProfileVideoModerationController;
 use App\Http\Controllers\Api\CountryController;
 use App\Http\Controllers\Api\ChatController as ApiChatController;
+use App\Http\Controllers\Api\ChatFirebaseController;
 use App\Http\Controllers\Api\EventController as ApiEventController;
 use App\Http\Controllers\Api\GroupController;
 use App\Http\Controllers\Api\PollController;
@@ -187,9 +188,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/notifications/read-all',       [NotificationController::class, 'readAll']);
     Route::delete('/notifications/{id}',         [NotificationController::class, 'destroy']);
 
-    // Chat Routes
+    // Chat Routes — static paths must come before wildcard /{userId}
+    Route::get('/chat/firebase/token',           [ChatFirebaseController::class, 'token']);
     Route::get('/chat',                          [ApiChatController::class, 'index']);
     Route::get('/chat/{userId}',                 [ApiChatController::class, 'show']);
     Route::post('/chat/{userId}',                [ApiChatController::class, 'store']);
     Route::get('/chat/{userId}/poll/{lastId}',   [ApiChatController::class, 'poll']);
+    Route::post('/chat/{conversationId}/read',   [ApiChatController::class, 'markRead']);
+    Route::post('/chat/{conversationId}/typing', [ApiChatController::class, 'typing']);
 });
