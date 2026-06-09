@@ -161,6 +161,12 @@ class AuthController extends Controller
                     'redirect_uri' => $redirectUri,
                 ]);
 
+                if ($tokenResponse->status() === 429) {
+                    return response()->json([
+                        'message' => 'Too many LinkedIn login attempts. Please try again in a few minutes.',
+                    ], 429);
+                }
+
                 return response()->json([
                     'message' => 'LinkedIn login failed. Please try again.',
                 ], 422);
