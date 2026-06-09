@@ -155,9 +155,10 @@ class AuthController extends Controller
             ]);
 
             if (!$tokenResponse->successful()) {
-                Log::warning('LinkedIn token exchange failed', [
+                Log::error('LinkedIn token exchange failed', [
                     'status' => $tokenResponse->status(),
                     'body' => $tokenResponse->json() ?: $tokenResponse->body(),
+                    'redirect_uri' => $redirectUri,
                 ]);
 
                 return response()->json([
@@ -177,7 +178,7 @@ class AuthController extends Controller
                 ->get('https://api.linkedin.com/v2/userinfo');
 
             if (!$userInfoResponse->successful()) {
-                Log::warning('LinkedIn userinfo request failed', [
+                Log::error('LinkedIn userinfo request failed', [
                     'status' => $userInfoResponse->status(),
                     'body' => $userInfoResponse->json() ?: $userInfoResponse->body(),
                 ]);
