@@ -377,15 +377,12 @@ class FirebaseService
     private function writeToDatabasePath(string $path, mixed $data): void
     {
         $databaseUrl = rtrim((string) config('firebase.database_url'), '/');
-        $accessToken = $this->getDatabaseAccessToken();
         $url         = "{$databaseUrl}/{$path}.json";
 
         if ($data === null) {
-            Http::withToken($accessToken)->delete($url);
+            Http::delete($url);
         } else {
-            Http::withToken($accessToken)
-                ->withBody(json_encode($data), 'application/json')
-                ->put($url);
+            Http::withBody(json_encode($data), 'application/json')->put($url);
         }
     }
 
@@ -402,7 +399,7 @@ class FirebaseService
             $header  = $this->b64url(json_encode(['alg' => 'RS256', 'typ' => 'JWT']));
             $payload = $this->b64url(json_encode([
                 'iss'   => $sa['client_email'],
-                'scope' => 'https://www.googleapis.com/auth/firebase.database',
+                'scope' => 'https://www.googleapis.com/auth/firebase',
                 'aud'   => 'https://oauth2.googleapis.com/token',
                 'iat'   => $now,
                 'exp'   => $now + 3600,
