@@ -35,6 +35,7 @@ class ChatController extends Controller
                     'id'              => $c->id,
                     'last_message_at' => $c->last_message_at?->toIso8601String(),
                     'unread'          => $c->unreadCount($user->id),
+                    'unread_count'    => $c->unreadCount($user->id),
                     'last_message'    => $c->lastMessage ? [
                         'type'       => $c->lastMessage->type,
                         'preview'    => $this->messagePreview($c->lastMessage),
@@ -114,6 +115,7 @@ class ChatController extends Controller
     {
         $sender = $request->user();
 
+        abort_if($sender->id === $userId, 422, 'Cannot send a message to yourself.');
         abort_unless($sender->isConnectedWith($userId), 403, 'Not connected.');
 
         $type = $request->input('type', 'text');
@@ -129,7 +131,8 @@ class ChatController extends Controller
                 ->where('client_message_id', $clientId)
                 ->first();
             if ($existing) {
-                return response()->json(['message' => $this->formatMessage($existing, $sender->id)], 201);
+                $payload = $this->formatMessage($existing, $sender->id);
+                return response()->json(['data' => $payload, 'message' => $payload], 201);
             }
         }
 
@@ -144,12 +147,12 @@ class ChatController extends Controller
         if ($type === 'text') {
             $data['body'] = $request->input('body');
         } elseif ($type === 'image') {
-            $path = $request->file('image')->store("chat/{$conversation->id}/images", 'public');
+            $path = $request->file('image')->store("chat/conversations/{$conversation->id}/images", 'public');
             $data['media_url'] = asset('storage/' . $path);
             $data['caption']   = $request->input('caption');
         } elseif ($type === 'audio') {
             $file              = $request->file('audio');
-            $path              = $file->store("chat/{$conversation->id}/audio", 'public');
+            $path              = $file->store("chat/conversations/{$conversation->id}/audio", 'public');
             $data['media_url']   = asset('storage/' . $path);
             $data['filename']    = $file->getClientOriginalName();
             $data['duration_ms'] = $request->integer('duration_ms') ?: null;
@@ -169,7 +172,8 @@ class ChatController extends Controller
             Log::warning('Chat Firebase sync failed', ['error' => $e->getMessage()]);
         }
 
-        return response()->json(['message' => $this->formatMessage($message, $sender->id)], 201);
+        $payload = $this->formatMessage($message, $sender->id);
+        return response()->json(['data' => $payload, 'message' => $payload], 201);
     }
 
     /**
@@ -224,6 +228,10 @@ class ChatController extends Controller
     public function poll(Request $request, int $userId, int $lastId): JsonResponse
     {
         $user         = $request->user();
+
+        abort_if($user->id === $userId, 422, 'Cannot poll a conversation with yourself.');
+        abort_unless($user->isConnectedWith($userId), 403, 'Not connected.');
+
         $conversation = Conversation::between($user->id, $userId);
 
         $messages = $conversation->messages()
@@ -265,8 +273,8 @@ class ChatController extends Controller
     private function messagePreview(Message $message): string
     {
         return match ($message->type) {
-            'image' => $message->caption ?: '📷 Image',
-            'audio' => '🎵 Audio',
+            'image' => $message->caption ?: 'Image',
+            'audio' => 'Audio message',
             default => $message->body ?? '',
         };
     }

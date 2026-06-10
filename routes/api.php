@@ -191,6 +191,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Chat Routes — static paths must come before wildcard /{userId}
     Route::get('/chat/firebase/token',           [ChatFirebaseController::class, 'token']);
     Route::get('/chat',                          [ApiChatController::class, 'index']);
+    Route::post('/chat/{userId}/messages',       [ApiChatController::class, 'store']);
     Route::get('/chat/{userId}',                 [ApiChatController::class, 'show']);
     Route::post('/chat/{userId}',                [ApiChatController::class, 'store']);
     Route::get('/chat/{userId}/poll/{lastId}',   [ApiChatController::class, 'poll']);
