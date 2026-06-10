@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Lead;
 use App\Models\LeadRating;
+use App\Models\SystemSetting;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -91,8 +92,10 @@ class LeadService
         try {
             $lead->update(['status' => Lead::STATUS_ACCEPTED, 'points_deducted' => true]);
             $lead->load('sender');
-            $lead->sender?->adjustPoints(+1, 'lead_accepted');
-            $lead->receiver->adjustPoints(-1, 'lead_received');
+            $senderPoints    = SystemSetting::get('points.lead_accepted_sender', 2);
+            $receiverDeduct  = SystemSetting::get('points.lead_received_deduction', 1);
+            $lead->sender?->adjustPoints(+$senderPoints, 'lead_accepted');
+            $lead->receiver->adjustPoints(-$receiverDeduct, 'lead_received');
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -237,7 +240,14 @@ class LeadService
 
     public function computeRatingScore(int $userId): array
     {
-        $since = now()->subDays(60);
+        $windowDays    = SystemSetting::get('scoring.window_days', 60);
+        $givenMult     = SystemSetting::get('scoring.given_multiplier', 2);
+        $receivedMult  = SystemSetting::get('scoring.received_multiplier', -1);
+        $mqlWeight     = SystemSetting::get('scoring.mql_weight', 1);
+        $sqlWeight     = SystemSetting::get('scoring.sql_weight', 3);
+        $spWeight      = SystemSetting::get('scoring.sp_weight', 5);
+
+        $since = now()->subDays($windowDays);
 
         $given = Lead::where('sender_id', $userId)
             ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
@@ -254,7 +264,7 @@ class LeadService
         $sql = $given->where('lead_type', Lead::TYPE_SQL)->count();
         $sp  = $given->where('lead_type', Lead::TYPE_SP)->count();
 
-        $score = ($givenCount * 2) + ($receivedCount * -1) + ($mql * 1) + ($sql * 3) + ($sp * 5);
+        $score = ($givenCount * $givenMult) + ($receivedCount * $receivedMult) + ($mql * $mqlWeight) + ($sql * $sqlWeight) + ($sp * $spWeight);
         $score = max(0, $score);
         $stars = min(5, (int) floor($score / 5) + 1);
 
