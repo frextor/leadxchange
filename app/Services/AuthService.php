@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\Plan;
+use App\Models\Lead;
 use App\Models\LeadRating;
+use App\Models\Plan;
+use App\Models\SystemSetting;
 use App\Models\Sector;
 use App\Models\Subscription;
 use App\Models\User;
@@ -390,10 +392,48 @@ class AuthService
             ->selectRaw('ROUND(AVG(average_note), 2) as average_rating, COUNT(*) as rating_count')
             ->first();
 
+        $score = $this->computeRatingScore($user->id);
+
         return [
             'average' => $stats?->average_rating !== null ? (float) $stats->average_rating : null,
             'count'   => (int) ($stats?->rating_count ?? 0),
+            'score'   => $score['score'],
+            'stars'   => $score['stars'],
         ];
+    }
+
+    private function computeRatingScore(int $userId): array
+    {
+        $windowDays   = SystemSetting::get('scoring.window_days', 60);
+        $givenMult    = SystemSetting::get('scoring.given_multiplier', 2);
+        $receivedMult = SystemSetting::get('scoring.received_multiplier', -1);
+        $mqlWeight    = SystemSetting::get('scoring.mql_weight', 1);
+        $sqlWeight    = SystemSetting::get('scoring.sql_weight', 3);
+        $spWeight     = SystemSetting::get('scoring.sp_weight', 5);
+
+        $since = now()->subDays($windowDays);
+
+        $given = Lead::where('sender_id', $userId)
+            ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
+            ->where('updated_at', '>=', $since)
+            ->get(['lead_type']);
+
+        $receivedCount = Lead::where('receiver_id', $userId)
+            ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
+            ->where('updated_at', '>=', $since)
+            ->count();
+
+        $givenCount = $given->count();
+        $mql = $given->where('lead_type', Lead::TYPE_MQL)->count();
+        $sql = $given->where('lead_type', Lead::TYPE_SQL)->count();
+        $sp  = $given->where('lead_type', Lead::TYPE_SP)->count();
+
+        $score = ($givenCount * $givenMult) + ($receivedCount * $receivedMult)
+               + ($mql * $mqlWeight) + ($sql * $sqlWeight) + ($sp * $spWeight);
+        $score = max(0, $score);
+        $stars = min(5, (int) floor($score / 5));
+
+        return ['score' => $score, 'stars' => $stars];
     }
 
     private function badgePayload(string $level): array

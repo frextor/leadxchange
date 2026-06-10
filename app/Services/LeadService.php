@@ -266,7 +266,7 @@ class LeadService
 
         $score = ($givenCount * $givenMult) + ($receivedCount * $receivedMult) + ($mql * $mqlWeight) + ($sql * $sqlWeight) + ($sp * $spWeight);
         $score = max(0, $score);
-        $stars = min(5, (int) floor($score / 5) + 1);
+        $stars = min(5, (int) floor($score / 5));
 
         return ['score' => $score, 'stars' => $stars];
     }
