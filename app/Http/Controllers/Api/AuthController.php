@@ -8,10 +8,12 @@ use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\ProfileRequest;
 use App\Services\AuthService;
 use App\Services\CompanyService;
+use App\Services\EnterpriseInvitationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rules\Password as PasswordRule;
@@ -27,14 +29,20 @@ class AuthController extends Controller
 {
     protected AuthService $authService;
     protected CompanyService $companyService;
+    protected EnterpriseInvitationService $enterpriseInvitationService;
 
     /**
      * Inject services via constructor.
      */
-    public function __construct(AuthService $authService, CompanyService $companyService)
+    public function __construct(
+        AuthService $authService,
+        CompanyService $companyService,
+        EnterpriseInvitationService $enterpriseInvitationService,
+    )
     {
         $this->authService = $authService;
         $this->companyService = $companyService;
+        $this->enterpriseInvitationService = $enterpriseInvitationService;
     }
 
     /**
@@ -46,8 +54,23 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
         try {
+            $validated = $request->validated();
+            $invitationToken = $validated['invitation_token'] ?? null;
+
+            if ($invitationToken) {
+                $this->enterpriseInvitationService->assertTokenCanBeAcceptedByEmail(
+                    $invitationToken,
+                    $validated['email'],
+                );
+            }
+
             // Service handles ALL business logic
-            $user = $this->authService->register($request->validated());
+            $user = $this->authService->register($validated);
+
+            if ($invitationToken) {
+                $this->enterpriseInvitationService->acceptForUser($invitationToken, $user);
+                $user = $user->fresh();
+            }
 
             // Create token
             $token = $this->authService->createToken($user);
@@ -59,6 +82,10 @@ class AuthController extends Controller
                 'token' => $token,
                 'token_type' => 'Bearer',
             ], 201);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Registration failed',
@@ -97,6 +124,93 @@ class AuthController extends Controller
             'token' => $token,
             'token_type' => 'Bearer',
         ]);
+    }
+
+    /**
+     * Login or register a user with LinkedIn OpenID Connect.
+     */
+    public function linkedin(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'code' => ['required', 'string'],
+        ]);
+
+        $clientId = config('services.linkedin.client_id');
+        $clientSecret = config('services.linkedin.client_secret');
+        $redirectUri = config('services.linkedin.redirect_uri');
+
+        if (!$clientId || !$clientSecret || !$redirectUri) {
+            return response()->json([
+                'message' => 'LinkedIn login is not configured.',
+            ], 500);
+        }
+
+        try {
+            $tokenResponse = Http::asForm()->post('https://www.linkedin.com/oauth/v2/accessToken', [
+                'grant_type' => 'authorization_code',
+                'code' => $validated['code'],
+                'redirect_uri' => $redirectUri,
+                'client_id' => $clientId,
+                'client_secret' => $clientSecret,
+            ]);
+
+            if (!$tokenResponse->successful()) {
+                Log::error('LinkedIn token exchange failed', [
+                    'status' => $tokenResponse->status(),
+                    'body' => $tokenResponse->json() ?: $tokenResponse->body(),
+                    'redirect_uri' => $redirectUri,
+                ]);
+
+                if ($tokenResponse->status() === 429) {
+                    return response()->json([
+                        'message' => 'Too many LinkedIn login attempts. Please try again in a few minutes.',
+                    ], 429);
+                }
+
+                return response()->json([
+                    'message' => 'LinkedIn login failed. Please try again.',
+                ], 422);
+            }
+
+            $accessToken = $tokenResponse->json('access_token');
+            if (!$accessToken) {
+                return response()->json([
+                    'message' => 'LinkedIn login failed. Please try again.',
+                ], 422);
+            }
+
+            $userInfoResponse = Http::withToken($accessToken)
+                ->acceptJson()
+                ->get('https://api.linkedin.com/v2/userinfo');
+
+            if (!$userInfoResponse->successful()) {
+                Log::error('LinkedIn userinfo request failed', [
+                    'status' => $userInfoResponse->status(),
+                    'body' => $userInfoResponse->json() ?: $userInfoResponse->body(),
+                ]);
+
+                return response()->json([
+                    'message' => 'LinkedIn profile could not be loaded.',
+                ], 422);
+            }
+
+            $user = $this->authService->loginWithLinkedIn($userInfoResponse->json());
+            $this->authService->revokeAllTokens($user);
+            $token = $this->authService->createToken($user);
+
+            return response()->json([
+                'message' => 'LinkedIn login successful',
+                'data' => $this->authService->getUserData($user),
+                'token' => $token,
+                'token_type' => 'Bearer',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('LinkedIn login failed', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'message' => 'LinkedIn login failed. Please try again.',
+            ], 500);
+        }
     }
 
     /**
@@ -140,7 +254,8 @@ class AuthController extends Controller
             $user = $this->authService->updateProfile(
                 $request->user(),
                 $request->validated(),
-                $request->file('profile_picture')
+                $request->file('profile_picture'),
+                $request->file('presentation_video')
             );
 
             return response()->json([

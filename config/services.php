@@ -36,4 +36,18 @@ return [
         'base_url' => env('SIREN_API_URL', 'https://data.siren-api.fr'),
     ],
 
+    'linkedin' => [
+        'client_id'     => env('LINKEDIN_CLIENT_ID'),
+        'client_secret' => env('LINKEDIN_CLIENT_SECRET'),
+        'redirect_uri'  => env('LINKEDIN_REDIRECT_URI', env('APP_URL') . '/auth/linkedin/callback'),
+    ],
+
+    'stripe' => [
+        'secret'           => env('STRIPE_SECRET_KEY'),
+        'publishable'      => env('STRIPE_PUBLISHABLE_KEY'),
+        'webhook_secret'   => env('STRIPE_WEBHOOK_SECRET'),
+        'currency'         => env('STRIPE_CURRENCY', 'eur'),
+        'premium_price_id' => env('STRIPE_PREMIUM_PRICE_ID'),
+    ],
+
 ];

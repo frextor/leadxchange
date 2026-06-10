@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "7D854A6DUY.com.leadxchange.app",
+        "paths": [
+          "/auth/linkedin/callback",
+          "/auth/linkedin/callback/*"
+        ]
+      }
+    ]
+  }
+}

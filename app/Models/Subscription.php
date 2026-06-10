@@ -17,9 +17,13 @@ class Subscription extends Model
     protected $fillable = [
         'user_id',
         'plan_id',
+        'stripe_subscription_id',
         'status',
+        'stripe_status',
         'trial_ends_at',
         'ends_at',
+        'current_period_end',
+        'cancel_at_period_end',
     ];
 
     /**
@@ -30,6 +34,8 @@ class Subscription extends Model
     protected $casts = [
         'trial_ends_at' => 'datetime',
         'ends_at' => 'datetime',
+        'current_period_end' => 'datetime',
+        'cancel_at_period_end' => 'boolean',
     ];
 
     /**

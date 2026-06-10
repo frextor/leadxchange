@@ -8,6 +8,7 @@ use App\Models\GroupInvitation;
 use App\Models\GroupPost;
 use App\Models\GroupPostComment;
 use App\Models\User;
+use App\Services\FirebaseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -356,6 +357,10 @@ class GroupController extends Controller
         );
 
         $invitee = User::find($targetId);
+
+        if ($invitee) {
+            app(FirebaseService::class)->sendGroupInviteNotification($invitee, $group, $user);
+        }
 
         return response()->json([
             'message' => 'Invitation sent successfully.',

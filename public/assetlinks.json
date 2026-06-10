@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.leadxchange.app",
+      "sha256_cert_fingerprints": [
+        "95:05:C4:C8:5D:09:97:80:4B:C6:68:35:9E:D4:98:18:E6:2C:04:72:A6:53:F1:12:74:D9:E6:10:5A:EC:95:AD"
+      ]
+    }
+  }
+]

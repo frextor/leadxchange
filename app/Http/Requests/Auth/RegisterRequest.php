@@ -30,10 +30,11 @@ class RegisterRequest extends FormRequest
             'phone'              => ['nullable', 'string', 'max:30', 'unique:users,phone'],
             'phone_country_code' => ['nullable', 'string', 'max:10'],
             'phone_code'         => ['nullable', 'string', 'max:10'],
-            'city_id'            => ['required', 'integer', 'exists:cities,id'],
+            'city_id'            => ['nullable', 'integer', 'exists:cities,id'],
             'nationality_id'     => ['nullable', 'integer', 'exists:countries,id'],
             'gender'             => ['required', 'string', 'in:male,female,other'],
             'birthday'           => ['required', 'date', 'before:today'],
+            'invitation_token'    => ['nullable', 'string', 'max:255'],
         ];
     }
 

@@ -53,6 +53,11 @@ class Event extends Model
                     ->withPivot('role', 'registered_at');
     }
 
+    public function payments()
+    {
+        return $this->hasMany(EventPayment::class);
+    }
+
     public function sector(): BelongsTo
     {
         return $this->belongsTo(Sector::class);

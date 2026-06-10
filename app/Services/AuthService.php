@@ -2,15 +2,19 @@
 
 namespace App\Services;
 
-use App\Models\Plan;
+use App\Models\Lead;
 use App\Models\LeadRating;
+use App\Models\Plan;
+use App\Models\SystemSetting;
 use App\Models\Sector;
 use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * AuthService
@@ -20,6 +24,8 @@ use Illuminate\Support\Facades\Log;
  */
 class AuthService
 {
+    public function __construct(private ProfileVideoService $profileVideoService) {}
+
     /**
      * Register a new user with basic plan.
      *
@@ -78,6 +84,62 @@ class AuthService
     }
 
     /**
+     * Find or create a user from LinkedIn OpenID profile data.
+     * New LinkedIn users receive a token but remain onboarding-incomplete.
+     */
+    public function loginWithLinkedIn(array $linkedinUser): User
+    {
+        $email = strtolower((string) ($linkedinUser['email'] ?? ''));
+        if ($email === '') {
+            throw new \InvalidArgumentException('LinkedIn did not return an email address.');
+        }
+
+        $firstName = trim((string) ($linkedinUser['given_name'] ?? ''));
+        $lastName = trim((string) ($linkedinUser['family_name'] ?? ''));
+
+        if ($firstName === '' && $lastName === '') {
+            $name = trim((string) ($linkedinUser['name'] ?? ''));
+            $parts = preg_split('/\s+/', $name, 2) ?: [];
+            $firstName = $parts[0] ?? 'LinkedIn';
+            $lastName = $parts[1] ?? 'User';
+        }
+
+        $firstName = $firstName !== '' ? $firstName : 'LinkedIn';
+        $lastName = $lastName !== '' ? $lastName : 'User';
+
+        return DB::transaction(function () use ($email, $firstName, $lastName, $linkedinUser) {
+            $user = User::where('email', $email)->first();
+
+            if (!$user) {
+                $user = User::create([
+                    'first_name' => $firstName,
+                    'last_name' => $lastName,
+                    'email' => $email,
+                    'password' => Hash::make(Str::random(48)),
+                    'role' => 'user',
+                    'onboarding_completed' => false,
+                ]);
+
+                $user->forceFill(['email_verified_at' => now()])->save();
+
+                $this->assignBasicPlan($user);
+            } elseif (!$user->email_verified_at) {
+                $user->forceFill(['email_verified_at' => now()])->save();
+            }
+
+            $profileFields = array_filter([
+                'avatar' => $linkedinUser['picture'] ?? null,
+            ], fn($value) => $value !== null && $value !== '');
+
+            if (!empty($profileFields)) {
+                $user->profile()->updateOrCreate(['user_id' => $user->id], $profileFields);
+            }
+
+            return $user->fresh();
+        });
+    }
+
+    /**
      * Update user profile information.
      * Persists to both the `users` table and the `profiles` table.
      *
@@ -85,7 +147,7 @@ class AuthService
      * @param array $data  Validated data from ProfileRequest
      * @return User
      */
-    public function updateProfile(User $user, array $data, ?\Illuminate\Http\UploadedFile $picture = null): User
+    public function updateProfile(User $user, array $data, ?UploadedFile $picture = null, ?UploadedFile $presentationVideo = null): User
     {
         // ── Normalize mobile aliases ──────────────────────────────────────
         $data['phone_country_code'] = $data['phone_code']    ?? $data['phone_country_code'] ?? null;
@@ -139,6 +201,10 @@ class AuthService
             }
             $path = $picture->store('avatars', 'public');
             $user->profile()->updateOrCreate(['user_id' => $user->id], ['avatar' => $path]);
+        }
+
+        if ($presentationVideo) {
+            $this->profileVideoService->store($user, $presentationVideo);
         }
 
         Log::info('User profile updated', ['user_id' => $user->id]);
@@ -268,6 +334,7 @@ class AuthService
                 'sector_ids'       => collect($user->profile->sector_ids ?? [])->map(fn($id) => ['id' => $id, 'name' => $sectorMap[$id] ?? null])->values(),
                 'website'          => $user->profile->website,
                 'linkedin'         => $user->profile->linkedin,
+                'presentation_video' => $this->presentationVideoPayload($user->profile, true),
             ] : null,
             'company' => $user->company ? [
                 'id'      => $user->company->id,
@@ -288,10 +355,35 @@ class AuthService
                 'name'     => $user->subscription->plan->name,
                 'price'    => $user->subscription->plan->price,
                 'features' => $user->subscription->plan->features,
+                'is_enterprise_owner' => $this->isEnterpriseOwnerSubscription($user->subscription),
             ] : null,
             'onboarding_completed' => (bool) ($user->onboarding_completed ?? false),
             'profile_completed'    => (bool) $user->hasCompletedProfile(),
         ];
+    }
+
+    private function presentationVideoPayload(?\App\Models\Profile $profile, bool $includePrivateStatus = false): ?array
+    {
+        if (!$profile || !$profile->presentation_video) {
+            return null;
+        }
+
+        $isApproved = $profile->presentation_video_status === ProfileVideoService::STATUS_APPROVED;
+
+        return [
+            'url' => $isApproved ? $profile->presentation_video_url : null,
+            'status' => $includePrivateStatus ? $profile->presentation_video_status : ($isApproved ? $profile->presentation_video_status : null),
+            'rejection_reason' => $includePrivateStatus ? $profile->presentation_video_rejection_reason : null,
+            'uploaded_at' => $includePrivateStatus ? $profile->presentation_video_uploaded_at : null,
+            'reviewed_at' => $includePrivateStatus ? $profile->presentation_video_reviewed_at : null,
+        ];
+    }
+
+    private function isEnterpriseOwnerSubscription(?Subscription $subscription): bool
+    {
+        return $subscription !== null
+            && $subscription->stripe_subscription_id !== null
+            && ($subscription->plan?->max_users ?? 1) > 1;
     }
 
     private function ratingPayload(User $user): array
@@ -300,10 +392,48 @@ class AuthService
             ->selectRaw('ROUND(AVG(average_note), 2) as average_rating, COUNT(*) as rating_count')
             ->first();
 
+        $score = $this->computeRatingScore($user->id);
+
         return [
             'average' => $stats?->average_rating !== null ? (float) $stats->average_rating : null,
             'count'   => (int) ($stats?->rating_count ?? 0),
+            'score'   => $score['score'],
+            'stars'   => $score['stars'],
         ];
+    }
+
+    private function computeRatingScore(int $userId): array
+    {
+        $windowDays   = SystemSetting::get('scoring.window_days', 60);
+        $givenMult    = SystemSetting::get('scoring.given_multiplier', 2);
+        $receivedMult = SystemSetting::get('scoring.received_multiplier', -1);
+        $mqlWeight    = SystemSetting::get('scoring.mql_weight', 1);
+        $sqlWeight    = SystemSetting::get('scoring.sql_weight', 3);
+        $spWeight     = SystemSetting::get('scoring.sp_weight', 5);
+
+        $since = now()->subDays($windowDays);
+
+        $given = Lead::where('sender_id', $userId)
+            ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
+            ->where('updated_at', '>=', $since)
+            ->get(['lead_type']);
+
+        $receivedCount = Lead::where('receiver_id', $userId)
+            ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
+            ->where('updated_at', '>=', $since)
+            ->count();
+
+        $givenCount = $given->count();
+        $mql = $given->where('lead_type', Lead::TYPE_MQL)->count();
+        $sql = $given->where('lead_type', Lead::TYPE_SQL)->count();
+        $sp  = $given->where('lead_type', Lead::TYPE_SP)->count();
+
+        $score = ($givenCount * $givenMult) + ($receivedCount * $receivedMult)
+               + ($mql * $mqlWeight) + ($sql * $sqlWeight) + ($sp * $spWeight);
+        $score = max(0, $score);
+        $stars = min(5, (int) floor($score / 5));
+
+        return ['score' => $score, 'stars' => $stars];
     }
 
     private function badgePayload(string $level): array

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\EventInvitation;
+use App\Models\User;
+use App\Services\FirebaseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -12,8 +14,13 @@ class EventController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $request->validate([
+            'city_id' => ['nullable', 'integer', 'exists:cities,id'],
+        ]);
+
         $user = $request->user();
         $user->loadMissing('profile');
+        $activeCityId = $request->filled('city_id') ? (int) $request->city_id : $user->city_id;
 
         $attendingIds = $user->events()->pluck('events.id')->toArray();
 
@@ -86,12 +93,15 @@ class EventController extends Controller
             ->where('starts_at', '>=', now())
             ->where('created_by', '!=', $user->id)
             ->whereNotIn('id', $attendingIds);
+        if ($activeCityId !== null) {
+            $publicQuery->where('city_id', $activeCityId);
+        }
         $applyFilters($publicQuery);
 
         $publicEvents = $publicQuery->orderBy('starts_at')->get();
 
         $recommendedCollection = $publicEvents->filter(fn($e) =>
-            ($user->city_id && $e->city_id === $user->city_id) || in_array($e->sector_id, $userSectorIds)
+            ($activeCityId && $e->city_id === $activeCityId) || in_array($e->sector_id, $userSectorIds)
         )->values();
         $allCollection = $publicEvents->filter(fn($e) => !$recommendedCollection->contains('id', $e->id))->values();
 
@@ -128,14 +138,14 @@ class EventController extends Controller
         return response()->json([
             'data' => [
                 'invitations' => $invitations,
-                'my_events'   => $myEventsPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id))->values(),
-                'participating' => $participatingPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id))->values(),
-                'recommended' => $recommendedPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id))->values(),
-                'all'         => $allPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id))->values(),
+                'my_events'   => $myEventsPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
+                'participating' => $participatingPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
+                'recommended' => $recommendedPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
+                'all'         => $allPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
                 // Legacy keys kept during mobile transition.
-                'nearby'      => $recommendedPaginator->getCollection()->filter(fn($e) => $user->city_id && $e->city_id === $user->city_id)->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id))->values(),
-                'others'      => $allPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id))->values(),
-                'past'        => $pastEvents->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $user->city_id))->values(),
+                'nearby'      => $recommendedPaginator->getCollection()->filter(fn($e) => $activeCityId && $e->city_id === $activeCityId)->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
+                'others'      => $allPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
+                'past'        => $pastEvents->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
             ],
             'meta' => [
                 'total_public'       => $publicEvents->count(),
@@ -196,6 +206,11 @@ class EventController extends Controller
             ['invited_by' => $user->id, 'status' => 'pending']
         );
 
+        $invitee = User::find($targetId);
+        if ($invitee) {
+            app(FirebaseService::class)->sendEventInviteNotification($invitee, $event, $user);
+        }
+
         return response()->json(['message' => 'Invitation sent.']);
     }
 
@@ -230,6 +245,8 @@ class EventController extends Controller
         $created = 0;
         $updated = 0;
 
+        $firebase = app(FirebaseService::class);
+
         foreach ($invitableIds as $targetId) {
             $invitation = EventInvitation::updateOrCreate(
                 ['event_id' => $id, 'user_id' => $targetId],
@@ -237,6 +254,11 @@ class EventController extends Controller
             );
 
             $invitation->wasRecentlyCreated ? $created++ : $updated++;
+
+            $invitee = User::find($targetId);
+            if ($invitee) {
+                $firebase->sendEventInviteNotification($invitee, $event, $user);
+            }
         }
 
         return response()->json([

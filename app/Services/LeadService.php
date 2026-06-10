@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Lead;
 use App\Models\LeadRating;
+use App\Models\SystemSetting;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -91,8 +92,10 @@ class LeadService
         try {
             $lead->update(['status' => Lead::STATUS_ACCEPTED, 'points_deducted' => true]);
             $lead->load('sender');
-            $lead->sender?->adjustPoints(+1, 'lead_accepted');
-            $lead->receiver->adjustPoints(-1, 'lead_received');
+            $senderPoints    = SystemSetting::get('points.lead_accepted_sender', 2);
+            $receiverDeduct  = SystemSetting::get('points.lead_received_deduction', 1);
+            $lead->sender?->adjustPoints(+$senderPoints, 'lead_accepted');
+            $lead->receiver->adjustPoints(-$receiverDeduct, 'lead_received');
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -180,7 +183,7 @@ class LeadService
     // Rate a lead
     // ─────────────────────────────────────────────────────────────────────────
 
-    public function rateLead(User $rater, int $leadId, int $quality, int $relevance, int $reactivity): LeadRating
+    public function rateLead(User $rater, int $leadId, int $quality, int $relevance, int $reactivity, string $leadType): LeadRating
     {
         $lead = Lead::with('sender')->findOrFail($leadId);
 
@@ -210,12 +213,7 @@ class LeadService
                 'reactivity' => $reactivity,
             ]);
 
-            $avg = ($quality + $relevance + $reactivity) / 3.0;
-
-            if ($avg >= 4.0 && $lead->rated_bonus_at === null) {
-                $lead->update(['rated_bonus_at' => now()]);
-                $lead->sender?->adjustPoints(+1, 'lead_bonus_note');
-            }
+            $lead->update(['lead_type' => $leadType]);
 
             if (!$lead->points_deducted) {
                 $lead->update(['points_deducted' => true]);
@@ -227,24 +225,47 @@ class LeadService
             throw $e;
         }
 
-        Log::info('Lead rated', ['lead_id' => $lead->id, 'rater' => $rater->id, 'avg' => round($avg, 2)]);
-
-        // Warn sender after every 5 bad notes (avg ≤ 2)
-        if ($avg <= 2.0 && $lead->sender) {
-            $badCount = LeadRating::whereHas('lead', fn($q) => $q->where('sender_id', $lead->sender_id))
-                ->where('average_note', '<=', 2)
-                ->count();
-
-            if ($badCount > 0 && $badCount % 5 === 0) {
-                try {
-                    $this->firebase->sendBadNoteWarning($lead->sender, $badCount);
-                } catch (\Exception $e) {
-                    Log::warning('Bad note warning notification failed', ['error' => $e->getMessage()]);
-                }
-            }
-        }
+        $avg = ($quality + $relevance + $reactivity) / 3.0;
+        Log::info('Lead rated', ['lead_id' => $lead->id, 'rater' => $rater->id, 'lead_type' => $leadType, 'avg' => round($avg, 2)]);
 
         return $rating;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Compute 60-day rolling rating score for a user
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function computeRatingScore(int $userId): array
+    {
+        $windowDays    = SystemSetting::get('scoring.window_days', 60);
+        $givenMult     = SystemSetting::get('scoring.given_multiplier', 2);
+        $receivedMult  = SystemSetting::get('scoring.received_multiplier', -1);
+        $mqlWeight     = SystemSetting::get('scoring.mql_weight', 1);
+        $sqlWeight     = SystemSetting::get('scoring.sql_weight', 3);
+        $spWeight      = SystemSetting::get('scoring.sp_weight', 5);
+
+        $since = now()->subDays($windowDays);
+
+        $given = Lead::where('sender_id', $userId)
+            ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
+            ->where('updated_at', '>=', $since)
+            ->get(['lead_type']);
+
+        $receivedCount = Lead::where('receiver_id', $userId)
+            ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
+            ->where('updated_at', '>=', $since)
+            ->count();
+
+        $givenCount = $given->count();
+        $mql = $given->where('lead_type', Lead::TYPE_MQL)->count();
+        $sql = $given->where('lead_type', Lead::TYPE_SQL)->count();
+        $sp  = $given->where('lead_type', Lead::TYPE_SP)->count();
+
+        $score = ($givenCount * $givenMult) + ($receivedCount * $receivedMult) + ($mql * $mqlWeight) + ($sql * $sqlWeight) + ($sp * $spWeight);
+        $score = max(0, $score);
+        $stars = min(5, (int) floor($score / 5));
+
+        return ['score' => $score, 'stars' => $stars];
     }
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -5,15 +5,21 @@ use App\Http\Controllers\Api\LeadController as ApiLeadController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\ConnectionController;
 use App\Http\Controllers\Api\DeviceTokenController;
+use App\Http\Controllers\Api\EnterpriseInvitationController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ProfileVisitorController;
+use App\Http\Controllers\Api\ProfileVideoModerationController;
 use App\Http\Controllers\Api\CountryController;
 use App\Http\Controllers\Api\ChatController as ApiChatController;
+use App\Http\Controllers\Api\ChatFirebaseController;
 use App\Http\Controllers\Api\EventController as ApiEventController;
 use App\Http\Controllers\Api\GroupController;
 use App\Http\Controllers\Api\PollController;
 use App\Http\Controllers\Api\LanguageController;
 use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -34,6 +40,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->group(function () {
     Route::post('/register',        [AuthController::class, 'register']);
     Route::post('/login',           [AuthController::class, 'login']);
+    Route::post('/linkedin',        [AuthController::class, 'linkedin']);
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password',  [AuthController::class, 'resetPassword']);
 });
@@ -41,6 +48,8 @@ Route::prefix('auth')->group(function () {
 // Reference data — public, no auth needed
 Route::get('/ping',     fn() => response()->json(['status' => 'ok']));
 Route::get('/settings', [SettingsController::class, 'index']);
+Route::get('/enterprise/invitations/{token}', [EnterpriseInvitationController::class, 'show']);
+Route::post('/stripe/webhook', StripeWebhookController::class);
 
 
 // ==========================================
@@ -96,6 +105,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/countries',                [CountryController::class, 'index']);
     Route::get('/profile/visitors',         [ProfileVisitorController::class, 'index']);
 
+    Route::prefix('admin/profile-videos')->group(function () {
+        Route::get('/', [ProfileVideoModerationController::class, 'index']);
+        Route::patch('/{userId}/approve', [ProfileVideoModerationController::class, 'approve']);
+        Route::patch('/{userId}/reject', [ProfileVideoModerationController::class, 'reject']);
+    });
+
     // Group Routes
     Route::get('/groups',                                       [GroupController::class, 'index']);
     Route::post('/groups',                                      [GroupController::class, 'store']);
@@ -141,6 +156,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Points history (CDC: GET /api/users/me/points/history)
     Route::get('/users/me/points/history', [ApiLeadController::class, 'pointsHistory']);
 
+    // Payment Routes
+    Route::get('/payments/config',                         [PaymentController::class, 'config']);
+    Route::post('/payments/events/{event}/intent',         [PaymentController::class, 'eventIntent']);
+    Route::post('/payments/plans/{plan}/subscription',     [PaymentController::class, 'planSubscription']);
+    Route::get('/payments/status',                         [PaymentController::class, 'status']);
+
+    // Enterprise invitation Routes
+    Route::get('/enterprise/invitations',                  [EnterpriseInvitationController::class, 'index']);
+    Route::post('/enterprise/invitations',                 [EnterpriseInvitationController::class, 'store']);
+    Route::post('/enterprise/invitations/{token}/accept',  [EnterpriseInvitationController::class, 'accept']);
+
     // Event Routes
     Route::get('/events',                                       [ApiEventController::class, 'index']);
     Route::post('/events',                                      [ApiEventController::class, 'store']);
@@ -157,9 +183,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/events/{id}/attendees',                        [ApiEventController::class, 'attendees']);
     Route::delete('/events/{id}/attendees/{userId}',            [ApiEventController::class, 'removeAttendee']);
 
-    // Chat Routes
+    // Notification Routes
+    Route::get('/notifications',                 [NotificationController::class, 'index']);
+    Route::post('/notifications/read-all',       [NotificationController::class, 'readAll']);
+    Route::delete('/notifications/{id}',         [NotificationController::class, 'destroy']);
+
+    // Chat Routes — static paths must come before wildcard /{userId}
+    Route::get('/chat/firebase/token',           [ChatFirebaseController::class, 'token']);
     Route::get('/chat',                          [ApiChatController::class, 'index']);
+    Route::post('/chat/{userId}/messages',       [ApiChatController::class, 'store']);
     Route::get('/chat/{userId}',                 [ApiChatController::class, 'show']);
     Route::post('/chat/{userId}',                [ApiChatController::class, 'store']);
     Route::get('/chat/{userId}/poll/{lastId}',   [ApiChatController::class, 'poll']);
+    Route::post('/chat/{conversationId}/read',   [ApiChatController::class, 'markRead']);
+    Route::post('/chat/{conversationId}/typing', [ApiChatController::class, 'typing']);
 });

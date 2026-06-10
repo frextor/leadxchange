@@ -42,6 +42,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'ambassador_reviewed_by',
         'ambassador_rejection_reason',
         'admin_permissions',
+        'stripe_customer_id',
     ];
 
     /**
@@ -141,13 +142,13 @@ class User extends Authenticatable implements MustVerifyEmail
     public function groups()
     {
         return $this->belongsToMany(\App\Models\Group::class, 'group_user')
-                    ->withPivot('role', 'joined_at');
+            ->withPivot('role', 'joined_at');
     }
 
     public function events()
     {
         return $this->belongsToMany(\App\Models\Event::class, 'event_user')
-                    ->withPivot('role', 'registered_at');
+            ->withPivot('role', 'registered_at');
     }
 
     public function sentLeads()
@@ -178,9 +179,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isConnectedWith(int $userId): bool
     {
         return \App\Models\Connection::where('status', 'accepted')
-            ->where(fn($q) => $q
-                ->where(['sender_id' => $this->id, 'receiver_id' => $userId])
-                ->orWhere(['sender_id' => $userId, 'receiver_id' => $this->id])
+            ->where(
+                fn($q) => $q
+                    ->where(['sender_id' => $this->id, 'receiver_id' => $userId])
+                    ->orWhere(['sender_id' => $userId, 'receiver_id' => $this->id])
             )->exists();
     }
 
@@ -214,8 +216,8 @@ class User extends Authenticatable implements MustVerifyEmail
     public function languages()
     {
         return $this->belongsToMany(Language::class, 'user_languages')
-                    ->withPivot('level')
-                    ->withTimestamps();
+            ->withPivot('level')
+            ->withTimestamps();
     }
 
     public function nationality()
@@ -237,6 +239,21 @@ class User extends Authenticatable implements MustVerifyEmail
     public function subscriptions()
     {
         return $this->hasMany(Subscription::class);
+    }
+
+    public function eventPayments()
+    {
+        return $this->hasMany(EventPayment::class);
+    }
+
+    public function sentEnterpriseInvitations()
+    {
+        return $this->hasMany(EnterpriseInvitation::class, 'owner_id');
+    }
+
+    public function acceptedEnterpriseInvitation()
+    {
+        return $this->hasOne(EnterpriseInvitation::class, 'accepted_user_id');
     }
 
     /**

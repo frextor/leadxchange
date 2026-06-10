@@ -32,7 +32,7 @@ class Conversation extends Model
         return $this->hasOne(Message::class)->latestOfMany();
     }
 
-    public function otherUser(int $currentUserId): User
+    public function otherUser(int $currentUserId): ?User
     {
         return $currentUserId === $this->user1_id ? $this->user2 : $this->user1;
     }

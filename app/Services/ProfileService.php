@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\Profile;
+use App\Models\Lead;
 use App\Models\LeadRating;
+use App\Models\Profile;
+use App\Models\SystemSetting;
 use App\Models\Sector;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -11,6 +13,8 @@ use Illuminate\Support\Facades\Storage;
 
 class ProfileService
 {
+    public function __construct(private ProfileVideoService $profileVideoService) {}
+
     public function getProfile(User $user): array
     {
         $user->loadMissing(['profile', 'interests', 'company', 'city']);
@@ -38,6 +42,7 @@ class ProfileService
             'profile'      => $profile ? array_merge($profile->toArray(), [
                 'looking_for'      => collect($profile->looking_for ?? [])->map(fn($id) => ['id' => $id, 'name' => $sectorMap[$id] ?? null])->values(),
                 'services_offered' => collect($profile->services_offered ?? [])->map(fn($id) => ['id' => $id, 'name' => $sectorMap[$id] ?? null])->values(),
+                'presentation_video' => $this->presentationVideoPayload($profile),
             ]) : null,
             'interests'    => $user->interests,
             'company'      => $user->company ? [
@@ -103,6 +108,13 @@ class ProfileService
         return Storage::disk('public')->url($path);
     }
 
+    public function updatePresentationVideo(User $user, UploadedFile $file): array
+    {
+        $this->profileVideoService->store($user, $file);
+
+        return $this->presentationVideoPayload($user->fresh('profile')->profile);
+    }
+
     public function syncInterests(User $user, array $interestIds): void
     {
         $user->interests()->sync($interestIds);
@@ -156,9 +168,64 @@ class ProfileService
             ->selectRaw('ROUND(AVG(average_note), 2) as average_rating, COUNT(*) as rating_count')
             ->first();
 
+        $score = $this->computeRatingScore($user->id);
+
         return [
             'average' => $stats?->average_rating !== null ? (float) $stats->average_rating : null,
             'count'   => (int) ($stats?->rating_count ?? 0),
+            'score'   => $score['score'],
+            'stars'   => $score['stars'],
+        ];
+    }
+
+    private function computeRatingScore(int $userId): array
+    {
+        $windowDays   = SystemSetting::get('scoring.window_days', 60);
+        $givenMult    = SystemSetting::get('scoring.given_multiplier', 2);
+        $receivedMult = SystemSetting::get('scoring.received_multiplier', -1);
+        $mqlWeight    = SystemSetting::get('scoring.mql_weight', 1);
+        $sqlWeight    = SystemSetting::get('scoring.sql_weight', 3);
+        $spWeight     = SystemSetting::get('scoring.sp_weight', 5);
+
+        $since = now()->subDays($windowDays);
+
+        $given = Lead::where('sender_id', $userId)
+            ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
+            ->where('updated_at', '>=', $since)
+            ->get(['lead_type']);
+
+        $receivedCount = Lead::where('receiver_id', $userId)
+            ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
+            ->where('updated_at', '>=', $since)
+            ->count();
+
+        $givenCount = $given->count();
+        $mql = $given->where('lead_type', Lead::TYPE_MQL)->count();
+        $sql = $given->where('lead_type', Lead::TYPE_SQL)->count();
+        $sp  = $given->where('lead_type', Lead::TYPE_SP)->count();
+
+        $score = ($givenCount * $givenMult) + ($receivedCount * $receivedMult)
+               + ($mql * $mqlWeight) + ($sql * $sqlWeight) + ($sp * $spWeight);
+        $score = max(0, $score);
+        $stars = min(5, (int) floor($score / 5));
+
+        return ['score' => $score, 'stars' => $stars];
+    }
+
+    private function presentationVideoPayload(?Profile $profile): ?array
+    {
+        if (!$profile || !$profile->presentation_video) {
+            return null;
+        }
+
+        $isApproved = $profile->presentation_video_status === ProfileVideoService::STATUS_APPROVED;
+
+        return [
+            'url' => $isApproved ? $profile->presentation_video_url : null,
+            'status' => $profile->presentation_video_status,
+            'rejection_reason' => $profile->presentation_video_rejection_reason,
+            'uploaded_at' => $profile->presentation_video_uploaded_at,
+            'reviewed_at' => $profile->presentation_video_reviewed_at,
         ];
     }
 
