@@ -207,7 +207,7 @@ class ChatController extends Controller
     public function typing(Request $request, int $conversationId): JsonResponse
     {
         $user     = $request->user();
-        $isTyping = (bool) $request->input('is_typing', true);
+        $isTyping = $request->boolean('is_typing', true);
 
         $conversation = Conversation::where('id', $conversationId)
             ->where(fn($q) => $q->where('user1_id', $user->id)->orWhere('user2_id', $user->id))
