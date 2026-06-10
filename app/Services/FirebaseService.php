@@ -51,7 +51,6 @@ class FirebaseService
                 ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
                     'message' => [
                         'token'   => $token,
-                        'notification' => ['title' => $title, 'body' => $body],
                         'data'    => array_merge($data, ['title' => $title, 'body' => $body, 'notification_id' => $notificationId ?? '']),
                         'android' => ['priority' => 'high'],
                         'apns'    => ['payload' => ['aps' => ['alert' => ['title' => $title, 'body' => $body], 'sound' => 'default']]],
@@ -122,7 +121,6 @@ class FirebaseService
                 ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
                     'message' => [
                         'token'   => $token,
-                        'notification' => ['title' => $title, 'body' => $body],
                         'data'    => [
                             'title'            => $title,
                             'body'             => $body,
@@ -438,7 +436,6 @@ class FirebaseService
                 ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
                     'message' => [
                         'token'   => $token,
-                        'notification' => ['title' => $title, 'body' => $body],
                         'data'    => array_merge($data, ['title' => $title, 'body' => $body]),
                         'android' => ['priority' => 'high'],
                         'apns'    => ['payload' => ['aps' => ['alert' => ['title' => $title, 'body' => $body], 'sound' => 'default']]],
