@@ -21,6 +21,11 @@ class Lead extends Model
     const QUAL_TIEDE = 'tiede';
     const QUAL_FROID = 'froid';
 
+    // ── Lead type constants (MQL/SQL/SP) ────────────────────────────────────
+    const TYPE_MQL = 'MQL';
+    const TYPE_SQL = 'SQL';
+    const TYPE_SP  = 'SP';
+
     public static array $qualificationConfig = [
         'chaud' => ['label' => 'Chaud', 'icon' => '🔥', 'classes' => 'bg-red-100 text-red-700',    'textClass' => 'text-red-700',   'barClass' => 'bg-red-500'],
         'tiede' => ['label' => 'Tiède', 'icon' => '⚡', 'classes' => 'bg-amber-100 text-amber-700', 'textClass' => 'text-amber-700', 'barClass' => 'bg-amber-400'],
@@ -41,6 +46,7 @@ class Lead extends Model
         'company_name', 'contact_name', 'contact_email',
         'contact_phone', 'contact_position',
         'deadline', 'qualification', 'sector_id', 'description', 'status',
+        'lead_type',
         'points_deducted', 'rated_bonus_at',
         'fraud_reported', 'fraud_reason', 'fraud_reported_at',
         'reminder_15_sent_at', 'reminder_25_sent_at',

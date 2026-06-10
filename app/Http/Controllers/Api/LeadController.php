@@ -126,6 +126,7 @@ class LeadController extends Controller
             'quality'    => ['required', 'integer', 'min:1', 'max:5'],
             'relevance'  => ['required', 'integer', 'min:1', 'max:5'],
             'reactivity' => ['required', 'integer', 'min:1', 'max:5'],
+            'lead_type'  => ['required', 'in:MQL,SQL,SP'],
         ]);
 
         try {
@@ -135,6 +136,7 @@ class LeadController extends Controller
                 (int) $request->quality,
                 (int) $request->relevance,
                 (int) $request->reactivity,
+                $request->lead_type,
             );
 
             return response()->json([
@@ -144,6 +146,7 @@ class LeadController extends Controller
                     'relevance'    => $rating->relevance,
                     'reactivity'   => $rating->reactivity,
                     'average_note' => $rating->average_note,
+                    'lead_type'    => $request->lead_type,
                 ],
             ]);
         } catch (\Exception $e) {
@@ -231,8 +234,9 @@ class LeadController extends Controller
             'contact_phone'    => $lead->contact_phone,
             'contact_position' => $lead->contact_position,
             'deadline'         => $lead->deadline?->toDateString(),
-            'qualification'    => $lead->qualification,
+            'qualification'       => $lead->qualification,
             'qualification_label' => $qc['label'] ?? $lead->qualification,
+            'lead_type'           => $lead->lead_type,
             'sector'           => $lead->sector ? ['id' => $lead->sector->id, 'name' => $lead->sector->name] : null,
             'description'      => $lead->description,
             'status'           => $lead->status,

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Lead;
 use App\Models\User;
 use App\Models\Connection;
 use App\Models\LeadRating;
@@ -312,10 +313,40 @@ class UserService
             ->selectRaw('ROUND(AVG(average_note), 2) as average_rating, COUNT(*) as rating_count')
             ->first();
 
+        $score = $this->computeRatingScore($user->id);
+
         return [
             'average' => $stats?->average_rating !== null ? (float) $stats->average_rating : null,
             'count'   => (int) ($stats?->rating_count ?? 0),
+            'score'   => $score['score'],
+            'stars'   => $score['stars'],
         ];
+    }
+
+    private function computeRatingScore(int $userId): array
+    {
+        $since = now()->subDays(60);
+
+        $given = Lead::where('sender_id', $userId)
+            ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
+            ->where('updated_at', '>=', $since)
+            ->get(['lead_type']);
+
+        $receivedCount = Lead::where('receiver_id', $userId)
+            ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
+            ->where('updated_at', '>=', $since)
+            ->count();
+
+        $givenCount = $given->count();
+        $mql = $given->where('lead_type', Lead::TYPE_MQL)->count();
+        $sql = $given->where('lead_type', Lead::TYPE_SQL)->count();
+        $sp  = $given->where('lead_type', Lead::TYPE_SP)->count();
+
+        $score = ($givenCount * 2) + ($receivedCount * -1) + ($mql * 1) + ($sql * 3) + ($sp * 5);
+        $score = max(0, $score);
+        $stars = min(5, (int) floor($score / 5) + 1);
+
+        return ['score' => $score, 'stars' => $stars];
     }
 
     private function badgePayload(string $level): array
