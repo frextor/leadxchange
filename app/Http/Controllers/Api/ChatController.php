@@ -30,6 +30,7 @@ class ChatController extends Controller
             ->get()
             ->map(function ($c) use ($user) {
                 $other = $c->otherUser($user->id);
+                if (!$other) return null;
                 return [
                     'id'              => $c->id,
                     'last_message_at' => $c->last_message_at?->toIso8601String(),
@@ -51,8 +52,10 @@ class ChatController extends Controller
                 ];
             });
 
+        $conversations = $conversations->filter()->values();
+
         return response()->json([
-            'data' => $conversations->values(),
+            'data' => $conversations,
             'meta' => ['total' => $conversations->count()],
         ]);
     }
