@@ -1,4 +1,4 @@
-@extends('layouts.dashboard')
+@extends('layouts.app')
 
 @section('title', $user['first_name'] . ' ' . $user['last_name'])
 
@@ -105,10 +105,10 @@ $currentServicesOffered = $profile?->services_offered ?? [];
 
                     {{-- Meta --}}
                     <div class="mt-2.5 space-y-1.5">
-                        @if ($user['city'])
+                        @if ($user['city']['name'] ?? null)
                         <div class="flex items-center gap-1.5 text-[13px] text-gray-400">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                            {{ $user['city'] }}
+                            {{ $user['city']['name'] }}
                         </div>
                         @endif
                         @if ($user['member_since'])
@@ -335,6 +335,92 @@ $currentServicesOffered = $profile?->services_offered ?? [];
                 @endif
             </x-profile-section>
 
+            {{-- Vidéo de présentation --}}
+            @php
+                $vStatus = $profile?->presentation_video_status;
+                $vPath   = $profile?->presentation_video;
+                $vUrl    = $profile?->presentation_video_url;
+                $showVideo = $vPath && ($isOwnProfile || $vStatus === 'approved');
+            @endphp
+            @if ($isOwnProfile || $vStatus === 'approved')
+            <x-profile-section title="Vidéo de présentation" :editModal="null">
+
+                @if ($showVideo)
+                {{-- Player --}}
+                <div class="rounded-xl overflow-hidden bg-black aspect-video mb-3">
+                    <video controls class="w-full h-full object-contain"
+                           preload="metadata"
+                           src="{{ $vUrl }}">
+                        Votre navigateur ne supporte pas la lecture vidéo.
+                    </video>
+                </div>
+                @endif
+
+                @if ($isOwnProfile)
+                    @if ($vPath)
+                    {{-- Status badge --}}
+                    <div class="flex items-center gap-3 flex-wrap">
+                        @if ($vStatus === 'pending')
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold" style="background:#FFFBEB;color:#92400E;border:1px solid #FDE68A;">
+                            <span class="w-1.5 h-1.5 rounded-full animate-pulse bg-amber-400"></span>
+                            En attente de validation
+                        </span>
+                        @elseif ($vStatus === 'approved')
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold" style="background:#ECFDF5;color:#065F46;border:1px solid #6EE7B7;">
+                            <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                            Approuvée · visible sur votre profil
+                        </span>
+                        @elseif ($vStatus === 'rejected')
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold" style="background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                            Rejetée
+                        </span>
+                        @if ($profile->presentation_video_rejection_reason)
+                        <span class="text-xs text-gray-400">— {{ $profile->presentation_video_rejection_reason }}</span>
+                        @endif
+                        @endif
+
+                        {{-- Delete button --}}
+                        <form method="POST" action="{{ route('profile.video.delete') }}" class="ml-auto"
+                              onsubmit="return confirm('Supprimer la vidéo de présentation ?')">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 text-red-500 hover:bg-red-50 transition">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                                Supprimer
+                            </button>
+                        </form>
+                    </div>
+                    @else
+                    {{-- Upload form --}}
+                    <form method="POST" action="{{ route('profile.video.upload') }}" enctype="multipart/form-data">
+                        @csrf
+                        <label class="flex flex-col items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-gray-200 p-6 text-center cursor-pointer hover:border-teal-400 hover:bg-teal-50 transition"
+                               id="videoDropZone">
+                            <input type="file" name="video" id="videoInput" accept="video/mp4,video/webm,video/quicktime,video/avi" class="hidden"
+                                   onchange="previewVideoFile(this)">
+                            <div id="videoPlaceholder" class="flex flex-col items-center gap-1.5 text-gray-400">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                                </svg>
+                                <p class="text-sm font-medium">Cliquez pour uploader votre vidéo de présentation</p>
+                                <p class="text-xs">MP4, WebM, MOV — max 100 Mo</p>
+                            </div>
+                            <div id="videoPreviewName" class="hidden text-sm font-semibold text-teal-700"></div>
+                        </label>
+                        @error('video') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                        <button type="submit" id="videoSubmitBtn"
+                                class="mt-3 px-5 py-2 rounded-lg text-sm font-semibold text-white transition disabled:opacity-40"
+                                style="background:#1E8F88;" disabled
+                                onmouseover="if(!this.disabled)this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                            Envoyer pour validation
+                        </button>
+                    </form>
+                    @endif
+                @endif
+
+            </x-profile-section>
+            @endif
+
             {{-- Entreprise --}}
             <x-profile-section title="Entreprise">
                 @if ($user['company'])
@@ -347,7 +433,7 @@ $currentServicesOffered = $profile?->services_offered ?? [];
                         <div class="text-base font-semibold text-gray-900">{{ $user['company']['name'] }}</div>
                         <div class="flex flex-wrap items-center gap-1.5 text-[13px] text-gray-400 mt-1">
                             @if ($user['company']['sector'])
-                            <span>{{ $user['company']['sector'] }}</span>
+                            <span>{{ $user['company']['sector']['name'] }}</span>
                             @endif
                             @if ($user['company']['sector'] && $user['company']['website'])
                             <span>·</span>
@@ -374,8 +460,8 @@ $currentServicesOffered = $profile?->services_offered ?? [];
             <x-profile-section title="Informations" :editModal="$isOwnProfile ? 'modal-basic' : null">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <x-profile-kv label="Email">{{ $user['email'] }}</x-profile-kv>
-                    @if ($user['city'])
-                    <x-profile-kv label="Ville actuelle">{{ $user['city'] }}</x-profile-kv>
+                    @if ($user['city']['name'] ?? null)
+                    <x-profile-kv label="Ville actuelle">{{ $user['city']['name'] }}</x-profile-kv>
                     @endif
                     @if ($user['gender'])
                     <x-profile-kv label="Genre"><span class="capitalize">{{ $user['gender'] }}</span></x-profile-kv>
@@ -383,8 +469,8 @@ $currentServicesOffered = $profile?->services_offered ?? [];
                     @if ($user['birthday'])
                     <x-profile-kv label="Date de naissance">{{ \Carbon\Carbon::parse($user['birthday'])->format('d F Y') }}</x-profile-kv>
                     @endif
-                    @if ($user['phone'] ?? null)
-                    <x-profile-kv label="Téléphone">{{ $user['phone'] }}</x-profile-kv>
+                    @if ($user['phone']['number'] ?? null)
+                    <x-profile-kv label="Téléphone">{{ $user['phone']['number'] }}</x-profile-kv>
                     @endif
                 </div>
             </x-profile-section>
@@ -476,7 +562,7 @@ $currentServicesOffered = $profile?->services_offered ?? [];
             <div>
                 <label class="lbl">Téléphone</label>
                 <input id="b_phone" type="tel" class="inp" placeholder="+33 6 00 00 00 00"
-                       value="{{ $user['phone'] ?? '' }}">
+                       value="{{ $user['phone']['number'] ?? '' }}">
             </div>
             <div>
                 <label class="lbl">Ville actuelle</label>
@@ -484,11 +570,11 @@ $currentServicesOffered = $profile?->services_offered ?? [];
                     <input type="text" id="b_city_living_search" autocomplete="off"
                            placeholder="Rechercher une ville…"
                            class="inp"
-                           value="{{ $user['city'] ?? '' }}"
+                           value="{{ $user['city']['name'] ?? '' }}"
                            oninput="filterCityDropdown('living', this.value)"
                            onfocus="showCityDropdown('living')"
                            onblur="hideCityDropdown('living')">
-                    <input type="hidden" id="b_city_living_id" value="{{ $user['city_id'] ?? '' }}">
+                    <input type="hidden" id="b_city_living_id" value="{{ $user['city']['id'] ?? '' }}">
                     <div id="city_living_dropdown"
                          class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto hidden">
                         @foreach($cities as $city)
@@ -871,6 +957,18 @@ $currentServicesOffered = $profile?->services_offered ?? [];
         document.getElementById(`b_city_${type}_search`).value = name;
         document.getElementById(`b_city_${type}_id`).value = id;
         document.getElementById(`city_${type}_dropdown`).classList.add('hidden');
+    }
+
+    // ── Video upload preview ──
+    function previewVideoFile(input) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+        document.getElementById('videoPlaceholder').classList.add('hidden');
+        const nameEl = document.getElementById('videoPreviewName');
+        nameEl.textContent = '🎬 ' + file.name + ' (' + (file.size / 1048576).toFixed(1) + ' Mo)';
+        nameEl.classList.remove('hidden');
+        const btn = document.getElementById('videoSubmitBtn');
+        if (btn) btn.disabled = false;
     }
 </script>
 @endpush

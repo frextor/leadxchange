@@ -16,18 +16,20 @@ class Plan extends Model
      */
     protected $fillable = [
         'name', 'label', 'description',
-        'price', 'billing_period',
-        'max_leads', 'max_groups',
+        'price', 'annual_price', 'billing_period',
+        'max_leads', 'max_groups', 'initial_points',
         'features', 'is_active', 'sort_order',
     ];
 
     protected $casts = [
-        'features'   => 'array',
-        'price'      => 'decimal:2',
-        'max_leads'  => 'integer',
-        'max_groups' => 'integer',
-        'is_active'  => 'boolean',
-        'sort_order' => 'integer',
+        'features'     => 'array',
+        'price'        => 'decimal:2',
+        'annual_price' => 'decimal:2',
+        'max_leads'    => 'integer',
+        'max_groups'   => 'integer',
+        'initial_points' => 'integer',
+        'is_active'    => 'boolean',
+        'sort_order'   => 'integer',
     ];
 
     /**

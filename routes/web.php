@@ -77,7 +77,7 @@ Route::middleware('auth')->group(function () {
 // ==========================================
 // Protected Routes (Authenticated)
 // ==========================================
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'user'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -142,7 +142,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', function () {
         return redirect()->route('profile.show', ['id' => auth()->id()]);
     })->name('profile.me');
-    Route::get('/profile/{id}', [ProfileController::class, 'show'])->name('profile.show');
+    Route::post('/profile/video',   [ProfileController::class, 'uploadVideo'])->name('profile.video.upload');
+    Route::delete('/profile/video', [ProfileController::class, 'deleteVideo'])->name('profile.video.delete');
+    Route::get('/profile/{id}',     [ProfileController::class, 'show'])->name('profile.show');
 
     // Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');

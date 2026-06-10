@@ -33,6 +33,12 @@ class RouteServiceProvider extends ServiceProvider
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));
 
+            // Admin routes registered FIRST so domain-specific routes
+            // take priority over the generic web routes below.
+            Route::middleware('web')
+                ->domain(env('ADMIN_DOMAIN', 'admin.x-tensia.com'))
+                ->group(base_path('routes/admin.php'));
+
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
         });

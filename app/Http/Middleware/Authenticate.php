@@ -12,6 +12,14 @@ class Authenticate extends Middleware
      */
     protected function redirectTo(Request $request): ?string
     {
-        return $request->expectsJson() ? null : route('home');
+        if ($request->expectsJson()) {
+            return null;
+        }
+
+        if ($request->getHost() === config('admin.domain', env('ADMIN_DOMAIN', 'admin.x-tensia.com'))) {
+            return route('admin.login');
+        }
+
+        return route('login');
     }
 }

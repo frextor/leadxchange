@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\City;
 use App\Models\Interest;
+use App\Models\Profile;
 use App\Models\ProfileVisitor;
 use App\Models\Sector;
 use App\Models\User;
@@ -11,6 +12,7 @@ use App\Services\ProfileService;
 use App\Services\UserService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -51,6 +53,8 @@ class ProfileController extends Controller
             }
         }
 
+        $videoFlash = session('video_status');
+
         return view('profile', [
             'user'          => $user,
             'profile'       => $targetUser->profile,
@@ -62,5 +66,58 @@ class ProfileController extends Controller
             'missing'       => $id === $currentUserId ? $this->profileService->getMissingFields($targetUser) : [],
             'isOwnProfile'  => $id === $currentUserId,
         ]);
+    }
+
+    public function uploadVideo(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'video' => ['required', 'file', 'mimes:mp4,webm,mov,avi', 'max:102400'],
+        ], [
+            'video.required' => 'Veuillez sélectionner une vidéo.',
+            'video.mimes'    => 'Format accepté : MP4, WebM, MOV, AVI.',
+            'video.max'      => 'La vidéo ne doit pas dépasser 100 Mo.',
+        ]);
+
+        $user    = $request->user();
+        $profile = $user->profile ?? Profile::create(['user_id' => $user->id]);
+
+        if ($profile->presentation_video) {
+            Storage::disk('public')->delete($profile->presentation_video);
+        }
+
+        $path = $request->file('video')->store("profiles/videos/{$user->id}", 'public');
+
+        $profile->update([
+            'presentation_video'                  => $path,
+            'presentation_video_status'           => 'pending',
+            'presentation_video_uploaded_at'      => now(),
+            'presentation_video_rejection_reason' => null,
+            'presentation_video_reviewed_at'      => null,
+            'presentation_video_reviewed_by'      => null,
+        ]);
+
+        return redirect()->route('profile.show', $user->id)
+            ->with('success', 'Vidéo uploadée. Elle sera visible après validation par notre équipe.');
+    }
+
+    public function deleteVideo(Request $request): RedirectResponse
+    {
+        $user    = $request->user();
+        $profile = $user->profile;
+
+        if ($profile?->presentation_video) {
+            Storage::disk('public')->delete($profile->presentation_video);
+            $profile->update([
+                'presentation_video'                  => null,
+                'presentation_video_status'           => null,
+                'presentation_video_uploaded_at'      => null,
+                'presentation_video_rejection_reason' => null,
+                'presentation_video_reviewed_at'      => null,
+                'presentation_video_reviewed_by'      => null,
+            ]);
+        }
+
+        return redirect()->route('profile.show', $user->id)
+            ->with('success', 'Vidéo de présentation supprimée.');
     }
 }

@@ -9,7 +9,7 @@ return new class extends Migration
     {
         $now = now();
 
-        DB::table('plans')->insert([
+        DB::table('plans')->insertOrIgnore([
             [
                 'name'           => 'basic',
                 'label'          => 'Basic',

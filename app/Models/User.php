@@ -33,8 +33,15 @@ class User extends Authenticatable implements MustVerifyEmail
         'newsletter',
         'notifications',
         'role',
+        'region_id',
         'points_balance',
         'badge_level',
+        'ambassador_status',
+        'ambassador_requested_at',
+        'ambassador_reviewed_at',
+        'ambassador_reviewed_by',
+        'ambassador_rejection_reason',
+        'admin_permissions',
     ];
 
     /**
@@ -58,9 +65,33 @@ class User extends Authenticatable implements MustVerifyEmail
         'onboarding_completed' => 'boolean',
         'newsletter'           => 'boolean',
         'notifications'        => 'boolean',
-        'password'             => 'hashed',
-        'points_balance'       => 'integer',
+        'password'                   => 'string',
+        'points_balance'             => 'integer',
+        'ambassador_requested_at'    => 'datetime',
+        'ambassador_reviewed_at'     => 'datetime',
+        'admin_permissions'          => 'array',
     ];
+
+    /** All available admin permissions with their French labels. */
+    public const ADMIN_PERMISSIONS = [
+        'manage_users'  => 'Gestion des utilisateurs',
+        'manage_leads'  => 'Modération des leads',
+        'manage_events' => 'Gestion des événements',
+        'manage_groups' => 'Gestion des groupes',
+        'manage_videos' => 'Modération des vidéos',
+    ];
+
+    /**
+     * Check if this admin has a given permission.
+     * Super admins always pass. Admins with null/empty permissions have all permissions.
+     */
+    public function hasAdminPermission(string $perm): bool
+    {
+        if ($this->isSuperAdmin()) return true;
+        $perms = $this->admin_permissions;
+        if (empty($perms)) return true; // no restriction = all permissions
+        return in_array($perm, $perms);
+    }
 
     public function company()
     {
@@ -70,6 +101,31 @@ class User extends Authenticatable implements MustVerifyEmail
     public function city()
     {
         return $this->belongsTo(\App\Models\City::class, 'city_id');
+    }
+
+    public function region()
+    {
+        return $this->belongsTo(\App\Models\City::class, 'region_id');
+    }
+
+    public function ambassadorReviewer()
+    {
+        return $this->belongsTo(User::class, 'ambassador_reviewed_by');
+    }
+
+    public function isAdmin(): bool
+    {
+        return in_array($this->role, ['admin', 'super_admin']);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
+    public function isAmbassador(): bool
+    {
+        return $this->ambassador_status === 'approved';
     }
 
     public function profile()

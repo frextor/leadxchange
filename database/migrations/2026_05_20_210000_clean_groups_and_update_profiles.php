@@ -7,14 +7,20 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Same fallback logic as seed_demo_users: prefer ID 52, otherwise first user.
+        $mainUserId = DB::table('users')->where('id', 52)->value('id')
+            ?? DB::table('users')->min('id');
+
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
-        // ── User 52 profile: add job title + professional avatar ─────────────
-        DB::table('profiles')->where('user_id', 52)->update([
-            'job_title' => 'CEO & Co-Founder',
-            'avatar'    => 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80',
-            'updated_at' => now(),
-        ]);
+        // ── Main user profile: add job title + professional avatar ───────────
+        if ($mainUserId) {
+            DB::table('profiles')->where('user_id', $mainUserId)->update([
+                'job_title'  => 'CEO & Co-Founder',
+                'avatar'     => 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80',
+                'updated_at' => now(),
+            ]);
+        }
 
         // ── Delete junk groups (keep 3, 6, 9) ────────────────────────────────
         $deleteGroupIds = [1, 2, 4, 5, 7, 8];
@@ -53,21 +59,24 @@ return new class extends Migration
             'updated_at'  => now(),
         ]);
 
-        // ── Create two more quality groups ────────────────────────────────────
         $now = now();
-        $g1  = DB::table('groups')->insertGetId([
+
+        // ── Create two more quality groups owned by main user ─────────────────
+        $createdBy = $mainUserId ?? 1;
+
+        $g1 = DB::table('groups')->insertGetId([
             'name'          => 'B2B Growth Network',
             'description'   => 'Stratégies de croissance B2B, prospection, ABM et génération de leads qualifiés. Rejoignez les meilleurs growth hackers.',
             'cover_photo'   => 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&q=80',
             'cover_color'   => '#E09010',
             'sector_id'     => 4,
             'is_public'     => true,
-            'created_by'    => 52,
+            'created_by'    => $createdBy,
             'members_count' => 1,
             'created_at'    => $now,
             'updated_at'    => $now,
         ]);
-        DB::table('group_user')->insert(['group_id' => $g1, 'user_id' => 52, 'role' => 'owner']);
+        DB::table('group_user')->insert(['group_id' => $g1, 'user_id' => $createdBy, 'role' => 'owner']);
 
         $g2 = DB::table('groups')->insertGetId([
             'name'          => 'Entrepreneurs Maroc',
@@ -76,14 +85,14 @@ return new class extends Migration
             'cover_color'   => '#DC2626',
             'sector_id'     => null,
             'is_public'     => true,
-            'created_by'    => 52,
+            'created_by'    => $createdBy,
             'members_count' => 1,
             'created_at'    => $now,
             'updated_at'    => $now,
         ]);
-        DB::table('group_user')->insert(['group_id' => $g2, 'user_id' => 52, 'role' => 'owner']);
+        DB::table('group_user')->insert(['group_id' => $g2, 'user_id' => $createdBy, 'role' => 'owner']);
 
-        // ── Add some demo users as members of each group ──────────────────────
+        // ── Add demo users as members of each group ───────────────────────────
         $demoUserIds = DB::table('users')->whereIn('email', [
             'antoine.moreau@salesforce.com',
             'nadia.benali@hubspot.com',
@@ -95,16 +104,19 @@ return new class extends Migration
 
         $memberships = [];
         foreach ($demoUserIds as $uid) {
+            if ($uid == $createdBy) continue; // already inserted as owner
             $memberships[] = ['group_id' => 3,   'user_id' => $uid, 'role' => 'member'];
             $memberships[] = ['group_id' => $g1, 'user_id' => $uid, 'role' => 'member'];
         }
-        // Subset for other groups
         foreach ($demoUserIds->take(3) as $uid) {
+            if ($uid == $createdBy) continue;
             $memberships[] = ['group_id' => 6,   'user_id' => $uid, 'role' => 'member'];
             $memberships[] = ['group_id' => 9,   'user_id' => $uid, 'role' => 'member'];
             $memberships[] = ['group_id' => $g2, 'user_id' => $uid, 'role' => 'member'];
         }
-        DB::table('group_user')->insert($memberships);
+        if ($memberships) {
+            DB::table('group_user')->insertOrIgnore($memberships);
+        }
 
         // Update member counts
         foreach ([$g1, $g2, 3, 6, 9] as $gid) {

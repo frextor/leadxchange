@@ -8,31 +8,36 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Keep only user 52 (Anass Alouane — main account)
-        $keepId = 52;
+        // Main account: ID 52 on prod. Fall back to the first existing user on other envs.
+        $preferredId = 52;
+        $keepId = DB::table('users')->where('id', $preferredId)->value('id')
+            ?? DB::table('users')->min('id');
+
+        $password = Hash::make('123456789');
+        $now      = now();
 
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
-        // Clean up everything tied to users we're removing
-        $removeIds = DB::table('users')->where('id', '!=', $keepId)->pluck('id');
+        if ($keepId) {
+            // Remove everyone except the main account
+            $removeIds = DB::table('users')->where('id', '!=', $keepId)->pluck('id');
 
-        DB::table('connections')->whereIn('sender_id', $removeIds)->orWhereIn('receiver_id', $removeIds)->delete();
-        DB::table('group_user')->whereIn('user_id', $removeIds)->delete();
-        DB::table('group_invitations')->whereIn('user_id', $removeIds)->delete();
-        DB::table('profiles')->whereIn('user_id', $removeIds)->delete();
-        DB::table('device_tokens')->whereIn('user_id', $removeIds)->delete();
+            DB::table('connections')->whereIn('sender_id', $removeIds)->orWhereIn('receiver_id', $removeIds)->delete();
+            DB::table('group_user')->whereIn('user_id', $removeIds)->delete();
+            DB::table('group_invitations')->whereIn('user_id', $removeIds)->delete();
+            DB::table('profiles')->whereIn('user_id', $removeIds)->delete();
+            DB::table('device_tokens')->whereIn('user_id', $removeIds)->delete();
 
-        // Delete group posts and comments by removed users
-        $postIds = DB::table('group_posts')->whereIn('user_id', $removeIds)->pluck('id');
-        DB::table('group_post_comments')->whereIn('post_id', $postIds)->delete();
-        DB::table('group_posts')->whereIn('user_id', $removeIds)->delete();
-        DB::table('group_post_comments')->whereIn('user_id', $removeIds)->delete();
+            $postIds = DB::table('group_posts')->whereIn('user_id', $removeIds)->pluck('id');
+            DB::table('group_post_comments')->whereIn('post_id', $postIds)->delete();
+            DB::table('group_posts')->whereIn('user_id', $removeIds)->delete();
+            DB::table('group_post_comments')->whereIn('user_id', $removeIds)->delete();
 
-        DB::table('users')->where('id', '!=', $keepId)->delete();
+            DB::table('users')->where('id', '!=', $keepId)->delete();
+        }
 
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-        // Demo users
         $demos = [
             ['first_name' => 'Antoine',  'last_name' => 'Moreau',   'email' => 'antoine.moreau@salesforce.com',  'job_title' => 'Sales Engineer',    'company' => 'Salesforce', 'avatar' => 'https://images.unsplash.com/photo-1463453091185-61582044d556?w=200&q=80'],
             ['first_name' => 'Nadia',    'last_name' => 'Benali',   'email' => 'nadia.benali@hubspot.com',        'job_title' => 'Account Executive',  'company' => 'HubSpot',    'avatar' => 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=200&q=80'],
@@ -42,10 +47,12 @@ return new class extends Migration
             ['first_name' => 'Camille',  'last_name' => 'Dupont',   'email' => 'camille.dupont@adobe.com',        'job_title' => 'Sales Manager',      'company' => 'Adobe',      'avatar' => 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&q=80'],
         ];
 
-        $password = Hash::make('Demo@1234');
-        $now      = now();
-
         foreach ($demos as $demo) {
+            // Skip if email already exists (idempotent)
+            if (DB::table('users')->where('email', $demo['email'])->exists()) {
+                continue;
+            }
+
             $userId = DB::table('users')->insertGetId([
                 'first_name'             => $demo['first_name'],
                 'last_name'              => $demo['last_name'],
@@ -68,14 +75,24 @@ return new class extends Migration
                 'updated_at'       => $now,
             ]);
 
-            // Connect each demo user to user 52 (accepted)
-            DB::table('connections')->insert([
-                'sender_id'   => $keepId,
-                'receiver_id' => $userId,
-                'status'      => 'accepted',
-                'created_at'  => $now,
-                'updated_at'  => $now,
-            ]);
+            // Connect each demo user to the main account (if the main account exists)
+            if ($keepId) {
+                // Avoid duplicate connection
+                $exists = DB::table('connections')
+                    ->where('sender_id', $keepId)
+                    ->where('receiver_id', $userId)
+                    ->exists();
+
+                if (!$exists) {
+                    DB::table('connections')->insert([
+                        'sender_id'   => $keepId,
+                        'receiver_id' => $userId,
+                        'status'      => 'accepted',
+                        'created_at'  => $now,
+                        'updated_at'  => $now,
+                    ]);
+                }
+            }
         }
     }
 

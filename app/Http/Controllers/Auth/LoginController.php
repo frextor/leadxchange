@@ -50,10 +50,23 @@ class LoginController extends Controller
 
         // Attempt login
         if (Auth::attempt($credentials, $request->filled('remember'))) {
+            $user = Auth::user();
+
+            // Block admins from user area — they must use the admin domain
+            if (in_array($user->role, ['admin', 'super_admin'])) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                $adminDomain = env('ADMIN_DOMAIN', 'admin.leadxchange.test');
+                return back()->withErrors([
+                    'email' => "Ce compte est un compte administrateur. Connectez-vous sur http://{$adminDomain}/login",
+                ])->onlyInput('email');
+            }
+
             $request->session()->regenerate();
 
             // Create a Sanctum token for SPA API calls — revoke old one first
-            $user = Auth::user();
             $user->tokens()->where('name', 'web-spa')->delete();
             $token = $user->createToken('web-spa')->plainTextToken;
             $request->session()->put('web_api_token', $token);

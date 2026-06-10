@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $password = Hash::make('Demo@1234');
+        $password = Hash::make('123456789');
         $now      = now();
 
         $extras = [
