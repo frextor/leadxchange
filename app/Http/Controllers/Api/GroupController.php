@@ -48,8 +48,7 @@ class GroupController extends Controller
             ->toArray();
         $invitedQuery = Group::with(['sector:id,name', 'creator' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email')->with('profile'), 'city:id,name'])
             ->withCount('members')
-            ->whereIn('id', $invitedGroupIds)
-            ->where('city_id', $userCityId);
+            ->whereIn('id', $invitedGroupIds);
         if ($request->filled('search')) $invitedQuery->where('name', 'like', '%' . $request->search . '%');
         $invitedPaginator = $invitedQuery->paginate($perPage, ['*'], 'page', $page);
         $invited = $invitedPaginator->getCollection()
