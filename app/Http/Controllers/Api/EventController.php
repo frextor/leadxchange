@@ -407,6 +407,17 @@ class EventController extends Controller
             return response()->json(['message' => 'Event is at full capacity.'], 422);
         }
 
+        if ($event->price > 0) {
+            $paid = \App\Models\EventPayment::where('event_id', $event->id)
+                ->where('user_id', $user->id)
+                ->where('status', 'succeeded')
+                ->exists();
+
+            if (!$paid) {
+                return response()->json(['message' => 'Payment required to join this event.'], 402);
+            }
+        }
+
         $event->attendees()->attach($user->id, ['role' => 'attendee']);
         $event->increment('attendees_count');
 
