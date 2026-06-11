@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\VerificationController;
@@ -92,6 +93,9 @@ Route::get('/enterprise/invitations/{token}', function (string $token) {
 </html>
 HTML);
 })->name('enterprise.invitations.redirect');
+
+// Legal pages (CGU, Privacy Policy) — public, no auth required
+Route::get('/legal/{slug}', [PageController::class, 'show'])->name('legal.show');
 
 // Firebase Messaging Service Worker (must be at root scope, no auth required)
 Route::get('/firebase-messaging-sw.js', function () {
