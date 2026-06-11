@@ -18,6 +18,8 @@ class Profile extends Model
                 'experience_level',
                 'looking_for',
                 'services_offered',
+                'market_addressed_id',
+                'market_target_id',
                 'open_to_network',
                 'website',
                 'linkedin',

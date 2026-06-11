@@ -179,12 +179,14 @@ class AuthService
             'motto'            => $data['motto']            ?? null,
             'job_title'        => $data['job_title']        ?? null,
             'experience_level' => $data['experience_level'] ?? null,
-            'looking_for'      => $data['looking_for']      ?? null,
-            'services_offered' => $data['services_offered'] ?? null,
-            'open_to_network'  => $data['open_to_network']  ?? null,
-            'website'          => $data['website']          ?? null,
-            'linkedin'         => $data['linkedin']         ?? null,
-            'sector_ids'       => $data['sector_id']        ?? null,
+            'looking_for'         => $data['looking_for']         ?? null,
+            'services_offered'    => $data['services_offered']    ?? null,
+            'open_to_network'     => $data['open_to_network']     ?? null,
+            'website'             => $data['website']             ?? null,
+            'linkedin'            => $data['linkedin']            ?? null,
+            'sector_ids'          => $data['sector_id']           ?? null,
+            'market_addressed_id' => $data['market_addressed_id'] ?? null,
+            'market_target_id'    => $data['market_target_id']    ?? null,
         ], fn($v) => $v !== null);
 
         if (!empty($profileFields)) {

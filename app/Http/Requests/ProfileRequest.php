@@ -46,6 +46,8 @@ class ProfileRequest extends FormRequest
             'leads_offered.*'    => ['integer', 'exists:sectors,id'],
             'sector_id'          => ['nullable', 'array'],
             'sector_id.*'        => ['integer', 'exists:sectors,id'],
+            'market_addressed_id' => ['nullable', 'integer', 'exists:markets,id'],
+            'market_target_id'    => ['nullable', 'integer', 'exists:markets,id'],
             'open_to_network'    => ['nullable', 'boolean'],
             'website'            => ['nullable', 'url', 'max:255'],
             'linkedin'           => ['nullable', 'url', 'max:255'],

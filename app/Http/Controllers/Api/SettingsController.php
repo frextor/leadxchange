@@ -10,6 +10,7 @@ use App\Models\Interest;
 use App\Models\Language;
 use App\Models\Nationality;
 use App\Models\Plan;
+use App\Models\Market;
 use App\Models\Sector;
 use Illuminate\Http\JsonResponse;
 
@@ -32,6 +33,9 @@ class SettingsController extends Controller
                                    ->get(['id', 'name', 'icon']),
 
             'sectors'       => Sector::orderBy('name')
+                                   ->get(['id', 'name']),
+
+            'markets'       => Market::orderBy('name')
                                    ->get(['id', 'name']),
 
             'languages'     => Language::orderBy('name')

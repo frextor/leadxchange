@@ -80,6 +80,8 @@ class ProfileService
         $profile->fill(array_filter($fields, fn($v) => $v !== null));
         if (array_key_exists('looking_for', $data))      $profile->looking_for      = $data['looking_for']      ?? [];
         if (array_key_exists('services_offered', $data)) $profile->services_offered = $data['services_offered'] ?? [];
+        if (array_key_exists('market_addressed_id', $data)) $profile->market_addressed_id = $data['market_addressed_id'] ?: null;
+        if (array_key_exists('market_target_id', $data))    $profile->market_target_id    = $data['market_target_id']    ?: null;
         $profile->save();
     }
 
