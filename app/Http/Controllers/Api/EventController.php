@@ -126,6 +126,7 @@ class EventController extends Controller
         $pastEvents  = Event::with(['sector:id,name', 'creator:id,first_name,last_name', 'creator.profile:user_id,avatar', 'city:id,name'])
             ->where('is_public', true)
             ->where('starts_at', '<', now())
+            ->when($activeCityId, fn($q) => $q->where('city_id', $activeCityId))
             ->orderBy('starts_at', 'desc')
             ->paginate($pastPerPage, ['*'], 'past_page', $pastPage);
 
