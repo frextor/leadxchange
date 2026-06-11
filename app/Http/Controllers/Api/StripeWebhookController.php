@@ -141,6 +141,23 @@ class StripeWebhookController extends Controller
         DB::transaction(function () use ($user, $plan, $stripeSubscription) {
             $localStatus = $this->localSubscriptionStatus($stripeSubscription->status);
 
+            // If Stripe reports this subscription as active but it is scheduled for
+            // cancellation (cancel_at_period_end=true), and the user already has a
+            // *newer* active subscription, treat this one as canceled locally.
+            // This prevents a delayed Stripe webhook from a superseded subscription
+            // from overwriting the current active plan (e.g. VIP→Enterprise upgrade).
+            if ($localStatus === 'active' && $stripeSubscription->cancel_at_period_end) {
+                $hasNewerActive = $user->subscriptions()
+                    ->where('status', 'active')
+                    ->whereNotNull('stripe_subscription_id')
+                    ->where('stripe_subscription_id', '!=', $stripeSubscription->id)
+                    ->exists();
+
+                if ($hasNewerActive) {
+                    $localStatus = 'canceled';
+                }
+            }
+
             if ($localStatus === 'active') {
                 $currentLocalSubscriptionId = optional($user->subscriptions()
                     ->where('stripe_subscription_id', $stripeSubscription->id)
