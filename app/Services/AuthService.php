@@ -273,6 +273,7 @@ class AuthService
     public function revokeCurrentToken(User $user): void
     {
         $user->tokens()->where('id', $user->currentAccessToken()->id)->delete();
+        DB::table('device_tokens')->where('user_id', $user->id)->delete();
     }
 
     /**
