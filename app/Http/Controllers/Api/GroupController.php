@@ -48,7 +48,8 @@ class GroupController extends Controller
             ->toArray();
         $invitedQuery = Group::with(['sector:id,name', 'creator' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email')->with('profile'), 'city:id,name'])
             ->withCount('members')
-            ->whereIn('id', $invitedGroupIds);
+            ->whereIn('id', $invitedGroupIds)
+            ->where('city_id', $userCityId);
         if ($request->filled('search')) $invitedQuery->where('name', 'like', '%' . $request->search . '%');
         $invitedPaginator = $invitedQuery->paginate($perPage, ['*'], 'page', $page);
         $invited = $invitedPaginator->getCollection()
@@ -58,7 +59,8 @@ class GroupController extends Controller
         // ── My groups (paginated) ─────────────────────────────────────────
         $myGroupsQuery = Group::with(['sector:id,name', 'creator' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email')->with('profile'), 'city:id,name'])
             ->withCount('members')
-            ->whereIn('id', $memberGroupIds);
+            ->whereIn('id', $memberGroupIds)
+            ->where('city_id', $userCityId);
         if ($request->filled('search')) $myGroupsQuery->where('name', 'like', '%' . $request->search . '%');
         $myGroupsPaginator = $myGroupsQuery->paginate($perPage, ['*'], 'page', $page);
         $myGroups = $myGroupsPaginator->getCollection()

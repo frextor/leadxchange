@@ -76,6 +76,7 @@ class EventController extends Controller
         $myEventsQuery = Event::with(['sector:id,name', 'creator:id,first_name,last_name', 'creator.profile:user_id,avatar', 'city:id,name'])
             ->where('created_by', $user->id)
             ->where('starts_at', '>=', now());
+        if ($activeCityId !== null) $myEventsQuery->where('city_id', $activeCityId);
         $applyFilters($myEventsQuery);
         $myEventsPaginator = $myEventsQuery->orderBy('starts_at')->paginate($perPage, ['*'], 'page', $page);
 
@@ -84,6 +85,7 @@ class EventController extends Controller
             ->whereIn('id', $attendingIds)
             ->where('created_by', '!=', $user->id)
             ->where('starts_at', '>=', now());
+        if ($activeCityId !== null) $participatingQuery->where('city_id', $activeCityId);
         $applyFilters($participatingQuery);
         $participatingPaginator = $participatingQuery->orderBy('starts_at')->paginate($perPage, ['*'], 'page', $page);
 
