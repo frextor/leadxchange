@@ -333,13 +333,39 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getFeature(string $key, $default = null)
     {
-        if (!$this->subscription || !$this->subscription->plan) {
+        $plan = $this->subscription?->plan;
+
+        if (! $plan) {
+            // Fallback: look up the basic plan directly (no eager-load needed)
+            $plan = \App\Models\Plan::where('name', 'basic')->first();
+        }
+
+        if (! $plan) {
             return $default;
         }
 
-        $features = $this->subscription->plan->features;
+        $features = is_array($plan->features) ? $plan->features : [];
 
         return $features[$key] ?? $default;
+    }
+
+    public function canFeature(string $key): bool
+    {
+        $value = $this->getFeature($key);
+
+        if ($value === null) {
+            return true; // null = unlimited / fully enabled
+        }
+
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_int($value)) {
+            return $value > 0;
+        }
+
+        return (bool) $value;
     }
 
     /**

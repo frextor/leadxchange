@@ -87,7 +87,9 @@
                     @endif
                 </div>
                 <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-400">
+                    @if($event->creator)
                     <span>Organized by <strong class="text-gray-700">{{ $event->creator->first_name }} {{ $event->creator->last_name }}</strong></span>
+                    @endif
                     @if($event->sector)
                     <span>·</span>
                     <span class="px-2 py-0.5 rounded-full font-medium" style="background:#E6F7F4;color:#1E8F88;">{{ $event->sector->name }}</span>
@@ -242,6 +244,7 @@
             @endif
 
             {{-- Organisateur --}}
+            @if($event->creator)
             <div class="bg-white rounded-2xl border border-gray-200 p-5">
                 <h2 class="text-sm font-semibold text-gray-700 mb-4">Organisateur</h2>
                 <a href="{{ route('profile.show', $event->creator->id) }}"
@@ -262,6 +265,7 @@
                     </div>
                 </a>
             </div>
+            @endif
         </div>
 
         {{-- ── SIDEBAR ── --}}
@@ -296,19 +300,38 @@
                 </form>
 
                 @else
+                @if(auth()->user()->canFeature('attend_events'))
                 <p class="text-xs text-gray-400 mb-3 text-center">Rejoignez cet événement</p>
+                @if($event->is_free)
                 <form method="POST" action="{{ route('events.join', $event->id) }}">
                     @csrf
                     <button type="submit" class="w-full py-3 rounded-xl text-sm font-semibold text-white transition shadow-sm"
                             style="background:{{ $typeColor }};"
                             onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-                        S'inscrire
-                        @if(!$event->is_free)
-                        · {{ number_format($event->price, 0) }} €
-                        @endif
+                        S'inscrire — Gratuit
                     </button>
                 </form>
-                @endif
+                @else
+                <button type="button" onclick="openStripeModal()"
+                        class="w-full py-3 rounded-xl text-sm font-semibold text-white transition shadow-sm flex items-center justify-center gap-2"
+                        style="background:{{ $typeColor }};"
+                        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+                    Payer · {{ number_format($event->price, 0) }} €
+                </button>
+                @endif {{-- is_free --}}
+                @else
+                <div class="text-center py-2">
+                    <p class="text-xs text-gray-500 mb-3">Participation aux événements réservée aux plans Premium.</p>
+                    <a href="{{ route('upgrade') }}"
+                       class="block w-full py-3 rounded-xl text-sm font-semibold border border-dashed transition"
+                       style="border-color:#6366F1;color:#6366F1;">
+                        <svg class="inline mr-1.5" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Upgrade pour participer
+                    </a>
+                </div>
+                @endif {{-- attend_events --}}
+                @endif {{-- isPast / isFull / isAttending / else --}}
             </div>
 
             {{-- Participants --}}
@@ -369,6 +392,173 @@
         </aside>
     </div>
 </div>
+
+{{-- ── STRIPE PAYMENT MODAL ── --}}
+@if(!$event->is_free && !$isAttending && !$isPast)
+<div id="stripeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,.5);">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+
+        {{-- Header --}}
+        <div class="px-6 py-4 border-b border-gray-100" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="font-bold text-gray-900 text-sm">Paiement sécurisé</h2>
+                    <p class="text-xs text-gray-500 mt-0.5">{{ $event->title }}</p>
+                </div>
+                <button type="button" onclick="closeStripeModal()"
+                        class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="px-6 py-5 space-y-4">
+
+            {{-- Amount --}}
+            <div class="flex items-center justify-between p-3.5 rounded-xl bg-gray-50 border border-gray-100">
+                <span class="text-sm text-gray-600">Montant total</span>
+                <span class="text-lg font-bold text-gray-900">{{ number_format($event->price, 2) }} €</span>
+            </div>
+
+            {{-- Stripe Elements --}}
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Carte bancaire</label>
+                <div id="card-element" class="border border-gray-200 rounded-xl px-3.5 py-3 bg-white focus-within:border-emerald-400 transition"></div>
+                <div id="card-errors" class="text-xs text-red-500 mt-1.5 hidden"></div>
+            </div>
+
+            {{-- State messages --}}
+            <div id="stripeProcessing" class="hidden flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 text-blue-700 text-xs font-medium">
+                <svg class="animate-spin w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-dasharray="40" stroke-dashoffset="10"/></svg>
+                Paiement en cours…
+            </div>
+            <div id="stripeSuccess" class="hidden flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-medium">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg>
+                Paiement confirmé ! Inscription en cours…
+            </div>
+
+            {{-- Submit --}}
+            <button type="button" id="stripePayBtn" onclick="confirmStripePayment()"
+                    class="w-full py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition"
+                    style="background:linear-gradient(135deg,#10B981,#059669);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+                Payer {{ number_format($event->price, 2) }} €
+            </button>
+
+            <p class="text-center text-[10px] text-gray-300 flex items-center justify-center gap-1.5">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Paiement sécurisé par Stripe
+            </p>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+(async function() {
+    const EVENT_ID   = {{ $event->id }};
+    const JOIN_URL   = '{{ route('events.join', $event->id) }}';
+    const CSRF_TOKEN = document.querySelector('meta[name=csrf-token]').content;
+    let stripe, cardElement, clientSecret;
+
+    async function initStripe() {
+        try {
+            const cfgRes = await fetch('/api/payments/config', {
+                headers: { 'Accept': 'application/json', 'Authorization': 'Bearer ' + window.API_TOKEN },
+                credentials: 'same-origin',
+            });
+            const cfg = await cfgRes.json();
+            if (!cfg.publishable_key) throw new Error('No Stripe key');
+
+            stripe = Stripe(cfg.publishable_key);
+            const elements = stripe.elements();
+            cardElement = elements.create('card', {
+                style: { base: { fontSize: '14px', color: '#111827', fontFamily: 'Inter, sans-serif', '::placeholder': { color: '#9CA3AF' } } }
+            });
+            cardElement.mount('#card-element');
+            cardElement.on('change', function(e) {
+                const errEl = document.getElementById('card-errors');
+                if (e.error) { errEl.textContent = e.error.message; errEl.classList.remove('hidden'); }
+                else { errEl.textContent = ''; errEl.classList.add('hidden'); }
+            });
+        } catch(e) {
+            document.getElementById('card-errors').textContent = 'Impossible de charger Stripe. Réessayez.';
+            document.getElementById('card-errors').classList.remove('hidden');
+        }
+    }
+
+    window.openStripeModal = async function() {
+        document.getElementById('stripeModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        if (!stripe) await initStripe();
+
+        // Get PaymentIntent
+        try {
+            const res = await fetch('/api/payments/events/' + EVENT_ID + '/intent', {
+                method: 'POST',
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + window.API_TOKEN, 'X-CSRF-TOKEN': CSRF_TOKEN },
+                credentials: 'same-origin',
+            });
+            const data = await res.json();
+            clientSecret = data.client_secret;
+        } catch {
+            document.getElementById('card-errors').textContent = 'Erreur lors de la création du paiement.';
+            document.getElementById('card-errors').classList.remove('hidden');
+        }
+    };
+
+    window.closeStripeModal = function() {
+        document.getElementById('stripeModal').classList.add('hidden');
+        document.body.style.overflow = '';
+    };
+
+    window.confirmStripePayment = async function() {
+        if (!stripe || !cardElement || !clientSecret) return;
+        const payBtn = document.getElementById('stripePayBtn');
+        const processing = document.getElementById('stripeProcessing');
+        const errEl = document.getElementById('card-errors');
+
+        payBtn.disabled = true;
+        payBtn.style.opacity = '.6';
+        processing.classList.remove('hidden');
+        errEl.classList.add('hidden');
+
+        const { paymentIntent, error } = await stripe.confirmCardPayment(clientSecret, {
+            payment_method: { card: cardElement },
+        });
+
+        processing.classList.add('hidden');
+
+        if (error) {
+            errEl.textContent = error.message;
+            errEl.classList.remove('hidden');
+            payBtn.disabled = false;
+            payBtn.style.opacity = '1';
+            return;
+        }
+
+        if (paymentIntent && paymentIntent.status === 'succeeded') {
+            document.getElementById('stripeSuccess').classList.remove('hidden');
+            // Join the event via web form
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = JOIN_URL;
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden'; csrf.name = '_token'; csrf.value = CSRF_TOKEN;
+            form.appendChild(csrf);
+            document.body.appendChild(form);
+            setTimeout(() => form.submit(), 1500);
+        }
+    };
+
+    document.getElementById('stripeModal').addEventListener('click', function(e) {
+        if (e.target === this) window.closeStripeModal();
+    });
+})();
+</script>
+@endpush
+@endif
 
 {{-- ── INVITE MODAL (organizer only) ── --}}
 @if($isOrganizer && !$isPast)

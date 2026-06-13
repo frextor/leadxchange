@@ -42,6 +42,10 @@
                 @if($lead->sector)
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 flex-shrink-0">{{ $lead->sector->name }}</span>
                 @endif
+                @if($lead->lead_type)
+                @php $typeColors = ['MQL' => 'bg-indigo-100 text-indigo-700', 'SQL' => 'bg-teal-100 text-teal-700', 'SP' => 'bg-amber-100 text-amber-700']; @endphp
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold flex-shrink-0 {{ $typeColors[$lead->lead_type] ?? 'bg-gray-100 text-gray-500' }}">{{ $lead->lead_type }}</span>
+                @endif
                 @if($lead->isFraudReported())
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700 flex-shrink-0">⚠️ Signalé</span>
                 @endif
@@ -171,6 +175,14 @@
                     </div>
                     @endforeach
                 </div>
+                <div class="flex gap-2 mt-2">
+                    @foreach(['MQL' => 'MQL', 'SQL' => 'SQL', 'SP' => 'SP'] as $typeKey => $typeLabel)
+                    <label class="flex-1 text-center cursor-pointer">
+                        <input type="radio" name="lead_type" value="{{ $typeKey }}" class="sr-only card-type-radio" data-lead="{{ $lead->id }}">
+                        <span class="block border border-gray-200 rounded-lg py-1 text-[10px] font-bold text-gray-500 card-type-label transition cursor-pointer">{{ $typeLabel }}</span>
+                    </label>
+                    @endforeach
+                </div>
                 <button type="button" onclick="submitRating('{{ $lead->id }}')"
                         class="mt-2 w-full py-1.5 rounded-lg text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition">
                     Valider la notation
@@ -248,5 +260,16 @@
         });
     }
     window.rateStar = window.rateStar || rateStar;
+
+    // Lead type radio
+    document.querySelectorAll('.card-type-radio').forEach(function(r){
+        r.addEventListener('change',function(){
+            const leadId = this.dataset.lead;
+            document.querySelectorAll('.card-type-radio[data-lead="'+leadId+'"]').forEach(function(x){
+                x.nextElementSibling.style.cssText='';
+            });
+            this.nextElementSibling.style.cssText='background:#FEF3C7;border-color:#D97706;color:#92400E;';
+        });
+    });
 })();
 </script>

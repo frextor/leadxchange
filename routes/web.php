@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EnterpriseController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\ChatController;
@@ -146,6 +147,13 @@ Route::middleware(['auth', 'user'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/home',      [DashboardController::class, 'index']);
 
+    // Upgrade / Plans
+    Route::get('/upgrade', function () {
+        $plans = \App\Models\Plan::where('is_active', true)->orderBy('sort_order')->get();
+        $currentPlan = auth()->user()->subscription?->plan;
+        return view('upgrade', compact('plans', 'currentPlan'));
+    })->name('upgrade');
+
     // Company Routes
     Route::get('/company/create', [CompanyController::class, 'create'])->name('company.create');
     Route::get('/company/search', [CompanyController::class, 'search'])->name('company.search');
@@ -198,6 +206,7 @@ Route::middleware(['auth', 'user'])->group(function () {
     // Chat
     Route::get('/chat',                              [ChatController::class, 'index'])->name('chat.index');
     Route::post('/chat/{userId}',                    [ChatController::class, 'store'])->name('chat.store');
+    Route::post('/chat/{userId}/media',              [ChatController::class, 'uploadMedia'])->name('chat.media');
     Route::get('/chat/{userId}/poll/{lastId}',       [ChatController::class, 'poll'])->name('chat.poll');
     Route::post('/chat/{userId}/typing',             [ChatController::class, 'typing'])->name('chat.typing');
 
@@ -208,6 +217,12 @@ Route::middleware(['auth', 'user'])->group(function () {
     Route::post('/profile/video',   [ProfileController::class, 'uploadVideo'])->name('profile.video.upload');
     Route::delete('/profile/video', [ProfileController::class, 'deleteVideo'])->name('profile.video.delete');
     Route::get('/profile/{id}',     [ProfileController::class, 'show'])->name('profile.show');
+
+    // Enterprise invitations
+    Route::get('/enterprise',                           [EnterpriseController::class, 'index'])->name('enterprise.index');
+    Route::post('/enterprise/invitations',              [EnterpriseController::class, 'store'])->name('enterprise.invitations.store');
+    Route::post('/enterprise/invitations/{token}/accept', [EnterpriseController::class, 'accept'])->name('enterprise.invitations.accept');
+    Route::delete('/enterprise/invitations/{invitation}/revoke', [EnterpriseController::class, 'revoke'])->name('enterprise.invitations.revoke');
 
     // Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');

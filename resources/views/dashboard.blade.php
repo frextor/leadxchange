@@ -56,6 +56,15 @@
                         {{ $prospect->profile?->job_title ?? 'LeadXchange member' }}
                         @if($prospect->company) · {{ $prospect->company->name }} @endif
                     </p>
+                    @if($prospect->city)
+                    <p class="text-[11px] text-teal-600 mt-0.5 flex items-center gap-1">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                        {{ $prospect->city->name }}
+                        @if($prospect->city_id === auth()->user()->city_id)
+                        <span class="px-1.5 py-px rounded-full font-semibold text-[9px] tracking-wide" style="background:#E6F7F4;color:#1E8F88;">Near you</span>
+                        @endif
+                    </p>
+                    @endif
                 </div>
 
                 {{-- Connect --}}
@@ -215,6 +224,15 @@
                         {{ $prospect->profile?->job_title ?? 'LeadXchange member' }}
                         @if($prospect->company) · {{ $prospect->company->name }} @endif
                     </p>
+                    @if($prospect->city)
+                    <p class="text-[11px] text-teal-600 mt-0.5 flex items-center gap-1">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                        {{ $prospect->city->name }}
+                        @if($prospect->city_id === auth()->user()->city_id)
+                        <span class="px-1.5 py-px rounded-full font-semibold text-[9px] tracking-wide" style="background:#E6F7F4;color:#1E8F88;">Near you</span>
+                        @endif
+                    </p>
+                    @endif
                 </div>
 
                 {{-- Actions --}}
@@ -539,12 +557,12 @@
                         YOUR CURRENT PLAN
                     </div>
                     @else
-                    <button class="w-full py-3 rounded-xl text-xs font-bold tracking-widest text-white transition"
-                            style="background:{{ $meta['accent'] }};"
-                            onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'"
-                            onclick="alert('Upgrade flow coming soon!')">
+                    <a href="{{ route('upgrade') }}"
+                       class="w-full py-3 rounded-xl text-xs font-bold tracking-widest text-white transition flex items-center justify-center"
+                       style="background:{{ $meta['accent'] }};"
+                       onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
                         {{ $meta['cta'] }}
-                    </button>
+                    </a>
                     @endif
                 </div>
             </div>

@@ -7,13 +7,14 @@ use App\Models\Group;
 use App\Models\Sector;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class GroupController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = Group::with(['creator', 'sector', 'city']);
+        $query = Group::with(['creator', 'sector', 'city'])->withCount('members');
 
         if ($request->filled('search')) {
             $query->where('name', 'like', "%{$request->search}%");
@@ -32,9 +33,22 @@ class GroupController extends Controller
             'total'   => Group::count(),
             'public'  => Group::where('is_public', true)->count(),
             'private' => Group::where('is_public', false)->count(),
+            'members' => DB::table('group_user')->count(),
         ];
 
         return view('admin.groups.index', compact('groups', 'sectors', 'counts'));
+    }
+
+    public function show(Group $group): View
+    {
+        $group->load(['creator', 'sector', 'city']);
+        $members = $group->members()
+            ->with(['profile:user_id,job_title,avatar', 'company:id,name'])
+            ->orderByRaw("FIELD(group_user.role, 'owner', 'admin', 'member')")
+            ->orderBy('first_name')
+            ->get();
+
+        return view('admin.groups.show', compact('group', 'members'));
     }
 
     public function destroy(Group $group): RedirectResponse

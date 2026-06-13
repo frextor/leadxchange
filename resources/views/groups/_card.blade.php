@@ -75,6 +75,7 @@
                 </a>
                 @endif
                 @else
+                @if(auth()->user()->canFeature('join_groups'))
                 <form method="POST" action="{{ route('groups.join', $group->id) }}">
                     @csrf
                     <button type="submit"
@@ -84,6 +85,14 @@
                         Join
                     </button>
                 </form>
+                @else
+                <a href="{{ route('upgrade') }}" onclick="event.stopPropagation();"
+                   class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-dashed transition inline-flex items-center gap-1"
+                   style="border-color:#6366F1;color:#6366F1;">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Upgrade
+                </a>
+                @endif
                 @endif
             </div>
         </div>

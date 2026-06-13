@@ -58,6 +58,19 @@ class ConnectionService
             }
         }
 
+        // Rule 3: Monthly connection quota from plan
+        $quota = $sender->getFeature('max_connections_per_month');
+        if (is_int($quota) && $quota > 0) {
+            $sentThisMonth = Connection::where('sender_id', $sender->id)
+                ->where('created_at', '>=', now()->startOfMonth())
+                ->count();
+            if ($sentThisMonth >= $quota) {
+                throw new \Exception(
+                    "Limite atteinte : votre plan autorise {$quota} demande(s) de connexion par mois. Passez à un plan supérieur pour continuer."
+                );
+            }
+        }
+
         DB::beginTransaction();
 
         try {

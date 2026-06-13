@@ -126,11 +126,20 @@
                     <a href="#" class="text-xs text-teal-600 hover:underline mt-0.5 inline-block">Historique des points →</a>
                 </div>
                 {{-- CTA --}}
+                @if(auth()->user()->canFeature('send_leads'))
                 <button onclick="document.getElementById('sendLeadModal').classList.remove('hidden')"
                         class="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-white bg-gray-900 hover:bg-gray-800 transition">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
                     Envoyer un Lead
                 </button>
+                @else
+                <a href="{{ route('upgrade') }}"
+                   class="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold border-2 border-dashed border-indigo-200 text-indigo-400 hover:border-indigo-400 hover:text-indigo-600 transition bg-indigo-50/50">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Envoyer un Lead
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-500 ml-1">Upgrade</span>
+                </a>
+                @endif
             </div>
         </div>
     </div>
@@ -256,10 +265,18 @@
             </div>
             <p class="font-semibold text-gray-600">Aucun lead envoyé</p>
             <p class="text-sm text-gray-400 mt-1">Partagez une opportunité commerciale avec votre réseau</p>
+            @if(auth()->user()->canFeature('send_leads'))
             <button onclick="document.getElementById('sendLeadModal').classList.remove('hidden')"
                     class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-gray-900 hover:bg-gray-800 transition">
                 Envoyer votre premier lead
             </button>
+            @else
+            <a href="{{ route('upgrade') }}"
+               class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-indigo-200 text-indigo-500 hover:bg-indigo-50 transition">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Upgrade pour envoyer des leads
+            </a>
+            @endif
         </div>
         @else
         <div class="space-y-3" id="list-sent">
@@ -274,6 +291,7 @@
 </div>
 
 {{-- ════ SEND LEAD MODAL ════ --}}
+@if(auth()->user()->canFeature('send_leads'))
 <div id="sendLeadModal"
      class="{{ $errors->any() && !session('success') ? '' : 'hidden' }} fixed inset-0 z-50 flex items-center justify-center p-4"
      style="background:rgba(0,0,0,.5);">
@@ -471,6 +489,7 @@
         </form>
     </div>
 </div>
+@endif
 
 @endsection
 

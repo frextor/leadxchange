@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Mail;
+
+use App\Models\EmailTemplate;
+use Illuminate\Bus\Queueable;
+use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Queue\SerializesModels;
+
+class SystemNotificationMail extends Mailable
+{
+    use Queueable, SerializesModels;
+
+    public function __construct(
+        public readonly string  $recipientName,
+        public readonly string  $title,
+        public readonly string  $body,
+        public readonly ?string $actionLabel = null,
+        public readonly ?string $actionUrl   = null,
+    ) {}
+
+    public function envelope(): Envelope
+    {
+        $resolved = EmailTemplate::resolve('system_notification', $this->vars());
+
+        return new Envelope(subject: $resolved['subject'] ?? ($this->title . ' — LeadXchange'));
+    }
+
+    public function content(): Content
+    {
+        $resolved = EmailTemplate::resolve('system_notification', $this->vars());
+
+        if ($resolved) {
+            return new Content(view: 'emails.db_template', with: ['content' => $resolved['body']]);
+        }
+
+        return new Content(view: 'emails.system_notification');
+    }
+
+    private function vars(): array
+    {
+        return [
+            'name'         => $this->recipientName,
+            'title'        => $this->title,
+            'body'         => $this->body,
+            'action_label' => $this->actionLabel ?? '',
+            'action_url'   => $this->actionUrl ?? '#',
+        ];
+    }
+}

@@ -1,0 +1,103 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
+
+class EmailTemplate extends Model
+{
+    protected $fillable = ['key', 'name', 'subject', 'body', 'variables', 'is_active'];
+
+    protected $casts = [
+        'variables' => 'array',
+        'is_active' => 'boolean',
+    ];
+
+    // ── Template registry ─────────────────────────────────────────────────────
+
+    public const TEMPLATES = [
+        'verification' => [
+            'name'            => 'Vérification email',
+            'default_subject' => 'Vérifiez votre adresse email — LeadXchange',
+            'variables'       => ['name', 'verification_url'],
+            'sample'          => ['name' => 'Jean Dupont', 'verification_url' => '#'],
+        ],
+        'password_reset' => [
+            'name'            => 'Réinitialisation mot de passe',
+            'default_subject' => 'Réinitialisation de votre mot de passe — LeadXchange',
+            'variables'       => ['name', 'reset_url', 'expires_in'],
+            'sample'          => ['name' => 'Jean Dupont', 'reset_url' => '#', 'expires_in' => '60'],
+        ],
+        'system_notification' => [
+            'name'            => 'Notification système',
+            'default_subject' => '{{title}} — LeadXchange',
+            'variables'       => ['name', 'title', 'body', 'action_label', 'action_url'],
+            'sample'          => [
+                'name'         => 'Jean Dupont',
+                'title'        => 'Votre profil a été approuvé',
+                'body'         => 'Félicitations ! Votre profil LeadXchange vient d\'être approuvé par notre équipe.',
+                'action_label' => 'Accéder à mon profil',
+                'action_url'   => '#',
+            ],
+        ],
+        'marketing' => [
+            'name'            => 'Email marketing',
+            'default_subject' => '{{headline}} — LeadXchange',
+            'variables'       => ['name', 'headline', 'body', 'cta_label', 'cta_url'],
+            'sample'          => [
+                'name'      => 'Jean Dupont',
+                'headline'  => 'Découvrez nos nouvelles fonctionnalités',
+                'body'      => 'LeadXchange vient de lancer de nouvelles fonctionnalités pour booster votre réseau professionnel.',
+                'cta_label' => 'Découvrir maintenant',
+                'cta_url'   => '#',
+            ],
+        ],
+    ];
+
+    // ── Core rendering ────────────────────────────────────────────────────────
+
+    /**
+     * Resolve a template from DB, interpolate variables, return [subject, body] or null.
+     */
+    public static function resolve(string $key, array $vars = []): ?array
+    {
+        $template = Cache::remember("email_template_{$key}", 3600, fn () =>
+            static::where('key', $key)->where('is_active', true)->first()
+        );
+
+        if (! $template) {
+            return null;
+        }
+
+        return [
+            'subject' => static::interpolate($template->subject, $vars),
+            'body'    => static::interpolate($template->body, $vars),
+        ];
+    }
+
+    public static function interpolate(string $text, array $vars): string
+    {
+        foreach ($vars as $var => $value) {
+            $text = str_replace(
+                ['{{' . $var . '}}', '{{ ' . $var . ' }}'],
+                $value,
+                $text
+            );
+        }
+        return $text;
+    }
+
+    // ── Cache management ──────────────────────────────────────────────────────
+
+    public static function clearCache(string $key): void
+    {
+        Cache::forget("email_template_{$key}");
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(fn (self $t) => static::clearCache($t->key));
+        static::deleted(fn (self $t) => static::clearCache($t->key));
+    }
+}

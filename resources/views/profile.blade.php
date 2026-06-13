@@ -57,7 +57,14 @@
 @php
 $currentLookingFor      = $profile?->looking_for      ?? [];
 $currentServicesOffered = $profile?->services_offered ?? [];
+$canViewFull = $isOwnProfile || auth()->user()->canFeature('view_profile_info');
 @endphp
+
+@if(!$canViewFull)
+<x-upgrade-gate feature="view_profile_info" :full-page="true"
+    title="Profil masqué"
+    description="Passez à un plan Premium pour voir le profil complet de ce membre. En mode Gratuit, les profils sont affichés de façon anonyme (secteur et région uniquement)." />
+@else
 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
     <div class="grid gap-6 lg:grid-cols-[320px_1fr] items-start">
@@ -726,6 +733,9 @@ $currentServicesOffered = $profile?->services_offered ?? [];
 </div>
 
 @endif {{-- isOwnProfile --}}
+
+</div>{{-- /max-w-5xl (canViewFull) --}}
+@endif {{-- canViewFull --}}
 
 @endsection
 

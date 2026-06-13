@@ -86,6 +86,7 @@
             ->where('messages.sender_id', '!=', $authId)
             ->whereNull('messages.read_at')
             ->count();
+        $unreadNotifCount = \DB::table('notifications')->where('user_id', $authId)->where('is_read', false)->count();
     @endphp
 
     <!-- Navbar -->
@@ -217,6 +218,43 @@
 
             </nav>
 
+            <!-- Notification bell -->
+            <div class="relative flex items-center" id="notifBellWrap">
+                <button onclick="toggleNotifPanel()" id="notifBell"
+                        class="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition text-gray-400 hover:text-gray-600 mr-1">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    @if($unreadNotifCount > 0)
+                    <span id="notifBadge" class="absolute top-1.5 right-1.5 w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold text-white" style="background:#EF4444;">
+                        {{ $unreadNotifCount > 9 ? '9+' : $unreadNotifCount }}
+                    </span>
+                    @else
+                    <span id="notifBadge" class="hidden absolute top-1.5 right-1.5 w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold text-white" style="background:#EF4444;"></span>
+                    @endif
+                </button>
+
+                <!-- Notifications dropdown -->
+                <div id="notifPanel" class="hidden absolute right-0 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden dropdown-enter" style="top:calc(100% + 8px);">
+                    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                        <div>
+                            <h3 class="font-semibold text-gray-900 text-sm">Notifications</h3>
+                            <p id="notifCountText" class="text-xs text-gray-400 mt-0.5"></p>
+                        </div>
+                        <button onclick="markAllNotifRead()" class="text-xs font-semibold hover:underline" style="color:#1E8F88;">Tout lire</button>
+                    </div>
+                    <div id="notifLoadingState" class="p-8 text-center">
+                        <div class="w-7 h-7 border-2 border-t-transparent rounded-full animate-spin mx-auto" style="border-color:#2BB6A3; border-top-color:transparent;"></div>
+                        <p class="text-gray-400 text-xs mt-2">Chargement…</p>
+                    </div>
+                    <div id="notifList" class="max-h-80 overflow-y-auto custom-scrollbar" style="display:none;"></div>
+                    <div id="notifEmpty" class="p-10 text-center" style="display:none;">
+                        <div class="text-3xl mb-2">🔔</div>
+                        <p class="text-gray-600 font-semibold text-sm">Aucune notification</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Right: avatar + dropdown -->
             <div class="flex items-center relative" id="userDropdown">
                 <button onclick="toggleUserMenu()" class="flex items-center gap-2 rounded-full hover:bg-gray-100 transition px-2 py-1.5 h-full">
@@ -326,10 +364,12 @@
         }
 
         document.addEventListener('click', function(e) {
-            const mi = document.getElementById('membersNavItem');
-            const ud = document.getElementById('userDropdown');
+            const mi  = document.getElementById('membersNavItem');
+            const ud  = document.getElementById('userDropdown');
+            const nb  = document.getElementById('notifBellWrap');
             if (mi && !mi.contains(e.target)) document.getElementById('notificationPanel').classList.add('hidden');
             if (ud && !ud.contains(e.target)) document.getElementById('userPanel').classList.add('hidden');
+            if (nb && !nb.contains(e.target)) document.getElementById('notifPanel').classList.add('hidden');
         });
 
         async function loadRequests() {
@@ -416,10 +456,106 @@
             setTimeout(()=>t.remove(),3300);
         }
 
+        // ── Notifications panel ──────────────────────────────────────
+        let notifPanelLoaded = false;
+
+        window.toggleNotifPanel = function() {
+            const panel = document.getElementById('notifPanel');
+            document.getElementById('userPanel').classList.add('hidden');
+            document.getElementById('notificationPanel').classList.add('hidden');
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                if (!notifPanelLoaded) { loadNotifications(); notifPanelLoaded = true; }
+            } else {
+                panel.classList.add('hidden');
+            }
+        };
+
+        async function loadNotifications() {
+            try {
+                const res  = await fetch('/api/notifications', { headers:{'Accept':'application/json','Authorization':'Bearer '+window.API_TOKEN}, credentials:'same-origin' });
+                const data = await res.json();
+                renderNotifications(data.notifications || []);
+                updateNotifBadge(data.unread_count || 0);
+            } catch {
+                document.getElementById('notifLoadingState').style.display = 'none';
+                document.getElementById('notifEmpty').style.display = 'block';
+            }
+        }
+
+        function renderNotifications(items) {
+            const loading = document.getElementById('notifLoadingState');
+            const list    = document.getElementById('notifList');
+            const empty   = document.getElementById('notifEmpty');
+            const countEl = document.getElementById('notifCountText');
+            loading.style.display = 'none';
+            const unread = items.filter(n => !n.is_read).length;
+            countEl.textContent = unread > 0 ? `${unread} non lue${unread > 1 ? 's' : ''}` : 'Tout lu';
+            if (!items.length) { empty.style.display = 'block'; return; }
+            empty.style.display = 'none';
+            list.style.display  = 'block';
+            list.innerHTML = items.map(n => `
+                <div class="flex items-start gap-3 px-5 py-3.5 border-b border-gray-50 hover:bg-gray-50 transition ${n.is_read ? 'opacity-70' : ''}" id="notif-${n.id}">
+                    <div class="w-2 h-2 rounded-full mt-2 flex-shrink-0 ${n.is_read ? 'bg-gray-200' : 'bg-teal-500'}"></div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 leading-tight">${escapeHtml(n.title)}</p>
+                        <p class="text-xs text-gray-500 mt-0.5 line-clamp-2">${escapeHtml(n.body)}</p>
+                        <p class="text-[10px] text-gray-300 mt-1">${timeAgo(n.created_at)}</p>
+                    </div>
+                    <button onclick="deleteNotif(${n.id})" class="text-gray-200 hover:text-red-400 transition flex-shrink-0 mt-0.5">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    </button>
+                </div>`).join('');
+        }
+
+        function updateNotifBadge(count) {
+            const badge = document.getElementById('notifBadge');
+            if (!badge) return;
+            if (count > 0) {
+                badge.textContent = count > 9 ? '9+' : count;
+                badge.classList.remove('hidden');
+                badge.style.display = 'flex';
+            } else {
+                badge.classList.add('hidden');
+                badge.style.display = 'none';
+            }
+        }
+
+        window.markAllNotifRead = async function() {
+            try {
+                await fetch('/api/notifications/read-all', { method:'POST', headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF,'Authorization':'Bearer '+window.API_TOKEN}, credentials:'same-origin' });
+                notifPanelLoaded = false;
+                loadNotifications();
+                updateNotifBadge(0);
+            } catch {}
+        };
+
+        window.deleteNotif = async function(id) {
+            const el = document.getElementById('notif-' + id);
+            if (el) el.style.opacity = '0.3';
+            try {
+                await fetch('/api/notifications/' + id, { method:'DELETE', headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF,'Authorization':'Bearer '+window.API_TOKEN}, credentials:'same-origin' });
+                if (el) el.remove();
+            } catch { if (el) el.style.opacity = '1'; }
+        };
+
+        function escapeHtml(s) {
+            return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        // ── Refresh badge every 60s ──────────────────────────────────
         window.addEventListener('DOMContentLoaded', () => {
             fetch('/api/connections?type=received&status=pending', { headers:{'Accept':'application/json','Authorization':'Bearer '+window.API_TOKEN}, credentials:'same-origin' })
                 .then(r=>r.json()).then(d=>{ const n=(d.data||[]).length; if(n>0){const b=document.getElementById('membersBadge'); b.textContent=n; b.style.display='flex';} }).catch(()=>{});
             setInterval(()=>{ if(notifLoaded) loadRequests(); }, 30000);
+            setInterval(async()=>{
+                try {
+                    const r = await fetch('/api/notifications', { headers:{'Accept':'application/json','Authorization':'Bearer '+window.API_TOKEN}, credentials:'same-origin' });
+                    const d = await r.json();
+                    updateNotifBadge(d.unread_count || 0);
+                    if (notifPanelLoaded) { notifPanelLoaded = false; loadNotifications(); notifPanelLoaded = true; }
+                } catch {}
+            }, 60000);
         });
     </script>
 

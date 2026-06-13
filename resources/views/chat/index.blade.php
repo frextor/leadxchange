@@ -32,6 +32,11 @@
 @endpush
 
 @section('content')
+@if(!$canChat)
+<x-upgrade-gate feature="chat" :full-page="true"
+    title="Messagerie non disponible"
+    description="La messagerie instantanée n'est pas incluse dans votre plan actuel. Mettez à niveau pour échanger en temps réel avec vos connexions." />
+@else
 <div class="chat-wrap">
 
     {{-- ── Left: conversation list ── --}}
@@ -121,14 +126,28 @@
         {{-- Messages --}}
         <div id="msgThread" class="custom-scrollbar" style="flex:1; overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:10px;">
             @forelse($messages as $msg)
-                @php $isMine = $msg->sender_id === auth()->id(); @endphp
+                @php $isMine = $msg->sender_id === auth()->id(); $msgType = $msg->type ?? 'text'; @endphp
                 <div id="msg-{{ $msg->id }}" style="display:flex; justify-content:{{ $isMine ? 'flex-end' : 'flex-start' }};">
+                    @if($msgType === 'image' && $msg->media_url)
+                    <div class="{{ $isMine ? 'bubble-mine' : 'bubble-their' }}" style="max-width:65%; padding:6px; border-radius:14px; overflow:hidden;">
+                        <img src="{{ $msg->media_url }}" alt="image" style="max-width:240px; border-radius:10px; display:block; cursor:pointer;" onclick="window.open(this.src,'_blank')">
+                        @if($msg->body)<div style="font-size:13px; padding:6px 8px 2px; line-height:1.4;">{{ $msg->body }}</div>@endif
+                        <div style="font-size:11px; margin-top:3px; opacity:.65; text-align:right; padding:0 8px 4px;">{{ $msg->created_at->format('H:i') }}</div>
+                    </div>
+                    @elseif($msgType === 'file' && $msg->media_url)
+                    <div class="{{ $isMine ? 'bubble-mine' : 'bubble-their' }}" style="max-width:65%; padding:10px 14px;">
+                        <a href="{{ $msg->media_url }}" target="_blank" rel="noopener" style="display:flex; align-items:center; gap:8px; text-decoration:none; color:inherit;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; opacity:.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            <span style="font-size:13px; text-decoration:underline; text-underline-offset:2px;">{{ $msg->filename ?? 'Fichier' }}</span>
+                        </a>
+                        <div style="font-size:11px; margin-top:5px; opacity:.65; text-align:right;">{{ $msg->created_at->format('H:i') }}</div>
+                    </div>
+                    @else
                     <div class="{{ $isMine ? 'bubble-mine' : 'bubble-their' }}" style="max-width:65%; padding:10px 14px;">
                         <div style="font-size:14px; line-height:1.55; word-break:break-word;">{{ $msg->body }}</div>
-                        <div style="font-size:11px; margin-top:5px; opacity:.65; text-align:right;">
-                            {{ $msg->created_at->format('H:i') }}
-                        </div>
+                        <div style="font-size:11px; margin-top:5px; opacity:.65; text-align:right;">{{ $msg->created_at->format('H:i') }}</div>
                     </div>
+                    @endif
                 </div>
             @empty
                 <div class="empty-state-chat" id="emptyState">
@@ -140,19 +159,37 @@
 
         {{-- Input bar --}}
         <div style="background:#fff; border-top:1px solid #e5e7eb; padding:16px 24px; flex-shrink:0;">
+            {{-- Image preview --}}
+            <div id="mediaPreviewWrap" style="display:none; margin-bottom:10px;">
+                <div style="display:inline-flex; align-items:center; gap:8px; background:#f0fdfa; border:1px solid #99f6e4; border-radius:10px; padding:6px 10px;">
+                    <img id="mediaPreviewImg" src="" alt="" style="max-height:80px; max-width:120px; border-radius:6px; display:none;">
+                    <div id="mediaPreviewFile" style="display:none;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1E8F88" stroke-width="2" style="display:inline;vertical-align:middle;"></svg>
+                        <span id="mediaPreviewName" style="font-size:12px;color:#1E8F88;margin-left:4px;"></span>
+                    </div>
+                    <button type="button" onclick="cancelMedia()" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:16px;line-height:1;">×</button>
+                </div>
+            </div>
             <form id="sendForm" onsubmit="sendMessage(event)" style="display:flex; gap:12px; align-items:flex-end;">
+                <input type="file" id="mediaInput" accept="image/*,.pdf,.doc,.docx" style="display:none;" onchange="handleFileSelect(this)">
+                <button type="button" onclick="document.getElementById('mediaInput').click()"
+                        style="background:none; border:1px solid #e5e7eb; border-radius:10px; width:40px; height:44px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; color:#9ca3af; transition:all .15s;"
+                        onmouseover="this.style.borderColor='#1E8F88';this.style.color='#1E8F88'" onmouseout="this.style.borderColor='#e5e7eb';this.style.color='#9ca3af'"
+                        title="Envoyer un fichier">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                </button>
                 <textarea id="msgInput"
                           class="chat-input"
-                          placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
+                          placeholder="Écrivez un message… (Entrée pour envoyer, Shift+Entrée pour nouvelle ligne)"
                           rows="1"
                           style="flex:1; padding:10px 14px; border:1px solid #e5e7eb; border-radius:12px; font-size:14px; font-family:inherit; outline:none; line-height:1.5; box-sizing:border-box; transition:border-color .15s;"
                           onfocus="this.style.borderColor='#1E8F88'"
                           onblur="this.style.borderColor='#e5e7eb'"></textarea>
                 <button type="submit" id="sendBtn"
                         style="background:#1E8F88; color:#fff; border:none; border-radius:12px; width:44px; height:44px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:opacity .15s;"
-                        title="Send">
+                        title="Envoyer">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        <path d="m22 2-7 20-4-9-9-4 20-7z"/>
                     </svg>
                 </button>
             </form>
@@ -259,13 +296,58 @@
         input.focus();
     }
 
+    // ── Media state ──
+    let pendingMedia = null; // { url, type, filename }
+
+    window.handleFileSelect = async function(input) {
+        const file = input.files[0];
+        if (!file || !WITH_USER_ID) return;
+
+        // Show preview
+        const wrap = document.getElementById('mediaPreviewWrap');
+        const previewImg  = document.getElementById('mediaPreviewImg');
+        const previewFile = document.getElementById('mediaPreviewFile');
+        const previewName = document.getElementById('mediaPreviewName');
+
+        wrap.style.display = 'block';
+        if (file.type.startsWith('image/')) {
+            previewImg.src = URL.createObjectURL(file);
+            previewImg.style.display = '';
+            previewFile.style.display = 'none';
+        } else {
+            previewImg.style.display = 'none';
+            previewFile.style.display = '';
+            previewName.textContent = file.name;
+        }
+
+        // Upload
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('_token', CSRF);
+        try {
+            const res  = await fetch(`/chat/${WITH_USER_ID}/media`, { method: 'POST', body: fd, credentials: 'same-origin' });
+            const data = await res.json();
+            if (data.url) {
+                pendingMedia = { url: data.url, type: data.type, filename: data.filename };
+            }
+        } catch { cancelMedia(); }
+        input.value = '';
+    };
+
+    window.cancelMedia = function() {
+        pendingMedia = null;
+        document.getElementById('mediaPreviewWrap').style.display = 'none';
+        document.getElementById('mediaPreviewImg').src = '';
+    };
+
     // ── Send message ──
     window.sendMessage = async function (e) {
         e.preventDefault();
-        if (!input || sending || !WITH_USER_ID) return;
+        if (!WITH_USER_ID) return;
+        if (sending) return;
 
-        const body = input.value.trim();
-        if (!body) return;
+        const body = input ? input.value.trim() : '';
+        if (!body && !pendingMedia) return;
 
         sending = true;
         const btn = document.getElementById('sendBtn');
@@ -273,15 +355,22 @@
 
         // Optimistic render
         const tmpId = 'tmp-' + Date.now();
-        appendBubble({ id: tmpId, body, created_at: new Date().toISOString(), is_mine: true });
-        input.value = '';
-        input.style.height = 'auto';
+        const msgData = pendingMedia
+            ? { id: tmpId, type: pendingMedia.type, media_url: pendingMedia.url, filename: pendingMedia.filename, body: body || null, created_at: new Date().toISOString(), is_mine: true }
+            : { id: tmpId, type: 'text', body, created_at: new Date().toISOString(), is_mine: true };
+        appendBubble(msgData);
+        if (input) { input.value = ''; input.style.height = 'auto'; }
+
+        const payload = pendingMedia
+            ? { type: pendingMedia.type, media_url: pendingMedia.url, filename: pendingMedia.filename, body: body || undefined }
+            : { body };
+        cancelMedia();
 
         try {
             const res  = await fetch(`/chat/${WITH_USER_ID}`, {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-                body:    JSON.stringify({ body }),
+                body:    JSON.stringify(payload),
             });
             const data = await res.json();
             if (data.id) {
@@ -351,21 +440,38 @@
         const t = document.getElementById('msgThread');
         if (!t) return;
 
-        // Remove empty state
         const es = document.getElementById('emptyState');
         if (es) es.remove();
 
-        const time = new Date(msg.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        const time = new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
         const wrap = document.createElement('div');
         wrap.id = 'msg-' + msg.id;
         wrap.style.cssText = 'display:flex;justify-content:' + (msg.is_mine ? 'flex-end' : 'flex-start') + ';';
 
         const bubble = document.createElement('div');
         bubble.className = msg.is_mine ? 'bubble-mine' : 'bubble-their';
-        bubble.style.cssText = 'max-width:65%;padding:10px 14px;';
-        bubble.innerHTML =
-            '<div style="font-size:14px;line-height:1.55;word-break:break-word;">' + escHtml(msg.body) + '</div>' +
-            '<div style="font-size:11px;margin-top:5px;opacity:.65;text-align:right;">' + time + '</div>';
+
+        const type = msg.type || 'text';
+
+        if (type === 'image' && msg.media_url) {
+            bubble.style.cssText = 'max-width:65%;padding:6px;border-radius:14px;overflow:hidden;';
+            bubble.innerHTML =
+                '<img src="' + escHtml(msg.media_url) + '" alt="image" style="max-width:240px;border-radius:10px;display:block;cursor:pointer;" onclick="window.open(this.src,\'_blank\')">' +
+                (msg.body ? '<div style="font-size:13px;padding:6px 8px 2px;line-height:1.4;">' + escHtml(msg.body) + '</div>' : '') +
+                '<div style="font-size:11px;margin-top:3px;opacity:.65;text-align:right;padding:0 8px 4px;">' + time + '</div>';
+        } else if (type === 'file' && msg.media_url) {
+            bubble.style.cssText = 'max-width:65%;padding:10px 14px;';
+            bubble.innerHTML =
+                '<a href="' + escHtml(msg.media_url) + '" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;text-decoration:none;color:inherit;">' +
+                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;opacity:.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
+                '<span style="font-size:13px;text-decoration:underline;text-underline-offset:2px;">' + escHtml(msg.filename || 'Fichier') + '</span></a>' +
+                '<div style="font-size:11px;margin-top:5px;opacity:.65;text-align:right;">' + time + '</div>';
+        } else {
+            bubble.style.cssText = 'max-width:65%;padding:10px 14px;';
+            bubble.innerHTML =
+                '<div style="font-size:14px;line-height:1.55;word-break:break-word;">' + escHtml(msg.body || '') + '</div>' +
+                '<div style="font-size:11px;margin-top:5px;opacity:.65;text-align:right;">' + time + '</div>';
+        }
 
         wrap.appendChild(bubble);
         t.appendChild(wrap);
@@ -395,4 +501,5 @@
 })();
 </script>
 @endpush
+@endif
 @endsection
