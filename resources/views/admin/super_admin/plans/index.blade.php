@@ -11,14 +11,24 @@
         <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Plans d'abonnement</h1>
         <p class="text-sm text-gray-400 mt-1">Gérez les offres, tarifs et fonctionnalités de la plateforme.</p>
     </div>
-    <a href="{{ route('admin.super.plans.create') }}"
-       class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90 active:scale-[.98]"
-       style="background:linear-gradient(135deg,#6366F1,#4338CA);">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M12 5v14M5 12h14"/>
-        </svg>
-        Nouveau plan
-    </a>
+    <div class="flex items-center gap-2">
+        <a href="{{ route('admin.super.plans.permissions') }}"
+           class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            Gérer les fonctionnalités
+        </a>
+        <a href="{{ route('admin.super.plans.create') }}"
+           class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90 active:scale-[.98]"
+           style="background:linear-gradient(135deg,#6366F1,#4338CA);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Nouveau plan
+        </a>
+    </div>
 </div>
 
 {{-- ── Stats ────────────────────────────────────────────────────────────── --}}
@@ -119,24 +129,8 @@
     $annualMonthly = $plan->annual_price ? ($plan->annual_price / 12) : null;
     $savings = ($annualMonthly && $plan->price > 0) ? round((1 - $annualMonthly / $plan->price) * 100) : null;
 
-    $featureLabels = [
-        'max_connections_per_month' => 'Connexions / mois',
-        'view_profile_info'         => 'Voir les infos profil',
-        'send_leads'                => 'Envoyer des leads',
-        'join_groups'               => 'Rejoindre des groupes',
-        'create_events'             => 'Créer des événements',
-        'ambassador_badge'          => 'Badge ambassadeur',
-        'requires_approval'         => 'Sur approbation',
-        'receive_leads'             => 'Recevoir des leads',
-        'chat'                      => 'Messagerie',
-        'profile_video'             => 'Vidéo de présentation',
-        'priority_support'          => 'Support prioritaire',
-        'analytics'                 => 'Statistiques avancées',
-        'api_access'                => 'Accès API',
-        'lead_transfer'             => 'Transfert de leads',
-        'advanced_search'           => 'Recherche avancée',
-        'polls'                     => 'Sondages',
-    ];
+    $featureDefs = \App\Http\Controllers\Admin\SuperAdmin\PlanController::FEATURES;
+    $planFeatures = is_array($plan->features) ? $plan->features : [];
 @endphp
 
 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col transition-shadow hover:shadow-md"
@@ -238,52 +232,47 @@
     @endif
 
     {{-- ── Features ─────────────────────────────────────────────── --}}
-    @if(is_array($plan->features) && count($plan->features) > 0)
     <div class="px-5 py-3 flex-1">
-        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">Fonctionnalités</p>
+        <div class="flex items-center justify-between mb-2.5">
+            <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Fonctionnalités</p>
+            <a href="{{ route('admin.super.plans.permissions') }}"
+               class="text-[9px] font-semibold text-indigo-400 hover:text-indigo-600 transition">Modifier →</a>
+        </div>
+        <div class="overflow-y-auto" style="max-height:200px;">
         <ul class="space-y-1.5">
-            @foreach($plan->features as $key => $val)
+            @foreach($featureDefs as $key => $def)
             @php
-                $label      = $featureLabels[$key] ?? ucfirst(str_replace('_', ' ', $key));
-                // null  = illimité (positif), true/integer = activé, false = désactivé
-                $isDisabled = $val === false;
-                $isUnlimited = $val === null;
-                $isNumeric  = is_int($val) && $val >= 0 && !is_bool($val);
-                $isSpecial  = $key === 'requires_approval';
+                $val         = $planFeatures[$key] ?? ($def['type'] === 'number' ? null : false);
+                $label       = $def['label'];
+                $isDisabled  = $val === false;
+                $isUnlimited = $val === null && $def['type'] === 'number';
+                $isNumeric   = $def['type'] === 'number' && is_int($val) && $val >= 0;
+                $isSpecial   = $key === 'requires_approval';
             @endphp
 
             @if($isSpecial && !$isDisabled)
-            {{-- Badge "sur approbation" --}}
-            <li class="flex items-center gap-2 text-xs">
+            <li class="flex items-center gap-2">
                 <span class="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 bg-amber-50">
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="3">
-                        <path d="M12 8v4M12 16h.01"/>
-                    </svg>
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="3"><path d="M12 8v4M12 16h.01"/></svg>
                 </span>
-                <span class="italic text-amber-700">{{ $label }}</span>
+                <span class="italic text-amber-700 text-[11px]">{{ $label }}</span>
             </li>
             @else
-            <li class="flex items-center justify-between gap-2 text-xs">
-                <div class="flex items-center gap-2 min-w-0">
+            <li class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
                     @if(!$isDisabled)
                     <span class="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
                           style="background:{{ $t['light_bg'] }};">
-                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="{{ $t['check'] }}" stroke-width="3">
-                            <path d="m5 12 5 5L20 7"/>
-                        </svg>
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="{{ $t['check'] }}" stroke-width="3"><path d="m5 12 5 5L20 7"/></svg>
                     </span>
-                    <span class="text-gray-700 truncate">{{ $label }}</span>
+                    <span class="text-gray-700 text-[11px]">{{ $label }}</span>
                     @else
                     <span class="w-4 h-4 rounded-full bg-gray-50 flex items-center justify-center flex-shrink-0">
-                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="3">
-                            <path d="M18 6 6 18M6 6l12 12"/>
-                        </svg>
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
                     </span>
-                    <span class="text-gray-300 line-through truncate">{{ $label }}</span>
+                    <span class="text-gray-300 line-through text-[11px]">{{ $label }}</span>
                     @endif
                 </div>
-
-                {{-- Valeur à droite --}}
                 @if(!$isDisabled)
                     @if($isUnlimited)
                     <span class="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md"
@@ -297,12 +286,8 @@
             @endif
             @endforeach
         </ul>
+        </div>
     </div>
-    @else
-    <div class="px-5 py-4 flex-1 flex items-center justify-center">
-        <p class="text-xs text-gray-300 italic">Aucune fonctionnalité définie</p>
-    </div>
-    @endif
 
     {{-- ── Actions ──────────────────────────────────────────────── --}}
     <div class="px-5 py-3.5 border-t border-gray-100 flex items-center gap-2 mt-auto">

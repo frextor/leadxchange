@@ -108,6 +108,7 @@ class LeadController extends Controller
             'quality'    => ['required', 'integer', 'min:1', 'max:5'],
             'relevance'  => ['required', 'integer', 'min:1', 'max:5'],
             'reactivity' => ['required', 'integer', 'min:1', 'max:5'],
+            'lead_type'  => ['nullable', 'in:MQL,SQL,SP'],
         ]);
 
         try {
@@ -117,6 +118,7 @@ class LeadController extends Controller
                 (int) $request->quality,
                 (int) $request->relevance,
                 (int) $request->reactivity,
+                $request->input('lead_type'),
             );
 
             return back()->with('success', 'Merci pour votre notation !');

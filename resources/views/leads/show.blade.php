@@ -227,6 +227,24 @@
                             </div>
                             @endforeach
                         </div>
+                        {{-- Lead type --}}
+                        <div class="mt-4 pt-4 border-t border-gray-100">
+                            <span class="info-label block mb-2">Type de lead</span>
+                            <div class="flex gap-2">
+                                @foreach(['MQL' => ['label' => 'MQL', 'desc' => 'Marketing Qualified', 'color' => '#6366F1'], 'SQL' => ['label' => 'SQL', 'desc' => 'Sales Qualified', 'color' => '#1E8F88'], 'SP' => ['label' => 'SP', 'desc' => 'Strategic Partner', 'color' => '#F59E0B']] as $typeKey => $typeCfg)
+                                <label class="flex-1 cursor-pointer">
+                                    <input type="radio" name="lead_type" value="{{ $typeKey }}" class="sr-only peer lead-type-radio">
+                                    <div class="border-2 border-gray-200 rounded-xl p-2.5 text-center transition peer-checked:border-current peer-checked:bg-opacity-10"
+                                         style="--tw-border-opacity:1;"
+                                         data-color="{{ $typeCfg['color'] }}">
+                                        <p class="text-xs font-bold text-gray-700">{{ $typeCfg['label'] }}</p>
+                                        <p class="text-[10px] text-gray-400 mt-0.5">{{ $typeCfg['desc'] }}</p>
+                                    </div>
+                                </label>
+                                @endforeach
+                            </div>
+                        </div>
+
                         <div class="flex items-center justify-between mt-5 pt-4 border-t border-gray-100">
                             <div>
                                 <span class="info-label">Moyenne</span>
@@ -410,5 +428,20 @@
         }
         document.getElementById('showRateForm').submit();
     }
+
+    // Lead type radio visual
+    document.querySelectorAll('.lead-type-radio').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            document.querySelectorAll('.lead-type-radio').forEach(function(r) {
+                const div = r.nextElementSibling;
+                div.style.borderColor = '#E5E7EB';
+                div.style.backgroundColor = '';
+            });
+            const div = this.nextElementSibling;
+            const color = div.dataset.color;
+            div.style.borderColor = color;
+            div.style.backgroundColor = color + '15';
+        });
+    });
 </script>
 @endpush

@@ -15,6 +15,8 @@ use App\Http\Controllers\Admin\SuperAdmin\DashboardController as SuperDashboardC
 use App\Http\Controllers\Admin\SuperAdmin\InterestController;
 use App\Http\Controllers\Admin\SuperAdmin\PlanController;
 use App\Http\Controllers\Admin\SuperAdmin\SectorController;
+use App\Http\Controllers\Admin\SuperAdmin\EmailTemplateController;
+use App\Http\Controllers\Admin\SuperAdmin\SmtpController;
 use App\Http\Controllers\Admin\SuperAdmin\SubscriberController;
 use Illuminate\Support\Facades\Route;
 
@@ -54,6 +56,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     // Groups
     Route::get('/groups',              [GroupController::class, 'index'])->name('admin.groups.index');
+    Route::get('/groups/{group}',      [GroupController::class, 'show'])->name('admin.groups.show');
     Route::delete('/groups/{group}',   [GroupController::class, 'destroy'])->name('admin.groups.destroy');
 
     // Video moderation
@@ -119,6 +122,20 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::post('interests',                 [InterestController::class, 'store'])->name('interests.store');
     Route::put('interests/{interest}',       [InterestController::class, 'update'])->name('interests.update');
     Route::delete('interests/{interest}',    [InterestController::class, 'destroy'])->name('interests.destroy');
+
+    // Email templates
+    Route::get('email-templates',                         [EmailTemplateController::class, 'index'])->name('email-templates.index');
+    Route::get('email-templates/{key}/edit',              [EmailTemplateController::class, 'edit'])->name('email-templates.edit');
+    Route::put('email-templates/{key}',                   [EmailTemplateController::class, 'update'])->name('email-templates.update');
+    Route::post('email-templates/{key}/reset',            [EmailTemplateController::class, 'reset'])->name('email-templates.reset');
+    Route::post('email-templates/{key}/preview',          [EmailTemplateController::class, 'preview'])->name('email-templates.preview');
+
+    // SMTP / Email settings
+    Route::get('smtp',                       [SmtpController::class, 'index'])->name('smtp.index');
+    Route::put('smtp',                       [SmtpController::class, 'update'])->name('smtp.update');
+    Route::post('smtp/test-connection',      [SmtpController::class, 'testConnection'])->name('smtp.test-connection');
+    Route::post('smtp/send-test',            [SmtpController::class, 'sendTest'])->name('smtp.send-test');
+    Route::delete('smtp/logs',               [SmtpController::class, 'clearLogs'])->name('smtp.clear-logs');
 });
 
 // ── Logout ────────────────────────────────────────────────────────────────

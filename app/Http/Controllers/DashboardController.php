@@ -36,7 +36,7 @@ class DashboardController extends Controller
         $completion = $this->profileService->getCompletionPercentage($user);
         $missing    = $this->profileService->getMissingFields($user);
 
-        $prospects = User::with(['profile', 'company'])
+        $prospects = User::with(['profile', 'company', 'city'])
             ->where('id', '!=', $user->id)
             ->whereNotIn('id', $connectedIds->toArray())
             ->latest()

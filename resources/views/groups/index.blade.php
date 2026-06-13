@@ -45,15 +45,25 @@
             <h1 class="text-2xl font-semibold text-gray-900 tracking-tight">Groups</h1>
             <p class="text-sm text-gray-500 mt-1">Discover groups recommended based on your professional interests</p>
         </div>
+        @if(auth()->user()->canFeature('create_groups'))
         <button onclick="document.getElementById('createGroupModal').classList.remove('hidden')"
             class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition"
             style="background:#1E8F88;" onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
             Create a group
         </button>
+        @else
+        <a href="{{ route('upgrade') }}"
+           class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-dashed transition"
+           style="border-color:#6366F1;color:#6366F1;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Upgrade pour créer
+        </a>
+        @endif
     </div>
 
-    {{-- ── CREATE GROUP MODAL ── --}}
+    {{-- ── CREATE GROUP MODAL (only rendered when user can create groups) ── --}}
+    @if(auth()->user()->canFeature('create_groups'))
     <div id="createGroupModal" class="{{ $errors->any() ? '' : 'hidden' }} fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.4);">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto">
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
@@ -136,6 +146,7 @@
             </form>
         </div>
     </div>
+    @endif {{-- create_groups --}}
 
     {{-- ── INVITE MODAL (for my groups where user is admin/owner) ── --}}
     <div id="inviteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.4);">

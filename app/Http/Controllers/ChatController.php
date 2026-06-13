@@ -7,6 +7,7 @@ use App\Models\Message;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 
 class ChatController extends Controller
 {
@@ -54,12 +55,14 @@ class ChatController extends Controller
             ->orderBy('first_name')
             ->get();
 
-        return view('chat.index', compact('conversations', 'otherUser', 'messages', 'conversation', 'connections'));
+        $canChat = $user->canFeature('chat');
+
+        return view('chat.index', compact('conversations', 'otherUser', 'messages', 'conversation', 'connections', 'canChat'));
     }
 
     public function store(Request $request, int $userId)
     {
-        $request->validate(['body' => ['required', 'string', 'max:3000']]);
+        $request->validate(['body' => ['required_without:media_url', 'nullable', 'string', 'max:3000']]);
 
         $sender = $request->user();
 
@@ -72,7 +75,10 @@ class ChatController extends Controller
         $message = Message::create([
             'conversation_id' => $conversation->id,
             'sender_id'       => $sender->id,
+            'type'            => $request->input('type', 'text'),
             'body'            => $request->body,
+            'media_url'       => $request->input('media_url'),
+            'filename'        => $request->input('filename'),
         ]);
 
         $conversation->update(['last_message_at' => now()]);
@@ -80,10 +86,30 @@ class ChatController extends Controller
         return response()->json([
             'id'         => $message->id,
             'sender_id'  => $message->sender_id,
+            'type'       => $message->type,
             'body'       => $message->body,
+            'media_url'  => $message->media_url,
+            'filename'   => $message->filename,
             'created_at' => $message->created_at->toIso8601String(),
             'is_mine'    => true,
         ]);
+    }
+
+    public function uploadMedia(Request $request, int $userId): \Illuminate\Http\JsonResponse
+    {
+        $request->validate(['file' => ['required', 'file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx']]);
+
+        $sender = $request->user();
+        if (!$sender->isConnectedWith($userId)) {
+            return response()->json(['error' => 'Not connected.'], 403);
+        }
+
+        $path = $request->file('file')->store('chat/media', 'public');
+        $url  = Storage::disk('public')->url($path);
+        $mime = $request->file('file')->getMimeType();
+        $type = str_starts_with($mime, 'image/') ? 'image' : 'file';
+
+        return response()->json(['url' => $url, 'type' => $type, 'filename' => $request->file('file')->getClientOriginalName()]);
     }
 
     public function poll(Request $request, int $userId, int $lastId)
@@ -97,7 +123,10 @@ class ChatController extends Controller
             ->map(fn($m) => [
                 'id'         => $m->id,
                 'sender_id'  => $m->sender_id,
+                'type'       => $m->type ?? 'text',
                 'body'       => $m->body,
+                'media_url'  => $m->media_url,
+                'filename'   => $m->filename,
                 'created_at' => $m->created_at->toIso8601String(),
                 'is_mine'    => $m->sender_id === $user->id,
             ]);

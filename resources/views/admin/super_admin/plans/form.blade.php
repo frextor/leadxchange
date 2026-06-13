@@ -131,29 +131,55 @@
 
             {{-- ── Fonctionnalités ──────────────────────────────────── --}}
             <div class="space-y-3">
-                <div class="flex items-center justify-between">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Fonctionnalités (JSON)</p>
-                    <button type="button" onclick="insertFeaturesTemplate()"
-                            class="text-[10px] font-semibold text-indigo-500 hover:text-indigo-700 transition">
-                        Insérer template
-                    </button>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Fonctionnalités</p>
+                @php
+                    $featureDefs = \App\Http\Controllers\Admin\SuperAdmin\PlanController::FEATURES;
+                    $currentFeatures = old('features')
+                        ? (json_decode(old('features'), true) ?? [])
+                        : ($plan->features ?? []);
+                @endphp
+
+                <div class="grid grid-cols-2 gap-2">
+                    @foreach($featureDefs as $fKey => $fDef)
+                    @php
+                        $fVal = $currentFeatures[$fKey] ?? ($fDef['type'] === 'number' ? null : false);
+                    @endphp
+
+                    @if($fDef['type'] === 'number')
+                    <div class="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-gray-100 bg-gray-50/60">
+                        <span class="text-xs font-semibold text-gray-700 leading-tight">{{ $fDef['label'] }}</span>
+                        <input type="number" min="0"
+                               data-feature-key="{{ $fKey }}" data-feature-type="number"
+                               value="{{ $fVal !== null ? $fVal : '' }}"
+                               placeholder="∞"
+                               class="feature-field w-16 text-center border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-indigo-400 transition placeholder-indigo-300">
+                    </div>
+                    @else
+                    <label class="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-gray-100 bg-gray-50/60 cursor-pointer hover:bg-indigo-50/40 transition group">
+                        <span class="text-xs font-semibold text-gray-700 leading-tight group-hover:text-indigo-700 transition">{{ $fDef['label'] }}</span>
+                        <div class="relative flex-shrink-0">
+                            <input type="checkbox"
+                                   data-feature-key="{{ $fKey }}" data-feature-type="bool"
+                                   class="peer sr-only feature-field"
+                                   {{ $fVal ? 'checked' : '' }}>
+                            <div class="w-9 h-5 rounded-full transition-colors duration-200 peer-checked:bg-indigo-500 bg-gray-200 relative">
+                                <div class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200"
+                                     style="transform:{{ $fVal ? 'translateX(16px)' : 'translateX(0)' }}"></div>
+                            </div>
+                        </div>
+                    </label>
+                    @endif
+                    @endforeach
                 </div>
-                <textarea id="featuresJson" name="features" rows="7"
-                          class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition resize-none font-mono text-xs placeholder-gray-300"
-                          placeholder='{"send_leads": true, "receive_leads": true, "chat": false}'>{{ old('features', $plan->exists ? json_encode($plan->features, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : '') }}</textarea>
-                <div class="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-                    <p class="text-[10px] text-gray-400 leading-relaxed">
-                        Clés supportées : <code class="font-mono bg-gray-100 px-1 rounded">send_leads</code>,
-                        <code class="font-mono bg-gray-100 px-1 rounded">receive_leads</code>,
-                        <code class="font-mono bg-gray-100 px-1 rounded">chat</code>,
-                        <code class="font-mono bg-gray-100 px-1 rounded">groups</code>,
-                        <code class="font-mono bg-gray-100 px-1 rounded">events</code>,
-                        <code class="font-mono bg-gray-100 px-1 rounded">profile_video</code>,
-                        <code class="font-mono bg-gray-100 px-1 rounded">priority_support</code>…
-                        Valeur <code class="font-mono bg-gray-100 px-1 rounded">true</code> / <code class="font-mono bg-gray-100 px-1 rounded">false</code>.
-                    </p>
-                </div>
+
+                {{-- Hidden field with JSON sent to controller --}}
+                <input type="hidden" name="features" id="featuresJsonHidden">
+
+                {{-- Live JSON preview --}}
+                <details class="mt-1">
+                    <summary class="text-[10px] text-gray-400 cursor-pointer select-none hover:text-gray-600 transition">Aperçu JSON</summary>
+                    <pre id="featuresJsonPreview" class="mt-2 text-[10px] font-mono bg-gray-50 border border-gray-100 rounded-xl p-3 overflow-x-auto text-gray-500"></pre>
+                </details>
             </div>
 
             <hr class="border-gray-100">
@@ -209,22 +235,39 @@
 
 @push('scripts')
 <script>
-function insertFeaturesTemplate() {
-    const template = {
-        "send_leads":       true,
-        "receive_leads":    true,
-        "chat":             true,
-        "groups":           true,
-        "events":           true,
-        "profile_video":    false,
-        "priority_support": false,
-        "ambassador_badge": false
-    };
-    const textarea = document.getElementById('featuresJson');
-    if (!textarea.value.trim()) {
-        textarea.value = JSON.stringify(template, null, 2);
-    }
+function buildFeaturesJson() {
+    const obj = {};
+    document.querySelectorAll('.feature-field').forEach(function(el) {
+        const key  = el.dataset.featureKey;
+        const type = el.dataset.featureType;
+        if (type === 'bool') {
+            obj[key] = el.checked;
+        } else {
+            const v = el.value.trim();
+            obj[key] = (v === '') ? null : parseInt(v, 10);
+        }
+    });
+    const json = JSON.stringify(obj);
+    document.getElementById('featuresJsonHidden').value = json;
+    const preview = document.getElementById('featuresJsonPreview');
+    if (preview) preview.textContent = JSON.stringify(obj, null, 2);
 }
+
+// Animate toggles on change + rebuild JSON
+document.querySelectorAll('.feature-field').forEach(function(el) {
+    el.addEventListener('change', function() {
+        if (el.dataset.featureType === 'bool') {
+            const thumb = el.closest('label').querySelector('div > div');
+            if (thumb) thumb.style.transform = el.checked ? 'translateX(16px)' : 'translateX(0)';
+        }
+        buildFeaturesJson();
+    });
+    el.addEventListener('input', buildFeaturesJson);
+});
+
+// Build on submit + on load (prepopulate hidden field)
+document.querySelector('form').addEventListener('submit', buildFeaturesJson);
+buildFeaturesJson();
 </script>
 @endpush
 @endsection

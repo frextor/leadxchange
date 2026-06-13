@@ -387,6 +387,16 @@ class LeadService
     // Read helpers
     // ─────────────────────────────────────────────────────────────────────────
 
+    public function getUserLeads(User $user): array
+    {
+        $with = ['sender:id,first_name,last_name', 'sender.profile:user_id,avatar', 'receiver:id,first_name,last_name', 'receiver.profile:user_id,avatar', 'ratings', 'sector:id,name'];
+
+        return [
+            'received' => Lead::with($with)->where('receiver_id', $user->id)->latest()->get(),
+            'sent'     => Lead::with($with)->where('sender_id',   $user->id)->latest()->get(),
+        ];
+    }
+
     public function getUserLeadsPaginated(User $user, string $tab, ?string $status, ?string $qualification, ?int $sectorId, int $perPage = 15): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         $with  = ['sender:id,first_name,last_name', 'sender.profile:user_id,avatar', 'receiver:id,first_name,last_name', 'receiver.profile:user_id,avatar', 'ratings', 'sector:id,name'];
