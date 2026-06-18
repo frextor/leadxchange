@@ -60,7 +60,7 @@
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                             {{ number_format($group->members_count) }} membres
                         </span>
-                        <span>· Créé par {{ $group->creator->first_name }} {{ $group->creator->last_name }}</span>
+                        <span>· Créé par {{ $group->creator?->first_name }} {{ $group->creator?->last_name }}</span>
                     </div>
                 </div>
             </div>
@@ -211,12 +211,12 @@
             @forelse($posts as $post)
             <div class="post-card {{ $post->type === 'activity' ? 'activity-card' : '' }}" id="post-{{ $post->id }}">
                 <div class="flex items-start gap-3 p-4 pb-3">
-                    @if($post->author->profile?->avatar)
+                    @if($post->author?->profile?->avatar)
                         <img src="{{ $post->author->profile->avatar_url }}"
                              class="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-gray-100">
                     @else
                         <div class="avatar-circle">
-                            {{ strtoupper(substr($post->author->first_name,0,1).substr($post->author->last_name,0,1)) }}
+                            {{ strtoupper(substr($post->author?->first_name ?? '?', 0, 1) . substr($post->author?->last_name ?? '', 0, 1)) }}
                         </div>
                     @endif
                     <div class="flex-1 min-w-0">
@@ -233,10 +233,14 @@
                                     </p>
                                 @endif
                                 <div class="flex items-center gap-2 {{ $post->type === 'activity' ? 'mt-1' : '' }}">
+                                    @if($post->author)
                                     <a href="{{ route('profile.show', $post->author->id) }}"
                                        class="text-sm font-semibold text-gray-900 hover:underline">
                                         {{ $post->author->first_name }} {{ $post->author->last_name }}
                                     </a>
+                                    @else
+                                    <span class="text-sm font-semibold text-gray-400">Membre supprimé</span>
+                                    @endif
                                     <span class="text-xs text-gray-400">{{ $post->created_at->diffForHumans() }}</span>
                                 </div>
                             </div>
@@ -267,20 +271,24 @@
                 <div class="border-t border-gray-100 divide-y divide-gray-50 bg-gray-50/50">
                     @foreach($post->comments as $comment)
                     <div class="flex gap-3 px-4 py-3">
-                        @if($comment->author->profile?->avatar)
+                        @if($comment->author?->profile?->avatar)
                             <img src="{{ $comment->author->profile->avatar_url }}"
                                  class="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-gray-100">
                         @else
                             <div class="avatar-circle" style="width:32px;height:32px;font-size:11px;">
-                                {{ strtoupper(substr($comment->author->first_name,0,1).substr($comment->author->last_name,0,1)) }}
+                                {{ strtoupper(substr($comment->author?->first_name ?? '?', 0, 1) . substr($comment->author?->last_name ?? '', 0, 1)) }}
                             </div>
                         @endif
                         <div class="flex-1 min-w-0">
                             <div class="bg-white rounded-xl px-3 py-2 border border-gray-100 text-sm">
+                                @if($comment->author)
                                 <a href="{{ route('profile.show', $comment->author->id) }}"
                                    class="font-semibold text-gray-900 hover:underline text-xs">
                                     {{ $comment->author->first_name }} {{ $comment->author->last_name }}
                                 </a>
+                                @else
+                                <span class="font-semibold text-gray-400 text-xs">Membre supprimé</span>
+                                @endif
                                 <p class="text-gray-700 mt-0.5 leading-snug whitespace-pre-line">{{ $comment->body }}</p>
                             </div>
                             <span class="text-[11px] text-gray-400 mt-0.5 ml-1">{{ $comment->created_at->diffForHumans() }}</span>
