@@ -36,7 +36,7 @@ class UserService
         $query = User::query()
             ->where('id', '!=', $currentUserId)
             ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'city:id,name'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'phone', 'phone_country_code', 'city_id', 'birthday', 'gender', 'company_id', 'points_balance', 'badge_level']);
+            ->select(['id', 'first_name', 'last_name', 'email', 'phone', 'phone_country_code', 'city_id', 'birthday', 'gender', 'company_id', 'points_balance', 'badge_level', 'ambassador_status']);
 
         // Basic search — name, email, city, job_title, company
         if ($search) {
@@ -241,6 +241,7 @@ class UserService
             'balance'          => (int) ($user->points_balance ?? 0),
             'badge'            => $this->badgePayload($user->badge_level ?? 'bronze'),
             'rating'           => $this->ratingPayload($user),
+            'ambassador_status' => $user->ambassador_status ?? 'none',
             'company'          => $user->company ? [
                 'id'      => $user->company->id,
                 'name'    => $user->company->name,
@@ -259,7 +260,7 @@ class UserService
     public function getUserById(int $userId, int $currentUserId): ?array
     {
         $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'nationality:id,name,flag', 'subscription.plan:id,name,label,max_users'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'created_at'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'ambassador_status', 'created_at'])
             ->find($userId);
 
         if (!$user) return null;
@@ -278,7 +279,7 @@ class UserService
     public function getProfileById(int $userId, int $currentUserId): ?array
     {
         $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'subscription.plan:id,name,label,max_users'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'created_at'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'ambassador_status', 'created_at'])
             ->find($userId);
 
         if (!$user) return null;

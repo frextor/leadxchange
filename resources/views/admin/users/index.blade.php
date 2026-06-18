@@ -167,14 +167,14 @@
                 $planLabel = $u->subscription?->plan?->label;
                 $planStyle = match($planName) {
                     'basic'         => 'bg-indigo-50 text-indigo-600',
-                    'ambassadeur'   => 'bg-amber-50 text-amber-600',
-                    'premium_gold'  => 'bg-teal-50 text-teal-700',
+                    'vip'           => 'bg-amber-50 text-amber-600',
+                    'enterprise'    => 'bg-teal-50 text-teal-700',
                     default         => null,
                 };
                 $planDot = match($planName) {
                     'basic'         => 'bg-indigo-400',
-                    'ambassadeur'   => 'bg-amber-400',
-                    'premium_gold'  => 'bg-teal-500',
+                    'vip'           => 'bg-amber-400',
+                    'enterprise'    => 'bg-teal-500',
                     default         => null,
                 };
             @endphp

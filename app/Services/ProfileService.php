@@ -112,7 +112,7 @@ class ProfileService
 
     public function updatePresentationVideo(User $user, UploadedFile $file): array
     {
-        $this->profileVideoService->store($user, $file);
+        $this->profileVideoService->storePendingUpload($user, $file);
 
         return $this->presentationVideoPayload($user->fresh('profile')->profile);
     }

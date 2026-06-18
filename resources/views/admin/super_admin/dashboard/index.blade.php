@@ -183,8 +183,8 @@
 {{-- ── Charts ────────────────────────────────────────────────────────────── --}}
 @php
     $donutTotal   = $planDistribution->sum('active_subscriptions_count');
-    $planColors   = ['basic' => '#6366F1', 'ambassadeur' => '#F59E0B', 'premium_gold' => '#0D9488'];
-    $planDotClass = ['basic' => 'bg-indigo-500', 'ambassadeur' => 'bg-amber-400', 'premium_gold' => 'bg-teal-600'];
+    $planColors   = ['basic' => '#6366F1', 'vip' => '#F59E0B', 'enterprise' => '#0D9488'];
+    $planDotClass = ['basic' => 'bg-indigo-500', 'vip' => 'bg-amber-400', 'enterprise' => 'bg-teal-600'];
 @endphp
 <div id="dash-data" class="hidden"
      data-labels="{{ json_encode($chartLabels) }}"

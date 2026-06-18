@@ -363,6 +363,13 @@ class EventController extends Controller
         ]);
 
         $user = $request->user();
+        $user->loadMissing('subscription.plan');
+
+        if (!$user->isAmbassador() && !$user->getFeature('create_events', false)) {
+            return response()->json([
+                'message' => 'Only approved ambassadors or eligible plans can create events.',
+            ], 403);
+        }
 
         $coverImagePath = null;
         if ($request->hasFile('cover_image')) {

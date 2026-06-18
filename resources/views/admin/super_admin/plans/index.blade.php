@@ -113,15 +113,15 @@
             'pill_text'  => '#3730A3',
             'icon_path'  => '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
         ],
-        'ambassador' => [
-            'top'        => '#D97706',
-            'light_bg'   => '#FFFBEB',
-            'badge_bg'   => '#FEF3C7',
-            'badge_text' => '#92400E',
-            'check'      => '#D97706',
-            'pill_bg'    => '#FDE68A',
-            'pill_text'  => '#78350F',
-            'icon_path'  => '<path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>',
+        'enterprise' => [
+            'top'        => '#0D9488',
+            'light_bg'   => '#F0FDFA',
+            'badge_bg'   => '#CCFBF1',
+            'badge_text' => '#0F766E',
+            'check'      => '#0D9488',
+            'pill_bg'    => '#99F6E4',
+            'pill_text'  => '#134E4A',
+            'icon_path'  => '<path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9h.01M9 13h.01M9 17h.01M15 13h.01M15 17h.01"/>',
         ],
     ];
     $t = $themes[$plan->name] ?? $themes['basic'];

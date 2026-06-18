@@ -105,6 +105,31 @@ class ProfileController extends Controller
         ]);
     }
 
+    public function updatePresentationVideo(Request $request): JsonResponse
+    {
+        $request->validate([
+            'presentation_video' => [
+                'required',
+                'file',
+                'mimes:mp4,mov,webm,avi,m4v',
+                'max:' . config('profile_video.max_upload_size_kb', 51200),
+            ],
+        ]);
+
+        $presentationVideo = $this->profileService->updatePresentationVideo(
+            $request->user(),
+            $request->file('presentation_video'),
+        );
+
+        return response()->json([
+            'message' => 'Presentation video uploaded for review.',
+            'data' => [
+                'presentation_video' => $presentationVideo,
+            ],
+            'presentation_video' => $presentationVideo,
+        ]);
+    }
+
     public function syncInterests(Request $request): JsonResponse
     {
         $request->validate([
@@ -131,6 +156,46 @@ class ProfileController extends Controller
             'onboarding_completed' => true,
             'profile_completed'    => $user->fresh()->hasCompletedProfile(),
             'completion'           => $this->profileService->getCompletionPercentage($user->fresh()),
+        ]);
+    }
+
+    public function requestAmbassador(Request $request): JsonResponse
+    {
+        $user = $request->user()->loadMissing('subscription.plan');
+        $planName = $user->subscription?->plan?->name;
+
+        if (!in_array($planName, ['vip', 'enterprise'], true)) {
+            return response()->json([
+                'message' => 'An active VIP or Enterprise plan is required to request Ambassador status.',
+                'ambassador_status' => $user->ambassador_status ?? 'none',
+            ], 403);
+        }
+
+        if ($user->ambassador_status === 'approved') {
+            return response()->json([
+                'message' => 'Ambassador status is already approved.',
+                'ambassador_status' => 'approved',
+            ], 422);
+        }
+
+        if ($user->ambassador_status === 'pending') {
+            return response()->json([
+                'message' => 'Ambassador request is already pending.',
+                'ambassador_status' => 'pending',
+            ], 422);
+        }
+
+        $user->update([
+            'ambassador_status' => 'pending',
+            'ambassador_requested_at' => now(),
+            'ambassador_reviewed_at' => null,
+            'ambassador_reviewed_by' => null,
+            'ambassador_rejection_reason' => null,
+        ]);
+
+        return response()->json([
+            'message' => 'Ambassador request submitted.',
+            'ambassador_status' => 'pending',
         ]);
     }
 

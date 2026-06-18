@@ -51,11 +51,6 @@ return new class extends Migration
             'updated_at' => $now,
         ]);
 
-        DB::table('plans')->where('name', 'ambassador')->update([
-            'is_active' => false,
-            'updated_at' => $now,
-        ]);
-
         DB::table('plans')->updateOrInsert(
             ['name' => 'enterprise'],
             [
@@ -94,6 +89,5 @@ return new class extends Migration
         });
 
         DB::table('plans')->where('name', 'enterprise')->delete();
-        DB::table('plans')->where('name', 'ambassador')->update(['is_active' => true]);
     }
 };

@@ -305,26 +305,6 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Check if user is on ambassadeur plan.
-     *
-     * @return bool
-     */
-    public function isAmbassadeur(): bool
-    {
-        return $this->subscription && $this->subscription->plan->name === 'ambassadeur';
-    }
-
-    /**
-     * Check if user is on premium gold plan.
-     *
-     * @return bool
-     */
-    public function isPremiumGold(): bool
-    {
-        return $this->subscription && $this->subscription->plan->name === 'premium_gold';
-    }
-
-    /**
      * Get a specific feature from the user's plan.
      *
      * @param string $key
