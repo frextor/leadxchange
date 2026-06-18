@@ -124,6 +124,18 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->role === 'super_admin';
     }
 
+    /** Check if the user's active plan grants a given permission. */
+    public function planCan(string $permission): bool
+    {
+        return $this->subscription?->plan?->can($permission) ?? false;
+    }
+
+    /** Get a numeric/value permission from the user's active plan. */
+    public function planPermission(string $key, mixed $default = null): mixed
+    {
+        return $this->subscription?->plan?->permission($key, $default) ?? $default;
+    }
+
     public function isAmbassador(): bool
     {
         return $this->ambassador_status === 'approved';

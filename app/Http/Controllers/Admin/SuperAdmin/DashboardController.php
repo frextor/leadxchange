@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\City;
 use App\Models\Connection;
+use App\Models\Country;
+use App\Models\Group;
 use App\Models\Lead;
 use App\Models\Plan;
 use App\Models\Subscription;
@@ -25,7 +27,9 @@ class DashboardController extends Controller
         // ── Active filters ───────────────────────────────────────────────────
         $cityId      = $request->integer('city_id') ?: null;
         $planId      = $request->integer('plan_id') ?: null;
-        $leadsPeriod = $request->input('leads_period'); // today, week, month, quarter
+        $countryId   = $request->integer('country_id') ?: null;
+        $groupId     = $request->integer('group_id') ?: null;
+        $leadsPeriod = $request->input('leads_period');
 
         $leadsFrom = match ($leadsPeriod) {
             'today'   => $now->copy()->startOfDay(),
@@ -36,51 +40,41 @@ class DashboardController extends Controller
         };
 
         // ── Base closures for reusable filtering ─────────────────────────────
-        $filterUser = function ($query) use ($cityId, $planId) {
-            if ($cityId) {
-                $query->where('city_id', $cityId);
-            }
-            if ($planId) {
-                $query->whereHas('subscription', fn ($q) =>
-                    $q->where('plan_id', $planId)->where('status', 'active')
-                );
-            }
+        $filterUser = function ($query) use ($cityId, $planId, $countryId, $groupId) {
+            if ($cityId)    $query->where('city_id', $cityId);
+            if ($countryId) $query->whereHas('city', fn ($q) => $q->where('country_id', $countryId));
+            if ($groupId)   $query->whereHas('groups', fn ($q) => $q->where('groups.id', $groupId));
+            if ($planId)    $query->whereHas('subscription', fn ($q) =>
+                $q->where('plan_id', $planId)->where('status', 'active')
+            );
         };
 
-        $filterLead = function ($query) use ($cityId, $planId, $leadsFrom, $now) {
-            if ($cityId) {
-                $query->whereHas('sender', fn ($q) => $q->where('city_id', $cityId));
-            }
-            if ($planId) {
-                $query->whereHas('sender.subscription', fn ($q) =>
-                    $q->where('plan_id', $planId)->where('status', 'active')
-                );
-            }
-            if ($leadsFrom) {
-                $query->whereBetween('created_at', [$leadsFrom, $now]);
-            }
+        $filterLead = function ($query) use ($cityId, $planId, $countryId, $groupId, $leadsFrom, $now) {
+            if ($cityId)    $query->whereHas('sender', fn ($q) => $q->where('city_id', $cityId));
+            if ($countryId) $query->whereHas('sender.city', fn ($q) => $q->where('country_id', $countryId));
+            if ($groupId)   $query->whereHas('sender.groups', fn ($q) => $q->where('groups.id', $groupId));
+            if ($planId)    $query->whereHas('sender.subscription', fn ($q) =>
+                $q->where('plan_id', $planId)->where('status', 'active')
+            );
+            if ($leadsFrom) $query->whereBetween('created_at', [$leadsFrom, $now]);
         };
 
-        $filterConn = function ($query) use ($cityId, $planId) {
+        $filterConn = function ($query) use ($cityId, $planId, $countryId, $groupId) {
             $query->where('status', 'accepted');
-            if ($cityId) {
-                $query->whereHas('sender', fn ($q) => $q->where('city_id', $cityId));
-            }
-            if ($planId) {
-                $query->whereHas('sender.subscription', fn ($q) =>
-                    $q->where('plan_id', $planId)->where('status', 'active')
-                );
-            }
+            if ($cityId)    $query->whereHas('sender', fn ($q) => $q->where('city_id', $cityId));
+            if ($countryId) $query->whereHas('sender.city', fn ($q) => $q->where('country_id', $countryId));
+            if ($groupId)   $query->whereHas('sender.groups', fn ($q) => $q->where('groups.id', $groupId));
+            if ($planId)    $query->whereHas('sender.subscription', fn ($q) =>
+                $q->where('plan_id', $planId)->where('status', 'active')
+            );
         };
 
-        $filterSub = function ($query) use ($cityId, $planId) {
+        $filterSub = function ($query) use ($cityId, $planId, $countryId, $groupId) {
             $query->where('status', 'active');
-            if ($planId) {
-                $query->where('plan_id', $planId);
-            }
-            if ($cityId) {
-                $query->whereHas('user', fn ($q) => $q->where('city_id', $cityId));
-            }
+            if ($planId)    $query->where('plan_id', $planId);
+            if ($cityId)    $query->whereHas('user', fn ($q) => $q->where('city_id', $cityId));
+            if ($countryId) $query->whereHas('user.city', fn ($q) => $q->where('country_id', $countryId));
+            if ($groupId)   $query->whereHas('user.groups', fn ($q) => $q->where('groups.id', $groupId));
         };
 
         // ── KPIs ─────────────────────────────────────────────────────────────
@@ -113,14 +107,12 @@ class DashboardController extends Controller
 
         $revenueQuery = DB::table('subscriptions')
             ->where('subscriptions.status', 'active')
-            ->join('plans', 'subscriptions.plan_id', '=', 'plans.id');
-        if ($planId) {
-            $revenueQuery->where('subscriptions.plan_id', $planId);
-        }
-        if ($cityId) {
-            $revenueQuery->join('users', 'subscriptions.user_id', '=', 'users.id')
-                         ->where('users.city_id', $cityId);
-        }
+            ->join('plans', 'subscriptions.plan_id', '=', 'plans.id')
+            ->join('users', 'subscriptions.user_id', '=', 'users.id');
+        if ($planId)    $revenueQuery->where('subscriptions.plan_id', $planId);
+        if ($cityId)    $revenueQuery->where('users.city_id', $cityId);
+        if ($countryId) $revenueQuery->join('cities', 'users.city_id', '=', 'cities.id')->where('cities.country_id', $countryId);
+        if ($groupId)   $revenueQuery->whereExists(fn ($q) => $q->from('group_user')->whereColumn('group_user.user_id', 'users.id')->where('group_user.group_id', $groupId));
         $monthlyRevenue = $revenueQuery->sum('plans.price');
 
         // ── Charts : 6 derniers mois ──────────────────────────────────────────
@@ -139,10 +131,10 @@ class DashboardController extends Controller
         )->values()->toArray();
 
         // ── Plan distribution (donut) ─────────────────────────────────────────
-        $planDistribution = Plan::withCount(['activeSubscriptions' => function ($q) use ($cityId) {
-            if ($cityId) {
-                $q->whereHas('user', fn ($u) => $u->where('city_id', $cityId));
-            }
+        $planDistribution = Plan::withCount(['activeSubscriptions' => function ($q) use ($cityId, $countryId, $groupId) {
+            if ($cityId)    $q->whereHas('user', fn ($u) => $u->where('city_id', $cityId));
+            if ($countryId) $q->whereHas('user.city', fn ($u) => $u->where('country_id', $countryId));
+            if ($groupId)   $q->whereHas('user.groups', fn ($u) => $u->where('groups.id', $groupId));
         }])->orderBy('sort_order')->get(['id', 'name', 'label']);
 
         // ── Lists ─────────────────────────────────────────────────────────────
@@ -152,12 +144,14 @@ class DashboardController extends Controller
             ->limit(6)
             ->get(['id', 'first_name', 'last_name', 'email', 'region_id', 'company_id', 'points_balance', 'badge_level', 'ambassador_requested_at']);
 
-        $recentUsersQuery = User::with('subscription.plan')->where('role', 'user')->tap($filterUser)->latest()->limit(8);
-        $recentUsers = $recentUsersQuery->get(['id', 'first_name', 'last_name', 'email', 'created_at', 'email_verified_at']);
+        $recentUsers = User::with('subscription.plan')->where('role', 'user')->tap($filterUser)->latest()->limit(8)
+            ->get(['id', 'first_name', 'last_name', 'email', 'created_at', 'email_verified_at']);
 
         // ── Filter options ────────────────────────────────────────────────────
-        $cities = City::orderBy('name')->get(['id', 'name']);
-        $plans  = Plan::orderBy('sort_order')->get(['id', 'label']);
+        $cities    = City::orderBy('name')->get(['id', 'name']);
+        $plans     = Plan::orderBy('sort_order')->get(['id', 'label']);
+        $countries = Country::orderBy('name')->get(['id', 'name']);
+        $groups    = Group::orderBy('name')->get(['id', 'name']);
 
         return view('admin.super_admin.dashboard.index', [
             'stats' => [
@@ -188,7 +182,15 @@ class DashboardController extends Controller
             'recentUsers'        => $recentUsers,
             'cities'             => $cities,
             'plans'              => $plans,
-            'activeFilters'      => ['city_id' => $cityId, 'plan_id' => $planId, 'leads_period' => $leadsPeriod],
+            'countries'          => $countries,
+            'groups'             => $groups,
+            'activeFilters'      => [
+                'city_id'      => $cityId,
+                'plan_id'      => $planId,
+                'country_id'   => $countryId,
+                'group_id'     => $groupId,
+                'leads_period' => $leadsPeriod,
+            ],
         ]);
     }
 

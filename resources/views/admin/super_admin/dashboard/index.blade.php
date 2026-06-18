@@ -24,13 +24,63 @@
 
 {{-- ── Filter bar ──────────────────────────────────────────────────────── --}}
 @php
-    $hasFilters = $activeFilters['city_id'] || $activeFilters['plan_id'];
+    $hasFilters  = $activeFilters['city_id'] || $activeFilters['plan_id'] || $activeFilters['country_id'] || $activeFilters['group_id'];
+    $activeScope = $activeFilters['country_id'] ? 'country' : ($activeFilters['group_id'] ? 'group' : ($activeFilters['city_id'] ? 'region' : 'global'));
 @endphp
+
+{{-- ── 4 scope buttons ─────────────────────────────────────────────────── --}}
+<div class="flex items-center gap-2 mb-3">
+    {{-- Global --}}
+    <a href="{{ route('admin.super.dashboard') }}"
+       class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold border transition {{ $activeScope === 'global' && !request('leads_period') && !request('plan_id') ? 'text-white border-teal-500 shadow-sm' : 'bg-white text-gray-500 border-gray-200 hover:border-teal-300 hover:text-teal-600' }}"
+       style="{{ $activeScope === 'global' && !request('leads_period') && !request('plan_id') ? 'background:#0D9488;' : '' }}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Global
+    </a>
+
+    {{-- Par pays --}}
+    <button type="button" onclick="toggleScope('country')"
+            class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold border transition {{ $activeScope === 'country' ? 'text-white border-blue-500 shadow-sm' : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300 hover:text-blue-600' }}"
+            style="{{ $activeScope === 'country' ? 'background:#3B82F6;' : '' }}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Par pays
+    </button>
+
+    {{-- Par région --}}
+    <button type="button" onclick="toggleScope('region')"
+            class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold border transition {{ $activeScope === 'region' ? 'text-white border-teal-500 shadow-sm' : 'bg-white text-gray-500 border-gray-200 hover:border-teal-300 hover:text-teal-600' }}"
+            style="{{ $activeScope === 'region' ? 'background:#0D9488;' : '' }}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7 11.5 7.35 11.76a1 1 0 0 0 1.3 0C12.95 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/></svg>
+        Par région
+    </button>
+
+    {{-- Groupe --}}
+    <button type="button" onclick="toggleScope('group')"
+            class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold border transition {{ $activeScope === 'group' ? 'text-white border-violet-500 shadow-sm' : 'bg-white text-gray-500 border-gray-200 hover:border-violet-300 hover:text-violet-600' }}"
+            style="{{ $activeScope === 'group' ? 'background:#7C3AED;' : '' }}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Groupe
+    </button>
+</div>
+
 <form method="GET" action="{{ route('admin.super.dashboard') }}" id="dashboard-filter-form"
       class="flex items-center gap-2 mb-6 bg-white border border-gray-100 rounded-2xl px-4 py-3 shadow-sm flex-wrap">
 
-    {{-- Région --}}
-    <div class="flex items-center gap-1.5 flex-1 min-w-[160px]">
+    {{-- Pays (visible si scope=country) --}}
+    <div id="scope-country" class="{{ $activeScope === 'country' ? 'flex' : 'hidden' }} items-center gap-1.5 flex-1 min-w-[160px]">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" class="flex-shrink-0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <select name="country_id" onchange="this.form.submit()"
+                class="flex-1 text-sm text-gray-700 bg-transparent focus:outline-none cursor-pointer">
+            <option value="">Tous les pays</option>
+            @foreach($countries as $c)
+            <option value="{{ $c->id }}" {{ $activeFilters['country_id'] == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+            @endforeach
+        </select>
+    </div>
+    @if($activeScope === 'country')<div class="w-px h-5 bg-gray-200 flex-shrink-0"></div>@endif
+
+    {{-- Région (visible si scope=region ou country) --}}
+    <div id="scope-region" class="{{ in_array($activeScope, ['region','global']) ? 'flex' : 'hidden' }} items-center gap-1.5 flex-1 min-w-[160px]">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" class="flex-shrink-0">
             <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.35 11.76a1 1 0 0 0 1.3 0C12.95 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
         </svg>
@@ -46,6 +96,19 @@
     </div>
 
     <div class="w-px h-5 bg-gray-200 flex-shrink-0"></div>
+
+    {{-- Groupe (visible si scope=group) --}}
+    <div id="scope-group" class="{{ $activeScope === 'group' ? 'flex' : 'hidden' }} items-center gap-1.5 flex-1 min-w-[160px]">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" class="flex-shrink-0"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <select name="group_id" onchange="this.form.submit()"
+                class="flex-1 text-sm text-gray-700 bg-transparent focus:outline-none cursor-pointer">
+            <option value="">Tous les groupes</option>
+            @foreach($groups as $g)
+            <option value="{{ $g->id }}" {{ $activeFilters['group_id'] == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>
+            @endforeach
+        </select>
+    </div>
+    @if($activeScope === 'group')<div class="w-px h-5 bg-gray-200 flex-shrink-0"></div>@endif
 
     {{-- Plan --}}
     <div class="flex items-center gap-1.5 flex-1 min-w-[140px]">
@@ -83,11 +146,25 @@
     {{-- Active filter badges + reset --}}
     @if($hasFilters || request('leads_period'))
     <div class="flex items-center gap-2 ml-auto flex-shrink-0">
+        @if($activeFilters['country_id'])
+        @php $cName = $countries->firstWhere('id', $activeFilters['country_id'])?->name; @endphp
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            {{ $cName }}
+        </span>
+        @endif
         @if($activeFilters['city_id'])
         @php $cityName = $cities->firstWhere('id', $activeFilters['city_id'])?->name; @endphp
         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-700">
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7 11.5 7.35 11.76a1 1 0 0 0 1.3 0C12.95 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/></svg>
             {{ $cityName }}
+        </span>
+        @endif
+        @if($activeFilters['group_id'])
+        @php $gName = $groups->firstWhere('id', $activeFilters['group_id'])?->name; @endphp
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-700">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            {{ $gName }}
         </span>
         @endif
         @if($activeFilters['plan_id'])
@@ -475,6 +552,21 @@
 
 @push('scripts')
 <script>
+// ── Filter scope toggle ───────────────────────────────────────────────────
+function toggleScope(scope) {
+    const all = ['country', 'region', 'group'];
+    all.forEach(s => {
+        const el = document.getElementById('scope-' + s);
+        if (el) el.classList.toggle('hidden', s !== scope);
+        if (el) el.classList.toggle('flex', s === scope);
+    });
+    // Clear unrelated filter values and submit
+    const form = document.getElementById('dashboard-filter-form');
+    if (scope !== 'country') { const el = form.querySelector('[name=country_id]'); if (el) el.value = ''; }
+    if (scope !== 'region')  { const el = form.querySelector('[name=city_id]');    if (el) el.value = ''; }
+    if (scope !== 'group')   { const el = form.querySelector('[name=group_id]');   if (el) el.value = ''; }
+}
+
 function openAmbReject(el) {
     document.getElementById('ambRejectForm').action = el.dataset.rejectUrl;
     const modal = document.getElementById('ambRejectModal');
