@@ -77,7 +77,7 @@
         <div class="px-4 py-4 text-center" style="background:{{ $t['light'] }}; border-bottom: 3px solid {{ $t['top'] }};">
             <p class="text-sm font-bold" style="color:{{ $t['text'] }};">{{ $plan->label }}</p>
             <p class="text-[10px] text-gray-400 font-medium mt-0.5">
-                @if($plan->price == 0) Gratuit @else {{ number_format($plan->price, 0, ',', ' ') }} MAD/mois @endif
+                @if($plan->price == 0) Gratuit @else {{ currency_format($plan->price) }}/mois @endif
             </p>
         </div>
         @endforeach

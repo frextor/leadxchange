@@ -81,7 +81,7 @@
         </div>
         <div>
             <p class="text-2xl font-bold text-gray-900 leading-none">{{ number_format($stats['mrr'], 0) }}</p>
-            <p class="text-xs text-gray-400 mt-0.5">MRR (MAD)</p>
+            <p class="text-xs text-gray-400 mt-0.5">MRR ({{ currency_symbol() }})</p>
         </div>
     </div>
 
@@ -188,14 +188,13 @@
             </div>
         @else
             <div class="flex items-baseline gap-1.5">
-                <span class="text-3xl font-extrabold text-gray-900">{{ number_format($plan->price, 0) }}</span>
-                <span class="text-sm text-gray-500 font-medium">MAD</span>
+                <span class="text-3xl font-extrabold text-gray-900">{{ currency_format($plan->price) }}</span>
                 <span class="text-xs text-gray-400">/ mois</span>
             </div>
             @if($plan->annual_price)
             <div class="flex items-center gap-2 mt-2">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                <span class="text-sm text-gray-600 font-semibold">{{ number_format($plan->annual_price, 0) }} MAD<span class="font-normal text-gray-400">/an</span></span>
+                <span class="text-sm text-gray-600 font-semibold">{{ currency_format($plan->annual_price) }}<span class="font-normal text-gray-400">/an</span></span>
                 @if($savings && $savings > 0)
                 <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-700">-{{ $savings }}%</span>
                 @endif
