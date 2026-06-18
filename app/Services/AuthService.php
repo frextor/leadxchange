@@ -360,6 +360,7 @@ class AuthService
                 'features' => $user->subscription->plan->features,
                 'is_enterprise_owner' => $this->isEnterpriseOwnerSubscription($user->subscription),
             ] : null,
+            'ambassador_status' => $user->ambassador_status ?? 'none',
             'onboarding_completed' => (bool) ($user->onboarding_completed ?? false),
             'profile_completed'    => (bool) $user->hasCompletedProfile(),
         ];

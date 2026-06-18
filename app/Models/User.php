@@ -124,6 +124,18 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->role === 'super_admin';
     }
 
+    /** Check if the user's active plan grants a given permission. */
+    public function planCan(string $permission): bool
+    {
+        return $this->subscription?->plan?->can($permission) ?? false;
+    }
+
+    /** Get a numeric/value permission from the user's active plan. */
+    public function planPermission(string $key, mixed $default = null): mixed
+    {
+        return $this->subscription?->plan?->permission($key, $default) ?? $default;
+    }
+
     public function isAmbassador(): bool
     {
         return $this->ambassador_status === 'approved';
@@ -302,26 +314,6 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isBasic(): bool
     {
         return $this->subscription && $this->subscription->plan->name === 'basic';
-    }
-
-    /**
-     * Check if user is on ambassadeur plan.
-     *
-     * @return bool
-     */
-    public function isAmbassadeur(): bool
-    {
-        return $this->subscription && $this->subscription->plan->name === 'ambassadeur';
-    }
-
-    /**
-     * Check if user is on premium gold plan.
-     *
-     * @return bool
-     */
-    public function isPremiumGold(): bool
-    {
-        return $this->subscription && $this->subscription->plan->name === 'premium_gold';
     }
 
     /**

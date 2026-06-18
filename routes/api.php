@@ -98,8 +98,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/profile/professional',     [ProfileController::class, 'updateProfessional']);
     Route::put('/profile/bio',              [ProfileController::class, 'updateBio']);
     Route::post('/profile/avatar',          [ProfileController::class, 'updateAvatar']);
+    Route::post('/profile/presentation-video', [ProfileController::class, 'updatePresentationVideo']);
     Route::post('/profile/interests',       [ProfileController::class, 'syncInterests']);
     Route::post('/profile/complete',        [ProfileController::class, 'complete']);
+    Route::post('/profile/ambassador-request', [ProfileController::class, 'requestAmbassador']);
     Route::get('/interests',                [ProfileController::class, 'interests']);
     Route::get('/languages',                [LanguageController::class, 'index']);
     Route::get('/countries',                [CountryController::class, 'index']);

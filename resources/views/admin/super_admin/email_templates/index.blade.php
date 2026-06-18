@@ -30,9 +30,8 @@
             <div>
                 <p class="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-1">{{ $key }}</p>
                 <h3 class="text-base font-bold text-gray-900">{{ $meta['name'] }}</h3>
-                <p class="text-xs text-gray-400 mt-1">
-                    Variables : {{ implode(', ', array_map(fn($v) => '{{' . $v . '}}', $meta['variables'])) }}
-                </p>
+                @php $varList = implode(', ', array_map(fn($v) => '{{'.$v.'}}', $meta['variables'])); @endphp
+                <p class="text-xs text-gray-400 mt-1">Variables : {{ $varList }}</p>
             </div>
 
             @if($dbTemplate)

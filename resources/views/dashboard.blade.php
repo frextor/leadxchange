@@ -449,8 +449,8 @@
                 'iconSvg'  => '<path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
                 'cta'      => 'GET STARTED',
             ],
-            'ambassadeur' => [
-                'label'    => 'Ambassadeur',
+            'vip' => [
+                'label'    => 'VIP',
                 'subtitle' => 'For active sellers',
                 'accent'   => '#F59E0B',
                 'iconBg'   => '#FEF3C7',
@@ -458,14 +458,14 @@
                 'iconSvg'  => '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
                 'cta'      => 'UPGRADE NOW',
             ],
-            'premium_gold' => [
-                'label'    => 'Premium Gold',
-                'subtitle' => 'Lead the network',
+            'enterprise' => [
+                'label'    => 'Entreprise',
+                'subtitle' => 'For teams',
                 'accent'   => '#1E8F88',
                 'iconBg'   => '#E6F7F4',
                 'iconColor'=> '#1E8F88',
                 'iconSvg'  => '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
-                'cta'      => 'GO PREMIUM',
+                'cta'      => 'GO ENTERPRISE',
             ],
         ];
 
@@ -528,7 +528,7 @@
                         @if($plan->price == 0)
                             <span class="text-4xl font-extrabold text-gray-900 leading-none tracking-tight">Free</span>
                         @else
-                            <span class="text-4xl font-extrabold text-gray-900 leading-none tracking-tight">${{ number_format($plan->price, 0) }}</span>
+                            <span class="text-4xl font-extrabold text-gray-900 leading-none tracking-tight">{{ currency_format($plan->price) }}</span>
                             <span class="text-sm text-gray-400 pb-1">/ mo</span>
                         @endif
                     </div>

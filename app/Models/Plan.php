@@ -26,19 +26,33 @@ class Plan extends Model
         'max_groups',
         'max_users',
         'features',
+        'permissions',
         'is_active',
         'sort_order',
     ];
 
     protected $casts = [
-        'features'   => 'array',
-        'price'      => 'decimal:2',
-        'max_leads'  => 'integer',
-        'max_groups' => 'integer',
-        'max_users'  => 'integer',
-        'is_active'  => 'boolean',
-        'sort_order' => 'integer',
+        'features'    => 'array',
+        'permissions' => 'array',
+        'price'       => 'decimal:2',
+        'max_leads'   => 'integer',
+        'max_groups'  => 'integer',
+        'max_users'   => 'integer',
+        'is_active'   => 'boolean',
+        'sort_order'  => 'integer',
     ];
+
+    /** Check if this plan grants a given permission key. */
+    public function can(string $permission): bool
+    {
+        return (bool) ($this->permissions[$permission] ?? false);
+    }
+
+    /** Get a permission value (useful for numeric limits like mail_reply_weekly_limit). */
+    public function permission(string $key, mixed $default = null): mixed
+    {
+        return $this->permissions[$key] ?? $default;
+    }
 
     /**
      * Get the subscriptions for the plan.

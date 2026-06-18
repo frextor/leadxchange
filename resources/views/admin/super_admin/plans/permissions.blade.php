@@ -70,7 +70,7 @@
             $themes = [
                 'basic'       => ['top' => '#6366F1', 'light' => '#EEF2FF', 'text' => '#4338CA'],
                 'vip'         => ['top' => '#F59E0B', 'light' => '#FFFBEB', 'text' => '#92400E'],
-                'ambassador'  => ['top' => '#7C3AED', 'light' => '#F5F3FF', 'text' => '#4C1D95'],
+                'enterprise'  => ['top' => '#0D9488', 'light' => '#F0FDFA', 'text' => '#0F766E'],
             ];
             $t = $themes[$plan->name] ?? ['top' => '#6B7280', 'light' => '#F9FAFB', 'text' => '#374151'];
         @endphp
@@ -94,8 +94,6 @@
             <span class="text-sm font-semibold text-gray-800">{{ $def['label'] }}</span>
             @if($isNumber)
             <span class="text-[10px] text-gray-400 font-medium mt-0.5">Nombre ou vide = illimité</span>
-            @elseif($key === 'requires_approval')
-            <span class="text-[10px] text-amber-500 font-medium mt-0.5">L'utilisateur doit être approuvé</span>
             @endif
         </div>
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\City;
+use App\Models\Country;
 use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -13,11 +14,15 @@ class SubscriberController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = User::with(['region', 'subscription.plan'])
+        $query = User::with(['city.country', 'subscription.plan'])
             ->where('role', 'user');
 
-        if ($request->filled('region_id')) {
-            $query->where('region_id', $request->region_id);
+        if ($request->filled('country_id')) {
+            $query->whereHas('city', fn($q) => $q->where('country_id', $request->country_id));
+        }
+
+        if ($request->filled('city_id')) {
+            $query->where('city_id', $request->city_id);
         }
 
         if ($request->filled('plan')) {
@@ -43,9 +48,10 @@ class SubscriberController extends Controller
         }
 
         $subscribers = $query->latest()->paginate(25)->withQueryString();
-        $regions     = City::orderBy('name')->get(['id', 'name']);
+        $countries   = Country::orderBy('name')->get(['id', 'name']);
+        $cities      = City::orderBy('name')->get(['id', 'name']);
         $plans       = Plan::orderBy('sort_order')->get(['id', 'name', 'label']);
 
-        return view('admin.super_admin.subscribers.index', compact('subscribers', 'regions', 'plans'));
+        return view('admin.super_admin.subscribers.index', compact('subscribers', 'countries', 'cities', 'plans'));
     }
 }

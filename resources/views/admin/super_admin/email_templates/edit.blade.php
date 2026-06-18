@@ -46,7 +46,7 @@
                        value="{{ old('subject', $template->subject ?? $meta['default_subject']) }}"
                        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition font-mono"
                        placeholder="{{ $meta['default_subject'] }}" required>
-                <p class="text-[11px] text-gray-400 mt-1.5">Vous pouvez utiliser des variables comme <code class="bg-gray-100 px-1 rounded">{{'{{'}}name{{'}}'}}</code> dans l'objet.</p>
+                <p class="text-[11px] text-gray-400 mt-1.5">Vous pouvez utiliser des variables comme <code class="bg-gray-100 px-1 rounded">{{ '{{name}}' }}</code> dans l'objet.</p>
             </div>
 
             {{-- Body editor --}}
@@ -124,7 +124,7 @@
                 @foreach($meta['variables'] as $var)
                 <button type="button" onclick="insertVariable('{{ $var }}')"
                         class="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-gray-50 hover:bg-indigo-50 hover:border-indigo-200 border border-transparent text-left transition group">
-                    <code class="text-xs font-mono text-indigo-600 font-semibold">{{'{{'}}{{ $var }}{{'}}'}}</code>
+                    <code class="text-xs font-mono text-indigo-600 font-semibold">{{ '{{' . $var . '}}' }}</code>
                     <span class="text-[10px] text-gray-400 group-hover:text-indigo-400 transition">Insérer</span>
                 </button>
                 @endforeach
@@ -138,7 +138,7 @@
             <div class="space-y-1.5">
                 @foreach($meta['sample'] as $var => $val)
                 <div class="flex items-start gap-2 text-xs">
-                    <span class="font-mono text-indigo-600 shrink-0">{{'{{'}}{{ $var }}{{'}}'}}</span>
+                    <span class="font-mono text-indigo-600 shrink-0">{{ '{{' . $var . '}}' }}</span>
                     <span class="text-gray-400">→</span>
                     <span class="text-gray-600 truncate">{{ $val }}</span>
                 </div>
@@ -150,12 +150,15 @@
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Classes CSS</p>
             <div class="space-y-2 text-xs">
-                @foreach([
+                @php
+                $cssClasses = [
                     '.greeting' => 'Titre de salutation (18px, bold)',
                     '.text'     => 'Paragraphe standard (15px, 1.7 line-height)',
-                    '.btn'      => 'Bouton indigo centré (à placer dans <div style="text-align:center;">)',
+                    '.btn'      => 'Bouton indigo centré — placer dans &lt;div style="text-align:center;"&gt;',
                     '.divider'  => 'Ligne de séparation horizontale',
-                ] as $cls => $desc)
+                ];
+                @endphp
+                @foreach($cssClasses as $cls => $desc)
                 <div>
                     <code class="bg-gray-100 px-1.5 py-0.5 rounded text-indigo-600 font-semibold">{{ $cls }}</code>
                     <p class="text-gray-400 mt-0.5">{{ $desc }}</p>
@@ -188,7 +191,7 @@ const editor = document.getElementById('body-editor');
 
 // Insert a variable at cursor position
 function insertVariable(varName) {
-    const val = '{{' + varName + '}}';
+    const val = '{' + '{' + varName + '}' + '}';
     const start = editor.selectionStart;
     const end   = editor.selectionEnd;
     editor.value = editor.value.substring(0, start) + val + editor.value.substring(end);
@@ -208,8 +211,8 @@ function formatWrap(tag) {
 
 // Insert HTML snippets
 const snippets = {
-    btn:     `<div style="text-align:center;">\n    <a href="{{action_url}}" class="btn">Cliquez ici</a>\n</div>`,
-    divider: `<div class="divider"></div>`,
+    btn:     '<div style="text-align:center;">\n    <a href="' + '{' + '{action_url}}' + '" class="btn">Cliquez ici</a>\n</div>',
+    divider: '<div class="divider"></div>',
 };
 function insertSnippet(name) {
     const start = editor.selectionStart;

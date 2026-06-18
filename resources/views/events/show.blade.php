@@ -207,7 +207,7 @@
                         @if($event->is_free)
                         <p class="text-sm font-semibold text-emerald-600">Gratuit</p>
                         @else
-                        <p class="text-sm font-semibold text-gray-900">{{ number_format($event->price, 2) }} €</p>
+                        <p class="text-sm font-semibold text-gray-900">{{ currency_format($event->price, 2) }}</p>
                         @endif
                     </div>
                 </div>
@@ -317,7 +317,7 @@
                         style="background:{{ $typeColor }};"
                         onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
-                    Payer · {{ number_format($event->price, 0) }} €
+                    Payer · {{ currency_format($event->price) }}
                 </button>
                 @endif {{-- is_free --}}
                 @else
@@ -417,7 +417,7 @@
             {{-- Amount --}}
             <div class="flex items-center justify-between p-3.5 rounded-xl bg-gray-50 border border-gray-100">
                 <span class="text-sm text-gray-600">Montant total</span>
-                <span class="text-lg font-bold text-gray-900">{{ number_format($event->price, 2) }} €</span>
+                <span class="text-lg font-bold text-gray-900">{{ currency_format($event->price, 2) }}</span>
             </div>
 
             {{-- Stripe Elements --}}
@@ -442,7 +442,7 @@
                     class="w-full py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition"
                     style="background:linear-gradient(135deg,#10B981,#059669);">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
-                Payer {{ number_format($event->price, 2) }} €
+                Payer {{ currency_format($event->price, 2) }}
             </button>
 
             <p class="text-center text-[10px] text-gray-300 flex items-center justify-center gap-1.5">

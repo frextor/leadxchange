@@ -84,11 +84,11 @@
         {{-- Région --}}
         <div class="flex flex-col gap-0.5">
             <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest px-1">Région</label>
-            <select name="region_id" onchange="document.getElementById('filterForm').submit()"
+            <select name="city_id" onchange="document.getElementById('filterForm').submit()"
                     class="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-50 bg-white transition min-w-36">
                 <option value="">Toutes</option>
                 @foreach($regions as $r)
-                <option value="{{ $r->id }}" {{ request('region_id') == $r->id ? 'selected' : '' }}>{{ $r->name }}</option>
+                <option value="{{ $r->id }}" {{ request('city_id') == $r->id ? 'selected' : '' }}>{{ $r->name }}</option>
                 @endforeach
             </select>
         </div>
@@ -123,7 +123,7 @@
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                 Filtrer
             </button>
-            @if(request()->hasAny(['search','role','region_id','plan','verified']))
+            @if(request()->hasAny(['search','role','city_id','plan','verified']))
             <a href="{{ route('admin.users.index') }}"
                class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-gray-500 border border-gray-200 hover:bg-gray-50 transition">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -167,14 +167,14 @@
                 $planLabel = $u->subscription?->plan?->label;
                 $planStyle = match($planName) {
                     'basic'         => 'bg-indigo-50 text-indigo-600',
-                    'ambassadeur'   => 'bg-amber-50 text-amber-600',
-                    'premium_gold'  => 'bg-teal-50 text-teal-700',
+                    'vip'           => 'bg-amber-50 text-amber-600',
+                    'enterprise'    => 'bg-teal-50 text-teal-700',
                     default         => null,
                 };
                 $planDot = match($planName) {
                     'basic'         => 'bg-indigo-400',
-                    'ambassadeur'   => 'bg-amber-400',
-                    'premium_gold'  => 'bg-teal-500',
+                    'vip'           => 'bg-amber-400',
+                    'enterprise'    => 'bg-teal-500',
                     default         => null,
                 };
             @endphp

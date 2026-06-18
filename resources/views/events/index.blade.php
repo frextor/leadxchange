@@ -191,7 +191,7 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Price (MAD)</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Prix ({{ currency_symbol() }})</label>
                         <input type="number" name="price" value="{{ old('price') }}"
                                placeholder="0 = Free" min="0" step="0.01" class="gr-input">
                     </div>

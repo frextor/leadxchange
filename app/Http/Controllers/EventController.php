@@ -158,6 +158,12 @@ class EventController extends Controller
         }
 
         $user  = $request->user();
+        $user->loadMissing('subscription.plan');
+
+        if (!$user->isAmbassador() && !$user->getFeature('create_events', false)) {
+            return back()->with('error', 'Only approved ambassadors or eligible plans can create events.');
+        }
+
         $event = Event::create([
             'title'           => $validated['title'],
             'description'     => $validated['description'] ?? null,

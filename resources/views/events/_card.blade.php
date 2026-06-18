@@ -55,12 +55,12 @@
         @if(!$isPast && !$isOrganizer)
         <span class="absolute bottom-3 right-3 px-2 py-0.5 rounded-full text-[11px] font-semibold"
               style="{{ $event->is_free ? 'background:#10B981;color:white;' : 'background:rgba(0,0,0,.45);color:white;' }}">
-            {{ $event->is_free ? 'Free' : number_format($event->price, 0) . ' MAD' }}
+            {{ $event->is_free ? 'Free' : currency_format($event->price) }}
         </span>
         @elseif(!$isPast && $isOrganizer)
         <span class="absolute bottom-3 right-3 px-2 py-0.5 rounded-full text-[11px] font-semibold"
               style="{{ $event->is_free ? 'background:#10B981;color:white;' : 'background:rgba(0,0,0,.45);color:white;' }}">
-            {{ $event->is_free ? 'Free' : number_format($event->price, 0) . ' MAD' }}
+            {{ $event->is_free ? 'Free' : currency_format($event->price) }}
         </span>
         @endif
     </div>
