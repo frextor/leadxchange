@@ -100,24 +100,23 @@ class PlanController extends Controller
 
     /** All canonical feature definitions used across plans. */
     public const FEATURES = [
-        // ── Connexions ──────────────────────────────────────────────────────
+        // -- Connexions ---------------------------------------------------------
         'max_connections_per_month' => ['label' => 'Connexions / mois',              'type' => 'number'],
         'view_profile_info'         => ['label' => 'Voir les infos profil',           'type' => 'bool'],
-        'advanced_search'           => ['label' => 'Recherche avancée',              'type' => 'bool'],
-        // ── Leads ───────────────────────────────────────────────────────────
-        'send_leads'                => ['label' => 'Envoyer des leads',              'type' => 'bool'],
-        // ── Groupes ─────────────────────────────────────────────────────────
-        'join_groups'               => ['label' => 'Rejoindre des groupes',          'type' => 'bool'],
-        'create_groups'             => ['label' => 'Créer des groupes',              'type' => 'bool'],
-        // ── Événements ──────────────────────────────────────────────────────
-        'attend_events'             => ['label' => 'Participer aux événements',      'type' => 'bool'],
-        'create_events'             => ['label' => 'Créer des événements',           'type' => 'bool'],
-        // ── Profil & extras ─────────────────────────────────────────────────
-        'chat'                      => ['label' => 'Messagerie',                     'type' => 'bool'],
-        'profile_video'             => ['label' => 'Vidéo de présentation',          'type' => 'bool'],
-        'ambassador_badge'          => ['label' => 'Badge ambassadeur',              'type' => 'bool'],
-        'priority_support'          => ['label' => 'Support prioritaire',            'type' => 'bool'],
-        'requires_approval'         => ['label' => 'Sur approbation',                'type' => 'bool'],
+        'advanced_search'           => ['label' => 'Recherche avancée',               'type' => 'bool'],
+        // -- Leads --------------------------------------------------------------
+        'send_leads'                => ['label' => 'Envoyer des leads',               'type' => 'bool'],
+        // -- Groupes ------------------------------------------------------------
+        'join_groups'               => ['label' => 'Rejoindre des groupes',           'type' => 'bool'],
+        'create_groups'             => ['label' => 'Créer des groupes',               'type' => 'bool'],
+        // -- Événements ---------------------------------------------------------
+        'attend_events'             => ['label' => 'Participer aux événements',       'type' => 'bool'],
+        'create_events'             => ['label' => 'Créer des événements',            'type' => 'bool'],
+        // -- Profil & extras ----------------------------------------------------
+        'chat'                      => ['label' => 'Messagerie',                      'type' => 'bool'],
+        'profile_video'             => ['label' => 'Vidéo de présentation',           'type' => 'bool'],
+        'priority_support'          => ['label' => 'Support prioritaire',             'type' => 'bool'],
+        'requires_approval'         => ['label' => 'Sur approbation',                 'type' => 'bool'],
     ];
 
     public function permissions(): View

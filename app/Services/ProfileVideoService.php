@@ -100,6 +100,48 @@ class ProfileVideoService
         ]);
     }
 
+    public function storePendingUpload(User $user, UploadedFile $file): void
+    {
+        if (!config('profile_video.enabled')) {
+            throw ValidationException::withMessages([
+                'presentation_video' => 'Presentation video uploads are disabled.',
+            ]);
+        }
+
+        $this->ensureBinary(config('profile_video.ffprobe_binary'), 'ffprobe');
+
+        $maxDuration = (int) config('profile_video.max_duration_seconds', 300);
+        $duration = $this->durationInSeconds($file->getRealPath());
+
+        if ($duration > $maxDuration) {
+            throw ValidationException::withMessages([
+                'presentation_video' => 'Presentation video must not be longer than 1 minute.',
+            ]);
+        }
+
+        $profile = $user->profile ?? Profile::create(['user_id' => $user->id]);
+        $oldPath = $profile->presentation_video;
+
+        $extension = $file->extension() ?: 'mp4';
+        $filename = $user->id . '_' . now()->format('YmdHis') . '.' . $extension;
+        $relativePath = $file->storeAs('presentation-videos', $filename, 'public');
+
+        if ($oldPath) {
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        $profile->update([
+            'presentation_video' => $relativePath,
+            'presentation_video_status' => config('profile_video.requires_approval')
+                ? self::STATUS_PENDING
+                : self::STATUS_APPROVED,
+            'presentation_video_rejection_reason' => null,
+            'presentation_video_uploaded_at' => now(),
+            'presentation_video_reviewed_at' => config('profile_video.requires_approval') ? null : now(),
+            'presentation_video_reviewed_by' => null,
+        ]);
+    }
+
     public function approve(Profile $profile, User $admin): void
     {
         $profile->update([

@@ -24,7 +24,6 @@ return new class extends Migration
                     'send_leads'                => false,
                     'join_groups'               => true,
                     'create_events'             => false,
-                    'ambassador_badge'          => false,
                 ]),
                 'is_active'  => true,
                 'sort_order' => 1,
@@ -45,32 +44,9 @@ return new class extends Migration
                     'send_leads'                => true,
                     'join_groups'               => true,
                     'create_events'             => false,
-                    'ambassador_badge'          => false,
                 ]),
                 'is_active'  => true,
                 'sort_order' => 2,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-            [
-                'name'           => 'ambassador',
-                'label'          => 'Ambassador',
-                'description'    => 'Tous les avantages VIP + création d\'événements et privilèges exclusifs. Sur approbation uniquement.',
-                'price'          => 60.00,
-                'billing_period' => 'monthly',
-                'max_leads'      => null,
-                'max_groups'     => null,
-                'features'       => json_encode([
-                    'max_connections_per_month' => null,
-                    'view_profile_info'         => true,
-                    'send_leads'                => true,
-                    'join_groups'               => true,
-                    'create_events'             => true,
-                    'ambassador_badge'          => true,
-                    'requires_approval'         => true,
-                ]),
-                'is_active'  => true,
-                'sort_order' => 3,
                 'created_at' => $now,
                 'updated_at' => $now,
             ],
@@ -79,6 +55,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::table('plans')->whereIn('name', ['basic', 'vip', 'ambassador'])->delete();
+        DB::table('plans')->whereIn('name', ['basic', 'vip'])->delete();
     }
 };

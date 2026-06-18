@@ -52,7 +52,7 @@
                         Identifiant technique <span class="text-red-400">*</span>
                         <span class="font-normal text-gray-400 ml-1">— non modifiable après création</span>
                     </label>
-                    <input type="text" name="name" value="{{ old('name') }}" required placeholder="ex: premium_gold"
+                    <input type="text" name="name" value="{{ old('name') }}" required placeholder="ex: enterprise"
                            class="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition font-mono placeholder-gray-300">
                 </div>
                 @endunless
@@ -251,6 +251,7 @@ function buildFeaturesJson() {
     document.getElementById('featuresJsonHidden').value = json;
     const preview = document.getElementById('featuresJsonPreview');
     if (preview) preview.textContent = JSON.stringify(obj, null, 2);
+}
 }
 
 // Animate toggles on change + rebuild JSON
