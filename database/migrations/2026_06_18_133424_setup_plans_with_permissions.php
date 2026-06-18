@@ -15,10 +15,10 @@ return new class extends Migration
             });
         }
 
-        // Remove old plans with no subscriptions
-        DB::table('plans')->whereIn('name', ['vip', 'enterprise'])->delete();
+        // Remove all non-basic plans (no subscriptions on them)
+        DB::table('plans')->where('name', '!=', 'basic')->delete();
 
-        // Reset auto_increment so new inserts start at 2 (basic = 1 is intact)
+        // Reset auto_increment so new inserts get IDs 2,3,4,5
         DB::statement('ALTER TABLE plans AUTO_INCREMENT = 2');
 
         $now = now();
