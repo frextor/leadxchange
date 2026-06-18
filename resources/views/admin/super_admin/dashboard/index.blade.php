@@ -9,7 +9,7 @@
 @section('content')
 
 {{-- ── Header greeting ────────────────────────────────────────────────── --}}
-<div class="flex items-center justify-between mb-6">
+<div class="flex items-center justify-between mb-4">
     <div>
         <h1 class="text-2xl font-bold text-gray-900 tracking-tight">
             Bonjour, <span style="color:#0D9488;">{{ auth()->user()->first_name }}</span> 👋
@@ -21,6 +21,91 @@
         Dernière mise à jour : {{ now()->format('H:i') }}
     </div>
 </div>
+
+{{-- ── Filter bar ──────────────────────────────────────────────────────── --}}
+@php
+    $hasFilters = $activeFilters['city_id'] || $activeFilters['plan_id'];
+@endphp
+<form method="GET" action="{{ route('admin.super.dashboard') }}" id="dashboard-filter-form"
+      class="flex items-center gap-2 mb-6 bg-white border border-gray-100 rounded-2xl px-4 py-3 shadow-sm flex-wrap">
+
+    {{-- Région --}}
+    <div class="flex items-center gap-1.5 flex-1 min-w-[160px]">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" class="flex-shrink-0">
+            <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.35 11.76a1 1 0 0 0 1.3 0C12.95 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
+        </svg>
+        <select name="city_id" onchange="this.form.submit()"
+                class="flex-1 text-sm text-gray-700 bg-transparent focus:outline-none cursor-pointer">
+            <option value="">Toutes les régions</option>
+            @foreach($cities as $city)
+            <option value="{{ $city->id }}" {{ $activeFilters['city_id'] == $city->id ? 'selected' : '' }}>
+                {{ $city->name }}
+            </option>
+            @endforeach
+        </select>
+    </div>
+
+    <div class="w-px h-5 bg-gray-200 flex-shrink-0"></div>
+
+    {{-- Plan --}}
+    <div class="flex items-center gap-1.5 flex-1 min-w-[140px]">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" class="flex-shrink-0">
+            <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+        </svg>
+        <select name="plan_id" onchange="this.form.submit()"
+                class="flex-1 text-sm text-gray-700 bg-transparent focus:outline-none cursor-pointer">
+            <option value="">Tous les plans</option>
+            @foreach($plans as $plan)
+            <option value="{{ $plan->id }}" {{ $activeFilters['plan_id'] == $plan->id ? 'selected' : '' }}>
+                {{ $plan->label }}
+            </option>
+            @endforeach
+        </select>
+    </div>
+
+    <div class="w-px h-5 bg-gray-200 flex-shrink-0"></div>
+
+    {{-- Leads filter: quick date range --}}
+    <div class="flex items-center gap-1.5 flex-1 min-w-[150px]">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" class="flex-shrink-0">
+            <path d="M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4"/>
+        </svg>
+        <select name="leads_period" onchange="this.form.submit()"
+                class="flex-1 text-sm text-gray-700 bg-transparent focus:outline-none cursor-pointer">
+            <option value="">Leads — tout afficher</option>
+            <option value="today"    {{ request('leads_period') === 'today'   ? 'selected' : '' }}>Leads aujourd'hui</option>
+            <option value="week"     {{ request('leads_period') === 'week'    ? 'selected' : '' }}>Leads cette semaine</option>
+            <option value="month"    {{ request('leads_period') === 'month'   ? 'selected' : '' }}>Leads ce mois</option>
+            <option value="quarter"  {{ request('leads_period') === 'quarter' ? 'selected' : '' }}>Leads ce trimestre</option>
+        </select>
+    </div>
+
+    {{-- Active filter badges + reset --}}
+    @if($hasFilters || request('leads_period'))
+    <div class="flex items-center gap-2 ml-auto flex-shrink-0">
+        @if($activeFilters['city_id'])
+        @php $cityName = $cities->firstWhere('id', $activeFilters['city_id'])?->name; @endphp
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-700">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7 11.5 7.35 11.76a1 1 0 0 0 1.3 0C12.95 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/></svg>
+            {{ $cityName }}
+        </span>
+        @endif
+        @if($activeFilters['plan_id'])
+        @php $planName = $plans->firstWhere('id', $activeFilters['plan_id'])?->label; @endphp
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            {{ $planName }}
+        </span>
+        @endif
+        <a href="{{ route('admin.super.dashboard') }}"
+           class="text-[11px] font-semibold text-gray-400 hover:text-red-500 transition flex items-center gap-1">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            Réinitialiser
+        </a>
+    </div>
+    @endif
+
+</form>
 
 {{-- ── Alerts ──────────────────────────────────────────────────────────── --}}
 @php

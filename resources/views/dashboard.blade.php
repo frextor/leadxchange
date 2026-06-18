@@ -528,7 +528,7 @@
                         @if($plan->price == 0)
                             <span class="text-4xl font-extrabold text-gray-900 leading-none tracking-tight">Free</span>
                         @else
-                            <span class="text-4xl font-extrabold text-gray-900 leading-none tracking-tight">${{ number_format($plan->price, 0) }}</span>
+                            <span class="text-4xl font-extrabold text-gray-900 leading-none tracking-tight">{{ currency_format($plan->price) }}</span>
                             <span class="text-sm text-gray-400 pb-1">/ mo</span>
                         @endif
                     </div>

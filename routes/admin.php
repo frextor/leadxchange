@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\SuperAdmin\InterestController;
 use App\Http\Controllers\Admin\SuperAdmin\PlanController;
 use App\Http\Controllers\Admin\SuperAdmin\SectorController;
 use App\Http\Controllers\Admin\SuperAdmin\EmailTemplateController;
+use App\Http\Controllers\Admin\SuperAdmin\SettingsController;
 use App\Http\Controllers\Admin\SuperAdmin\SmtpController;
 use App\Http\Controllers\Admin\SuperAdmin\SubscriberController;
 use Illuminate\Support\Facades\Route;
@@ -122,6 +123,10 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::post('interests',                 [InterestController::class, 'store'])->name('interests.store');
     Route::put('interests/{interest}',       [InterestController::class, 'update'])->name('interests.update');
     Route::delete('interests/{interest}',    [InterestController::class, 'destroy'])->name('interests.destroy');
+
+    // Platform settings
+    Route::get('settings/currency',    [SettingsController::class, 'currency'])->name('settings.currency');
+    Route::put('settings/currency',    [SettingsController::class, 'updateCurrency'])->name('settings.currency.update');
 
     // Email templates
     Route::get('email-templates',                         [EmailTemplateController::class, 'index'])->name('email-templates.index');

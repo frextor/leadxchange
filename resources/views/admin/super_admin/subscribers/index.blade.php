@@ -15,11 +15,20 @@
                    class="w-full h-9 px-3 rounded-xl border border-gray-200 text-sm outline-none focus:border-teal-400 transition">
         </div>
         <div>
-            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Région</label>
-            <select name="region_id" class="h-9 px-3 rounded-xl border border-gray-200 text-sm outline-none focus:border-teal-400 transition" style="appearance:none;min-width:140px;">
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Pays</label>
+            <select name="country_id" class="h-9 px-3 rounded-xl border border-gray-200 text-sm outline-none focus:border-teal-400 transition" style="appearance:none;min-width:120px;">
+                <option value="">Tous</option>
+                @foreach($countries as $c)
+                <option value="{{ $c->id }}" {{ request('country_id') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Ville</label>
+            <select name="city_id" class="h-9 px-3 rounded-xl border border-gray-200 text-sm outline-none focus:border-teal-400 transition" style="appearance:none;min-width:140px;">
                 <option value="">Toutes</option>
-                @foreach($regions as $r)
-                <option value="{{ $r->id }}" {{ request('region_id') == $r->id ? 'selected' : '' }}>{{ $r->name }}</option>
+                @foreach($cities as $c)
+                <option value="{{ $c->id }}" {{ request('city_id') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
                 @endforeach
             </select>
         </div>
@@ -43,7 +52,7 @@
         <button type="submit"
                 class="h-9 px-4 rounded-xl text-sm font-semibold text-white"
                 style="background:#1E8F88;">Filtrer</button>
-        @if(request()->hasAny(['search','region_id','plan','status']))
+        @if(request()->hasAny(['search','country_id','city_id','plan','status']))
         <a href="{{ route('admin.super.subscribers.index') }}"
            class="h-9 px-4 rounded-xl text-sm font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition flex items-center">
             Réinitialiser
@@ -61,7 +70,7 @@
                 <thead>
                     <tr class="border-b border-gray-100 bg-gray-50">
                         <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-5 py-3">Utilisateur</th>
-                        <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Région</th>
+                        <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Ville / Pays</th>
                         <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Plan</th>
                         <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Inscription</th>
                         <th class="text-center text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Statut</th>
@@ -82,7 +91,12 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="px-4 py-3 text-gray-500">{{ $user->region?->name ?? '—' }}</td>
+                        <td class="px-4 py-3 text-gray-500">
+                            <p class="text-sm">{{ $user->city?->name ?? '—' }}</p>
+                            @if($user->city?->country)
+                            <p class="text-xs text-gray-400">{{ $user->city->country->name }}</p>
+                            @endif
+                        </td>
                         <td class="px-4 py-3">
                             @if($user->subscription?->plan)
                             <span class="text-xs font-semibold px-2 py-0.5 rounded-full"

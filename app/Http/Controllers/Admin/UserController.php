@@ -28,8 +28,8 @@ class UserController extends Controller
         if ($request->filled('role')) {
             $query->where('role', $request->role);
         }
-        if ($request->filled('region_id')) {
-            $query->where('region_id', $request->region_id);
+        if ($request->filled('city_id')) {
+            $query->where('city_id', $request->city_id);
         }
         if ($request->filled('plan')) {
             $query->whereHas('subscription', fn($q) => $q
