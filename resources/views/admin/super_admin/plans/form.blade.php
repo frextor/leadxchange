@@ -78,21 +78,21 @@
                 <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tarification</p>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Prix mensuel (MAD) <span class="text-red-400">*</span></label>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Prix mensuel ({{ currency_symbol() }}) <span class="text-red-400">*</span></label>
                         <div class="relative">
                             <input type="number" name="price" value="{{ old('price', $plan->price) }}"
                                    required min="0" step="0.01" placeholder="0"
                                    class="w-full h-10 pl-3 pr-12 rounded-xl border border-gray-200 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition">
-                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">MAD</span>
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">{{ currency_symbol() }}</span>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Prix annuel (MAD)</label>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Prix annuel ({{ currency_symbol() }})</label>
                         <div class="relative">
                             <input type="number" name="annual_price" value="{{ old('annual_price', $plan->annual_price) }}"
                                    min="0" step="0.01" placeholder="Optionnel"
                                    class="w-full h-10 pl-3 pr-12 rounded-xl border border-gray-200 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition placeholder-gray-300">
-                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">MAD</span>
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">{{ currency_symbol() }}</span>
                         </div>
                     </div>
                 </div>

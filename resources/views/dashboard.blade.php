@@ -124,7 +124,7 @@
                 {{-- Profile completion as stars --}}
                 @php
                     $stars = round($completion / 20);
-                    $jobTag = auth()->user()->profile?->job_title ?? auth()->user()->subscription?->plan?->name;
+                    $userPlan = auth()->user()->subscription?->plan;
                 @endphp
                 <div class="flex items-center gap-2 mt-1">
                     <div class="flex gap-0.5">
@@ -145,12 +145,10 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
                     Complete Profile
                 </a>
-                @if($jobTag)
-                <span class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium text-white/80 border border-white/10" style="background:rgba(255,255,255,0.08);">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-                    {{ $jobTag }}
+                <span class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-white/90 border border-white/20" style="background:rgba(255,255,255,0.12);">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                    Plan {{ $userPlan?->label ?? 'Basic' }}
                 </span>
-                @endif
             </div>
         </div>
     </div>

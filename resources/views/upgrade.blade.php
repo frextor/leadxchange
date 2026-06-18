@@ -37,7 +37,7 @@
         @if($currentPlan->price == 0)
         <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">Gratuit</span>
         @else
-        <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-600">{{ number_format($currentPlan->price, 0) }} MAD/mois</span>
+        <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-600">{{ currency_format($currentPlan->price) }}/mois</span>
         @endif
     </div>
     @endif
@@ -80,12 +80,11 @@
                 </div>
                 @else
                 <div class="flex items-baseline gap-1">
-                    <span class="text-3xl font-extrabold text-gray-900">{{ number_format($plan->price, 0) }}</span>
-                    <span class="text-sm font-medium text-gray-500">MAD</span>
+                    <span class="text-3xl font-extrabold text-gray-900">{{ currency_format($plan->price) }}</span>
                     <span class="text-xs text-gray-400">/ mois</span>
                 </div>
                 @if($plan->annual_price)
-                <p class="text-xs text-gray-400 mt-1">ou {{ number_format($plan->annual_price, 0) }} MAD/an</p>
+                <p class="text-xs text-gray-400 mt-1">ou {{ currency_format($plan->annual_price) }}/an</p>
                 @endif
                 @endif
             </div>

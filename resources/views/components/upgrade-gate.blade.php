@@ -49,7 +49,7 @@
         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 ml-1">
             {{ $upgradePlan->label }}
             @if($upgradePlan->price > 0)
-            · {{ number_format($upgradePlan->price, 0) }} MAD/mois
+            · {{ currency_format($upgradePlan->price) }}/mois
             @else
             · Gratuit
             @endif
