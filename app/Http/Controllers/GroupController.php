@@ -26,7 +26,7 @@ class GroupController extends Controller
         ));
 
         $sectors        = Sector::orderBy('name')->get();
-        $cities         = City::orderBy('name')->get();
+        $cities         = City::active()->orderBy('name')->get();
         $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
         $userRoles      = $user->groups()->pluck('group_user.role', 'groups.id')->toArray();
 

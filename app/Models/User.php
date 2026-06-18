@@ -2,10 +2,15 @@
 
 namespace App\Models;
 
+use App\Mail\PasswordResetMail;
+use App\Mail\VerificationMail;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements MustVerifyEmail
@@ -368,5 +373,27 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getFullNameAttribute(): string
     {
         return "{$this->first_name} {$this->last_name}";
+    }
+
+    /** Utilise notre PasswordResetMail personnalisé au lieu de la notification native. */
+    public function sendPasswordResetNotification($token): void
+    {
+        $url = url(route('password.reset', ['token' => $token, 'email' => $this->email], false));
+
+        Mail::to($this->email, $this->first_name . ' ' . $this->last_name)
+            ->send(new PasswordResetMail($this, $url, config('auth.passwords.users.expire', 60)));
+    }
+
+    /** Utilise notre VerificationMail personnalisé au lieu de la notification native. */
+    public function sendEmailVerificationNotification(): void
+    {
+        $url = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(config('auth.verification.expire', 60)),
+            ['id' => $this->getKey(), 'hash' => sha1($this->getEmailForVerification())]
+        );
+
+        Mail::to($this->email, $this->first_name . ' ' . $this->last_name)
+            ->send(new VerificationMail($this, $url));
     }
 }

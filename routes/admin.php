@@ -110,6 +110,7 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::get('cities',                     [CityController::class, 'index'])->name('cities.index');
     Route::post('cities',                    [CityController::class, 'store'])->name('cities.store');
     Route::put('cities/{city}',              [CityController::class, 'update'])->name('cities.update');
+    Route::patch('cities/{city}/toggle',     [CityController::class, 'toggle'])->name('cities.toggle');
     Route::delete('cities/{city}',           [CityController::class, 'destroy'])->name('cities.destroy');
 
     // Countries
@@ -133,7 +134,8 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::get('email-templates/{key}/edit',              [EmailTemplateController::class, 'edit'])->name('email-templates.edit');
     Route::put('email-templates/{key}',                   [EmailTemplateController::class, 'update'])->name('email-templates.update');
     Route::post('email-templates/{key}/reset',            [EmailTemplateController::class, 'reset'])->name('email-templates.reset');
-    Route::post('email-templates/{key}/preview',          [EmailTemplateController::class, 'preview'])->name('email-templates.preview');
+    Route::post('email-templates/{key}/preview',    [EmailTemplateController::class, 'preview'])->name('email-templates.preview');
+    Route::post('email-templates/{key}/send-test', [EmailTemplateController::class, 'sendTest'])->name('email-templates.send-test');
 
     // SMTP / Email settings
     Route::get('smtp',                       [SmtpController::class, 'index'])->name('smtp.index');

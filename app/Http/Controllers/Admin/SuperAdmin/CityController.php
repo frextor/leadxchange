@@ -26,6 +26,8 @@ class CityController extends Controller
         $countries = Country::orderBy('name')->get(['id', 'name', 'flag']);
         $stats = [
             'total'     => City::count(),
+            'active'    => City::where('is_active', true)->count(),
+            'inactive'  => City::where('is_active', false)->count(),
             'countries' => City::whereNotNull('country_id')->distinct('country_id')->count('country_id'),
         ];
 
@@ -50,6 +52,13 @@ class CityController extends Controller
         ]);
         $city->update($request->only('name', 'country_id'));
         return back()->with('success', 'Région mise à jour.');
+    }
+
+    public function toggle(City $city): RedirectResponse
+    {
+        $city->update(['is_active' => !$city->is_active]);
+        $status = $city->is_active ? 'activée' : 'désactivée';
+        return back()->with('success', "Région \"{$city->name}\" {$status}.");
     }
 
     public function destroy(City $city): RedirectResponse

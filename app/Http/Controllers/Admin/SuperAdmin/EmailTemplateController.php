@@ -7,6 +7,7 @@ use App\Models\EmailTemplate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
 class EmailTemplateController extends Controller
@@ -96,6 +97,36 @@ class EmailTemplateController extends Controller
 
         return redirect()->route('admin.super.email-templates.edit', $key)
             ->with('success', 'Template réinitialisé aux valeurs par défaut.');
+    }
+
+    // ── Send test email ───────────────────────────────────────────────────────
+
+    public function sendTest(Request $request, string $key)
+    {
+        abort_unless(array_key_exists($key, EmailTemplate::TEMPLATES), 404);
+
+        $meta    = EmailTemplate::TEMPLATES[$key];
+        $subject = $request->input('subject') ?: $meta['default_subject'];
+        $body    = $request->input('body') ?: '';
+
+        $renderedSubject = EmailTemplate::interpolate($subject, $meta['sample']);
+        $renderedBody    = EmailTemplate::interpolate($body, $meta['sample']);
+
+        $admin = auth()->user();
+
+        try {
+            Mail::html(
+                view('emails.db_template', ['content' => $renderedBody, 'emailTitle' => $renderedSubject])->render(),
+                function ($message) use ($admin, $renderedSubject) {
+                    $message->to($admin->email, $admin->first_name . ' ' . $admin->last_name)
+                            ->subject('[TEST] ' . $renderedSubject);
+                }
+            );
+
+            return response()->json(['message' => 'Email de test envoyé à ' . $admin->email]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Erreur : ' . $e->getMessage()], 500);
+        }
     }
 
     // ── Live preview ──────────────────────────────────────────────────────────

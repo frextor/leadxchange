@@ -23,7 +23,7 @@ class AmbassadorController extends Controller
         }
 
         $applicants = $query->orderBy('ambassador_requested_at', 'desc')->paginate(20)->withQueryString();
-        $regions    = City::orderBy('name')->get(['id', 'name']);
+        $regions    = City::active()->orderBy('name')->get(['id', 'name']);
         $counts     = [
             'pending'  => User::where('ambassador_status', 'pending')->count(),
             'approved' => User::where('ambassador_status', 'approved')->count(),

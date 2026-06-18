@@ -1,39 +1,63 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>{{ $emailTitle ?? 'LeadXchange' }}</title>
 <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #F3F4F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1F2937; }
-    .wrapper { max-width: 600px; margin: 32px auto; }
-    .card { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-    .header { background: linear-gradient(135deg, #6366F1, #4338CA); padding: 32px 40px; text-align: center; }
-    .header-logo { color: #fff; font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
-    .body { padding: 40px; }
-    .greeting { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 12px; }
+    body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    body { background-color: #F3F4F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+    img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    a { color: #4F46E5; }
+    .greeting { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 16px; }
     .text { font-size: 15px; line-height: 1.7; color: #374151; margin-bottom: 20px; }
-    .btn { display: inline-block; padding: 13px 28px; background: linear-gradient(135deg, #6366F1, #4338CA); color: #fff; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 14px; margin: 8px 0 24px; }
-    .divider { height: 1px; background: #F3F4F6; margin: 24px 0; }
-    .footer { padding: 24px 40px; text-align: center; font-size: 12px; color: #9CA3AF; }
-    .footer a { color: #6366F1; text-decoration: none; }
+    .divider { height: 1px; background-color: #E5E7EB; margin: 24px 0; }
+    /* Bouton : forcé inline sur le <a> pour compatibilité maximale */
 </style>
 </head>
-<body>
-<div class="wrapper">
-    <div class="card">
-        <div class="header">
-            <div class="header-logo">LeadXchange</div>
-        </div>
-        <div class="body">
+<body style="background-color:#F3F4F6; margin:0; padding:0;">
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F3F4F6;">
+  <tr>
+    <td align="center" style="padding: 32px 16px;">
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; width:100%;">
+
+        {{-- Header --}}
+        <tr>
+          <td align="center" bgcolor="#4338CA" style="background-color:#4338CA; border-radius:16px 16px 0 0; padding:32px 40px;">
+            <p style="font-size:24px; font-weight:800; color:#ffffff; letter-spacing:-0.5px; margin:0;">LeadXchange</p>
+          </td>
+        </tr>
+
+        {{-- Body --}}
+        <tr>
+          <td bgcolor="#ffffff" style="background-color:#ffffff; padding:40px; border-radius:0 0 16px 16px;">
             @yield('content')
-        </div>
-    </div>
-    <div class="footer">
-        © {{ date('Y') }} LeadXchange · <a href="{{ config('app.url') }}">Accéder à la plateforme</a><br>
-        Vous recevez cet email car vous êtes inscrit(e) sur LeadXchange.
-    </div>
-</div>
+            <p style="font-size:12px; color:#9CA3AF; margin-top:24px; padding-top:24px; border-top:1px solid #E5E7EB;">
+              Cet email a été envoyé automatiquement par la plateforme LeadXchange. Si vous n'êtes pas à l'origine de cette action, ignorez cet email.
+            </p>
+          </td>
+        </tr>
+
+        {{-- Footer --}}
+        <tr>
+          <td align="center" style="padding: 20px 0 0;">
+            <p style="font-size:12px; color:#9CA3AF; margin:0;">
+              © {{ date('Y') }} LeadXchange &nbsp;·&nbsp;
+              <a href="{{ config('app.url') }}" style="color:#6366F1; text-decoration:none;">Accéder à la plateforme</a>
+            </p>
+            <p style="font-size:11px; color:#D1D5DB; margin:6px 0 0;">
+              Vous recevez cet email car vous êtes inscrit(e) sur LeadXchange.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+
 </body>
 </html>
