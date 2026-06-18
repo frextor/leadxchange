@@ -234,8 +234,8 @@ class UserService
                 'url' => $user->profile?->presentation_video_status === 'approved'
                     ? $user->profile?->presentation_video_url
                     : null,
-                'status' => $user->profile?->presentation_video_status === 'approved'
-                    ? 'approved'
+                'status' => $user->profile?->presentation_video_status === 'approved' || $user->id === $currentUserId
+                    ? $user->profile?->presentation_video_status
                     : null,
             ],
             'balance'          => (int) ($user->points_balance ?? 0),
