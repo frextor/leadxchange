@@ -34,7 +34,7 @@ class RegisterController extends Controller
     {
         return view('auth.register', [
             'nationalities' => Nationality::orderBy('country')->get(),
-            'cities'        => City::orderBy('name')->get(['id', 'name']),
+            'cities'        => City::active()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 

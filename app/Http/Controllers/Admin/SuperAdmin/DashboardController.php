@@ -94,9 +94,20 @@ class DashboardController extends Controller
         $subsThisMonth    = Subscription::tap($filterSub)->whereBetween('created_at', [$thisMonth, $now])->count();
         $subsLastMonth    = Subscription::tap($filterSub)->whereBetween('created_at', [$lastMonth, $lastMonthEnd])->count();
 
-        $totalEvents    = DB::table('events')->count();
-        $upcomingEvents = DB::table('events')->where('starts_at', '>', $now)->count();
-        $totalGroups    = DB::table('groups')->count();
+        // Events — filtrés par ville/pays/groupe
+        $eventsQuery = DB::table('events');
+        if ($cityId)    $eventsQuery->where('city_id', $cityId);
+        if ($countryId) $eventsQuery->join('cities as ec', 'events.city_id', '=', 'ec.id')->where('ec.country_id', $countryId);
+        if ($groupId)   $eventsQuery->whereIn('created_by', DB::table('group_user')->where('group_id', $groupId)->pluck('user_id'));
+        $totalEvents    = (clone $eventsQuery)->count();
+        $upcomingEvents = (clone $eventsQuery)->where('starts_at', '>', $now)->count();
+
+        // Groups — filtrés par ville/pays/groupe
+        $groupsQuery = DB::table('groups');
+        if ($cityId)    $groupsQuery->where('city_id', $cityId);
+        if ($countryId) $groupsQuery->join('cities as gc', 'groups.city_id', '=', 'gc.id')->where('gc.country_id', $countryId);
+        if ($groupId)   $groupsQuery->where('groups.id', $groupId);
+        $totalGroups = (clone $groupsQuery)->count();
 
         $totalAmbassadors   = User::where('ambassador_status', 'approved')->tap($filterUser)->count();
         $pendingAmbassadors = User::where('ambassador_status', 'pending')->count();
@@ -148,7 +159,7 @@ class DashboardController extends Controller
             ->get(['id', 'first_name', 'last_name', 'email', 'created_at', 'email_verified_at']);
 
         // ── Filter options ────────────────────────────────────────────────────
-        $cities    = City::orderBy('name')->get(['id', 'name']);
+        $cities    = City::active()->orderBy('name')->get(['id', 'name']);
         $plans     = Plan::orderBy('sort_order')->get(['id', 'label']);
         $countries = Country::orderBy('name')->get(['id', 'name']);
         $groups    = Group::orderBy('name')->get(['id', 'name']);

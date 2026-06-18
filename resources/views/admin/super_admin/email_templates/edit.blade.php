@@ -46,7 +46,7 @@
                        value="{{ old('subject', $template->subject ?? $meta['default_subject']) }}"
                        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition font-mono"
                        placeholder="{{ $meta['default_subject'] }}" required>
-                <p class="text-[11px] text-gray-400 mt-1.5">Vous pouvez utiliser des variables comme <code class="bg-gray-100 px-1 rounded">{{ '{{name}}' }}</code> dans l'objet.</p>
+                <p class="text-[11px] text-gray-400 mt-1.5">Vous pouvez utiliser des variables comme <code class="bg-gray-100 px-1 rounded">&#123;&#123;name&#125;&#125;</code> dans l'objet.</p>
             </div>
 
             {{-- Body editor --}}
@@ -108,6 +108,14 @@
                     Prévisualiser
                 </button>
 
+                <button type="button" onclick="sendTest()"
+                        class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border border-amber-200 text-amber-600 hover:bg-amber-50 transition">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                    Envoyer un test
+                </button>
+
                 <a href="{{ route('admin.super.email-templates.index') }}"
                    class="ml-auto text-sm text-gray-400 hover:text-gray-600 transition">Annuler</a>
             </div>
@@ -124,7 +132,7 @@
                 @foreach($meta['variables'] as $var)
                 <button type="button" onclick="insertVariable('{{ $var }}')"
                         class="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-gray-50 hover:bg-indigo-50 hover:border-indigo-200 border border-transparent text-left transition group">
-                    <code class="text-xs font-mono text-indigo-600 font-semibold">{{ '{{' . $var . '}}' }}</code>
+                    <code class="text-xs font-mono text-indigo-600 font-semibold">&#123;&#123;{{ $var }}&#125;&#125;</code>
                     <span class="text-[10px] text-gray-400 group-hover:text-indigo-400 transition">Insérer</span>
                 </button>
                 @endforeach
@@ -138,7 +146,7 @@
             <div class="space-y-1.5">
                 @foreach($meta['sample'] as $var => $val)
                 <div class="flex items-start gap-2 text-xs">
-                    <span class="font-mono text-indigo-600 shrink-0">{{ '{{' . $var . '}}' }}</span>
+                    <span class="font-mono text-indigo-600 shrink-0">&#123;&#123;{{ $var }}&#125;&#125;</span>
                     <span class="text-gray-400">→</span>
                     <span class="text-gray-600 truncate">{{ $val }}</span>
                 </div>
@@ -244,5 +252,36 @@ function closePreview() {
     document.getElementById('preview-modal').classList.add('hidden');
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePreview(); });
+
+// Send test email with current form content
+function sendTest() {
+    const btn = document.querySelector('[onclick="sendTest()"]');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="animate-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Envoi…';
+
+    const subject = document.querySelector('input[name="subject"]').value;
+    const body    = editor.value;
+
+    fetch('{{ route('admin.super.email-templates.send-test', $key) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+        },
+        body: JSON.stringify({ subject, body }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = original;
+        alert(data.message ?? 'Email de test envoyé !');
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = original;
+        alert('Erreur lors de l\'envoi.');
+    });
+}
 </script>
 @endpush

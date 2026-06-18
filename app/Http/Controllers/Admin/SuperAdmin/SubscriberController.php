@@ -49,7 +49,7 @@ class SubscriberController extends Controller
 
         $subscribers = $query->latest()->paginate(25)->withQueryString();
         $countries   = Country::orderBy('name')->get(['id', 'name']);
-        $cities      = City::orderBy('name')->get(['id', 'name']);
+        $cities      = City::active()->orderBy('name')->get(['id', 'name']);
         $plans       = Plan::orderBy('sort_order')->get(['id', 'name', 'label']);
 
         return view('admin.super_admin.subscribers.index', compact('subscribers', 'countries', 'cities', 'plans'));

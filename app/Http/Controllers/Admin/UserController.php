@@ -45,7 +45,7 @@ class UserController extends Controller
         }
 
         $users   = $query->orderByDesc('created_at')->paginate(25)->withQueryString();
-        $regions = City::orderBy('name')->get(['id', 'name']);
+        $regions = City::active()->orderBy('name')->get(['id', 'name']);
         $plans   = Plan::orderBy('sort_order')->get(['id', 'name', 'label']);
 
         $counts = [
@@ -79,7 +79,7 @@ class UserController extends Controller
 
     public function edit(User $user): View
     {
-        $regions = City::orderBy('name')->get(['id', 'name']);
+        $regions = City::active()->orderBy('name')->get(['id', 'name']);
         return view('admin.users.edit', compact('user', 'regions'));
     }
 

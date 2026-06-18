@@ -121,7 +121,10 @@
         {{-- Table sub-header --}}
         <div class="px-5 py-2.5 border-b border-gray-50 flex items-center justify-between">
             <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Région</p>
-            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pays</p>
+            <div class="flex items-center gap-8">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Statut</p>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pays</p>
+            </div>
         </div>
 
         {{-- Rows --}}
@@ -183,10 +186,21 @@
                     </form>
                 </div>
 
-                {{-- Country badge + actions --}}
-                <div class="flex items-center gap-3 flex-shrink-0">
+                {{-- Status + Country + Actions --}}
+                <div class="flex items-center gap-4 flex-shrink-0">
+
+                    {{-- Toggle actif/inactif --}}
+                    <form method="POST" action="{{ route('admin.super.cities.toggle', $city) }}">
+                        @csrf @method('PATCH')
+                        <button type="submit"
+                                title="{{ $city->is_active ? 'Désactiver' : 'Activer' }}"
+                                class="relative inline-flex items-center h-5 w-9 rounded-full transition-colors focus:outline-none {{ $city->is_active ? 'bg-teal-500' : 'bg-gray-200' }}">
+                            <span class="inline-block w-3.5 h-3.5 rounded-full bg-white shadow transform transition-transform {{ $city->is_active ? 'translate-x-4' : 'translate-x-0.5' }}"></span>
+                        </button>
+                    </form>
+
                     <span id="city-country-{{ $city->id }}"
-                          class="text-xs text-gray-500 font-medium">
+                          class="text-xs text-gray-500 font-medium min-w-[80px]">
                         @if($city->country)
                             {{ $city->country->flag ? $city->country->flag . ' ' : '' }}{{ $city->country->name }}
                         @else
@@ -369,6 +383,14 @@
                 <div class="flex items-center justify-between px-3.5 py-2 border-b border-gray-50">
                     <span class="text-[10px] text-gray-400">Total régions</span>
                     <span class="text-xs font-bold text-gray-700">{{ $stats['total'] }}</span>
+                </div>
+                <div class="flex items-center justify-between px-3.5 py-2 border-b border-gray-50">
+                    <span class="text-[10px] text-gray-400">Actives</span>
+                    <span class="text-xs font-bold text-teal-600">{{ $stats['active'] }}</span>
+                </div>
+                <div class="flex items-center justify-between px-3.5 py-2 border-b border-gray-50">
+                    <span class="text-[10px] text-gray-400">Inactives</span>
+                    <span class="text-xs font-bold text-gray-400">{{ $stats['inactive'] }}</span>
                 </div>
                 <div class="flex items-center justify-between px-3.5 py-2">
                     <span class="text-[10px] text-gray-400">Pays couverts</span>

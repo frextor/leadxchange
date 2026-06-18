@@ -24,7 +24,7 @@ class EventController extends Controller
         ));
 
         $sectors      = Sector::orderBy('name')->get();
-        $cities       = City::orderBy('name')->get();
+        $cities       = City::active()->orderBy('name')->get();
         $attendingIds = $user->events()->pluck('events.id')->toArray();
 
         // ── Pending invitations ──────────────────────────────────
