@@ -31,3 +31,24 @@ if (! function_exists('currency_symbol')) {
         return SystemSetting::get('currency_symbol', '€');
     }
 }
+
+/**
+ * Display a member's name respecting the viewer's plan permission.
+ * Basic plan → first name only. Prémium+ → full name.
+ */
+if (! function_exists('member_name')) {
+    function member_name(\App\Models\User $member, bool $initialsOnly = false): string
+    {
+        $viewer = auth()->user();
+        $canSeeLastName = !$viewer || $viewer->canFeature('can_view_member_name');
+
+        if ($initialsOnly) {
+            $last = $canSeeLastName ? mb_substr($member->last_name, 0, 1) : '';
+            return strtoupper(mb_substr($member->first_name, 0, 1) . $last);
+        }
+
+        return $canSeeLastName
+            ? $member->first_name . ' ' . $member->last_name
+            : $member->first_name;
+    }
+}

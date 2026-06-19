@@ -47,21 +47,29 @@
 @section('content')
 @php
     $userPoints   = $currentUser->points_balance ?? 0;
-    $badgeLevel   = $currentUser->badge_level ?? 'bronze';
+    $badgeLevel   = $currentUser->badge_level ?? 'neutre';
     $badgeConfig  = [
-        'bronze' => ['label' => 'Bronze', 'icon' => '🏆', 'classes' => 'text-yellow-700'],
-        'argent' => ['label' => 'Argent', 'icon' => '🏆', 'classes' => 'text-gray-500'],
-        'or'     => ['label' => 'Or',     'icon' => '🏆', 'classes' => 'text-amber-500'],
+        'neutre'    => ['label' => 'Neutre',    'icon' => '○',  'classes' => 'text-gray-400'],
+        'bronze'    => ['label' => 'Bronze',    'icon' => '🏆', 'classes' => 'text-yellow-700'],
+        'argent'    => ['label' => 'Argent',    'icon' => '🏆', 'classes' => 'text-gray-500'],
+        'or'        => ['label' => 'Or',        'icon' => '🏆', 'classes' => 'text-amber-500'],
+        'platinium' => ['label' => 'Platinium', 'icon' => '💎', 'classes' => 'text-indigo-600'],
     ];
-    $badge = $badgeConfig[$badgeLevel];
+    $badge = $badgeConfig[$badgeLevel] ?? $badgeConfig['neutre'];
 
-    // Progress to next badge
-    if ($badgeLevel === 'bronze') {
-        $nextLevelLabel = 'Argent'; $nextLevelPts = 50;
-        $progressPct = min(100, (int) round($userPoints / 50 * 100));
+    // Progress to next badge (seuils : 0/5/10/15/20)
+    if ($badgeLevel === 'neutre') {
+        $nextLevelLabel = 'Bronze'; $nextLevelPts = 5;
+        $progressPct = min(100, (int) round($userPoints / 5 * 100));
+    } elseif ($badgeLevel === 'bronze') {
+        $nextLevelLabel = 'Argent'; $nextLevelPts = 10;
+        $progressPct = min(100, (int) round(max(0, $userPoints - 5) / 5 * 100));
     } elseif ($badgeLevel === 'argent') {
-        $nextLevelLabel = 'Or'; $nextLevelPts = 150;
-        $progressPct = min(100, (int) round(max(0, $userPoints - 51) / 99 * 100));
+        $nextLevelLabel = 'Or'; $nextLevelPts = 15;
+        $progressPct = min(100, (int) round(max(0, $userPoints - 10) / 5 * 100));
+    } elseif ($badgeLevel === 'or') {
+        $nextLevelLabel = 'Platinium'; $nextLevelPts = 20;
+        $progressPct = min(100, (int) round(max(0, $userPoints - 15) / 5 * 100));
     } else {
         $nextLevelLabel = null; $nextLevelPts = null; $progressPct = 100;
     }

@@ -135,6 +135,10 @@ class EventController extends Controller
 
     public function store(Request $request)
     {
+        if (! $request->user()->canFeature('can_create_events')) {
+            return redirect()->route('upgrade')->with('upgrade_reason', 'Votre plan ne permet pas de créer des événements.');
+        }
+
         $validated = $request->validate([
             'title'         => ['required', 'string', 'max:150'],
             'description'   => ['nullable', 'string', 'max:1000'],

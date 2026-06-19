@@ -10,7 +10,6 @@ use App\Services\FirebaseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 
 class ChatController extends Controller
 {
@@ -117,6 +116,13 @@ class ChatController extends Controller
 
         abort_if($sender->id === $userId, 422, 'Cannot send a message to yourself.');
         abort_unless($sender->isConnectedWith($userId), 403, 'Not connected.');
+
+        if (! $sender->canFeature('can_send_mail')) {
+            return response()->json([
+                'message' => 'Votre plan ne permet pas d\'envoyer des messages. Passez à un plan supérieur.',
+                'upgrade' => true,
+            ], 403);
+        }
 
         $type = $request->input('type', 'text');
 

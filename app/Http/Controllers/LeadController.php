@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnforcePlanLimits;
 use App\Http\Requests\StoreLeadRequest;
 use App\Models\Lead;
 use App\Models\LeadRating;
@@ -12,6 +13,8 @@ use Illuminate\Http\Request;
 
 class LeadController extends Controller
 {
+    use EnforcePlanLimits;
+
     public function __construct(private LeadService $leadService) {}
 
     public function index(Request $request)
@@ -59,8 +62,23 @@ class LeadController extends Controller
 
     public function store(StoreLeadRequest $request)
     {
+        $user     = $request->user();
+        $maxLeads = $user->planPermission('max_leads'); // null = illimité
+
+        if ($maxLeads !== null) {
+            $sentThisMonth = Lead::where('sender_id', $user->id)
+                ->where('created_at', '>=', now()->startOfMonth())
+                ->count();
+
+            if ($sentThisMonth >= $maxLeads) {
+                return $this->upgradeDenied(
+                    "Vous avez atteint votre limite de {$maxLeads} lead(s) par mois. Passez à un plan supérieur pour envoyer davantage."
+                );
+            }
+        }
+
         try {
-            $this->leadService->createLead($request->user(), $request->validated());
+            $this->leadService->createLead($user, $request->validated());
 
             return redirect()->route('leads.index')
                 ->with('success', 'Lead envoyé avec succès !');

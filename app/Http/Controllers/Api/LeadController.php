@@ -56,8 +56,24 @@ class LeadController extends Controller
 
     public function store(StoreLeadRequest $request): JsonResponse
     {
+        $user     = $request->user();
+        $maxLeads = $user->planPermission('max_leads');
+
+        if ($maxLeads !== null) {
+            $sent = \App\Models\Lead::where('sender_id', $user->id)
+                ->where('created_at', '>=', now()->startOfMonth())
+                ->count();
+
+            if ($sent >= $maxLeads) {
+                return response()->json([
+                    'message' => "Limite de {$maxLeads} lead(s)/mois atteinte. Passez à un plan supérieur.",
+                    'upgrade' => true,
+                ], 403);
+            }
+        }
+
         try {
-            $lead = $this->leadService->createLead($request->user(), $request->validated());
+            $lead = $this->leadService->createLead($user, $request->validated());
 
             return response()->json([
                 'message' => 'Lead envoyé avec succès.',

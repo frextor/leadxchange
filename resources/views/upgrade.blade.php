@@ -4,17 +4,27 @@
 
 @section('content')
 @php
-    $featureDefs = \App\Http\Controllers\Admin\SuperAdmin\PlanController::FEATURES;
-
     $themes = [
         'basic'       => ['top' => '#64748B', 'bg' => '#F8FAFC', 'accent' => '#475569'],
+        'premium'     => ['top' => '#6366F1', 'bg' => '#EEF2FF', 'accent' => '#4338CA'],
+        'consul'      => ['top' => '#0D9488', 'bg' => '#F0FDFA', 'accent' => '#0F766E'],
         'ambassadeur' => ['top' => '#D97706', 'bg' => '#FFFBEB', 'accent' => '#92400E'],
-        'premium_gold'=> ['top' => '#6366F1', 'bg' => '#EEF2FF', 'accent' => '#4338CA'],
-        'enterprise'  => ['top' => '#0D9488', 'bg' => '#F0FDFA', 'accent' => '#0F766E'],
+        'enterprise'  => ['top' => '#1D4ED8', 'bg' => '#EFF6FF', 'accent' => '#1E40AF'],
     ];
 @endphp
 
 <div class="max-w-5xl mx-auto px-4 py-10">
+
+    {{-- Raison du redirect (limite plan atteinte) --}}
+    @if(session('upgrade_reason'))
+    <div class="mb-6 flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-5 py-4 text-sm">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0 mt-0.5"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div>
+            <p class="font-semibold">Limite de votre plan atteinte</p>
+            <p class="text-amber-700 mt-0.5">{{ session('upgrade_reason') }}</p>
+        </div>
+    </div>
+    @endif
 
     {{-- Header --}}
     <div class="text-center mb-10">
@@ -48,7 +58,6 @@
         @php
             $t = $themes[$plan->name] ?? $themes['basic'];
             $isCurrent = $currentPlan && $currentPlan->id === $plan->id;
-            $planFeatures = is_array($plan->features) ? $plan->features : [];
         @endphp
         <div class="bg-white rounded-2xl border-2 overflow-hidden flex flex-col transition-shadow hover:shadow-lg relative
                     {{ $isCurrent ? 'border-indigo-300 shadow-md' : 'border-gray-100' }}"
@@ -91,50 +100,56 @@
 
             {{-- Features list --}}
             <div class="px-5 py-4 flex-1">
+                @php $planFeatures = is_array($plan->features) ? $plan->features : []; @endphp
+                @if(count($planFeatures) > 0)
                 <ul class="space-y-2">
-                    @foreach($featureDefs as $fKey => $fDef)
-                    @php
-                        $val = $planFeatures[$fKey] ?? ($fDef['type'] === 'number' ? null : false);
-                        $enabled = is_bool($val) ? $val : ($val === null || (is_int($val) && $val > 0));
-                    @endphp
-                    <li class="flex items-center gap-2.5">
-                        @if($enabled)
+                    @foreach($planFeatures as $feat)
+                    @php $featText = is_array($feat) ? ($feat['name'] ?? $feat['label'] ?? implode(', ', array_filter((array)$feat, 'is_string'))) : (string)$feat; @endphp
+                    <li class="flex items-center gap-2.5 text-xs text-gray-700">
                         <span class="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
                               style="background:{{ $t['bg'] }};">
                             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="{{ $t['top'] }}" stroke-width="3"><path d="m5 12 5 5L20 7"/></svg>
                         </span>
-                        <span class="text-xs text-gray-700">{{ $fDef['label'] }}</span>
-                        @if($fDef['type'] === 'number' && is_int($val) && $val > 0)
-                        <span class="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-md tabular-nums"
-                              style="background:{{ $t['bg'] }};color:{{ $t['accent'] }};">{{ $val }}</span>
-                        @elseif($fDef['type'] === 'number' && $val === null)
-                        <span class="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-md"
-                              style="background:{{ $t['bg'] }};color:{{ $t['accent'] }};">∞</span>
-                        @endif
-                        @else
-                        <span class="w-4 h-4 rounded-full bg-gray-50 flex items-center justify-center flex-shrink-0">
-                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                        </span>
-                        <span class="text-xs text-gray-300 line-through">{{ $fDef['label'] }}</span>
-                        @endif
+                        {{ $featText }}
                     </li>
                     @endforeach
                 </ul>
+                @else
+                <p class="text-xs text-gray-400 italic">Fonctionnalités à configurer.</p>
+                @endif
             </div>
 
             {{-- CTA --}}
             <div class="px-5 pb-5 pt-3">
                 @if($isCurrent)
                 <div class="w-full py-2.5 rounded-xl text-xs font-semibold text-center border-2 border-indigo-200 text-indigo-400 bg-indigo-50">
-                    Plan actuel
+                    ✓ Plan actuel
                 </div>
+                @elseif((float)$plan->price === 0.0)
+                <div class="w-full py-2.5 rounded-xl text-xs font-semibold text-center bg-gray-50 text-gray-400 border border-gray-200">
+                    Plan gratuit
+                </div>
+                @elseif($plan->stripe_price_id)
+                <form method="POST" action="{{ route('checkout', $plan) }}">
+                    @csrf
+                    <button type="submit"
+                            class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-white transition hover:opacity-90 active:scale-[.98]"
+                            style="background:linear-gradient(135deg,{{ $t['top'] }},{{ $t['accent'] }});">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        Passer au plan {{ $plan->label }}
+                    </button>
+                </form>
+                <p class="text-center text-[10px] text-gray-400 mt-2 flex items-center justify-center gap-1">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Paiement sécurisé via Stripe
+                </p>
                 @else
                 <a href="#contact"
                    class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-white transition hover:opacity-90 active:scale-[.98]"
                    style="background:linear-gradient(135deg,{{ $t['top'] }},{{ $t['accent'] }});"
                    onclick="showUpgradeContact('{{ $plan->label }}')">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                    Passer au plan {{ $plan->label }}
+                    Nous contacter
                 </a>
                 @endif
             </div>

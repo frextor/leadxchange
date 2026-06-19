@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnforcePlanLimits;
 use App\Services\ConnectionService;
 use Illuminate\Http\Request;
 
@@ -12,6 +13,8 @@ use Illuminate\Http\Request;
  */
 class ConnectionController extends Controller
 {
+    use EnforcePlanLimits;
+
     protected ConnectionService $connectionService;
 
     public function __construct(ConnectionService $connectionService)
@@ -68,6 +71,10 @@ class ConnectionController extends Controller
      */
     public function store(Request $request)
     {
+        if ($redirect = $this->requirePermission('can_send_invitations', 'Votre plan ne permet pas d\'envoyer des invitations de connexion.')) {
+            return $redirect;
+        }
+
         $validated = $request->validate([
             'receiver_id' => ['required', 'integer', 'exists:users,id'],
         ]);

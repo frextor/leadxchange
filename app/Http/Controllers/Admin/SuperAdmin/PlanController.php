@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Plan;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Stripe\StripeClient;
 
 class PlanController extends Controller
 {
@@ -98,32 +100,62 @@ class PlanController extends Controller
             ->with('success', 'Plan mis à jour.');
     }
 
-    /** All canonical feature definitions used across plans. */
-    public const FEATURES = [
-        // -- Connexions ---------------------------------------------------------
-        'max_connections_per_month' => ['label' => 'Connexions / mois',              'type' => 'number'],
-        'view_profile_info'         => ['label' => 'Voir les infos profil',           'type' => 'bool'],
-        'advanced_search'           => ['label' => 'Recherche avancée',               'type' => 'bool'],
-        // -- Leads --------------------------------------------------------------
-        'send_leads'                => ['label' => 'Envoyer des leads',               'type' => 'bool'],
-        // -- Groupes ------------------------------------------------------------
-        'join_groups'               => ['label' => 'Rejoindre des groupes',           'type' => 'bool'],
-        'create_groups'             => ['label' => 'Créer des groupes',               'type' => 'bool'],
-        // -- Événements ---------------------------------------------------------
-        'attend_events'             => ['label' => 'Participer aux événements',       'type' => 'bool'],
-        'create_events'             => ['label' => 'Créer des événements',            'type' => 'bool'],
-        // -- Profil & extras ----------------------------------------------------
-        'chat'                      => ['label' => 'Messagerie',                      'type' => 'bool'],
-        'profile_video'             => ['label' => 'Vidéo de présentation',           'type' => 'bool'],
-        'priority_support'          => ['label' => 'Support prioritaire',             'type' => 'bool'],
-        'requires_approval'         => ['label' => 'Sur approbation',                 'type' => 'bool'],
+    /** All canonical permission definitions grouped by category. */
+    public const PERMISSIONS = [
+        'Profil membres' => [
+            'can_view_member_name'          => ['label' => 'Voir le nom de famille',       'type' => 'bool'],
+            'can_view_member_firstname'     => ['label' => 'Voir le prénom',               'type' => 'bool'],
+            'can_view_member_photo'         => ['label' => 'Voir la photo',                'type' => 'bool'],
+            'can_view_member_region'        => ['label' => 'Voir la région',               'type' => 'bool'],
+            'can_view_member_pitch'         => ['label' => 'Voir le pitch',                'type' => 'bool'],
+            'can_view_member_video'         => ['label' => 'Voir la vidéo',                'type' => 'bool'],
+            'can_view_member_contact'       => ['label' => 'Voir email / téléphone',       'type' => 'bool'],
+        ],
+        'Connexions' => [
+            'can_send_invitations'          => ['label' => 'Envoyer des invitations',      'type' => 'bool'],
+            'can_receive_invitations'       => ['label' => 'Recevoir des invitations',     'type' => 'bool'],
+        ],
+        'Chat / Messages' => [
+            'can_send_mail'                 => ['label' => 'Envoyer des messages',         'type' => 'bool'],
+            'can_receive_mail'              => ['label' => 'Recevoir des messages',        'type' => 'bool'],
+            'can_reply_mail'                => ['label' => 'Répondre aux messages',        'type' => 'bool'],
+            'mail_reply_weekly_limit'       => ['label' => 'Limite réponses / semaine',    'type' => 'number', 'null_label' => 'Illimité'],
+        ],
+        'Leads' => [
+            'can_send_leads'                => ['label' => 'Envoyer des leads',            'type' => 'bool'],
+            'can_receive_leads'             => ['label' => 'Recevoir des leads',           'type' => 'bool'],
+            'max_leads_per_month'           => ['label' => 'Max leads envoyés / mois',     'type' => 'number', 'null_label' => 'Illimité'],
+            'can_send_mql'                  => ['label' => 'Envoyer leads MQL',            'type' => 'bool'],
+            'can_send_sql'                  => ['label' => 'Envoyer leads SQL',            'type' => 'bool'],
+            'can_send_sp'                   => ['label' => 'Envoyer leads SP',             'type' => 'bool'],
+        ],
+        'Groupes / Pôles' => [
+            'can_join_pole'                 => ['label' => 'Rejoindre un groupe',          'type' => 'bool'],
+            'max_groups_joined'             => ['label' => 'Max groupes rejoints',         'type' => 'number', 'null_label' => 'Illimité'],
+            'can_create_pole'               => ['label' => 'Créer un groupe',              'type' => 'bool'],
+            'can_invite_to_group'           => ['label' => 'Inviter dans un groupe',       'type' => 'bool'],
+            'can_organize_group_events'     => ['label' => 'Organiser événements groupe',  'type' => 'bool'],
+        ],
+        'Événements' => [
+            'can_participate_events'        => ['label' => 'Participer aux événements',    'type' => 'bool'],
+            'can_receive_event_invitations' => ['label' => 'Recevoir invitations événements', 'type' => 'bool'],
+            'can_create_events'             => ['label' => 'Créer des événements',         'type' => 'bool'],
+            'can_organize_regional_events'  => ['label' => 'Organiser événements régionaux', 'type' => 'bool'],
+        ],
+        'Spécial' => [
+            'can_nominate_consul'           => ['label' => 'Nommer un consul',             'type' => 'bool'],
+            'can_add_member'                => ['label' => 'Ajouter un membre (Enterprise)', 'type' => 'bool'],
+        ],
     ];
+
+    // Flatten for backward compat with upgrade-gate component
+    public const FEATURES = [];
 
     public function permissions(): View
     {
-        $plans = Plan::orderBy('sort_order')->get();
-        $features = self::FEATURES;
-        return view('admin.super_admin.plans.permissions', compact('plans', 'features'));
+        $plans       = Plan::orderBy('sort_order')->get();
+        $permissions = self::PERMISSIONS;
+        return view('admin.super_admin.plans.permissions', compact('plans', 'permissions'));
     }
 
     public function updatePermissions(Request $request): RedirectResponse
@@ -131,20 +163,23 @@ class PlanController extends Controller
         $plans = Plan::orderBy('sort_order')->get();
 
         foreach ($plans as $plan) {
-            $features = [];
-            foreach (self::FEATURES as $key => $def) {
-                $fieldKey = "features_{$plan->id}_{$key}";
+            $perms = is_array($plan->permissions) ? $plan->permissions : [];
 
-                if ($def['type'] === 'number') {
-                    $raw = $request->input($fieldKey);
-                    // empty string / "unlimited" checkbox → null, numeric → int
-                    $features[$key] = ($raw === '' || $raw === null) ? null : (int) $raw;
-                } else {
-                    // checkbox: present = true, absent = false
-                    $features[$key] = $request->boolean($fieldKey);
+            foreach (self::PERMISSIONS as $group) {
+                foreach ($group as $key => $def) {
+                    $fieldKey = "perm_{$plan->id}_{$key}";
+
+                    if ($def['type'] === 'number') {
+                        $unlimited = $request->boolean("unlimited_{$plan->id}_{$key}");
+                        $raw       = $request->input($fieldKey);
+                        $perms[$key] = $unlimited ? null : (($raw === '' || $raw === null) ? null : (int) $raw);
+                    } else {
+                        $perms[$key] = $request->boolean($fieldKey);
+                    }
                 }
             }
-            $plan->update(['features' => $features]);
+
+            $plan->update(['permissions' => $perms]);
         }
 
         return back()->with('success', 'Permissions des plans mises à jour.');
@@ -155,5 +190,149 @@ class PlanController extends Controller
         $plan->update(['is_active' => !$plan->is_active]);
         $label = $plan->is_active ? 'activé' : 'désactivé';
         return back()->with('success', "Plan « {$plan->label} » {$label}.");
+    }
+
+    // ── Stripe integration ────────────────────────────────────────────────────
+
+    private function stripe(): StripeClient
+    {
+        return new StripeClient(config('services.stripe.secret'));
+    }
+
+    public function stripeIndex(): View
+    {
+        $plans        = Plan::orderBy('sort_order')->get();
+        $stripeKey    = config('services.stripe.secret');
+        $isConfigured = ! empty($stripeKey);
+        $stripeProducts = [];
+
+        if ($isConfigured) {
+            try {
+                $stripe = $this->stripe();
+                // Fetch existing Stripe products to show their status
+                foreach ($plans->whereNotNull('stripe_product_id') as $plan) {
+                    try {
+                        $product = $stripe->products->retrieve($plan->stripe_product_id);
+                        $stripeProducts[$plan->id] = [
+                            'product' => $product,
+                            'price'   => $plan->stripe_price_id
+                                ? $stripe->prices->retrieve($plan->stripe_price_id)
+                                : null,
+                        ];
+                    } catch (\Exception) {
+                        $stripeProducts[$plan->id] = null;
+                    }
+                }
+            } catch (\Exception $e) {
+                $isConfigured = false;
+            }
+        }
+
+        return view('admin.super_admin.plans.stripe', compact('plans', 'isConfigured', 'stripeProducts'));
+    }
+
+    public function stripeSyncPlan(Request $request, Plan $plan): JsonResponse
+    {
+        if (! config('services.stripe.secret')) {
+            return response()->json(['error' => 'Stripe non configuré.'], 400);
+        }
+
+        if ((float) $plan->price <= 0) {
+            return response()->json(['error' => 'Le plan Basic (gratuit) ne nécessite pas de prix Stripe.'], 400);
+        }
+
+        try {
+            $stripe   = $this->stripe();
+            $currency = config('services.stripe.currency', 'eur');
+
+            // Create or update Stripe Product
+            if ($plan->stripe_product_id) {
+                $product = $stripe->products->update($plan->stripe_product_id, [
+                    'name'        => $plan->label . ' — LeadXchange',
+                    'description' => $plan->description ?? '',
+                    'active'      => (bool) $plan->is_active,
+                ]);
+            } else {
+                $product = $stripe->products->create([
+                    'name'        => $plan->label . ' — LeadXchange',
+                    'description' => $plan->description ?? '',
+                    'metadata'    => ['plan_id' => (string) $plan->id, 'plan_name' => $plan->name],
+                ]);
+            }
+
+            // Create new Price (Stripe prices are immutable — always create new)
+            $amountInCents = (int) round((float) $plan->price * 100);
+            $price = $stripe->prices->create([
+                'product'     => $product->id,
+                'unit_amount' => $amountInCents,
+                'currency'    => $currency,
+                'recurring'   => ['interval' => 'month'],
+                'metadata'    => ['plan_id' => (string) $plan->id],
+            ]);
+
+            // Archive old price if it existed
+            if ($plan->stripe_price_id && $plan->stripe_price_id !== $price->id) {
+                try {
+                    $stripe->prices->update($plan->stripe_price_id, ['active' => false]);
+                } catch (\Exception) {}
+            }
+
+            $plan->update([
+                'stripe_product_id' => $product->id,
+                'stripe_price_id'   => $price->id,
+            ]);
+
+            return response()->json([
+                'success'           => true,
+                'stripe_product_id' => $product->id,
+                'stripe_price_id'   => $price->id,
+                'amount'            => number_format($plan->price, 2) . ' ' . strtoupper($currency),
+            ]);
+
+        } catch (\Stripe\Exception\ApiErrorException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+    }
+
+    public function stripeSyncAll(): RedirectResponse
+    {
+        if (! config('services.stripe.secret')) {
+            return back()->with('error', 'Clé Stripe non configurée dans .env.');
+        }
+
+        $synced = 0;
+        $errors = [];
+
+        foreach (Plan::where('is_active', true)->where('price', '>', 0)->get() as $plan) {
+            try {
+                $stripe   = $this->stripe();
+                $currency = config('services.stripe.currency', 'eur');
+
+                $product = $plan->stripe_product_id
+                    ? $stripe->products->update($plan->stripe_product_id, ['name' => $plan->label . ' — LeadXchange'])
+                    : $stripe->products->create(['name' => $plan->label . ' — LeadXchange', 'metadata' => ['plan_id' => (string) $plan->id]]);
+
+                $price = $stripe->prices->create([
+                    'product'     => $product->id,
+                    'unit_amount' => (int) round((float) $plan->price * 100),
+                    'currency'    => $currency,
+                    'recurring'   => ['interval' => 'month'],
+                ]);
+
+                if ($plan->stripe_price_id && $plan->stripe_price_id !== $price->id) {
+                    try { $stripe->prices->update($plan->stripe_price_id, ['active' => false]); } catch (\Exception) {}
+                }
+
+                $plan->update(['stripe_product_id' => $product->id, 'stripe_price_id' => $price->id]);
+                $synced++;
+            } catch (\Exception $e) {
+                $errors[] = "{$plan->label} : {$e->getMessage()}";
+            }
+        }
+
+        $msg = "{$synced} plan(s) synchronisé(s) avec Stripe.";
+        if ($errors) $msg .= ' Erreurs : ' . implode(', ', $errors);
+
+        return back()->with($errors ? 'error' : 'success', $msg);
     }
 }

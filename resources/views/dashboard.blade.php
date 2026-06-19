@@ -51,7 +51,7 @@
 
                 {{-- Info --}}
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-gray-900 truncate">{{ $prospect->first_name }} {{ $prospect->last_name }}</p>
+                    <p class="text-sm font-semibold text-gray-900 truncate">{{ member_name($prospect) }}</p>
                     <p class="text-xs text-gray-400 truncate">
                         {{ $prospect->profile?->job_title ?? 'LeadXchange member' }}
                         @if($prospect->company) · {{ $prospect->company->name }} @endif
@@ -149,6 +149,34 @@
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                     Plan {{ $userPlan?->label ?? 'Basic' }}
                 </span>
+
+                {{-- Consul request button --}}
+                @php $authUser = auth()->user(); @endphp
+                @if($authUser->isConsul())
+                <span class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-white/90 border border-white/20" style="background:rgba(255,255,255,0.12);">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Rôle Consul ✓
+                </span>
+                @elseif($authUser->isAmbassador())
+                <span class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-white/90 border border-white/20" style="background:rgba(255,215,0,0.2);">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FFD700" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    Ambassadeur ✓
+                </span>
+                @elseif($authUser->hasPendingConsulRequest())
+                <span class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-amber-300 border border-amber-300/30" style="background:rgba(245,158,11,0.15);">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                    Demande Consul en attente…
+                </span>
+                @elseif($userPlan && $userPlan->price > 0)
+                <form method="POST" action="{{ route('consul.request') }}">
+                    @csrf
+                    <button type="submit"
+                            class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-white border border-white/20 hover:bg-white/10 transition backdrop-blur-sm">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        Demander le rôle Consul
+                    </button>
+                </form>
+                @endif
             </div>
         </div>
     </div>
@@ -217,7 +245,7 @@
 
                 {{-- Info --}}
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-gray-900 truncate">{{ $prospect->first_name }} {{ $prospect->last_name }}</p>
+                    <p class="text-sm font-semibold text-gray-900 truncate">{{ member_name($prospect) }}</p>
                     <p class="text-xs text-gray-400 truncate">
                         {{ $prospect->profile?->job_title ?? 'LeadXchange member' }}
                         @if($prospect->company) · {{ $prospect->company->name }} @endif
@@ -239,11 +267,19 @@
                        class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">
                         View
                     </a>
+                    @if(auth()->user()->canFeature('can_send_invitations'))
                     <button onclick="sendConnect({{ $prospect->id }}, this)"
                         class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition"
                         style="background:#1E8F88;" onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
                         Connect
                     </button>
+                    @else
+                    <a href="{{ route('upgrade') }}"
+                       class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 text-indigo-500 hover:bg-indigo-50 transition flex items-center gap-1">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Upgrade
+                    </a>
+                    @endif
                 </div>
             </div>
             @empty

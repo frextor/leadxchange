@@ -5,10 +5,12 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\GroupController;
 use App\Http\Controllers\Admin\LeadController;
+use App\Http\Controllers\Admin\NotationController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VideoController;
 use App\Http\Controllers\Admin\SuperAdmin\AdminManagerController;
 use App\Http\Controllers\Admin\SuperAdmin\AmbassadorController;
+use App\Http\Controllers\Admin\SuperAdmin\ConsulController;
 use App\Http\Controllers\Admin\SuperAdmin\CityController;
 use App\Http\Controllers\Admin\SuperAdmin\CountryController;
 use App\Http\Controllers\Admin\SuperAdmin\DashboardController as SuperDashboardController;
@@ -52,6 +54,13 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/leads',         [LeadController::class, 'index'])->name('admin.leads.index');
     Route::get('/leads/{lead}',  [LeadController::class, 'show'])->name('admin.leads.show');
 
+    // Notation
+    Route::get('/notation',                         [NotationController::class, 'index'])->name('admin.notation.index');
+    Route::put('/notation/{user}',                  [NotationController::class, 'update'])->name('admin.notation.update');
+    Route::post('/notation/{user}/recalculate',     [NotationController::class, 'recalculate'])->name('admin.notation.recalculate');
+    Route::post('/notation/recalculate-all',        [NotationController::class, 'recalculateAll'])->name('admin.notation.recalculate-all');
+    Route::post('/notation/thresholds',             [NotationController::class, 'updateThresholds'])->name('admin.notation.thresholds');
+
     // Events
     Route::get('/events',              [EventController::class, 'index'])->name('admin.events.index');
     Route::delete('/events/{event}',   [EventController::class, 'destroy'])->name('admin.events.destroy');
@@ -83,14 +92,17 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::post('admins/{user}/demote',      [AdminManagerController::class, 'demote'])->name('admins.demote');
 
     // Plans
-    Route::get('plans',                      [PlanController::class, 'index'])->name('plans.index');
-    Route::get('plans/create',               [PlanController::class, 'create'])->name('plans.create');
-    Route::post('plans',                     [PlanController::class, 'store'])->name('plans.store');
-    Route::get('plans/permissions',          [PlanController::class, 'permissions'])->name('plans.permissions');
-    Route::post('plans/permissions',         [PlanController::class, 'updatePermissions'])->name('plans.permissions.update');
-    Route::get('plans/{plan}/edit',          [PlanController::class, 'edit'])->name('plans.edit');
-    Route::put('plans/{plan}',               [PlanController::class, 'update'])->name('plans.update');
-    Route::post('plans/{plan}/toggle',       [PlanController::class, 'toggleStatus'])->name('plans.toggle');
+    Route::get('plans',                          [PlanController::class, 'index'])->name('plans.index');
+    Route::get('plans/create',                   [PlanController::class, 'create'])->name('plans.create');
+    Route::post('plans',                         [PlanController::class, 'store'])->name('plans.store');
+    Route::get('plans/permissions',              [PlanController::class, 'permissions'])->name('plans.permissions');
+    Route::post('plans/permissions',             [PlanController::class, 'updatePermissions'])->name('plans.permissions.update');
+    Route::get('plans/stripe',                   [PlanController::class, 'stripeIndex'])->name('plans.stripe');
+    Route::post('plans/stripe/sync-all',         [PlanController::class, 'stripeSyncAll'])->name('plans.stripe.sync-all');
+    Route::post('plans/stripe/{plan}/sync',      [PlanController::class, 'stripeSyncPlan'])->name('plans.stripe.sync');
+    Route::get('plans/{plan}/edit',              [PlanController::class, 'edit'])->name('plans.edit');
+    Route::put('plans/{plan}',                   [PlanController::class, 'update'])->name('plans.update');
+    Route::post('plans/{plan}/toggle',           [PlanController::class, 'toggleStatus'])->name('plans.toggle');
 
     // Subscribers
     Route::get('subscribers',                [SubscriberController::class, 'index'])->name('subscribers.index');
@@ -100,6 +112,16 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::get('ambassadors/{user}',         [AmbassadorController::class, 'show'])->name('ambassadors.show');
     Route::post('ambassadors/{user}/approve',[AmbassadorController::class, 'approve'])->name('ambassadors.approve');
     Route::post('ambassadors/{user}/reject', [AmbassadorController::class, 'reject'])->name('ambassadors.reject');
+
+    // Consul requests (admin + ambassador)
+    Route::get('consul',                          [ConsulController::class, 'index'])->name('consul.index');
+    Route::post('consul/{consulRequest}/approve', [ConsulController::class, 'approve'])->name('consul.approve');
+    Route::post('consul/{consulRequest}/reject',  [ConsulController::class, 'reject'])->name('consul.reject');
+
+    // Ambassador management (admin only)
+    Route::get('manage-ambassadors',                     [ConsulController::class, 'ambassadors'])->name('ambassadors.manage');
+    Route::post('manage-ambassadors/{user}/promote',     [ConsulController::class, 'promoteAmbassador'])->name('ambassadors.promote');
+    Route::delete('manage-ambassadors/{user}/revoke',    [ConsulController::class, 'revokeAmbassador'])->name('ambassadors.revoke');
 
     // Sectors
     Route::get('sectors',                    [SectorController::class, 'index'])->name('sectors.index');

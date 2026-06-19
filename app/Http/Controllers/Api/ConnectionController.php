@@ -29,6 +29,13 @@ class ConnectionController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        if (! $request->user()->canFeature('can_send_invitations')) {
+            return response()->json([
+                'message' => 'Votre plan ne permet pas d\'envoyer des invitations.',
+                'upgrade' => true,
+            ], 403);
+        }
+
         $validated = $request->validate([
             'receiver_id' => ['required', 'integer', 'exists:users,id'],
         ]);

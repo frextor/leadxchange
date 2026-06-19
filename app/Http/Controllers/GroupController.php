@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EnforcePlanLimits;
 use App\Models\City;
 use App\Models\Group;
 use App\Models\GroupInvitation;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Storage;
 
 class GroupController extends Controller
 {
+    use EnforcePlanLimits;
+
     public function index(Request $request)
     {
         $user = $request->user();
@@ -309,6 +312,10 @@ class GroupController extends Controller
 
     public function store(Request $request)
     {
+        if ($redirect = $this->requirePermission('can_create_pole', 'Votre plan ne permet pas de créer un groupe.')) {
+            return $redirect;
+        }
+
         $validated = $request->validate([
             'name'        => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:500'],
@@ -356,6 +363,10 @@ class GroupController extends Controller
 
     public function join(Request $request, int $id)
     {
+        if ($redirect = $this->requirePermission('can_join_pole', 'Votre plan ne permet pas de rejoindre des groupes.')) {
+            return $redirect;
+        }
+
         $group = Group::findOrFail($id);
         $user  = $request->user();
 

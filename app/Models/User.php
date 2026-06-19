@@ -146,6 +146,26 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->ambassador_status === 'approved';
     }
 
+    public function isConsul(): bool
+    {
+        return $this->consulRequests()->where('status', 'approved')->exists();
+    }
+
+    public function hasPendingConsulRequest(): bool
+    {
+        return $this->consulRequests()->where('status', 'pending')->exists();
+    }
+
+    public function consulRequests()
+    {
+        return $this->hasMany(\App\Models\ConsulRequest::class);
+    }
+
+    public function latestConsulRequest(): ?\App\Models\ConsulRequest
+    {
+        return $this->consulRequests()->latest()->first();
+    }
+
     public function profile()
     {
         return $this->hasOne(Profile::class);
@@ -348,20 +368,23 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function canFeature(string $key): bool
     {
+        // Use the new permissions system if the key exists there
+        $plan = $this->subscription?->plan
+            ?? \App\Models\Plan::where('name', 'basic')->first();
+
+        if ($plan && is_array($plan->permissions) && array_key_exists($key, $plan->permissions)) {
+            $val = $plan->permissions[$key];
+            if ($val === null)      return true;
+            if (is_bool($val))      return $val;
+            if (is_int($val))       return $val > 0;
+            return (bool) $val;
+        }
+
+        // Fallback to old features array
         $value = $this->getFeature($key);
-
-        if ($value === null) {
-            return true; // null = unlimited / fully enabled
-        }
-
-        if (is_bool($value)) {
-            return $value;
-        }
-
-        if (is_int($value)) {
-            return $value > 0;
-        }
-
+        if ($value === null)    return true;
+        if (is_bool($value))   return $value;
+        if (is_int($value))    return $value > 0;
         return (bool) $value;
     }
 

@@ -106,6 +106,9 @@ Route::get('/firebase-messaging-sw.js', function () {
         ->header('Service-Worker-Allowed', '/');
 })->name('firebase.sw');
 
+// Stripe webhook — no auth, no CSRF (excluded in VerifyCsrfToken)
+Route::post('/stripe/webhook', [\App\Http\Controllers\StripeCheckoutController::class, 'webhook'])->name('stripe.webhook');
+
 // ==========================================
 // Guest Routes (Not authenticated)
 // ==========================================
@@ -154,6 +157,10 @@ Route::middleware(['auth', 'user'])->group(function () {
         return view('upgrade', compact('plans', 'currentPlan'));
     })->name('upgrade');
 
+    // Stripe Checkout (auth required)
+    Route::post('/checkout/{plan}', [\App\Http\Controllers\StripeCheckoutController::class, 'checkout'])->name('checkout');
+    Route::get('/checkout/success',  [\App\Http\Controllers\StripeCheckoutController::class, 'success'])->name('checkout.success');
+
     // Company Routes
     Route::get('/company/create', [CompanyController::class, 'create'])->name('company.create');
     Route::get('/company/search', [CompanyController::class, 'search'])->name('company.search');
@@ -192,6 +199,9 @@ Route::middleware(['auth', 'user'])->group(function () {
     Route::post('/events/{id}/invite',                          [EventController::class, 'invite'])->name('events.invite');
     Route::delete('/events/{id}',                               [EventController::class, 'destroy'])->name('events.destroy');
     Route::delete('/events/{id}/attendees/{userId}',            [EventController::class, 'removeAttendee'])->name('events.attendees.destroy');
+
+    // Consul request (user-facing)
+    Route::post('/consul/request', [\App\Http\Controllers\ConsulRequestController::class, 'store'])->name('consul.request');
 
     // Leads (Exchanges)
     Route::get('/leads',                  [LeadController::class, 'index'])->name('leads.index');

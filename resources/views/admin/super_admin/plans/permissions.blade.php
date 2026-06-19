@@ -4,24 +4,21 @@
 
 @section('content')
 
-{{-- ── Header ──────────────────────────────────────────────────────────── --}}
 <div class="flex items-start justify-between mb-6">
     <div>
-        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Super Admin &rsaquo; Plans</p>
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Super Admin › Plans</p>
         <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Permissions des plans</h1>
-        <p class="text-sm text-gray-400 mt-1">Configurez les fonctionnalités accessibles pour chaque plan d'abonnement.</p>
+        <p class="text-sm text-gray-400 mt-1">Définissez ce que chaque plan autorise ou limite.</p>
     </div>
     <a href="{{ route('admin.super.plans.index') }}"
-       class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50 transition">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M5 12l7 7M5 12l7-7"/></svg>
-        Retour aux plans
+       class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
+        ← Retour aux plans
     </a>
 </div>
 
-{{-- Flash --}}
 @if(session('success'))
-<div class="mb-4 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm font-medium">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 5 5L20 7"/></svg>
+<div class="mb-5 flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl px-5 py-3 text-sm">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><path d="m9 11 3 3L22 4"/></svg>
     {{ session('success') }}
 </div>
 @endif
@@ -29,127 +26,133 @@
 <form method="POST" action="{{ route('admin.super.plans.permissions.update') }}">
 @csrf
 
-{{-- ── Legend ──────────────────────────────────────────────────────────── --}}
-<div class="flex flex-wrap items-center gap-4 mb-5 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-    <div class="flex items-center gap-1.5">
-        <div class="w-5 h-5 rounded-md bg-emerald-500 flex items-center justify-center">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="m5 12 5 5L20 7"/></svg>
-        </div>
-        Inclus
-    </div>
-    <div class="flex items-center gap-1.5">
-        <div class="w-5 h-5 rounded-md bg-gray-200 flex items-center justify-center">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
-        </div>
-        Non inclus
-    </div>
-    <div class="flex items-center gap-1.5">
-        <div class="w-16 h-5 rounded-md bg-indigo-100 text-indigo-600 flex items-center justify-center text-[9px] font-bold">
-            ∞ Illimité
-        </div>
-        Illimité (vide)
-    </div>
-    <div class="flex items-center gap-1.5">
-        <div class="w-16 h-5 rounded-md bg-indigo-100 text-indigo-600 flex items-center justify-center text-[9px] font-bold">
-            50
-        </div>
-        Valeur limite
-    </div>
-</div>
+<div class="overflow-x-auto">
+<table class="w-full text-sm border-separate border-spacing-0">
 
-{{-- ── Matrix ───────────────────────────────────────────────────────────── --}}
-<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-
-    {{-- Plan header row --}}
-    <div class="grid border-b border-gray-100" style="grid-template-columns: 260px repeat({{ count($plans) }}, 1fr);">
-        <div class="px-5 py-4 border-r border-gray-100">
-            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Fonctionnalité</span>
-        </div>
-        @foreach($plans as $plan)
-        @php
-            $themes = [
-                'basic'       => ['top' => '#6366F1', 'light' => '#EEF2FF', 'text' => '#4338CA'],
-                'vip'         => ['top' => '#F59E0B', 'light' => '#FFFBEB', 'text' => '#92400E'],
-                'enterprise'  => ['top' => '#0D9488', 'light' => '#F0FDFA', 'text' => '#0F766E'],
-            ];
-            $t = $themes[$plan->name] ?? ['top' => '#6B7280', 'light' => '#F9FAFB', 'text' => '#374151'];
-        @endphp
-        <div class="px-4 py-4 text-center" style="background:{{ $t['light'] }}; border-bottom: 3px solid {{ $t['top'] }};">
-            <p class="text-sm font-bold" style="color:{{ $t['text'] }};">{{ $plan->label }}</p>
-            <p class="text-[10px] text-gray-400 font-medium mt-0.5">
-                @if($plan->price == 0) Gratuit @else {{ currency_format($plan->price) }}/mois @endif
-            </p>
-        </div>
-        @endforeach
-    </div>
-
-    {{-- Feature rows --}}
-    @foreach($features as $key => $def)
-    @php $isNumber = $def['type'] === 'number'; @endphp
-    <div class="grid border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition"
-         style="grid-template-columns: 260px repeat({{ count($plans) }}, 1fr);">
-
-        {{-- Feature label --}}
-        <div class="px-5 py-4 border-r border-gray-100 flex flex-col justify-center">
-            <span class="text-sm font-semibold text-gray-800">{{ $def['label'] }}</span>
-            @if($isNumber)
-            <span class="text-[10px] text-gray-400 font-medium mt-0.5">Nombre ou vide = illimité</span>
-            @endif
-        </div>
-
-        {{-- Plan cells --}}
-        @foreach($plans as $plan)
-        @php
-            $val = $plan->features[$key] ?? false;
-            $fieldKey = "features_{$plan->id}_{$key}";
-        @endphp
-        <div class="px-4 py-4 flex items-center justify-center" id="cell-{{ $plan->id }}-{{ $key }}">
-            @if($isNumber)
-            {{-- Number input --}}
-            <input type="number" name="{{ $fieldKey }}" min="0"
-                   value="{{ $val !== null ? $val : '' }}"
-                   placeholder="∞"
-                   class="w-20 text-center border border-gray-200 rounded-xl px-2 py-1.5 text-sm font-medium focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition placeholder-indigo-300">
-            @else
-            {{-- Toggle checkbox --}}
-            <label class="cursor-pointer">
-                <input type="hidden" name="{{ $fieldKey }}" value="0">
-                <input type="checkbox" name="{{ $fieldKey }}" value="1"
-                       {{ $val ? 'checked' : '' }}
-                       class="peer sr-only toggle-bool"
-                       data-plan="{{ $plan->id }}" data-key="{{ $key }}">
-                <div class="w-10 h-6 rounded-full transition relative peer-checked:bg-emerald-400 bg-gray-200">
-                    <div class="absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4 peer-not-checked:translate-x-0"
-                         style="transform:{{ $val ? 'translateX(16px)' : 'translateX(0)' }}"></div>
+    {{-- En-tête plans --}}
+    <thead>
+        <tr>
+            <th class="sticky left-0 z-10 bg-white border-b border-gray-200 px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider min-w-[240px]">
+                Permission
+            </th>
+            @foreach($plans as $plan)
+            <th class="border-b border-gray-200 px-4 py-3 text-center min-w-[130px]">
+                <div class="flex flex-col items-center gap-1">
+                    <span class="text-sm font-bold text-gray-900">{{ $plan->label }}</span>
+                    <span class="text-[10px] text-gray-400">{{ $plan->price > 0 ? currency_format($plan->price).'/mois' : 'Gratuit' }}</span>
                 </div>
-            </label>
-            @endif
-        </div>
+            </th>
+            @endforeach
+        </tr>
+    </thead>
+
+    <tbody>
+    @foreach($permissions as $group => $perms)
+
+        {{-- Séparateur de groupe --}}
+        <tr>
+            <td colspan="{{ $plans->count() + 1 }}"
+                class="sticky left-0 px-5 py-2.5 bg-gradient-to-r from-gray-50 to-white border-y border-gray-100">
+                <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">{{ $group }}</span>
+            </td>
+        </tr>
+
+        @foreach($perms as $key => $def)
+        <tr class="hover:bg-gray-50/50 transition group border-b border-gray-50">
+
+            {{-- Label --}}
+            <td class="sticky left-0 bg-white group-hover:bg-gray-50/50 px-5 py-2.5 text-sm font-medium text-gray-700 border-b border-gray-50 transition">
+                {{ $def['label'] }}
+            </td>
+
+            @foreach($plans as $plan)
+            @php $val = ($plan->permissions ?? [])[$key] ?? null; @endphp
+            <td class="px-4 py-2.5 text-center border-b border-gray-50">
+
+                @if($def['type'] === 'bool')
+                    <label class="inline-flex items-center justify-center cursor-pointer">
+                        <input type="checkbox"
+                               name="perm_{{ $plan->id }}_{{ $key }}"
+                               value="1"
+                               {{ $val ? 'checked' : '' }}
+                               class="sr-only peer">
+                        <div class="w-8 h-4.5 rounded-full transition-colors peer-checked:bg-teal-500 bg-gray-200 relative">
+                            <div class="absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-3.5"></div>
+                        </div>
+                    </label>
+
+                @elseif($def['type'] === 'number')
+                    <div class="flex flex-col items-center gap-1">
+                        <input type="number"
+                               name="perm_{{ $plan->id }}_{{ $key }}"
+                               value="{{ $val }}"
+                               min="0"
+                               placeholder="—"
+                               class="w-20 border border-gray-200 rounded-lg px-2 py-1 text-xs text-center focus:outline-none focus:border-indigo-400 transition {{ $val === null ? 'bg-gray-50 text-gray-400' : '' }}"
+                               {{ $val === null ? 'disabled' : '' }}>
+                        <label class="flex items-center gap-1 text-[10px] text-gray-400 cursor-pointer">
+                            <input type="checkbox"
+                                   name="unlimited_{{ $plan->id }}_{{ $key }}"
+                                   class="w-3 h-3 rounded"
+                                   {{ $val === null ? 'checked' : '' }}
+                                   onchange="toggleUnlimited(this, 'perm_{{ $plan->id }}_{{ $key }}')">
+                            {{ $def['null_label'] ?? 'Illimité' }}
+                        </label>
+                    </div>
+                @endif
+
+            </td>
+            @endforeach
+        </tr>
         @endforeach
-    </div>
+
     @endforeach
+    </tbody>
+
+</table>
 </div>
 
-{{-- ── Submit ────────────────────────────────────────────────────────── --}}
-<div class="flex items-center gap-3 mt-6">
+{{-- Submit --}}
+<div class="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 mt-0 flex items-center gap-3 shadow-lg">
     <button type="submit"
-            class="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
-            style="background:linear-gradient(135deg,#6366F1,#4338CA);">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg>
-        Enregistrer les permissions
+            class="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
+            style="background:#4338CA;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 11 3 3L22 4"/></svg>
+        Enregistrer toutes les permissions
     </button>
-    <p class="text-xs text-gray-400">Les modifications prennent effet immédiatement pour tous les utilisateurs abonnés.</p>
+    <p class="text-xs text-gray-400">Les modifications s'appliquent immédiatement à tous les utilisateurs.</p>
 </div>
 
 </form>
 
+@endsection
+
+@push('scripts')
 <script>
-document.querySelectorAll('.toggle-bool').forEach(function(cb) {
+// Toggle number input when "Illimité" is checked
+function toggleUnlimited(checkbox, inputName) {
+    const input = document.querySelector(`[name="${inputName}"]`);
+    if (!input) return;
+    input.disabled = checkbox.checked;
+    input.classList.toggle('bg-gray-50', checkbox.checked);
+    input.classList.toggle('text-gray-400', checkbox.checked);
+    if (checkbox.checked) input.value = '';
+}
+
+// Fix toggle visual — CSS peer doesn't work through JS change
+document.querySelectorAll('input[type="checkbox"].sr-only').forEach(cb => {
     cb.addEventListener('change', function() {
-        var thumb = this.closest('label').querySelector('div > div');
-        if (thumb) thumb.style.transform = this.checked ? 'translateX(16px)' : 'translateX(0)';
+        const dot = this.nextElementSibling?.querySelector('div');
+        if (!dot) return;
+        const track = this.nextElementSibling;
+        if (this.checked) {
+            track.classList.replace('bg-gray-200', 'bg-teal-500');
+            dot.classList.add('translate-x-3.5');
+        } else {
+            track.classList.replace('bg-teal-500', 'bg-gray-200');
+            dot.classList.remove('translate-x-3.5');
+        }
     });
 });
 </script>
-
-@endsection
+@endpush

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\SystemSetting;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -22,14 +23,25 @@ class LeadScoreService
     // Fenêtre glissante en jours
     const WINDOW_DAYS = 60;
 
-    // Seuils des badges
-    const BADGE_THRESHOLDS = [
+    // Seuils des badges (fallback si pas en DB)
+    const BADGE_THRESHOLDS_DEFAULT = [
         'platinium' => 20,
         'or'        => 15,
         'argent'    => 10,
         'bronze'    => 5,
         'neutre'    => 0,
     ];
+
+    public static function thresholds(): array
+    {
+        return [
+            'platinium' => SystemSetting::get('badge_platinium_min', 20),
+            'or'        => SystemSetting::get('badge_or_min',        15),
+            'argent'    => SystemSetting::get('badge_argent_min',    10),
+            'bronze'    => SystemSetting::get('badge_bronze_min',     5),
+            'neutre'    => 0,
+        ];
+    }
 
     public function calculate(User $user): int
     {
@@ -64,7 +76,7 @@ class LeadScoreService
 
     public function badge(int $score): string
     {
-        foreach (self::BADGE_THRESHOLDS as $badge => $threshold) {
+        foreach (self::thresholds() as $badge => $threshold) {
             if ($score >= $threshold) {
                 return $badge;
             }
