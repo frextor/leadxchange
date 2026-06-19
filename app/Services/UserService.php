@@ -61,6 +61,22 @@ class UserService
                 if ($all || in_array('nationality', $fields)) {
                     $q->orWhereHas('nationality', fn ($n) => $n->where('name', 'LIKE', $like));
                 }
+                if ($all || in_array('services_offered', $fields)) {
+                    $q->orWhereHas('profile', fn ($p) => $p->whereExists(
+                        fn ($sub) => $sub->selectRaw('1')
+                            ->from('sectors')
+                            ->whereRaw('JSON_CONTAINS(profiles.services_offered, CAST(sectors.id AS JSON))')
+                            ->where('sectors.name', 'LIKE', $like)
+                    ));
+                }
+                if ($all || in_array('looking_for', $fields)) {
+                    $q->orWhereHas('profile', fn ($p) => $p->whereExists(
+                        fn ($sub) => $sub->selectRaw('1')
+                            ->from('sectors')
+                            ->whereRaw('JSON_CONTAINS(profiles.looking_for, CAST(sectors.id AS JSON))')
+                            ->where('sectors.name', 'LIKE', $like)
+                    ));
+                }
             });
         }
 
