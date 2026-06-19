@@ -27,7 +27,8 @@ class UserService
         int $page = 1,
         ?string $search = null,
         int $perPage = 10,
-        array $filters = []
+        array $filters = [],
+        array $searchFields = []
     ): LengthAwarePaginator {
 
         // Load current user's sector IDs once for shared-interest computation
@@ -38,16 +39,28 @@ class UserService
             ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'city:id,name'])
             ->select(['id', 'first_name', 'last_name', 'email', 'phone', 'phone_country_code', 'city_id', 'birthday', 'gender', 'company_id', 'points_balance', 'badge_level', 'ambassador_status']);
 
-        // Basic search — name, email, city, job_title, company
+        // Search — scoped to requested fields (or all fields if none specified)
         if ($search) {
-            $like = "%{$search}%";
-            $query->where(function ($q) use ($like) {
-                $q->where('first_name',  'LIKE', $like)
-                  ->orWhere('last_name',  'LIKE', $like)
-                  ->orWhere('email',      'LIKE', $like)
-                  ->orWhereHas('city', fn ($c) => $c->where('name', 'LIKE', $like))
-                  ->orWhereHas('profile',    fn ($p) => $p->where('job_title', 'LIKE', $like))
-                  ->orWhereHas('company',    fn ($c) => $c->where('name', 'LIKE', $like));
+            $like   = "%{$search}%";
+            $fields = $searchFields;
+            $query->where(function ($q) use ($like, $fields) {
+                $all = empty($fields);
+                if ($all || in_array('name', $fields)) {
+                    $q->orWhere('first_name', 'LIKE', $like)
+                      ->orWhere('last_name',  'LIKE', $like);
+                }
+                if ($all || in_array('company', $fields)) {
+                    $q->orWhereHas('company', fn ($c) => $c->where('name', 'LIKE', $like));
+                }
+                if ($all || in_array('job_title', $fields)) {
+                    $q->orWhereHas('profile', fn ($p) => $p->where('job_title', 'LIKE', $like));
+                }
+                if ($all || in_array('city', $fields)) {
+                    $q->orWhereHas('city', fn ($c) => $c->where('name', 'LIKE', $like));
+                }
+                if ($all || in_array('nationality', $fields)) {
+                    $q->orWhereHas('nationality', fn ($n) => $n->where('name', 'LIKE', $like));
+                }
             });
         }
 
