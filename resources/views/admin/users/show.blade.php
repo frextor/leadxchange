@@ -77,17 +77,48 @@
         {{-- Plan --}}
         <div class="bg-white rounded-xl border border-gray-200 p-5">
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Abonnement</p>
-            @if($user->subscription?->plan)
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style="background:linear-gradient(135deg,#34d4bf,#1E8F88);">P</div>
-                <div>
-                    <p class="font-semibold text-gray-900 text-sm">{{ $user->subscription->plan->label }}</p>
-                    <p class="text-xs text-gray-400">{{ number_format($user->subscription->plan->price, 2) }} € / mois</p>
+
+            {{-- Plan actuel --}}
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                     style="background:linear-gradient(135deg,#6366F1,#4338CA);">
+                    {{ strtoupper(substr($user->subscription?->plan?->name ?? 'B', 0, 1)) }}
                 </div>
+                <div>
+                    <p class="font-semibold text-gray-900 text-sm">{{ $user->subscription?->plan?->label ?? 'Basic (gratuit)' }}</p>
+                    <p class="text-xs text-gray-400">
+                        @if($user->subscription?->plan?->price > 0)
+                            {{ currency_format($user->subscription->plan->price) }} / mois
+                        @else
+                            Gratuit
+                        @endif
+                    </p>
+                </div>
+                @if($user->subscription?->status === 'active')
+                <span class="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Actif</span>
+                @endif
             </div>
-            @else
-            <p class="text-sm text-gray-400">Aucun abonnement actif.</p>
-            @endif
+
+            {{-- Changer le plan --}}
+            <form method="POST" action="{{ route('admin.users.change-plan', $user) }}" class="flex gap-2">
+                @csrf
+                <select name="plan_id"
+                        class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 bg-white text-gray-700">
+                    <option value="">— Basic (gratuit) —</option>
+                    @foreach($plans->where('price', '>', 0) as $plan)
+                    <option value="{{ $plan->id }}"
+                            {{ $user->subscription?->plan_id == $plan->id ? 'selected' : '' }}>
+                        {{ $plan->label }} — {{ currency_format($plan->price) }}/mois
+                    </option>
+                    @endforeach
+                </select>
+                <button type="submit"
+                        class="px-3 py-2 rounded-xl text-sm font-semibold text-white transition hover:opacity-90 flex-shrink-0"
+                        style="background:#4338CA;">
+                    Changer
+                </button>
+            </form>
+            <p class="text-[11px] text-gray-400 mt-2">Sélectionner "Basic" remet l'utilisateur sur le plan gratuit.</p>
         </div>
     </div>
 

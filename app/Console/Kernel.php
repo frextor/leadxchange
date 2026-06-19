@@ -20,6 +20,9 @@ class Kernel extends ConsoleKernel
 
         // Log leads whose 30-day rating window has expired (CCTP)
         $schedule->command('leads:close-expired-ratings')->dailyAt('03:00');
+
+        // Recalcul des points et badges (fenêtre 60 jours glissants)
+        $schedule->command('leads:update-scores')->dailyAt('02:00');
     }
 
     /**

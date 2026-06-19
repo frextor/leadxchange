@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\City;
 use App\Models\Plan;
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -63,6 +64,7 @@ class UserController extends Controller
             'profile', 'company.sector', 'region', 'city.country',
             'subscription.plan', 'interests',
         ]);
+        $plans = Plan::orderBy('sort_order')->get(['id', 'name', 'label', 'price']);
 
         $stats = [
             'leads_sent'     => $user->sentLeads()->count(),
@@ -74,7 +76,7 @@ class UserController extends Controller
             'events'  => $user->events()->count(),
         ];
 
-        return view('admin.users.show', compact('user', 'stats'));
+        return view('admin.users.show', compact('user', 'stats', 'plans'));
     }
 
     public function edit(User $user): View
@@ -98,6 +100,29 @@ class UserController extends Controller
         $user->update($request->only('role', 'points_balance', 'badge_level'));
 
         return back()->with('success', "{$user->first_name} {$user->last_name} mis à jour.");
+    }
+
+    public function changePlan(Request $request, User $user): RedirectResponse
+    {
+        $request->validate(['plan_id' => ['required', 'exists:plans,id']]);
+
+        $plan = Plan::findOrFail($request->plan_id);
+
+        // Cancel existing active subscriptions
+        Subscription::where('user_id', $user->id)
+            ->where('status', 'active')
+            ->update(['status' => 'canceled']);
+
+        if ($plan->price > 0) {
+            Subscription::create([
+                'user_id'   => $user->id,
+                'plan_id'   => $plan->id,
+                'status'    => 'active',
+            ]);
+        }
+
+        $label = $plan->price > 0 ? $plan->label : 'Basic (gratuit)';
+        return back()->with('success', "Plan de {$user->first_name} {$user->last_name} changé en {$label}.");
     }
 
     public function destroy(User $user): RedirectResponse
