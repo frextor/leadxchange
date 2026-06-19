@@ -36,7 +36,8 @@ class UserController extends Controller
         try {
             $currentUserId = $request->user()->id;
             $page    = (int) $request->get('page', 1);
-            $search  = $request->get('search', '');
+            $search       = $request->get('search', '');
+            $searchFields = $request->input('search_fields', []);
             $perPage = 10;
 
             $filters = $request->only([
@@ -49,7 +50,8 @@ class UserController extends Controller
                 $page,
                 $search,
                 $perPage,
-                $filters
+                $filters,
+                $searchFields
             );
 
             // Return JSON response

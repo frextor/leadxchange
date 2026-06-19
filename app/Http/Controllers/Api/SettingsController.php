@@ -47,11 +47,11 @@ class SettingsController extends Controller
             'countries'     => Country::orderBy('name')
                                    ->get(['id', 'name', 'code', 'flag']),
 
-            'plans'         => Plan::where('is_active', true)
+            'plans'         => Plan::where('is_active', true)->where('is_visible', true)
                                    ->orderBy('sort_order')
                                    ->get(['id', 'name', 'label', 'description', 'price', 'billing_period', 'max_leads', 'max_groups', 'max_users', 'features']),
 
-            'cities'        => City::with('country:id,name,code,flag')
+            'cities'        => City::where('is_active', true)->with('country:id,name,code,flag')
                                    ->orderByRaw("CASE WHEN country_id = (SELECT id FROM countries WHERE code = 'MA') THEN 0 ELSE 1 END")
                                    ->orderBy('name')
                                    ->get(['id', 'name', 'country_id'])
