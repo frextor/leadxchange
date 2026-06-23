@@ -368,9 +368,14 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function canFeature(string $key): bool
     {
-        // Use the new permissions system if the key exists there
-        $plan = $this->subscription?->plan
-            ?? \App\Models\Plan::where('name', 'basic')->first();
+        // Resolve effective plan: ambassador > consul > subscription plan > basic
+        $effectivePlanName = null;
+        if ($this->isAmbassador())     $effectivePlanName = 'ambassadeur';
+        elseif ($this->isConsul())     $effectivePlanName = 'consul';
+
+        $plan = $effectivePlanName
+            ? \App\Models\Plan::where('name', $effectivePlanName)->first()
+            : ($this->subscription?->plan ?? \App\Models\Plan::where('name', 'basic')->first());
 
         if ($plan && is_array($plan->permissions) && array_key_exists($key, $plan->permissions)) {
             $val = $plan->permissions[$key];
