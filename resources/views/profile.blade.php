@@ -142,6 +142,32 @@ $canViewFull = $isOwnProfile || auth()->user()->canFeature('view_profile_info');
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
                                 Modifier le profil
                             </button>
+
+                            {{-- Consul request button (own profile) --}}
+                            @php $me = auth()->user(); @endphp
+                            @if($me->isConsul())
+                            <div class="mt-2 w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-[10px] text-xs font-semibold border"
+                                 style="background:#F0FDF4;color:#065F46;border-color:#6EE7B7;">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                Consul ✓
+                            </div>
+                            @elseif($me->hasPendingConsulRequest())
+                            <div class="mt-2 w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-[10px] text-xs font-semibold border"
+                                 style="background:#FFFBEB;color:#92400E;border-color:#FDE68A;">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                                Demande Consul en attente…
+                            </div>
+                            @elseif($me->isAmbassador() || $me->canFeature('can_send_invitations'))
+                            <form method="POST" action="{{ route('consul.request') }}" class="mt-2">
+                                @csrf
+                                <button type="submit"
+                                        class="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-[10px] text-xs font-semibold border transition hover:opacity-90"
+                                        style="background:#F0FDF4;color:#065F46;border-color:#6EE7B7;">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                    Demander le rôle Consul
+                                </button>
+                            </form>
+                            @endif
                         @elseif ($user['connection_status'] === 'accepted')
                             <button disabled class="w-full py-2.5 rounded-[10px] bg-gray-100 text-gray-500 font-semibold text-sm cursor-not-allowed flex items-center justify-center gap-2">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 5 5L20 7"/></svg>
