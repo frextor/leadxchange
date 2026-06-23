@@ -526,7 +526,7 @@ function memberRowHtml(m, isLast) {
           ${m.city ? `<div class="text-[13px] text-gray-400 mt-0.5 flex items-center gap-0.5 flex-wrap">
             <span class="flex items-center gap-1">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-              ${m.city}
+              ${typeof m.city === 'object' ? (m.city.name || '') : m.city}
             </span>
             ${nearYouBadge}
           </div>` : ''}
@@ -568,7 +568,7 @@ function visitorRowHtml(v, isLast) {
           ${v.job_title ? `<div class="text-[12.5px] text-gray-500 mt-0.5">${v.job_title}</div>` : ''}
           ${v.city ? `<div class="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-            ${v.city}</div>` : ''}
+            ${typeof v.city === 'object' ? (v.city.name || '') : v.city}</div>` : ''}
         </div>
       </div>
 

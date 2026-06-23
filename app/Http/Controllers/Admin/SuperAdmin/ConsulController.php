@@ -69,25 +69,34 @@ class ConsulController extends Controller
     {
         $this->authorize('promoteAmbassador', ConsulRequest::class);
 
-        $tab = $request->get('tab', 'eligible');
-
-        // Eligible = premium, not yet ambassador
-        $eligible = User::with(['subscription.plan', 'city'])
+        // All paid-plan users (eligible for ambassador or already ambassador)
+        $query = User::with(['subscription.plan', 'city'])
             ->where('role', 'user')
             ->whereHas('subscription', fn($q) => $q->where('status', 'active')
-                ->whereHas('plan', fn($p) => $p->where('price', '>', 0)))
-            ->where(fn($q) => $q->whereNull('ambassador_status')->orWhere('ambassador_status', '!=', 'approved'))
-            ->orderBy('first_name')
-            ->paginate(20, ['*'], 'eligible_page')
-            ->withQueryString();
+                ->whereHas('plan', fn($p) => $p->where('price', '>', 0)));
 
-        $current = User::with(['subscription.plan', 'city'])
-            ->where('ambassador_status', 'approved')
-            ->orderBy('first_name')
-            ->paginate(20, ['*'], 'ambassador_page')
-            ->withQueryString();
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(fn($q) => $q->where('first_name', 'like', "%{$s}%")
+                ->orWhere('last_name', 'like', "%{$s}%")
+                ->orWhere('email', 'like', "%{$s}%"));
+        }
 
-        return view('admin.super_admin.consul.ambassadors', compact('eligible', 'current', 'tab'));
+        if ($request->filled('status')) {
+            $request->status === 'ambassador'
+                ? $query->where('ambassador_status', 'approved')
+                : $query->where(fn($q) => $q->whereNull('ambassador_status')->orWhere('ambassador_status', '!=', 'approved'));
+        }
+
+        $users = $query->orderBy('first_name')->paginate(25)->withQueryString();
+
+        $counts = [
+            'total'      => User::where('role', 'user')->whereHas('subscription', fn($q) => $q->where('status', 'active')->whereHas('plan', fn($p) => $p->where('price', '>', 0)))->count(),
+            'ambassador' => User::where('ambassador_status', 'approved')->count(),
+            'eligible'   => User::where('role', 'user')->whereHas('subscription', fn($q) => $q->where('status', 'active')->whereHas('plan', fn($p) => $p->where('price', '>', 0)))->where(fn($q) => $q->whereNull('ambassador_status')->orWhere('ambassador_status', '!=', 'approved'))->count(),
+        ];
+
+        return view('admin.super_admin.consul.ambassadors', compact('users', 'counts'));
     }
 
     public function promoteAmbassador(User $user): RedirectResponse

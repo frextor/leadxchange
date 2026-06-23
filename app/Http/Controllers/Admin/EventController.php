@@ -27,6 +27,11 @@ class EventController extends Controller
         if ($request->filled('sector_id')) {
             $query->where('sector_id', $request->sector_id);
         }
+        if ($request->filled('status')) {
+            $request->status === 'upcoming'
+                ? $query->where('starts_at', '>', now())
+                : $query->where('ends_at', '<', now());
+        }
 
         $events  = $query->orderByDesc('created_at')->paginate(25)->withQueryString();
         $sectors = Sector::orderBy('name')->get(['id', 'name']);

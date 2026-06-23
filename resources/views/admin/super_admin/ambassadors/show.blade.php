@@ -6,7 +6,7 @@
 @section('content')
 <div class="py-6 max-w-3xl space-y-5">
 
-    <a href="{{ route('admin.super.ambassadors.index') }}"
+    <a href="{{ route('admin.super.ambassadors.manage') }}"
        class="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
         Retour
@@ -88,7 +88,7 @@
     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-3">
         <h3 class="text-sm font-semibold text-gray-700">Actions</h3>
         <div class="flex gap-3">
-            <form method="POST" action="{{ route('admin.super.ambassadors.approve', $user) }}">
+            <form method="POST" action="{{ route('admin.super.ambassadors.promote', $user) }}">
                 @csrf
                 <button type="submit"
                         class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition"
@@ -97,7 +97,7 @@
                 </button>
             </form>
         </div>
-        <form method="POST" action="{{ route('admin.super.ambassadors.reject', $user) }}" class="flex gap-2">
+        <form method="POST" action="{{ route('admin.super.ambassadors.revoke', $user) }}" class="flex gap-2">
             @csrf
             <input type="text" name="reason" placeholder="Motif du refus (obligatoire)" required
                    class="flex-1 h-10 px-3 rounded-xl border border-gray-200 text-sm outline-none focus:border-red-400 transition">

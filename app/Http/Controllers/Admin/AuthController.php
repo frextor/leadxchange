@@ -12,7 +12,7 @@ class AuthController extends Controller
     public function showLogin(): View|RedirectResponse
     {
         if (auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin'])) {
-            return redirect()->route('admin.dashboard');
+            return $this->redirectAfterLogin();
         }
 
         return view('admin.auth.login');
@@ -42,7 +42,14 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->route('admin.dashboard');
+        return $this->redirectAfterLogin();
+    }
+
+    private function redirectAfterLogin(): RedirectResponse
+    {
+        return auth()->user()->isSuperAdmin()
+            ? redirect()->route('admin.super.dashboard')
+            : redirect()->route('admin.dashboard');
     }
 
     public function logout(Request $request): RedirectResponse

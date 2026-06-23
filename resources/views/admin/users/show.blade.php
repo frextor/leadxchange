@@ -37,8 +37,8 @@
                     @endif
 
                     @php
-                        $badgeColors = ['or'=>['bg'=>'#FEF3C7','txt'=>'#B45309'],'argent'=>['bg'=>'#F1F5F9','txt'=>'#475569'],'bronze'=>['bg'=>'#FFEDD5','txt'=>'#92400E']];
-                        $bc = $badgeColors[$user->badge_level ?? 'bronze'];
+                        $badgeColors = ['neutre'=>['bg'=>'#F3F4F6','txt'=>'#6B7280'],'bronze'=>['bg'=>'#FFEDD5','txt'=>'#92400E'],'argent'=>['bg'=>'#F1F5F9','txt'=>'#475569'],'or'=>['bg'=>'#FEF3C7','txt'=>'#B45309'],'platinium'=>['bg'=>'#EEF2FF','txt'=>'#4338CA']];
+                        $bc = $badgeColors[$user->badge_level ?? 'neutre'] ?? $badgeColors['neutre'];
                     @endphp
                     <span class="px-2 py-1 rounded-full text-[11px] font-semibold" style="background:{{ $bc['bg'] }};color:{{ $bc['txt'] }};">{{ ucfirst($user->badge_level ?? 'bronze') }}</span>
                 </div>
@@ -207,7 +207,7 @@
             @if($user->ambassador_status === 'pending')
             <div class="flex items-center justify-between">
                 <span class="px-2 py-1 rounded-full text-[11px] font-semibold" style="background:#FEF3C7;color:#92400E;">En attente</span>
-                <a href="{{ route('admin.super.ambassadors.show', $user) }}" class="text-xs text-teal-600 font-medium hover:underline">Examiner →</a>
+                <a href="{{ route('admin.super.ambassadors.manage') }}" class="text-xs text-teal-600 font-medium hover:underline">Examiner →</a>
             </div>
             @elseif($user->ambassador_status === 'approved')
             <span class="px-2 py-1 rounded-full text-[11px] font-semibold" style="background:#ECFDF5;color:#065F46;">Ambassadeur approuvé</span>

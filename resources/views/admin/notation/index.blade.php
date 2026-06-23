@@ -30,48 +30,98 @@
 </div>
 @endif
 
-{{-- ── Configuration des seuils de badges ──────────────────────────────── --}}
+{{-- ── Configuration des ranges de badges ───────────────────────────────── --}}
+@php
+$bronzeMin    = $thresholds['bronze']    ?? 5;
+$argentMin    = $thresholds['argent']    ?? 10;
+$orMin        = $thresholds['or']        ?? 15;
+$platiniumMin = $thresholds['platinium'] ?? 20;
+
+$badgeRanges = [
+    'neutre'    => ['label'=>'Neutre',    'icon'=>'○',  'color'=>'gray',   'min'=>0,           'max'=>$bronzeMin - 1,    'minKey'=>null,              'maxKey'=>'badge_bronze_min', 'minFixed'=>true],
+    'bronze'    => ['label'=>'Bronze',    'icon'=>'🏆', 'color'=>'amber',  'min'=>$bronzeMin,   'max'=>$argentMin - 1,    'minKey'=>'badge_bronze_min','maxKey'=>'badge_argent_min', 'minFixed'=>false],
+    'argent'    => ['label'=>'Argent',    'icon'=>'🏆', 'color'=>'slate',  'min'=>$argentMin,   'max'=>$orMin - 1,        'minKey'=>'badge_argent_min','maxKey'=>'badge_or_min',     'minFixed'=>false],
+    'or'        => ['label'=>'Or',        'icon'=>'🏆', 'color'=>'yellow', 'min'=>$orMin,       'max'=>$platiniumMin - 1, 'minKey'=>'badge_or_min',   'maxKey'=>'badge_platinium_min','minFixed'=>false],
+    'platinium' => ['label'=>'Platinium', 'icon'=>'💎', 'color'=>'indigo', 'min'=>$platiniumMin,'max'=>null,              'minKey'=>'badge_platinium_min','maxKey'=>null,             'minFixed'=>false],
+];
+$colorMap = [
+    'gray'   => ['bg'=>'bg-gray-50',    'border'=>'border-gray-200',   'text'=>'text-gray-500',   'input'=>'border-gray-300'],
+    'amber'  => ['bg'=>'bg-amber-50',   'border'=>'border-amber-200',  'text'=>'text-amber-700',  'input'=>'border-amber-300'],
+    'slate'  => ['bg'=>'bg-slate-50',   'border'=>'border-slate-200',  'text'=>'text-slate-600',  'input'=>'border-slate-300'],
+    'yellow' => ['bg'=>'bg-yellow-50',  'border'=>'border-yellow-200', 'text'=>'text-yellow-700', 'input'=>'border-yellow-300'],
+    'indigo' => ['bg'=>'bg-indigo-50',  'border'=>'border-indigo-200', 'text'=>'text-indigo-700', 'input'=>'border-indigo-300'],
+];
+@endphp
+
 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center justify-between mb-5">
         <div>
-            <p class="text-sm font-bold text-gray-900">Seuils des badges</p>
-            <p class="text-xs text-gray-400 mt-0.5">Définissez le nombre de points minimum pour obtenir chaque badge.</p>
+            <p class="text-sm font-bold text-gray-900">Plages de points par badge</p>
+            <p class="text-xs text-gray-400 mt-0.5">Définissez les intervalles de score pour chaque niveau. La borne haute se calcule automatiquement.</p>
         </div>
         <form method="POST" action="{{ route('admin.notation.thresholds') }}" id="thresholds-form" class="hidden">@csrf</form>
     </div>
-    <div class="grid grid-cols-4 gap-4">
-        @php
-        $badgeDefs = [
-            'bronze'    => ['label' => 'Bronze',    'color' => 'amber',  'key' => 'badge_bronze_min'],
-            'argent'    => ['label' => 'Argent',    'color' => 'slate',  'key' => 'badge_argent_min'],
-            'or'        => ['label' => 'Or',        'color' => 'yellow', 'key' => 'badge_or_min'],
-            'platinium' => ['label' => 'Platinium', 'color' => 'indigo', 'key' => 'badge_platinium_min'],
-        ];
-        $colorMap = [
-            'amber'  => ['bg' => 'bg-amber-50',  'border' => 'border-amber-200',  'text' => 'text-amber-700',  'ring' => 'focus:ring-amber-100'],
-            'slate'  => ['bg' => 'bg-slate-50',  'border' => 'border-slate-200',  'text' => 'text-slate-600',  'ring' => 'focus:ring-slate-100'],
-            'yellow' => ['bg' => 'bg-yellow-50', 'border' => 'border-yellow-200', 'text' => 'text-yellow-700', 'ring' => 'focus:ring-yellow-100'],
-            'indigo' => ['bg' => 'bg-indigo-50', 'border' => 'border-indigo-200', 'text' => 'text-indigo-700', 'ring' => 'focus:ring-indigo-100'],
-        ];
-        @endphp
 
-        @foreach($badgeDefs as $bKey => $bDef)
-        @php $c = $colorMap[$bDef['color']]; $current = $thresholds[$bKey] ?? 0; @endphp
-        <div class="{{ $c['bg'] }} border {{ $c['border'] }} rounded-2xl p-4 flex flex-col items-center gap-3">
-            <div class="text-center">
-                <p class="text-xs font-bold {{ $c['text'] }} uppercase tracking-widest">{{ $bDef['label'] }}</p>
-                <p class="text-[10px] text-gray-400 mt-0.5">Score minimum</p>
+    <div class="space-y-3">
+        @foreach($badgeRanges as $bKey => $b)
+        @php $c = $colorMap[$b['color']]; @endphp
+        <div class="{{ $c['bg'] }} border {{ $c['border'] }} rounded-2xl px-5 py-3.5 flex items-center gap-4">
+
+            {{-- Badge label --}}
+            <div class="w-28 flex-shrink-0 flex items-center gap-2">
+                <span class="text-base">{{ $b['icon'] }}</span>
+                <span class="text-sm font-bold {{ $c['text'] }}">{{ $b['label'] }}</span>
             </div>
-            <input type="number"
-                   name="{{ $bDef['key'] }}"
-                   form="thresholds-form"
-                   value="{{ $current }}"
-                   min="1"
-                   class="w-24 text-center text-2xl font-extrabold {{ $c['text'] }} {{ $c['bg'] }} border-2 {{ $c['border'] }} rounded-xl px-3 py-2 focus:outline-none {{ $c['ring'] }} focus:ring-2 transition">
-            <p class="text-[10px] text-gray-400">pts</p>
+
+            {{-- Range --}}
+            <div class="flex items-center gap-3 flex-1">
+                {{-- Min --}}
+                <div class="flex flex-col items-center gap-0.5">
+                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">De</span>
+                    @if($b['minFixed'])
+                    <div class="w-20 h-9 flex items-center justify-center rounded-lg border bg-white border-gray-200 text-gray-400 text-sm font-bold">0</div>
+                    @else
+                    <input type="number"
+                           name="{{ $b['minKey'] }}"
+                           form="thresholds-form"
+                           value="{{ $b['min'] }}"
+                           min="1"
+                           onchange="updateRanges()"
+                           data-badge="{{ $bKey }}"
+                           data-type="min"
+                           class="w-20 h-9 text-center text-sm font-bold rounded-lg border-2 {{ $c['input'] }} {{ $c['bg'] }} {{ $c['text'] }} focus:outline-none focus:ring-2 transition"
+                           style="focus-ring-color:currentColor;">
+                    @endif
+                </div>
+
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" class="flex-shrink-0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+
+                {{-- Max --}}
+                <div class="flex flex-col items-center gap-0.5">
+                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">À</span>
+                    <div id="max-display-{{ $bKey }}"
+                         class="w-20 h-9 flex items-center justify-center rounded-lg border bg-white border-gray-200 text-sm font-bold {{ $c['text'] }}">
+                        {{ $b['max'] !== null ? $b['max'] : '∞' }}
+                    </div>
+                </div>
+
+                {{-- pts label --}}
+                <span class="text-xs font-semibold text-gray-400 flex-shrink-0">points</span>
+            </div>
+
+            {{-- Members count --}}
+            <div class="text-right flex-shrink-0">
+                @php
+                    $memberCount = \App\Models\User::where('role','user')->where('badge_level', $bKey)->count();
+                @endphp
+                <p class="text-lg font-extrabold {{ $c['text'] }}">{{ $memberCount }}</p>
+                <p class="text-[10px] text-gray-400">membre{{ $memberCount > 1 ? 's' : '' }}</p>
+            </div>
+
         </div>
         @endforeach
     </div>
+
     <div class="mt-4 flex items-center gap-3">
         <button type="submit" form="thresholds-form"
                 class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
@@ -253,6 +303,29 @@
 @push('scripts')
 <script>
 const editRouteBase = '{{ url("/admin/notation") }}';
+
+// ── Live range preview ────────────────────────────────────────────────────
+function updateRanges() {
+    const get = name => {
+        const el = document.querySelector(`[name="${name}"]`);
+        return el ? parseInt(el.value) || 0 : 0;
+    };
+    const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+
+    const bMin = get('badge_bronze_min');
+    const aMin = get('badge_argent_min');
+    const oMin = get('badge_or_min');
+    const pMin = get('badge_platinium_min');
+
+    set('max-display-neutre',    bMin > 1 ? bMin - 1 : 0);
+    set('max-display-bronze',    aMin > 1 ? aMin - 1 : bMin);
+    set('max-display-argent',    oMin > 1 ? oMin - 1 : aMin);
+    set('max-display-or',        pMin > 1 ? pMin - 1 : oMin);
+    set('max-display-platinium', '∞');
+}
 
 function openEdit(userId, points, badge) {
     document.getElementById('edit-form').action = editRouteBase + '/' + userId;

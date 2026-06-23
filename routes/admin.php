@@ -31,8 +31,10 @@ use Illuminate\Support\Facades\Route;
 
 // ── Guest ────────────────────────────────────────────────────────────────
 Route::middleware('guest')->group(function () {
-    Route::get('/login',  [AuthController::class, 'showLogin'])->name('admin.login');
-    Route::post('/login', [AuthController::class, 'login'])->name('admin.login.post');
+    Route::get('/login',  [\App\Http\Controllers\Admin\Auth\LoginController::class, 'show'])->name('admin.login');
+    Route::post('/login', [\App\Http\Controllers\Admin\Auth\LoginController::class, 'store'])
+         ->middleware('throttle:5,1')
+         ->name('admin.login.post');
 });
 
 // ── Admin + Super Admin ───────────────────────────────────────────────────
@@ -108,10 +110,8 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::get('subscribers',                [SubscriberController::class, 'index'])->name('subscribers.index');
 
     // Ambassadors
-    Route::get('ambassadors',                [AmbassadorController::class, 'index'])->name('ambassadors.index');
-    Route::get('ambassadors/{user}',         [AmbassadorController::class, 'show'])->name('ambassadors.show');
-    Route::post('ambassadors/{user}/approve',[AmbassadorController::class, 'approve'])->name('ambassadors.approve');
-    Route::post('ambassadors/{user}/reject', [AmbassadorController::class, 'reject'])->name('ambassadors.reject');
+    // Ancien système ambassadeurs — remplacé par manage-ambassadors (ConsulController)
+    // Route::get('ambassadors', ...)->name('ambassadors.index'); // retiré
 
     // Consul requests (admin + ambassador)
     Route::get('consul',                          [ConsulController::class, 'index'])->name('consul.index');

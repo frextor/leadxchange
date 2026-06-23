@@ -150,24 +150,31 @@
                     Plan {{ $userPlan?->label ?? 'Basic' }}
                 </span>
 
-                {{-- Consul request button --}}
+                {{-- Role badges & consul request --}}
                 @php $authUser = auth()->user(); @endphp
-                @if($authUser->isConsul())
-                <span class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-white/90 border border-white/20" style="background:rgba(255,255,255,0.12);">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                    Rôle Consul ✓
-                </span>
-                @elseif($authUser->isAmbassador())
-                <span class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-white/90 border border-white/20" style="background:rgba(255,215,0,0.2);">
+
+                {{-- Badge Ambassadeur (toujours visible si ambassadeur) --}}
+                @if($authUser->isAmbassador())
+                <span class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold border" style="background:rgba(255,215,0,0.2); border-color:rgba(255,215,0,0.35); color:#FFD700;">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FFD700" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                     Ambassadeur ✓
                 </span>
+                @endif
+
+                {{-- Badge Consul (toujours visible si consul) --}}
+                @if($authUser->isConsul())
+                <span class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-white/90 border border-white/20" style="background:rgba(255,255,255,0.12);">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Consul ✓
+                </span>
+
+                {{-- Bouton demande consul (ambassadeur OU plan payant, pas encore consul) --}}
                 @elseif($authUser->hasPendingConsulRequest())
                 <span class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-amber-300 border border-amber-300/30" style="background:rgba(245,158,11,0.15);">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
                     Demande Consul en attente…
                 </span>
-                @elseif($userPlan && $userPlan->price > 0)
+                @elseif($authUser->isAmbassador() || ($userPlan && $userPlan->price > 0))
                 <form method="POST" action="{{ route('consul.request') }}">
                     @csrf
                     <button type="submit"

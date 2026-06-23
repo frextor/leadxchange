@@ -9,7 +9,7 @@
     {{-- Status tabs --}}
     <div class="flex gap-2">
         @foreach(['pending' => ['Pending', '#F59E0B', '#FFFBEB'], 'approved' => ['Approuvés', '#10B981', '#ECFDF5'], 'rejected' => ['Refusés', '#EF4444', '#FEF2F2']] as $s => [$label, $color, $bg])
-        <a href="{{ route('admin.super.ambassadors.index', ['status' => $s]) }}"
+        <a href="{{ route('admin.super.ambassadors.manage') }}"
            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition border"
            style="{{ $status === $s ? "background:{$bg};color:{$color};border-color:{$color};" : 'background:white;color:#6B7280;border-color:#E5E7EB;' }}">
             {{ $label }}
@@ -21,7 +21,7 @@
         @endforeach
 
         @if(request('region_id'))
-        <a href="{{ route('admin.super.ambassadors.index', ['status' => $status]) }}"
+        <a href="{{ route('admin.super.ambassadors.manage') }}"
            class="ml-auto px-3 py-2 rounded-xl text-xs text-gray-400 border border-gray-200 hover:bg-gray-50 transition">
             Effacer filtre
         </a>
@@ -29,7 +29,7 @@
     </div>
 
     {{-- Region filter --}}
-    <form method="GET" action="{{ route('admin.super.ambassadors.index') }}" class="flex items-center gap-3">
+    <form method="GET" action="{{ route('admin.super.ambassadors.manage') }}" class="flex items-center gap-3">
         <input type="hidden" name="status" value="{{ $status }}">
         <select name="region_id" onchange="this.form.submit()"
                 class="h-9 px-3 rounded-xl border border-gray-200 text-sm outline-none focus:border-amber-400 transition" style="appearance:none;">
@@ -73,12 +73,12 @@
                 </div>
 
                 <div class="flex items-center gap-2 flex-shrink-0">
-                    <a href="{{ route('admin.super.ambassadors.show', $user) }}"
+                    <a href="{{ route('admin.super.ambassadors.manage') }}"
                        class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
                         Voir profil
                     </a>
                     @if($user->ambassador_status === 'pending')
-                    <form method="POST" action="{{ route('admin.super.ambassadors.approve', $user) }}">
+                    <form method="POST" action="{{ route('admin.super.ambassadors.promote', $user) }}">
                         @csrf
                         <button type="submit"
                                 class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition"
@@ -98,7 +98,7 @@
             {{-- Reject form --}}
             @if($user->ambassador_status === 'pending')
             <div id="reject-{{ $user->id }}" class="hidden mt-4 pt-4 border-t border-gray-100">
-                <form method="POST" action="{{ route('admin.super.ambassadors.reject', $user) }}" class="flex gap-2">
+                <form method="POST" action="{{ route('admin.super.ambassadors.revoke', $user) }}" class="flex gap-2">
                     @csrf
                     <input type="text" name="reason" placeholder="Motif du refus (obligatoire)" required
                            class="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm outline-none focus:border-red-400 transition">

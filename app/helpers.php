@@ -2,6 +2,13 @@
 
 use App\Models\SystemSetting;
 
+if (! function_exists('route_exists')) {
+    function route_exists(string $name): bool
+    {
+        return \Illuminate\Support\Facades\Route::has($name);
+    }
+}
+
 if (! function_exists('currency_format')) {
     /**
      * Format a monetary amount using the platform currency settings.
@@ -39,6 +46,7 @@ if (! function_exists('currency_symbol')) {
 if (! function_exists('member_name')) {
     function member_name(\App\Models\User $member, bool $initialsOnly = false): string
     {
+        /** @var \App\Models\User|null $viewer */
         $viewer = auth()->user();
         $canSeeLastName = !$viewer || $viewer->canFeature('can_view_member_name');
 

@@ -16,9 +16,16 @@ class ChatController extends Controller
         $user       = $request->user();
         $withUserId = (int) $request->query('with', 0);
 
+        // Only show conversations with accepted connections
+        $connectedIds = $user->connectionIds();
+
         $conversations = Conversation::with(['user1', 'user2', 'lastMessage'])
-            ->where('user1_id', $user->id)
-            ->orWhere('user2_id', $user->id)
+            ->where(function ($q) use ($user, $connectedIds) {
+                $q->where('user1_id', $user->id)->whereIn('user2_id', $connectedIds);
+            })
+            ->orWhere(function ($q) use ($user, $connectedIds) {
+                $q->where('user2_id', $user->id)->whereIn('user1_id', $connectedIds);
+            })
             ->orderByDesc('last_message_at')
             ->get()
             ->map(fn($c) => [

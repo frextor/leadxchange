@@ -70,6 +70,15 @@ class ConsulService
                 'validated_at' => now(),
             ]);
 
+            // Bascule le plan vers "consul" sans paiement
+            $consulPlan = \App\Models\Plan::where('name', 'consul')->first();
+            if ($consulPlan) {
+                \App\Models\Subscription::updateOrCreate(
+                    ['user_id' => $consulRequest->user_id],
+                    ['plan_id' => $consulPlan->id, 'status' => 'active']
+                );
+            }
+
             $consulRequest->user->notify(new ConsulRequestApproved());
         });
     }
@@ -91,35 +100,60 @@ class ConsulService
         $consulRequest->user->notify(new ConsulRequestRejected($reason));
     }
 
-    /** Promote a user to Ambassador (admin only). */
+    /** Promote a user to Ambassador (admin/super_admin only).
+     *  Requires an active paid subscription. Changes the plan to "ambassadeur".
+     */
     public function promoteAmbassador(User $user, User $admin): void
     {
         if (! $this->hasPremiumAccess($user)) {
-            throw new \RuntimeException('L\'utilisateur doit avoir un abonnement payant pour devenir Ambassadeur.');
+            throw new \RuntimeException('L\'utilisateur doit avoir un abonnement payant (non Basic) pour devenir Ambassadeur.');
         }
 
         if ($user->isAmbassador()) {
             throw new \RuntimeException('Cet utilisateur est déjà Ambassadeur.');
         }
 
-        $user->update([
-            'ambassador_status'      => 'approved',
-            'ambassador_reviewed_at' => now(),
-            'ambassador_reviewed_by' => $admin->id,
-        ]);
+        $ambassadeurPlan = \App\Models\Plan::where('name', 'ambassadeur')->first();
+
+        DB::transaction(function () use ($user, $admin, $ambassadeurPlan) {
+            // Update ambassador status
+            $user->update([
+                'ambassador_status'      => 'approved',
+                'ambassador_reviewed_at' => now(),
+                'ambassador_reviewed_by' => $admin->id,
+            ]);
+
+            // Upgrade subscription plan to "ambassadeur" if the plan exists
+            if ($ambassadeurPlan) {
+                \App\Models\Subscription::updateOrCreate(
+                    ['user_id' => $user->id],
+                    ['plan_id' => $ambassadeurPlan->id, 'status' => 'active']
+                );
+            }
+        });
     }
 
-    /** Revoke Ambassador role. */
+    /** Revoke Ambassador role and downgrade plan to Prémium. */
     public function revokeAmbassador(User $user): void
     {
         if (! $user->isAmbassador()) {
             throw new \RuntimeException('Cet utilisateur n\'est pas Ambassadeur.');
         }
 
-        $user->update([
-            'ambassador_status'      => 'rejected',
-            'ambassador_reviewed_at' => now(),
-            'ambassador_reviewed_by' => auth()->id(),
-        ]);
+        $premiumPlan = \App\Models\Plan::where('name', 'premium')->first();
+
+        DB::transaction(function () use ($user, $premiumPlan) {
+            $user->update([
+                'ambassador_status'      => null,
+                'ambassador_reviewed_at' => now(),
+                'ambassador_reviewed_by' => auth()->id(),
+            ]);
+
+            // Downgrade to Prémium if that plan exists
+            if ($premiumPlan) {
+                \App\Models\Subscription::where('user_id', $user->id)
+                    ->update(['plan_id' => $premiumPlan->id, 'status' => 'active']);
+            }
+        });
     }
 }

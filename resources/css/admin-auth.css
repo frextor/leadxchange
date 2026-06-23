@@ -1,0 +1,403 @@
+/* ───────────────────────────────────────────────────────────────
+   LeadXchange · Admin Auth — admin-auth.css
+   Classes préfixées .sa-*  |  Tokens CSS dans :root
+──────────────────────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,600&family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg:           #0A0E16;
+  --bg-2:         #0F141F;
+  --card:         #141A26;
+  --card-2:       #1A2230;
+  --line:         #232C3C;
+  --line-soft:    #1C2433;
+  --ink-on:       #EEF1F7;
+  --ink-dim:      #9AA3B6;
+  --ink-faint:    #5F6B82;
+  --accent:       #14A98C;
+  --accent-bright:#2DD4B0;
+  --accent-soft:  rgba(20,169,140,.14);
+  --violet:       #6C7BE0;
+  --red:          #E05C6C;
+  --red-soft:     rgba(224,92,108,.14);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Body ─────────────────────────────────────────────────────── */
+.sa-body {
+  font-family: 'Geist', 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 40px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Aurora backdrop ─────────────────────────────────────────── */
+.sa-aurora {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+  z-index: 0;
+}
+.sa-aurora--teal {
+  width: 480px; height: 480px;
+  top: -120px; left: -120px;
+  background: radial-gradient(circle, rgba(20,169,140,.22) 0%, transparent 70%);
+}
+.sa-aurora--violet {
+  width: 420px; height: 420px;
+  bottom: -100px; right: -100px;
+  background: radial-gradient(circle, rgba(108,123,224,.18) 0%, transparent 70%);
+}
+
+/* ── Grid overlay ────────────────────────────────────────────── */
+.sa-grid {
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(var(--line-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+  opacity: .35;
+}
+
+/* ── Card shell ──────────────────────────────────────────────── */
+.sa-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 432px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--card);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.03) inset,
+    0 4px 6px rgba(0,0,0,.4),
+    0 20px 60px rgba(0,0,0,.6),
+    0 0 80px rgba(20,169,140,.06);
+}
+.sa-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(160deg, rgba(255,255,255,.035) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* ── Security strip ──────────────────────────────────────────── */
+.sa-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  border-radius: 20px 20px 0 0;
+  background: var(--card-2);
+}
+.sa-strip__label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  letter-spacing: .06em;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.sa-strip__dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: sa-pulse 2.4s ease-in-out infinite;
+}
+@keyframes sa-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(20,169,140,.5); }
+  50%      { box-shadow: 0 0 0 5px rgba(20,169,140,0); }
+}
+.sa-strip__env {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid rgba(20,169,140,.2);
+  padding: 2px 8px;
+  border-radius: 5px;
+  letter-spacing: .08em;
+}
+
+/* ── Card body ───────────────────────────────────────────────── */
+.sa-body-inner {
+  padding: 28px 32px 32px;
+}
+
+/* ── Header row ──────────────────────────────────────────────── */
+.sa-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+.sa-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.sa-brand__mark {
+  width: 36px; height: 36px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent));
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-family: 'Geist', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #04221C;
+  letter-spacing: -.5px;
+}
+.sa-brand__text { display: flex; flex-direction: column; gap: 1px; }
+.sa-brand__name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-on);
+  line-height: 1;
+}
+.sa-brand__sub {
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  line-height: 1;
+}
+.sa-role {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: var(--accent-soft);
+  border: 1px solid rgba(20,169,140,.25);
+  color: var(--accent-bright);
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* ── Title ───────────────────────────────────────────────────── */
+.sa-title {
+  font-family: 'Newsreader', Georgia, serif;
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--ink-on);
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+.sa-title em {
+  font-style: italic;
+  color: var(--accent-bright);
+}
+.sa-subtitle {
+  font-size: 13.5px;
+  color: var(--ink-dim);
+  margin-bottom: 28px;
+  line-height: 1.5;
+}
+
+/* ── Form ────────────────────────────────────────────────────── */
+.sa-form { display: flex; flex-direction: column; gap: 14px; }
+
+.sa-field { display: flex; flex-direction: column; gap: 5px; }
+.sa-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-dim);
+  letter-spacing: .02em;
+}
+.sa-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.sa-input-icon {
+  position: absolute;
+  left: 13px;
+  color: var(--ink-faint);
+  pointer-events: none;
+  display: flex;
+  transition: color .2s;
+}
+.sa-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px 0 40px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  color: var(--ink-on);
+  font-family: 'Geist', sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.sa-input::placeholder { color: var(--ink-faint); }
+.sa-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(20,169,140,.15);
+}
+.sa-input:focus + .sa-input-icon,
+.sa-input-wrap:focus-within .sa-input-icon { color: var(--accent); }
+.sa-input--error {
+  border-color: var(--red) !important;
+  box-shadow: 0 0 0 3px var(--red-soft) !important;
+}
+.sa-error {
+  font-size: 12px;
+  color: var(--red);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Password toggle */
+.sa-pw-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ink-faint);
+  display: flex;
+  padding: 4px;
+  transition: color .2s;
+}
+.sa-pw-toggle:hover { color: var(--ink-dim); }
+.sa-pw-toggle--active { color: var(--accent) !important; }
+
+.sa-input--pw { padding-right: 42px; }
+
+/* ── Checkbox ────────────────────────────────────────────────── */
+.sa-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  margin-top: 2px;
+}
+.sa-check__input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 17px; height: 17px;
+  border: 1.5px solid var(--line);
+  border-radius: 5px;
+  background: var(--bg-2);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  transition: border-color .2s, background .2s;
+}
+.sa-check__input:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.sa-check__input:checked::after {
+  content: '';
+  display: block;
+  width: 9px; height: 6px;
+  border-left: 2px solid #04221C;
+  border-bottom: 2px solid #04221C;
+  transform: rotate(-45deg) translateY(-1px);
+}
+.sa-check__label {
+  font-size: 13px;
+  color: var(--ink-dim);
+  user-select: none;
+}
+
+/* ── Submit button ───────────────────────────────────────────── */
+.sa-btn {
+  width: 100%;
+  height: 46px;
+  border: none;
+  border-radius: 11px;
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 100%);
+  color: #04221C;
+  font-family: 'Geist', sans-serif;
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+  transition: opacity .2s, transform .15s;
+  box-shadow: 0 2px 16px rgba(20,169,140,.3);
+}
+.sa-btn:hover:not(:disabled) { opacity: .9; }
+.sa-btn:active:not(:disabled) { transform: scale(.99); }
+.sa-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── 2FA notice ──────────────────────────────────────────────── */
+.sa-2fa {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(108,123,224,.08);
+  border: 1px solid rgba(108,123,224,.2);
+  border-radius: 12px;
+  margin-top: 8px;
+}
+.sa-2fa__icon {
+  flex-shrink: 0;
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: rgba(108,123,224,.15);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--violet);
+}
+.sa-2fa__text { font-size: 12.5px; color: var(--ink-dim); line-height: 1.6; }
+.sa-2fa__text strong { color: var(--ink-on); font-weight: 500; }
+
+/* ── Footer ──────────────────────────────────────────────────── */
+.sa-foot {
+  padding: 16px 32px;
+  border-top: 1px solid var(--line-soft);
+  border-radius: 0 0 20px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--card-2);
+}
+.sa-foot__link {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  text-decoration: none;
+  transition: color .2s;
+}
+.sa-foot__link:hover { color: var(--accent); }
+.sa-foot__link span {
+  color: var(--accent);
+  font-weight: 500;
+}
+.sa-foot__ip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-faint);
+  opacity: .6;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .sa-body { padding: 16px; }
+  .sa-body-inner { padding: 20px 20px 24px; }
+  .sa-foot { flex-direction: column; align-items: flex-start; gap: 6px; padding: 14px 20px; }
+  .sa-title { font-size: 22px; }
+}

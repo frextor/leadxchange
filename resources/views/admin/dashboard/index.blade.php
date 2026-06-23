@@ -89,7 +89,7 @@
     if ($stats['unverified_users'] > 0) $alerts[] = ['msg' => $stats['unverified_users'].' utilisateur(s) non vérifiés','route' => 'admin.users.index',   'cls' => 'bg-blue-50 border-blue-200 text-blue-700'];
     if (auth()->user()->role === 'super_admin') {
         $pendingAmb = \App\Models\User::where('ambassador_status', 'pending')->count();
-        if ($pendingAmb > 0) $alerts[] = ['msg' => $pendingAmb.' demande(s) ambassadeur', 'route' => 'admin.super.ambassadors.index', 'cls' => 'bg-violet-50 border-violet-200 text-violet-700'];
+        if ($pendingAmb > 0) $alerts[] = ['msg' => $pendingAmb.' demande(s) ambassadeur', 'route' => 'admin.super.ambassadors.manage', 'cls' => 'bg-violet-50 border-violet-200 text-violet-700'];
     }
 @endphp
 @if(count($alerts))
@@ -159,7 +159,7 @@
             ];
             if (auth()->user()->role === 'super_admin') {
                 $modules[] = ['Abonnés',      route('admin.super.subscribers.index'),  $stats['active_subs'].' actifs', 'text-emerald-600', 'bg-emerald-50', '<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>'];
-                $modules[] = ['Ambassadeurs', route('admin.super.ambassadors.index'), '', 'text-violet-600', 'bg-violet-50', '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'];
+                $modules[] = ['Ambassadeurs', route('admin.super.ambassadors.manage'), '', 'text-violet-600', 'bg-violet-50', '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'];
             }
             @endphp
             @foreach($modules as [$name, $url, $sub, $cls, $bg, $icon])

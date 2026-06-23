@@ -120,7 +120,7 @@
     if ($stats['pending_videos'] > 0)     $alertBanners[] = ['msg' => $stats['pending_videos'].' vidéo(s) en attente',          'route' => 'admin.videos.index',              'cls' => 'bg-amber-50 border-amber-200 text-amber-700'];
     if ($stats['fraud_leads'] > 0)        $alertBanners[] = ['msg' => $stats['fraud_leads'].' lead(s) signalé(s) fraude',        'route' => 'admin.leads.index',               'cls' => 'bg-red-50 border-red-200 text-red-600'];
     if ($stats['unverified_users'] > 0)   $alertBanners[] = ['msg' => $stats['unverified_users'].' utilisateur(s) non vérifiés', 'route' => 'admin.users.index',               'cls' => 'bg-blue-50 border-blue-200 text-blue-700'];
-    if ($stats['pending_ambassadors'] > 0)$alertBanners[] = ['msg' => $stats['pending_ambassadors'].' demande(s) ambassadeur',   'route' => 'admin.super.ambassadors.index',   'cls' => 'bg-violet-50 border-violet-200 text-violet-700'];
+    if ($stats['pending_ambassadors'] > 0)$alertBanners[] = ['msg' => $stats['pending_ambassadors'].' demande(s) ambassadeur',   'route' => 'admin.super.ambassadors.manage',   'cls' => 'bg-violet-50 border-violet-200 text-violet-700'];
 @endphp
 @if(count($alertBanners))
 <div class="flex flex-wrap gap-2 mb-6">
@@ -241,7 +241,7 @@
             </div>
         </a>
 
-        <a href="{{ route('admin.super.ambassadors.index') }}"
+        <a href="{{ route('admin.super.ambassadors.manage') }}"
            class="flex items-center gap-3 px-5 py-4 border-r border-b border-gray-100 hover:bg-gray-50 transition group">
             <div class="w-9 h-9 rounded-xl flex items-center justify-center bg-violet-50 flex-shrink-0 group-hover:scale-105 transition-transform">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-violet-600"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -398,7 +398,7 @@
                 <span class="ml-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white bg-violet-500">{{ $stats['pending_ambassadors'] }}</span>
                 @endif
             </h2>
-            <a href="{{ route('admin.super.ambassadors.index') }}" class="text-xs font-medium text-gray-400 hover:text-gray-600 flex items-center gap-1">
+            <a href="{{ route('admin.super.ambassadors.manage') }}" class="text-xs font-medium text-gray-400 hover:text-gray-600 flex items-center gap-1">
                 Tout voir <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
             </a>
         </div>
@@ -430,23 +430,10 @@
                         · <span class="font-semibold {{ $badgeCls }}">{{ ucfirst($applicant->badge_level ?? 'bronze') }}</span>
                     </p>
                 </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    <button onclick="openAmbReject(this)"
-                            data-id="{{ $applicant->id }}"
-                            data-reject-url="{{ route('admin.super.ambassadors.reject', $applicant) }}"
-                            class="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:border-red-200 hover:text-red-500 hover:bg-red-50 transition">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                    </button>
-                    <form method="POST" action="{{ route('admin.super.ambassadors.approve', $applicant) }}"
-                          onsubmit="fadeAmbRow(this)" data-id="{{ $applicant->id }}">
-                        @csrf
-                        <button type="submit" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition"
-                                style="background:#0D9488;" onmouseover="this.style.background='#0F766E'" onmouseout="this.style.background='#0D9488'">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg>
-                            Approuver
-                        </button>
-                    </form>
-                </div>
+                <a href="{{ route('admin.super.ambassadors.manage') }}"
+                   class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
+                    Gérer →
+                </a>
             </div>
             @endforeach
         </div>
