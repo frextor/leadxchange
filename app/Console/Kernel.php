@@ -18,6 +18,9 @@ class Kernel extends ConsoleKernel
         // Send J+15 and J+25 notation reminders (push notifications)
         $schedule->command('leads:send-reminders')->dailyAt('09:00');
 
+        // Deduct 1 point from receivers who haven't rated within 15 days
+        $schedule->command('leads:deduct-points')->dailyAt('02:30');
+
         // Log leads whose 30-day rating window has expired (CCTP)
         $schedule->command('leads:close-expired-ratings')->dailyAt('03:00');
 
