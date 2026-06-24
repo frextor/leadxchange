@@ -71,7 +71,7 @@ class LeadScoreService
 
         $receivedPoints = $receivedCount * self::RECEIVED_MALUS;
 
-        return max(0, $sentPoints + $receivedPoints);
+        return $sentPoints + $receivedPoints;
     }
 
     public function badge(int $score): string
