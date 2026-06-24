@@ -482,6 +482,6 @@ class AuthService
                 'color'      => '#9CA3AF',
                 'background' => '#F9FAFB',
             ],
-        ];
+        };
     }
 }
