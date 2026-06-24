@@ -102,6 +102,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/profile/interests',       [ProfileController::class, 'syncInterests']);
     Route::post('/profile/complete',        [ProfileController::class, 'complete']);
     Route::post('/profile/ambassador-request', [ProfileController::class, 'requestAmbassador']);
+    Route::post('/profile/consul-request',    [ProfileController::class, 'requestConsul']);
     Route::get('/interests',                [ProfileController::class, 'interests']);
     Route::get('/languages',                [LanguageController::class, 'index']);
     Route::get('/countries',                [CountryController::class, 'index']);
