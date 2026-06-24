@@ -14,7 +14,7 @@ return new class extends Migration
             $table->unsignedInteger('initial_points')->default(0)->after('max_groups');
         });
 
-        DB::table('plans')->where('name', 'basic')->update(['initial_points' => 3]);
+        DB::table('plans')->update(['initial_points' => 0]);
 
         // Add 'expired' to leads status enum
         DB::statement("ALTER TABLE leads MODIFY COLUMN status ENUM('new','accepted','rejected','converted','expired') NOT NULL DEFAULT 'new'");
