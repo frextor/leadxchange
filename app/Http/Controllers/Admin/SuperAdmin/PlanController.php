@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\PermissionDefinition;
 use App\Models\Plan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -124,6 +125,7 @@ class PlanController extends Controller
         'Leads' => [
             'can_send_leads'                => ['label' => 'Envoyer des leads',            'type' => 'bool'],
             'can_receive_leads'             => ['label' => 'Recevoir des leads',           'type' => 'bool'],
+            'can_view_leads'                => ['label' => 'Voir la liste des leads',      'type' => 'bool'],
             'max_leads_per_month'           => ['label' => 'Max leads envoyés / mois',     'type' => 'number', 'null_label' => 'Illimité'],
             'can_send_mql'                  => ['label' => 'Envoyer leads MQL',            'type' => 'bool'],
             'can_send_sql'                  => ['label' => 'Envoyer leads SQL',            'type' => 'bool'],
@@ -153,9 +155,52 @@ class PlanController extends Controller
 
     public function permissions(): View
     {
-        $plans       = Plan::orderBy('sort_order')->get();
-        $permissions = self::PERMISSIONS;
+        $plans = Plan::orderBy('sort_order')->get();
+
+        // Override PHP-constant labels with any DB-saved labels
+        $dbDefs = PermissionDefinition::orderBy('sort_order')->get()->keyBy('key');
+        $permissions = [];
+        foreach (self::PERMISSIONS as $category => $perms) {
+            foreach ($perms as $key => $def) {
+                $db = $dbDefs->get($key);
+                $effectiveCategory = $db?->category ?? $category;
+                $permissions[$effectiveCategory][$key] = array_merge($def, [
+                    'label' => $db?->label ?? $def['label'],
+                ]);
+            }
+        }
+
         return view('admin.super_admin.plans.permissions', compact('plans', 'permissions'));
+    }
+
+    public function permissionLabels(): View
+    {
+        $grouped = PermissionDefinition::grouped();
+
+        // If table is empty, seed defaults on the fly
+        if ($grouped->isEmpty()) {
+            (new \Database\Seeders\PermissionDefinitionSeeder())->run();
+            $grouped = PermissionDefinition::grouped();
+        }
+
+        return view('admin.super_admin.plans.permission-labels', compact('grouped'));
+    }
+
+    public function updatePermissionLabels(Request $request): RedirectResponse
+    {
+        $defs = PermissionDefinition::all();
+        foreach ($defs as $def) {
+            $label    = $request->input("label_{$def->id}");
+            $category = $request->input("category_{$def->id}");
+            if ($label !== null) {
+                $def->update([
+                    'label'    => trim($label) ?: $def->label,
+                    'category' => trim($category) ?: $def->category,
+                ]);
+            }
+        }
+
+        return back()->with('success', 'Libellés des permissions mis à jour.');
     }
 
     public function updatePermissions(Request $request): RedirectResponse

@@ -5,13 +5,19 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(): View
+    public function index(): View|RedirectResponse
     {
+        // Super admin → toujours redirigé vers le super admin dashboard
+        if (auth()->user()->isSuperAdmin()) {
+            return redirect()->route('admin.super.dashboard');
+        }
+
         $stats = [
             'total_users'       => User::where('role', 'user')->count(),
             'total_admins'      => User::whereIn('role', ['admin', 'super_admin'])->count(),

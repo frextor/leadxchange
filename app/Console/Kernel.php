@@ -23,6 +23,9 @@ class Kernel extends ConsoleKernel
 
         // Recalcul des points et badges (fenêtre 60 jours glissants)
         $schedule->command('leads:update-scores')->dailyAt('02:00');
+
+        // CGU §6.2.3 — Revert points for unrated expired leads
+        $schedule->command('leads:process-expired-ratings')->dailyAt('04:00');
     }
 
     /**

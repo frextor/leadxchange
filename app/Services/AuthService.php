@@ -54,6 +54,9 @@ class AuthService
                 'gender'             => $data['gender']             ?? null,
                 'birthday'           => $data['birthday']           ?? null,
                 'role'               => 'user',
+                // §3.1 + §3.3 — Stocker la version CGU acceptée à l'inscription
+                'cgu_version'        => \App\Models\SystemSetting::get('cgu_current_version', '1.1'),
+                'cgu_accepted_at'    => now(),
             ]);
 
             // Assign basic plan

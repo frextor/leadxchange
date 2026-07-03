@@ -57,11 +57,11 @@
 @php
 $currentLookingFor      = $profile?->looking_for      ?? [];
 $currentServicesOffered = $profile?->services_offered ?? [];
-$canViewFull = $isOwnProfile || auth()->user()->canFeature('view_profile_info');
+$canViewFull = $isOwnProfile || auth()->user()->canFeature('can_view_member_name');
 @endphp
 
 @if(!$canViewFull)
-<x-upgrade-gate feature="view_profile_info" :full-page="true"
+<x-upgrade-gate feature="can_view_member_name" :full-page="true"
     title="Profil masqué"
     description="Passez à un plan Premium pour voir le profil complet de ce membre. En mode Gratuit, les profils sont affichés de façon anonyme (secteur et région uniquement)." />
 @else
@@ -157,7 +157,7 @@ $canViewFull = $isOwnProfile || auth()->user()->canFeature('view_profile_info');
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
                                 Demande Consul en attente…
                             </div>
-                            @elseif($me->isAmbassador() || $me->canFeature('can_send_invitations'))
+                            @elseif($me->isAmbassador())
                             <form method="POST" action="{{ route('consul.request') }}" class="mt-2">
                                 @csrf
                                 <button type="submit"
@@ -759,6 +759,67 @@ $canViewFull = $isOwnProfile || auth()->user()->canFeature('view_profile_info');
 </div>
 
 @endif {{-- isOwnProfile --}}
+
+{{-- §8.2 CGU — Signaler ce membre (profils tiers uniquement) --}}
+@if(!$isOwnProfile)
+<div class="max-w-5xl mx-auto px-4 pb-8 mt-2 flex justify-end">
+    <button onclick="document.getElementById('report-modal-{{ $user['id'] }}').classList.remove('hidden')"
+            class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-500 transition">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Signaler ce membre
+    </button>
+</div>
+
+{{-- Modal de signalement §8.2 --}}
+<div id="report-modal-{{ $user['id'] }}" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 mx-4">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="text-base font-bold text-gray-900">Signaler un comportement</h3>
+            <button onclick="document.getElementById('report-modal-{{ $user['id'] }}').classList.add('hidden')"
+                    class="text-gray-400 hover:text-gray-600 transition">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <div class="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-100 text-xs text-amber-700">
+            Les comportements interdits (CGU §8.2) incluent le harcèlement, les fausses informations, l'usurpation d'identité, le spam et les pratiques déloyales.
+        </div>
+
+        <form method="POST" action="{{ route('users.report', ['user' => $user['id']]) }}" class="space-y-4">
+            @csrf
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Raison du signalement <span class="text-red-400">*</span></label>
+                <select name="reason" required
+                        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-50 bg-white text-gray-700">
+                    <option value="">— Sélectionnez une raison —</option>
+                    @foreach(\App\Models\UserReport::REASONS as $key => $label)
+                    <option value="{{ $key }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Détails (optionnel)</label>
+                <textarea name="details" rows="3" maxlength="500"
+                          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-50 transition resize-none"
+                          placeholder="Décrivez le comportement signalé…"></textarea>
+            </div>
+            <p class="text-[11px] text-gray-400">Notre équipe traitera votre signalement sous <strong>10 jours ouvrés</strong> (CGU §6.7.2).</p>
+            <div class="flex gap-3">
+                <button type="submit"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition"
+                        style="background:#DC2626;">
+                    Envoyer le signalement
+                </button>
+                <button type="button"
+                        onclick="document.getElementById('report-modal-{{ $user['id'] }}').classList.add('hidden')"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
+                    Annuler
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
 
 </div>{{-- /max-w-5xl (canViewFull) --}}
 @endif {{-- canViewFull --}}

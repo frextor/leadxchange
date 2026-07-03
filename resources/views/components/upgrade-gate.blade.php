@@ -10,15 +10,16 @@
             ->orderBy('price')
             ->get()
             ->first(function ($p) use ($feature) {
-                $features = is_array($p->features) ? $p->features : [];
-                $val = $features[$feature] ?? false;
-                if (is_bool($val)) return $val === true;
-                if (is_int($val)) return $val > 0;
-                return $val === null; // null = unlimited
+                $perms = is_array($p->permissions) ? $p->permissions : [];
+                if (! array_key_exists($feature, $perms)) return false;
+                $val = $perms[$feature];
+                if ($val === true)              return true;
+                if (is_int($val) && $val > 0)  return true;
+                return false;
             });
 
-        $featureLabels = \App\Http\Controllers\Admin\SuperAdmin\PlanController::FEATURES;
-        $featureLabel  = $featureLabels[$feature]['label'] ?? ucfirst(str_replace('_', ' ', $feature));
+        $featureLabel = \App\Models\PermissionDefinition::labelFor($feature)
+            ?? ucfirst(str_replace('_', ' ', $feature));
     }
 @endphp
 

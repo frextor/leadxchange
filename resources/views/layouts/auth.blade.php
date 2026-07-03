@@ -14,6 +14,8 @@
     <link rel="stylesheet" href="{{ asset('css/auth.css') }}">
 
     @stack('head')
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>[x-cloak]{display:none!important}</style>
 </head>
 <body class="lx-auth-body">
 

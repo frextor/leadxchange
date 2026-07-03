@@ -174,7 +174,7 @@
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
                     Demande Consul en attente…
                 </span>
-                @elseif($authUser->isAmbassador() || ($userPlan && $userPlan->price > 0))
+                @elseif($authUser->isAmbassador())
                 <form method="POST" action="{{ route('consul.request') }}">
                     @csrf
                     <button type="submit"
@@ -281,11 +281,12 @@
                         Connect
                     </button>
                     @else
-                    <a href="{{ route('upgrade') }}"
-                       class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 text-indigo-500 hover:bg-indigo-50 transition flex items-center gap-1">
+                    <button type="button" onclick="openUpgradeModal('can_send_invitations')"
+                            class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 text-indigo-500 hover:bg-indigo-50 transition flex items-center gap-1 cursor-pointer"
+                            style="background:transparent;">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                         Upgrade
-                    </a>
+                    </button>
                     @endif
                 </div>
             </div>
@@ -473,142 +474,181 @@
     @endif
 
 
-    {{-- ── UPGRADE YOUR REACH ── --}}
+    {{-- ── PLANS & FONCTIONNALITÉS ── --}}
     @if($plans->isNotEmpty())
     @php
-        $currentPlanId   = $user->subscription?->plan_id;
-        $currentPlanName = $user->subscription?->plan?->name ?? 'basic';
+        $currentPlanId = $user->subscription?->plan_id;
+        $currentPlan   = $user->subscription?->plan;
 
-        // Meta par slug réel de la DB
-        $planMeta = [
-            'basic' => [
-                'label'    => 'Basic',
-                'subtitle' => 'Get started',
-                'accent'   => '#1E8F88',
-                'iconBg'   => '#F3F4F6',
-                'iconColor'=> '#6B7280',
-                'iconSvg'  => '<path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
-                'cta'      => 'GET STARTED',
-            ],
-            'vip' => [
-                'label'    => 'VIP',
-                'subtitle' => 'For active sellers',
-                'accent'   => '#F59E0B',
-                'iconBg'   => '#FEF3C7',
-                'iconColor'=> '#D97706',
-                'iconSvg'  => '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
-                'cta'      => 'UPGRADE NOW',
-            ],
-            'enterprise' => [
-                'label'    => 'Entreprise',
-                'subtitle' => 'For teams',
-                'accent'   => '#1E8F88',
-                'iconBg'   => '#E6F7F4',
-                'iconColor'=> '#1E8F88',
-                'iconSvg'  => '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
-                'cta'      => 'GO ENTERPRISE',
-            ],
+        $planThemes = [
+            'basic'       => ['color'=>'#64748B','light'=>'#F8FAFC','border'=>'#CBD5E1','icon'=>'<path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>'],
+            'premium'     => ['color'=>'#6366F1','light'=>'#EEF2FF','border'=>'#818CF8','icon'=>'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'],
+            'consul'      => ['color'=>'#0D9488','light'=>'#F0FDFA','border'=>'#2DD4BF','icon'=>'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'],
+            'ambassadeur' => ['color'=>'#D97706','light'=>'#FFFBEB','border'=>'#FBBF24','icon'=>'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'],
+            'enterprise'  => ['color'=>'#2563EB','light'=>'#EFF6FF','border'=>'#60A5FA','icon'=>'<path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/>'],
         ];
 
-        $sortedPlans  = $plans->sortBy('price')->values();
-        $popularIndex = $sortedPlans->count() >= 2 ? 1 : 0;
+        $keyPerms = [
+            'can_view_member_name'   => 'Voir le nom complet des membres',
+            'can_send_invitations'   => 'Envoyer des invitations de connexion',
+            'can_send_mail'          => 'Messagerie illimitée',
+            'max_leads_per_month'    => 'Leads par mois',
+            'can_send_sql'           => 'Leads SQL & SP',
+            'can_join_pole'          => 'Rejoindre des groupes',
+            'can_create_pole'        => 'Créer des groupes',
+            'can_create_events'      => 'Créer des événements',
+            'can_organize_regional_events' => 'Événements régionaux',
+        ];
+
+        $sortedPlans = $plans->sortBy('sort_order')->values();
     @endphp
+
     <div>
-        <div class="mb-5">
-            <h2 class="text-base font-semibold text-gray-900">Upgrade your reach</h2>
-            <p class="text-sm text-gray-500 mt-0.5">
-                You're on <strong class="text-gray-800">{{ ucfirst($currentPlanName) }}</strong>. Unlock more leads, intros, and visibility.
-            </p>
+        {{-- Header --}}
+        <div class="flex items-end justify-between mb-6">
+            <div>
+                <h2 class="text-xl font-bold text-gray-900 tracking-tight">Nos offres d'abonnement</h2>
+                <p class="text-sm text-gray-500 mt-1">
+                    Vous êtes sur le plan
+                    <strong class="text-gray-800">{{ $currentPlan?->label ?? 'Basic (gratuit)' }}</strong>.
+                    Passez à l'offre suivante pour débloquer plus de fonctionnalités.
+                </p>
+            </div>
+            <a href="{{ route('billing.index') }}"
+               class="text-xs font-semibold text-gray-400 hover:text-gray-600 transition flex items-center gap-1 whitespace-nowrap">
+                Gérer mon abonnement
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+            </a>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
+        {{-- Plans grid --}}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-{{ min($sortedPlans->count(), 3) }} gap-4">
             @foreach($sortedPlans as $planIdx => $plan)
             @php
-                $slug      = strtolower($plan->name);
-                $meta      = $planMeta[$slug] ?? ['label'=>ucfirst($plan->name),'subtitle'=>'','accent'=>'#1E8F88','iconBg'=>'#E6F7F4','iconColor'=>'#1E8F88','iconSvg'=>'<circle cx="12" cy="12" r="10"/>','cta'=>'UPGRADE'];
+                $t         = $planThemes[$plan->name] ?? $planThemes['basic'];
                 $isCurrent = $plan->id === $currentPlanId;
-                $isPopular = !$isCurrent && $planIdx === $popularIndex;
+                $perms     = is_array($plan->permissions) ? $plan->permissions : [];
+                $feats     = is_array($plan->features) ? $plan->features : [];
+                $isHighlighted = !$isCurrent && $planIdx === 1;
             @endphp
 
-            <div class="relative bg-white rounded-2xl flex flex-col border transition"
-                 style="border-color:{{ $isCurrent ? $meta['accent'] : '#E5E7EB' }};
-                        box-shadow:{{ $isPopular ? '0 4px 24px rgba(0,0,0,0.10)' : '0 1px 4px rgba(0,0,0,0.04)' }};">
+            <div class="relative flex flex-col rounded-2xl border-2 overflow-hidden transition hover:shadow-lg"
+                 style="border-color: {{ $isCurrent ? $t['color'] : ($isHighlighted ? $t['border'] : '#E5E7EB') }};
+                        box-shadow: {{ $isHighlighted ? '0 8px 30px rgba(0,0,0,.10)' : 'none' }};">
+
+                {{-- Top color bar --}}
+                <div class="h-1.5" style="background: {{ $t['color'] }};"></div>
 
                 {{-- Badge --}}
                 @if($isCurrent)
-                <div class="absolute top-4 left-4">
-                    <span class="px-2.5 py-[3px] rounded-full text-[10px] font-bold uppercase tracking-widest border"
-                          style="color:{{ $meta['accent'] }};border-color:{{ $meta['accent'] }};background:{{ $meta['iconBg'] }};">CURRENT</span>
+                <div class="absolute top-3 right-3">
+                    <span class="text-[10px] font-bold px-2.5 py-1 rounded-full border"
+                          style="color:{{ $t['color'] }};border-color:{{ $t['color'] }};background:{{ $t['light'] }};">
+                        ✓ Plan actuel
+                    </span>
                 </div>
-                @elseif($isPopular)
-                <div class="absolute top-4 left-4">
-                    <span class="px-2.5 py-[3px] rounded-full text-[10px] font-bold uppercase tracking-widest text-white" style="background:#111827;">POPULAR</span>
+                @elseif($isHighlighted)
+                <div class="absolute top-3 right-3">
+                    <span class="text-[10px] font-bold px-2.5 py-1 rounded-full text-white" style="background:#111827;">
+                        Recommandé
+                    </span>
                 </div>
                 @endif
 
-                <div class="p-6 flex-1 flex flex-col {{ ($isCurrent || $isPopular) ? 'pt-10' : '' }}">
+                <div class="p-5 flex-1 flex flex-col" style="background:{{ $isCurrent ? $t['light'] : '#fff' }};">
 
-                    {{-- Icon + Name --}}
-                    <div class="flex items-center gap-3.5 mb-6">
-                        <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                             style="background:{{ $meta['iconBg'] }};">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                 stroke="{{ $meta['iconColor'] }}" stroke-width="1.8"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                {!! $meta['iconSvg'] !!}
+                    {{-- Icon + Nom + Prix --}}
+                    <div class="flex items-start gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                             style="background:{{ $t['light'] }};">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                 stroke="{{ $t['color'] }}" stroke-width="1.8">
+                                {!! $t['icon'] !!}
                             </svg>
                         </div>
-                        <div>
-                            <p class="font-bold text-gray-900 leading-tight">{{ $meta['label'] }}</p>
-                            <p class="text-xs text-gray-400 mt-0.5">{{ $meta['subtitle'] }}</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold text-gray-900 leading-tight">{{ $plan->label }}</p>
+                            @if($plan->description)
+                            <p class="text-[11px] text-gray-400 mt-0.5 leading-snug truncate">{{ $plan->description }}</p>
+                            @endif
                         </div>
                     </div>
 
-                    {{-- Price --}}
-                    <div class="flex items-end gap-1.5 mb-5">
-                        @if($plan->price == 0)
-                            <span class="text-4xl font-extrabold text-gray-900 leading-none tracking-tight">Free</span>
+                    {{-- Prix --}}
+                    <div class="flex items-baseline gap-1 mb-5">
+                        @if((float)$plan->price === 0.0)
+                        <span class="text-3xl font-extrabold text-gray-900 tracking-tight">Gratuit</span>
+                        <span class="text-xs text-gray-400">pour toujours</span>
                         @else
-                            <span class="text-4xl font-extrabold text-gray-900 leading-none tracking-tight">{{ currency_format($plan->price) }}</span>
-                            <span class="text-sm text-gray-400 pb-1">/ mo</span>
+                        <span class="text-3xl font-extrabold text-gray-900 tracking-tight">{{ currency_format($plan->price) }}</span>
+                        <span class="text-xs text-gray-400 mb-0.5">/mois</span>
                         @endif
                     </div>
 
-                    {{-- Features --}}
-                    <ul class="space-y-2.5 flex-1 mb-6">
-                        @forelse($plan->features ?? [] as $feat)
-                        @php $featText = is_array($feat) ? ($feat['name'] ?? $feat['label'] ?? implode(', ', array_filter((array)$feat, 'is_string'))) : (string)$feat; @endphp
-                        <li class="flex items-center gap-2.5 text-sm text-gray-600">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                                 stroke="{{ $meta['accent'] }}" stroke-width="2.5"
-                                 stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12"/>
+                    {{-- Fonctionnalités clés (permissions) --}}
+                    <ul class="space-y-2 flex-1 mb-5">
+                        @foreach($keyPerms as $permKey => $permLabel)
+                        @php
+                            $val     = $perms[$permKey] ?? false;
+                            $enabled = is_bool($val) ? $val : ($val === null ? true : ($val > 0));
+                            $isLimit = is_int($val) && $val > 0;
+                            $isNull  = $val === null;
+                        @endphp
+                        <li class="flex items-center gap-2 text-xs {{ $enabled ? 'text-gray-700' : 'text-gray-300' }}">
+                            @if($enabled)
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                 stroke="{{ $t['color'] }}" stroke-width="2.5" class="flex-shrink-0">
+                                <path d="m5 12 5 5L20 7"/>
                             </svg>
-                            {{ $featText }}
+                            @else
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                 stroke="#D1D5DB" stroke-width="2.5" class="flex-shrink-0">
+                                <path d="M18 6 6 18M6 6l12 12"/>
+                            </svg>
+                            @endif
+                            <span class="{{ $enabled ? '' : 'line-through' }}">{{ $permLabel }}</span>
+                            @if($isLimit)
+                            <span class="ml-auto text-[10px] font-bold px-1.5 rounded flex-shrink-0"
+                                  style="background:{{ $t['light'] }};color:{{ $t['color'] }};">{{ $val }}</span>
+                            @elseif($isNull && $enabled)
+                            <span class="ml-auto text-[10px] font-bold px-1.5 rounded flex-shrink-0"
+                                  style="background:{{ $t['light'] }};color:{{ $t['color'] }};">∞</span>
+                            @endif
                         </li>
-                        @empty
-                        <li class="text-sm text-gray-400 italic">No features listed</li>
-                        @endforelse
+                        @endforeach
                     </ul>
 
                     {{-- CTA --}}
                     @if($isCurrent)
-                    <div class="w-full py-3 rounded-xl text-xs font-bold text-center tracking-widest"
-                         style="background:#F9FAFB;color:#9CA3AF;border:1px solid #E5E7EB;">
-                        YOUR CURRENT PLAN
+                    <div class="w-full py-2.5 rounded-xl text-xs font-bold text-center border"
+                         style="color:{{ $t['color'] }};border-color:{{ $t['color'] }};background:{{ $t['light'] }};">
+                        ✓ Votre plan actuel
                     </div>
+                    @elseif($plan->stripe_price_id)
+                    <form method="POST" action="{{ route('checkout', $plan) }}">
+                        @csrf
+                        <button type="submit"
+                                class="w-full py-2.5 rounded-xl text-xs font-bold text-white transition hover:opacity-90"
+                                style="background:{{ $t['color'] }};">
+                            Passer à {{ $plan->label }} →
+                        </button>
+                    </form>
                     @else
                     <a href="{{ route('upgrade') }}"
-                       class="w-full py-3 rounded-xl text-xs font-bold tracking-widest text-white transition flex items-center justify-center"
-                       style="background:{{ $meta['accent'] }};"
-                       onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
-                        {{ $meta['cta'] }}
+                       class="w-full py-2.5 rounded-xl text-xs font-bold text-white transition hover:opacity-90 flex items-center justify-center"
+                       style="background:{{ $t['color'] }};">
+                        Découvrir {{ $plan->label }} →
                     </a>
                     @endif
                 </div>
             </div>
             @endforeach
         </div>
+
+        {{-- Note légale §12.4 --}}
+        <p class="text-center text-[11px] text-gray-400 mt-5">
+            Paiement sécurisé via Stripe · Résiliation possible à tout moment · Sans engagement · <a href="{{ url('/legal/cgu') }}" target="_blank" class="underline hover:text-gray-600">CGU</a>
+        </p>
     </div>
     @endif
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\EnforcePlanLimits;
+use App\Jobs\NotifyUsersNewGroupJob;
 use App\Models\City;
 use App\Models\Group;
 use App\Models\GroupInvitation;
@@ -237,6 +238,10 @@ class GroupController extends Controller
 
     public function acceptInvitation(Request $request, int $invId)
     {
+        if ($redirect = $this->requirePermission('can_join_pole')) {
+            return $redirect;
+        }
+
         $invitation = GroupInvitation::where('user_id', $request->user()->id)
             ->where('status', 'pending')
             ->findOrFail($invId);
@@ -344,6 +349,8 @@ class GroupController extends Controller
         ]);
 
         $group->members()->attach($user->id, ['role' => 'owner']);
+
+        NotifyUsersNewGroupJob::dispatch($group);
 
         return redirect()->route('groups.show', $group->id)
             ->with('success', 'Groupe "' . $group->name . '" créé avec succès !');

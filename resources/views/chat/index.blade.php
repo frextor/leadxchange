@@ -26,7 +26,7 @@ function cxChat() {
                 if (t) t.scrollTop = t.scrollHeight;
             });
             if (CX_UID) {
-                setInterval(() => cxPoll(this), 3000);
+                setInterval(() => cxPoll(this), 1000);
             }
         },
 
@@ -146,17 +146,28 @@ function cxAppendMsg(msg) {
 }
 
 // ── Poll for new messages ─────────────────────────────────────────────────
+let CX_POLLING = false;
+
 async function cxPoll(alpine) {
-    if (!CX_UID) return;
+    if (!CX_UID || CX_POLLING) return;
+    CX_POLLING = true;
     try {
-        const r = await fetch('/chat/' + CX_UID + '/poll/' + CX_LASTID);
+        const r = await fetch('/chat/' + CX_UID + '/poll/' + CX_LASTID, {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        if (!r.ok) return;
         const d = await r.json();
         if (d.messages?.length) {
             d.messages.forEach(m => { cxAppendMsg(m); CX_LASTID = m.id; });
         }
         const ti = document.getElementById('cx-typing');
         if (ti) ti.style.display = d.other_typing ? 'flex' : 'none';
-    } catch {}
+    } catch (e) {
+        console.warn('[cxPoll]', e);
+    } finally {
+        CX_POLLING = false;
+    }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -205,6 +216,77 @@ function cxCancelMedia() {
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') document.getElementById('cx-modal')?.classList.remove('open');
 });
+
+// ── Inbox check — détecte les nouvelles conversations ────────────────────
+let CX_KNOWN_CONVS = new Map(); // conv_id → last_msg_id
+
+// Init avec les conversations actuellement affichées
+document.querySelectorAll('#cx-conv-list .cx-conv-item').forEach(el => {
+    const uid = el.href?.split('with=')[1];
+    if (uid) CX_KNOWN_CONVS.set(uid, 0);
+});
+
+async function cxCheckInbox() {
+    try {
+        const r = await fetch('/chat/inbox/check', {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        if (!r.ok) return;
+        const d = await r.json();
+
+        let hasNew = false;
+        for (const c of d.conversations) {
+            const otherId = String(c.other_id);
+            if (!CX_KNOWN_CONVS.has(otherId)) {
+                // Nouvelle conversation inconnue → reload
+                hasNew = true;
+                break;
+            }
+            const prev = CX_KNOWN_CONVS.get(otherId);
+            if (c.last_msg_id > prev && c.other_id != CX_UID) {
+                // Nouveau message dans une autre conversation → badge ou reload
+                hasNew = true;
+                CX_KNOWN_CONVS.set(otherId, c.last_msg_id);
+            }
+        }
+
+        if (hasNew) {
+            // Mettre à jour le badge d'unread dans la nav si disponible
+            const badge = document.querySelector('[data-unread-badge]');
+            if (badge) badge.textContent = d.total_unread > 0 ? d.total_unread : '';
+
+            // Recharger la sidebar en douceur
+            cxReloadSidebar();
+        }
+    } catch {}
+}
+
+async function cxReloadSidebar() {
+    try {
+        const r = await fetch(window.location.href, {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        const html = await r.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newList = doc.getElementById('cx-conv-list');
+        const curList = document.getElementById('cx-conv-list');
+        if (newList && curList) {
+            curList.innerHTML = newList.innerHTML;
+            // Re-init known convs
+            CX_KNOWN_CONVS = new Map();
+            curList.querySelectorAll('.cx-conv-item').forEach(el => {
+                const uid = el.href?.split('with=')[1];
+                if (uid) CX_KNOWN_CONVS.set(uid, 0);
+            });
+        }
+    } catch {}
+}
+
+// Poll inbox toutes les 4 secondes
+setInterval(cxCheckInbox, 4000);
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 @endpush

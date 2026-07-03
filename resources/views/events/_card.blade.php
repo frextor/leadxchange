@@ -173,7 +173,7 @@
             </button>
         </form>
         @else
-        @if(auth()->user()->canFeature('attend_events'))
+        @if(auth()->user()->canFeature('can_participate_events'))
         <form method="POST" action="{{ route('events.join', $event->id) }}" onclick="event.stopPropagation()">
             @csrf
             <button type="submit" class="w-full py-2 rounded-xl text-xs font-semibold text-white transition"
@@ -183,12 +183,12 @@
             </button>
         </form>
         @else
-        <a href="{{ route('upgrade') }}" onclick="event.stopPropagation();"
-           class="block w-full py-2 rounded-xl text-xs font-semibold text-center border border-dashed transition"
-           style="border-color:#6366F1;color:#6366F1;">
+        <button type="button" onclick="event.stopPropagation();openUpgradeModal('can_participate_events')"
+                class="w-full py-2 rounded-xl text-xs font-semibold text-center border border-dashed transition cursor-pointer"
+                style="border-color:#6366F1;color:#6366F1;background:transparent;">
             <svg class="inline mr-1" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             Upgrade pour participer
-        </a>
+        </button>
         @endif
         @endif
     </div>

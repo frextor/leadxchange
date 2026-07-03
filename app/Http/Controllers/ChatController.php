@@ -43,7 +43,7 @@ class ChatController extends Controller
 
             $otherUser    = User::with(['company', 'profile'])->findOrFail($withUserId);
             $conversation = Conversation::between($user->id, $withUserId);
-            $messages     = $conversation->messages()->get();
+            $messages     = $conversation->messages()->oldest()->get();
 
             // Mark incoming messages as read
             $conversation->messages()
@@ -62,7 +62,7 @@ class ChatController extends Controller
             ->orderBy('first_name')
             ->get();
 
-        $canChat = $user->canFeature('chat');
+        $canChat = $user->canFeature('can_receive_mail');
 
         return view('chat.index', compact('conversations', 'otherUser', 'messages', 'conversation', 'connections', 'canChat'));
     }
@@ -159,5 +159,34 @@ class ChatController extends Controller
     {
         Cache::put("typing:{$request->user()->id}:{$userId}", true, now()->addSeconds(5));
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Check for new/updated conversations (used to refresh the sidebar).
+     * Returns conversations with unread messages + their last message ID.
+     */
+    public function checkInbox(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $user = $request->user();
+
+        $conversations = Conversation::with(['lastMessage'])
+            ->where(function ($q) use ($user) {
+                $q->where('user1_id', $user->id)
+                  ->orWhere('user2_id', $user->id);
+            })
+            ->orderByDesc('last_message_at')
+            ->get()
+            ->map(fn ($c) => [
+                'id'          => $c->id,
+                'other_id'    => $c->otherUser($user->id)?->id,
+                'unread'      => $c->unreadCount($user->id),
+                'last_msg_id' => $c->lastMessage?->id ?? 0,
+                'updated_at'  => $c->last_message_at?->toIso8601String(),
+            ]);
+
+        return response()->json([
+            'conversations' => $conversations->values(),
+            'total_unread'  => $conversations->sum('unread'),
+        ]);
     }
 }

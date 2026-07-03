@@ -200,6 +200,75 @@ Route::middleware(['auth', 'user'])->group(function () {
     Route::delete('/events/{id}',                               [EventController::class, 'destroy'])->name('events.destroy');
     Route::delete('/events/{id}/attendees/{userId}',            [EventController::class, 'removeAttendee'])->name('events.attendees.destroy');
 
+    // §12 CGU — Facturation & abonnement
+    Route::get('/account/billing',            [\App\Http\Controllers\BillingController::class, 'index'])->name('billing.index');
+    Route::post('/account/billing/cancel',    [\App\Http\Controllers\BillingController::class, 'cancel'])->name('billing.cancel');
+    Route::post('/account/billing/reactivate',[\App\Http\Controllers\BillingController::class, 'reactivate'])->name('billing.reactivate');
+
+    // §10.8 RGPD — Exercice des droits
+    Route::get('/rgpd/request', function () {
+        return view('rgpd.request');
+    })->name('rgpd.request');
+
+    Route::post('/rgpd/request', function (\Illuminate\Http\Request $request) {
+        $request->validate([
+            'right_type' => ['required', 'in:access,rectification,erasure,portability,opposition,limitation'],
+            'details'    => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $labels = [
+            'access'       => 'Droit d\'accès (Art. 15)',
+            'rectification'=> 'Droit de rectification (Art. 16)',
+            'erasure'      => 'Droit à l\'effacement (Art. 17)',
+            'portability'  => 'Droit à la portabilité (Art. 20)',
+            'opposition'   => 'Droit d\'opposition (Art. 21)',
+            'limitation'   => 'Droit à la limitation (Art. 18)',
+        ];
+
+        $user    = auth()->user();
+        $type    = $labels[$request->right_type];
+        $details = $request->details ?? 'Aucun détail fourni.';
+
+        // Envoyer email à l'admin DPO
+        \Illuminate\Support\Facades\Mail::raw(
+            "Demande RGPD\n\nUtilisateur : {$user->first_name} {$user->last_name} ({$user->email})\nDroit demandé : {$type}\nDétails : {$details}\nDate : " . now()->format('d/m/Y H:i'),
+            fn($m) => $m->to('contact@leadxchange.com')->subject("[RGPD] Demande de {$user->first_name} {$user->last_name} — {$type}")
+        );
+
+        return back()->with('rgpd_success', "Votre demande a été envoyée. Nous vous répondrons sous 1 mois (Art. 12 RGPD).");
+    })->name('rgpd.submit');
+
+    // §8.2 CGU — Signaler un comportement abusif
+    Route::post('/users/{user}/report', function (\Illuminate\Http\Request $request, \App\Models\User $user) {
+        $request->validate([
+            'reason'  => ['required', 'in:' . implode(',', array_keys(\App\Models\UserReport::REASONS))],
+            'details' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'Vous ne pouvez pas vous signaler vous-même.');
+        }
+
+        try {
+            \App\Models\UserReport::create([
+                'reporter_id' => auth()->id(),
+                'reported_id' => $user->id,
+                'reason'      => $request->reason,
+                'details'     => $request->details,
+            ]);
+            return back()->with('success', 'Signalement envoyé. Notre équipe le traitera sous 10 jours ouvrés.');
+        } catch (\Illuminate\Database\QueryException) {
+            return back()->with('info', 'Vous avez déjà signalé ce membre pour cette raison.');
+        }
+    })->name('users.report');
+
+    // §3.3 CGU — Accepter la nouvelle version
+    Route::post('/legal/accept-cgu', function (\Illuminate\Http\Request $request) {
+        $version = \App\Models\SystemSetting::get('cgu_current_version', '1.1');
+        $request->user()->update(['cgu_version' => $version, 'cgu_accepted_at' => now()]);
+        return back()->with('success', 'Merci d\'avoir accepté les nouvelles CGU v' . $version . '.');
+    })->name('cgu.accept');
+
     // Consul request (user-facing)
     Route::post('/consul/request', [\App\Http\Controllers\ConsulRequestController::class, 'store'])->name('consul.request');
 
@@ -215,6 +284,7 @@ Route::middleware(['auth', 'user'])->group(function () {
 
     // Chat
     Route::get('/chat',                              [ChatController::class, 'index'])->name('chat.index');
+    Route::get('/chat/inbox/check',                  [ChatController::class, 'checkInbox'])->name('chat.inbox.check');
     Route::post('/chat/{userId}',                    [ChatController::class, 'store'])->name('chat.store');
     Route::post('/chat/{userId}/media',              [ChatController::class, 'uploadMedia'])->name('chat.media');
     Route::get('/chat/{userId}/poll/{lastId}',       [ChatController::class, 'poll'])->name('chat.poll');

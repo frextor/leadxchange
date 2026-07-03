@@ -91,7 +91,9 @@
         {{-- Actions in header --}}
         <div class="ml-auto flex items-center gap-2">
             @if($canAct)
-            <form method="POST" action="{{ route('leads.accept', $lead->id) }}">
+            {{-- §7.5 CGU — Avertissement obligations receveur --}}
+            <form method="POST" action="{{ route('leads.accept', $lead->id) }}"
+                  onsubmit="return confirm('En acceptant ce lead, vous vous engagez à :\n\n• Utiliser ces informations uniquement à des fins professionnelles\n• Ne pas revendre les données à des tiers\n• Informer le prospect de l\'origine de ses coordonnées lors du premier contact\n• Respecter les droits RGPD du prospect\n\n(CGU §7.5)')">
                 @csrf
                 <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-gray-900 hover:bg-gray-700 transition">
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -390,6 +392,17 @@
             </div>
 
         </div>
+    </div>
+</div>
+
+{{-- §7.6 CGU — Responsabilité partagée --}}
+<div class="max-w-4xl mx-auto px-4 pb-6 mt-4">
+    <div class="flex items-start gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-5 py-4 text-xs text-gray-500">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <p class="leading-relaxed">
+            <span class="font-semibold text-gray-600">Responsabilité partagée (CGU §7.6) :</span>
+            L'émetteur de ce lead est responsable de la licéité des données transmises. Le receveur est responsable du traitement ultérieur de ces données. Chaque partie agit en qualité de Responsable de Traitement distinct pour ses traitements respectifs.
+        </p>
     </div>
 </div>
 

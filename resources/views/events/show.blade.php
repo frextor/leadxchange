@@ -300,7 +300,7 @@
                 </form>
 
                 @else
-                @if(auth()->user()->canFeature('attend_events'))
+                @if(auth()->user()->canFeature('can_participate_events'))
                 <p class="text-xs text-gray-400 mb-3 text-center">Rejoignez cet événement</p>
                 @if($event->is_free)
                 <form method="POST" action="{{ route('events.join', $event->id) }}">
@@ -323,12 +323,12 @@
                 @else
                 <div class="text-center py-2">
                     <p class="text-xs text-gray-500 mb-3">Participation aux événements réservée aux plans Premium.</p>
-                    <a href="{{ route('upgrade') }}"
-                       class="block w-full py-3 rounded-xl text-sm font-semibold border border-dashed transition"
-                       style="border-color:#6366F1;color:#6366F1;">
+                    <button type="button" onclick="openUpgradeModal('can_participate_events')"
+                            class="block w-full py-3 rounded-xl text-sm font-semibold border border-dashed transition cursor-pointer"
+                            style="border-color:#6366F1;color:#6366F1;background:transparent;">
                         <svg class="inline mr-1.5" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                         Upgrade pour participer
-                    </a>
+                    </button>
                 </div>
                 @endif {{-- attend_events --}}
                 @endif {{-- isPast / isFull / isAttending / else --}}

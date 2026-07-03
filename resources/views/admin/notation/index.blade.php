@@ -30,6 +30,156 @@
 </div>
 @endif
 
+{{-- ── Explication du système de points (CGU §6) ────────────────────────── --}}
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-5 overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between cursor-pointer"
+         onclick="this.nextElementSibling.classList.toggle('hidden')">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4338CA" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div>
+                <p class="text-sm font-bold text-gray-900">Fonctionnement du système de points (CGU §6)</p>
+                <p class="text-xs text-gray-400">Cliquez pour afficher / masquer</p>
+            </div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+
+    <div class="hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-gray-100">
+
+            {{-- Colonne 1 : Flux de points --}}
+            <div class="p-5">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Flux de points</p>
+
+                <div class="space-y-3">
+                    <div class="flex items-start gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                        <span class="text-lg font-extrabold text-emerald-600 leading-none mt-0.5">+2</span>
+                        <div>
+                            <p class="text-xs font-semibold text-emerald-800">Lead envoyé (accepté)</p>
+                            <p class="text-[11px] text-emerald-700 mt-0.5">Crédité à l'émetteur dès acceptation</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 p-3 rounded-xl bg-red-50 border border-red-100">
+                        <span class="text-lg font-extrabold text-red-500 leading-none mt-0.5">−1</span>
+                        <div>
+                            <p class="text-xs font-semibold text-red-800">Lead reçu (accepté)</p>
+                            <p class="text-[11px] text-red-700 mt-0.5">Débité au receveur dès acceptation</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 p-3 rounded-xl bg-amber-50 border border-amber-100">
+                        <span class="text-xs font-extrabold text-amber-700 leading-none mt-0.5 whitespace-nowrap">+N / −N</span>
+                        <div>
+                            <p class="text-xs font-semibold text-amber-800">Bonification post-RDV</p>
+                            <p class="text-[11px] text-amber-700 mt-0.5">Receveur attribue des points → émetteur les reçoit, receveur les perd</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Limites</p>
+                    <div class="space-y-1">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-gray-500">Plafond maximum</span>
+                            <span class="font-bold text-gray-800">30 pts</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-gray-500">Minimum pour recevoir</span>
+                            <span class="font-bold text-gray-800">≥ 1 pt</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-gray-500">Suspension réception</span>
+                            <span class="font-bold text-gray-800">Solde nul 2 mois</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Colonne 2 : Grille de bonification --}}
+            <div class="p-5">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Grille de bonification (CGU §6.2.2)</p>
+
+                <div class="space-y-2">
+                    @foreach([
+                        ['UQ', 'Unqualified Lead',         0, 'bg-gray-100 text-gray-500',     'Non qualifié'],
+                        ['MQL','Marketing Qualified Lead', 1, 'bg-blue-100 text-blue-700',     'Lead basique / peu qualifié'],
+                        ['SQL','Sale Qualified Lead',      3, 'bg-indigo-100 text-indigo-700', 'Lead très qualifié / RDV abouti'],
+                        ['SP', 'Sale Process',             5, 'bg-violet-100 text-violet-700', 'Lead exceptionnel / affaire conclue'],
+                    ] as [$code, $label, $pts, $cls, $desc])
+                    <div class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition">
+                        <span class="inline-flex items-center justify-center w-10 h-8 rounded-lg text-[10px] font-extrabold {{ $cls }} flex-shrink-0">{{ $code }}</span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-semibold text-gray-800 truncate">{{ $label }}</p>
+                            <p class="text-[10px] text-gray-400 truncate">{{ $desc }}</p>
+                        </div>
+                        <span class="text-sm font-extrabold {{ $pts > 0 ? 'text-emerald-600' : 'text-gray-400' }} flex-shrink-0">
+                            {{ $pts > 0 ? '+' . $pts : '0' }} pt{{ $pts > 1 ? 's' : '' }}
+                        </span>
+                    </div>
+                    @endforeach
+                </div>
+
+                <div class="mt-4 p-3 rounded-xl bg-orange-50 border border-orange-100">
+                    <p class="text-[10px] font-bold text-orange-700 uppercase tracking-widest mb-1">Délai notation</p>
+                    <p class="text-xs text-orange-700">Le receveur dispose de <strong>15 jours</strong> pour noter (prolongeable 15j une fois).</p>
+                    <p class="text-xs text-orange-600 mt-1">Passé ce délai : lead = UQ, émetteur <strong>−2 pts</strong>, receveur <strong>+1 pt</strong></p>
+                </div>
+            </div>
+
+            {{-- Colonne 3 : Exemple + Malus --}}
+            <div class="p-5">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Exemple illustratif (CGU §6.4)</p>
+
+                <div class="space-y-2 mb-4">
+                    <div class="flex items-center gap-2 text-xs">
+                        <div class="w-7 h-7 rounded-full bg-teal-100 flex items-center justify-center text-[10px] font-bold text-teal-700 flex-shrink-0">S</div>
+                        <span class="text-gray-600">Sophie envoie un lead à Marc</span>
+                    </div>
+                    <div class="ml-9 space-y-1">
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-gray-50 text-[11px]">
+                            <span class="text-gray-500">À la réception</span>
+                            <div class="flex gap-3">
+                                <span class="font-bold text-emerald-600">Sophie +2</span>
+                                <span class="font-bold text-red-500">Marc −1</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-gray-50 text-[11px]">
+                            <span class="text-gray-500">Marc note SP (+5)</span>
+                            <div class="flex gap-3">
+                                <span class="font-bold text-emerald-600">Sophie +5</span>
+                                <span class="font-bold text-red-500">Marc −5</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-indigo-50 border border-indigo-100 text-[11px]">
+                            <span class="font-semibold text-indigo-800">Total final</span>
+                            <div class="flex gap-3">
+                                <span class="font-extrabold text-emerald-600">Sophie +7</span>
+                                <span class="font-extrabold text-red-500">Marc −6</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-xl bg-red-50 border border-red-100">
+                    <p class="text-[10px] font-bold text-red-700 uppercase tracking-widest mb-1">Malus UQ (CGU §6.2.3)</p>
+                    <p class="text-xs text-red-700">Si un émetteur cumule <strong>&gt; 3 leads UQ</strong> sur 6 mois glissants :</p>
+                    <div class="mt-1.5 flex items-center gap-2">
+                        <span class="text-sm font-extrabold text-red-600">−5 pts</span>
+                        <span class="text-xs text-red-600">appliqués automatiquement</span>
+                    </div>
+                </div>
+
+                <div class="mt-3 p-3 rounded-xl bg-blue-50 border border-blue-100">
+                    <p class="text-[10px] font-bold text-blue-700 uppercase tracking-widest mb-1">Traitement automatique</p>
+                    <p class="text-xs text-blue-700">La commande <code class="bg-blue-100 px-1 rounded text-[10px]">leads:process-expired-ratings</code> s'exécute chaque nuit à 04h00.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 {{-- ── Configuration des ranges de badges ───────────────────────────────── --}}
 @php
 $bronzeMin    = $thresholds['bronze']    ?? 5;

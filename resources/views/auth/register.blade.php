@@ -1,12 +1,25 @@
-{-- resources/views/auth/register.blade.php --}}
+{{-- resources/views/auth/register.blade.php --}}
 @extends('layouts.auth')
 
-@section('title', 'Create your account — LeadXchange')
+@section('title', 'Créer votre compte — LeadXchange')
 
 @section('content')
+    {{-- §2.3 CGU — Plateforme exclusivement B2B --}}
+    <div class="mb-6 flex items-start gap-3 rounded-2xl border px-4 py-3.5"
+         style="background:#F0FDF4;border-color:#6EE7B7;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" class="flex-shrink-0 mt-0.5">
+            <path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+        </svg>
+        <div>
+            <p class="text-sm font-semibold text-green-800">Plateforme exclusivement réservée aux professionnels (B2B)</p>
+            <p class="text-xs text-green-700 mt-0.5">En vous inscrivant, vous déclarez agir dans le cadre de votre activité professionnelle.</p>
+        </div>
+    </div>
+
     <div class="mb-8">
-        <h1 class="text-3xl font-semibold text-gray-900" style="letter-spacing:-0.025em;">Create your account</h1>
-        <p class="text-gray-500 mt-2" style="font-size:15px;">Join 1,500+ Business Developers exchanging qualified leads.</p>
+        <h1 class="text-3xl font-semibold text-gray-900" style="letter-spacing:-0.025em;">Créer votre compte</h1>
+        <p class="text-gray-500 mt-2" style="font-size:15px;">Rejoignez 1 500+ commerciaux qui échangent des leads qualifiés.</p>
     </div>
 
     {{-- Progress indicator --}}
@@ -32,7 +45,7 @@
 
             {{-- First Name --}}
             <div>
-                <input type="text" id="first_name" name="first_name" placeholder="First Name"
+                <input type="text" id="first_name" name="first_name" placeholder="Prénom"
                     value="{{ old('first_name') }}" required
                     class="lx-input px-4 py-3.5 @error('first_name') lx-error @enderror">
                 @error('first_name') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
@@ -40,7 +53,7 @@
 
             {{-- Last Name --}}
             <div>
-                <input type="text" id="last_name" name="last_name" placeholder="Last Name"
+                <input type="text" id="last_name" name="last_name" placeholder="Nom de famille"
                     value="{{ old('last_name') }}" required
                     class="lx-input px-4 py-3.5 @error('last_name') lx-error @enderror">
                 @error('last_name') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
@@ -48,7 +61,7 @@
 
             {{-- Email --}}
             <div>
-                <input type="email" id="email" name="email" placeholder="Work Email"
+                <input type="email" id="email" name="email" placeholder="Email professionnel"
                     value="{{ old('email') }}" required
                     class="lx-input px-4 py-3.5 @error('email') lx-error @enderror">
                 @error('email') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
@@ -57,7 +70,7 @@
             {{-- Password --}}
             <div>
                 <div class="relative">
-                    <input type="password" id="password" name="password" placeholder="Create Password" required
+                    <input type="password" id="password" name="password" placeholder="Créer un mot de passe" required
                         class="lx-input px-4 py-3.5 pr-12 @error('password') lx-error @enderror"
                         oninput="updateStrength()">
                     <button type="button" onclick="togglePassword('password')"
@@ -83,7 +96,7 @@
             <div>
                 <div class="relative">
                     <input type="password" id="password_confirmation" name="password_confirmation"
-                        placeholder="Confirm Password" required
+                        placeholder="Confirmer le mot de passe" required
                         class="lx-input px-4 py-3.5 pr-12">
                     <button type="button" onclick="togglePassword('password_confirmation')"
                         class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
@@ -106,7 +119,7 @@
 
             {{-- Gender --}}
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-3">Gender</label>
+                <label class="block text-sm font-medium text-gray-700 mb-3">Genre</label>
                 <div class="grid grid-cols-2 gap-3">
                     <label class="relative cursor-pointer">
                         <input type="radio" name="gender" value="male"
@@ -143,23 +156,52 @@
                 @error('phone') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
 
-            {{-- Nationality --}}
-            <div>
-                <select name="nationality_id"
-                    class="lx-input px-4 py-3.5 @error('nationality_id') lx-error @enderror">
-                    <option value="">Nationality</option>
-                    @foreach($nationalities as $n)
-                        <option value="{{ $n->id }}" {{ old('nationality_id') == $n->id ? 'selected' : '' }}>
-                            {{ $n->flag }} {{ $n->country }}
-                        </option>
-                    @endforeach
-                </select>
+            {{-- Nationality — custom dropdown (emoji flags safe on Windows) --}}
+            <div x-data="{
+                open: false,
+                selected: {{ old('nationality_id') ? (int)old('nationality_id') : 'null' }},
+                search: '',
+                nats: {{ json_encode($nationalities->map(fn($n) => ['id'=>$n->id,'flag'=>$n->flag,'country'=>$n->country,'name'=>$n->name])->values()) }},
+                get filtered() {
+                    if (!this.search) return this.nats;
+                    const s = this.search.toLowerCase();
+                    return this.nats.filter(n => n.country.toLowerCase().includes(s) || n.name.toLowerCase().includes(s));
+                },
+                get selectedItem() { return this.nats.find(n => n.id === this.selected) ?? null; },
+                select(n) { this.selected = n.id; this.open = false; this.search = ''; }
+            }" @click.outside="open = false" class="relative">
+                <input type="hidden" name="nationality_id" :value="selected">
+                <button type="button" @click="open = !open"
+                        class="lx-input px-4 py-3.5 w-full text-left flex items-center gap-2 @error('nationality_id') lx-error @enderror"
+                        :class="{ 'text-gray-400': !selected, 'text-gray-900': selected }">
+                    <span x-text="selectedItem ? selectedItem.flag : ''" class="text-lg leading-none flex-shrink-0"></span>
+                    <span x-text="selectedItem ? selectedItem.country : 'Nationalité'" class="flex-1 truncate text-sm"></span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="flex-shrink-0 text-gray-400"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div x-show="open" x-cloak
+                     class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                    <div class="p-2 border-b border-gray-100">
+                        <input type="text" x-model="search" placeholder="Rechercher une nationalité…"
+                               class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-teal-400" @click.stop>
+                    </div>
+                    <ul class="max-h-52 overflow-y-auto py-1">
+                        <template x-for="n in filtered" :key="n.id">
+                            <li @click="select(n)"
+                                class="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-teal-50 transition-colors"
+                                :class="{ 'bg-teal-50': n.id === selected }">
+                                <span x-text="n.flag" class="text-lg leading-none flex-shrink-0"></span>
+                                <span x-text="n.country" class="text-sm text-gray-700 flex-1"></span>
+                            </li>
+                        </template>
+                        <li x-show="filtered.length === 0" class="px-3 py-3 text-sm text-gray-400 text-center">Aucun résultat</li>
+                    </ul>
+                </div>
                 @error('nationality_id') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
 
             {{-- City of Living (searchable) --}}
             <div class="relative">
-                <input type="text" id="city_search" placeholder="City of Residence" autocomplete="off"
+                <input type="text" id="city_search" placeholder="Ville de résidence" autocomplete="off"
                     value="{{ old('city_id') ? $cities->firstWhere('id', old('city_id'))?->name : '' }}"
                     class="lx-input px-4 py-3.5 @error('city_id') lx-error @enderror"
                     oninput="filterCities(this.value)" onfocus="showCityDropdown()" onblur="hideCityDropdown()">
@@ -180,22 +222,69 @@
 
             {{-- Birthday --}}
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Birthday</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Date de naissance</label>
                 <input type="date" name="birthday" value="{{ old('birthday') }}"
                     class="lx-input px-4 py-3.5 @error('birthday') lx-error @enderror">
                 @error('birthday') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
 
-            {{-- Terms --}}
+            {{-- §4.1 — Secteur d'activité --}}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Secteur d'activité <span class="text-red-400">*</span></label>
+                <select name="sector_id" class="lx-input px-4 py-3.5 @error('sector_id') lx-error @enderror">
+                    <option value="">— Sélectionnez votre secteur —</option>
+                    @foreach($sectors as $s)
+                    <option value="{{ $s->id }}" {{ old('sector_id') == $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
+                    @endforeach
+                </select>
+                @error('sector_id') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- §4.1 — Fonction / Poste --}}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Fonction / Poste <span class="text-red-400">*</span></label>
+                <input type="text" name="job_title" value="{{ old('job_title') }}"
+                       placeholder="ex : Directeur commercial, Responsable marketing…"
+                       class="lx-input px-4 py-3.5 @error('job_title') lx-error @enderror">
+                @error('job_title') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- §3.2 — Capacité juridique + âge ≥ 18 ans --}}
+            <div class="p-3.5 rounded-xl border border-gray-200 bg-gray-50">
+                <label class="flex items-start gap-3 cursor-pointer group">
+                    <input type="checkbox" name="legal_capacity" value="1" {{ old('legal_capacity') ? 'checked' : '' }}
+                        class="mt-0.5 w-5 h-5 rounded flex-shrink-0" style="accent-color:#2BB6A3;" required>
+                    <span class="text-sm text-gray-700 group-hover:text-gray-900 transition-colors leading-snug">
+                        Je déclare avoir la <span class="font-semibold">pleine capacité juridique</span> pour m'engager, agir en mon nom propre et être âgé(e) d'au moins <span class="font-semibold">18 ans</span>.
+                    </span>
+                </label>
+                @error('legal_capacity') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- §2.3 CGU — Déclaration activité professionnelle --}}
+            <div class="p-3.5 rounded-xl border border-gray-200 bg-gray-50">
+                <label class="flex items-start gap-3 cursor-pointer group">
+                    <input type="checkbox" name="is_professional" value="1" {{ old('is_professional') ? 'checked' : '' }}
+                        class="mt-0.5 w-5 h-5 rounded flex-shrink-0" style="accent-color:#2BB6A3;" required>
+                    <span class="text-sm text-gray-700 group-hover:text-gray-900 transition-colors leading-snug">
+                        <span class="font-semibold">Je déclare agir dans le cadre de mon activité professionnelle</span>
+                        et confirme que cette plateforme est utilisée à des fins exclusivement professionnelles.
+                    </span>
+                </label>
+                @error('is_professional') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- §3.1 CGU — Acceptation CGU + Politique de confidentialité --}}
             <div>
                 <label class="flex items-start gap-3 cursor-pointer group">
                     <input type="checkbox" name="terms" value="1" {{ old('terms') ? 'checked' : '' }}
                         class="mt-1 w-5 h-5 rounded flex-shrink-0" style="accent-color:#2BB6A3;">
                     <span class="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
-                        I agree to the
-                        <a href="#" class="font-medium" style="color:#1E8F88;">Terms &amp; Conditions</a>
-                        and
-                        <a href="#" class="font-medium" style="color:#1E8F88;">Privacy Policy</a>
+                        J'accepte les
+                        <a href="{{ url('/legal/cgu') }}" target="_blank" class="font-medium" style="color:#1E8F88;">Conditions Générales d'Utilisation</a>
+                        et la
+                        <a href="{{ url('/legal/privacy') }}" target="_blank" class="font-medium" style="color:#1E8F88;">Politique de Confidentialité</a>
+                        de LeadXchange.
                     </span>
                 </label>
                 @error('terms') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
@@ -219,9 +308,13 @@
 
 @section('below_card')
     <div class="text-center mt-6 text-sm text-gray-600">
-        Already have an account?
-        <a href="{{ route('login') }}" class="font-semibold" style="color:#1E8F88;">Sign in</a>
+        Déjà un compte ?
+        <a href="{{ route('login') }}" class="font-semibold" style="color:#1E8F88;">Se connecter</a>
     </div>
+    {{-- §4.4 — Unicité du compte --}}
+    <p class="text-center mt-3 text-xs text-gray-400">
+        Chaque professionnel ne peut disposer que d'un seul compte. La création de comptes multiples est interdite.
+    </p>
 @endsection
 
 @push('scripts')
@@ -249,7 +342,7 @@
         const pw    = document.getElementById('password').value;
         const score = passwordScore(pw);
         const bgMap = { 0:'#E5E7EB', 1:'#EF4444', 2:'#F59E0B', 3:'#EAB308', 4:'#2BB6A3' };
-        const labels = ['', 'Too weak', 'Weak', 'Good', 'Strong'];
+        const labels = ['', 'Trop faible', 'Faible', 'Moyen', 'Fort'];
         for (let i = 1; i <= 4; i++) {
             document.getElementById('s-' + i).style.background = i <= score ? bgMap[score] : bgMap[0];
         }
@@ -270,12 +363,12 @@
         const pwc = document.getElementById('password_confirmation').value;
         if (pw !== pwc) {
             document.getElementById('password_confirmation').classList.add('lx-error');
-            alert('Passwords do not match');
+            alert('Les mots de passe ne correspondent pas');
             return;
         }
         if (pw.length < 8) {
             document.getElementById('password').classList.add('lx-error');
-            alert('Password must be at least 8 characters');
+            alert('Le mot de passe doit contenir au moins 8 caractères');
             return;
         }
 
@@ -331,7 +424,7 @@
     // Auto-jump to step 2 on server-side validation errors
     if (window._registerErrors && window._registerErrors.length) {
         document.addEventListener('DOMContentLoaded', function () {
-            const step2Fields = ['phone', 'gender', 'nationality_id', 'city_id', 'birthday', 'terms'];
+            const step2Fields = ['phone', 'gender', 'nationality_id', 'city_id', 'birthday', 'sector_id', 'job_title', 'legal_capacity', 'is_professional', 'terms'];
             const hasStep2Errors = step2Fields.some(f => window._registerErrors.includes(f));
             const hasStep1Errors = ['first_name', 'last_name', 'email', 'password'].some(f => window._registerErrors.includes(f));
             if (hasStep2Errors && !hasStep1Errors) goToStep2();

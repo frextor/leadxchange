@@ -9,8 +9,8 @@ use App\Http\Controllers\Admin\NotationController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VideoController;
 use App\Http\Controllers\Admin\SuperAdmin\AdminManagerController;
-use App\Http\Controllers\Admin\SuperAdmin\AmbassadorController;
 use App\Http\Controllers\Admin\SuperAdmin\ConsulController;
+use App\Http\Controllers\Admin\SuperAdmin\UserReportController;
 use App\Http\Controllers\Admin\SuperAdmin\CityController;
 use App\Http\Controllers\Admin\SuperAdmin\CountryController;
 use App\Http\Controllers\Admin\SuperAdmin\DashboardController as SuperDashboardController;
@@ -40,8 +40,8 @@ Route::middleware('guest')->group(function () {
 // ── Admin + Super Admin ───────────────────────────────────────────────────
 Route::middleware(['auth', 'admin'])->group(function () {
 
-    // Dashboard
-    Route::get('/',          [DashboardController::class, 'index'])->name('admin.dashboard');
+    // Dashboard — super_admin voit le super dashboard, admin voit le dashboard admin
+    Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard.alt');
 
     // Users
@@ -99,6 +99,8 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::post('plans',                         [PlanController::class, 'store'])->name('plans.store');
     Route::get('plans/permissions',              [PlanController::class, 'permissions'])->name('plans.permissions');
     Route::post('plans/permissions',             [PlanController::class, 'updatePermissions'])->name('plans.permissions.update');
+    Route::get('plans/permission-labels',        [PlanController::class, 'permissionLabels'])->name('plans.permission-labels');
+    Route::put('plans/permission-labels',        [PlanController::class, 'updatePermissionLabels'])->name('plans.permission-labels.update');
     Route::get('plans/stripe',                   [PlanController::class, 'stripeIndex'])->name('plans.stripe');
     Route::post('plans/stripe/sync-all',         [PlanController::class, 'stripeSyncAll'])->name('plans.stripe.sync-all');
     Route::post('plans/stripe/{plan}/sync',      [PlanController::class, 'stripeSyncPlan'])->name('plans.stripe.sync');
@@ -149,8 +151,17 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::delete('interests/{interest}',    [InterestController::class, 'destroy'])->name('interests.destroy');
 
     // Platform settings
-    Route::get('settings/currency',    [SettingsController::class, 'currency'])->name('settings.currency');
-    Route::put('settings/currency',    [SettingsController::class, 'updateCurrency'])->name('settings.currency.update');
+    Route::get('settings/currency',     [SettingsController::class, 'currency'])->name('settings.currency');
+    Route::put('settings/currency',     [SettingsController::class, 'updateCurrency'])->name('settings.currency.update');
+    // §8.2 CGU — Signalements comportements abusifs
+    Route::get('reports',                      [UserReportController::class, 'index'])->name('reports.index');
+    Route::post('reports/{report}/action',     [UserReportController::class, 'action'])->name('reports.action');
+
+    Route::get('settings/maintenance',         [SettingsController::class, 'maintenance'])->name('settings.maintenance');
+    Route::put('settings/maintenance',         [SettingsController::class, 'updateMaintenance'])->name('settings.maintenance.update');
+    Route::get('settings/maintenance/preview', fn() => response()->view('errors.503', ['message' => 'Quelques minutes (démonstration)']))->name('settings.maintenance.preview');
+    Route::post('settings/maintenance/down',   fn() => redirect()->back()->with('success', 'Mode maintenance activé. Exécutez : php artisan down'))->name('settings.maintenance.down');
+    Route::post('settings/maintenance/up',     fn() => redirect()->back()->with('success', 'Application remise en ligne. Exécutez : php artisan up'))->name('settings.maintenance.up');
 
     // Email templates
     Route::get('email-templates',                         [EmailTemplateController::class, 'index'])->name('email-templates.index');

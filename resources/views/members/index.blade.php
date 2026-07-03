@@ -111,7 +111,7 @@
     <div id="panel-search" class="{{ $initialTab !== 'search' ? 'hidden' : '' }}">
         <h1 class="text-[26px] font-semibold tracking-tight text-gray-900 mb-4">Member search</h1>
 
-        @if(!auth()->user()->canFeature('advanced_search'))
+        @if(!auth()->user()->canFeature('can_view_member_name'))
         <div class="bg-white rounded-2xl border border-dashed border-indigo-200 p-14 text-center shadow-sm">
             <div class="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center" style="background:#EEF2FF;">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg>
@@ -121,12 +121,12 @@
                 Recherchez des membres par nom, entreprise, secteur, ville ou centres d'intérêt.<br>
                 Fonctionnalité réservée aux plans payants.
             </p>
-            <a href="{{ route('upgrade') }}"
-               class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white"
-               style="background:linear-gradient(135deg,#6366F1,#4F46E5);box-shadow:0 6px 14px -6px rgba(99,102,241,0.5);">
+            <button type="button" onclick="openUpgradeModal('can_view_member_name')"
+                    class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white cursor-pointer"
+                    style="background:linear-gradient(135deg,#6366F1,#4F46E5);box-shadow:0 6px 14px -6px rgba(99,102,241,0.5);border:none;">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg>
                 Voir les plans disponibles
-            </a>
+            </button>
         </div>
         @else
         <form id="search-form" class="bg-white rounded-2xl border border-gray-200 p-7 shadow-sm" onsubmit="submitSearch(event)">

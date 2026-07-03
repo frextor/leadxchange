@@ -225,7 +225,9 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function adjustPoints(int $delta, string $reason = ''): void
     {
-        $newBalance = max(0, ($this->points_balance ?? 0) + $delta);
+        $current = (int) ($this->points_balance ?? 0);
+        $newBalance = $current + $delta;
+        if ($delta > 0) $newBalance = min($newBalance, 30); // CGU §6.5.3 : plafond 30 pts
         $this->update(['points_balance' => $newBalance]);
         $this->recalculateBadge();
 

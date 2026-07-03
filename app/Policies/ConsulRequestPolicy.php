@@ -2,7 +2,6 @@
 
 namespace App\Policies;
 
-use App\Models\ConsulRequest;
 use App\Models\User;
 use App\Services\ConsulService;
 
@@ -10,10 +9,10 @@ class ConsulRequestPolicy
 {
     public function __construct(private ConsulService $service) {}
 
-    /** Can the user submit a consul request? */
+    /** Can the user submit a consul request? Requires the Ambassadeur plan/status. */
     public function create(User $user): bool
     {
-        return $this->service->hasPremiumAccess($user)
+        return $this->service->hasAmbassadeurAccess($user)
             && ! $user->isConsul()
             && ! $user->consulRequests()->where('status', 'pending')->exists();
     }

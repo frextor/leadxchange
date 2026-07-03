@@ -31,6 +31,8 @@ class StoreLeadRequest extends FormRequest
             'qualification'    => ['required', 'in:chaud,tiede,froid'],
             'sector_id'        => ['required', 'integer', 'exists:sectors,id'],
             'description'      => ['nullable', 'string', 'max:2000'],
+            'rgpd_consent'     => ['required', 'accepted'],   // CGU §7.3
+            'no_sensitive_data'=> ['required', 'accepted'],   // CGU §7.4
         ];
     }
 
@@ -49,7 +51,9 @@ class StoreLeadRequest extends FormRequest
             'qualification.required' => 'Veuillez sélectionner un niveau de qualification.',
             'qualification.in'       => 'La qualification doit être Chaud, Tiède ou Froid.',
             'sector_id.required'     => 'Veuillez sélectionner un secteur.',
-            'sector_id.exists'       => 'Secteur invalide.',
+            'sector_id.exists'           => 'Secteur invalide.',
+            'rgpd_consent.accepted'      => 'Vous devez certifier disposer d\'une base légale RGPD pour partager ces données.',
+            'no_sensitive_data.accepted' => 'Vous devez certifier que ce lead ne contient pas de données interdites.',
         ];
     }
 }

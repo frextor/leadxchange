@@ -323,12 +323,24 @@
                             @endif
                         </a>
                     </div>
+                    <div class="border-t border-gray-100 py-1">
+                        {{-- §12 CGU — Mon abonnement --}}
+                        <a href="{{ route('billing.index') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 flex-shrink-0"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                            Mon abonnement
+                        </a>
+                        {{-- §10.8 RGPD --}}
+                        <a href="{{ route('rgpd.request') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 flex-shrink-0"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            Mes droits RGPD
+                        </a>
+                    </div>
                     <div class="border-t border-gray-100">
                         <form action="{{ route('logout') }}" method="POST">
                             @csrf
                             <button type="submit" class="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition">
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                                Logout
+                                Déconnexion
                             </button>
                         </form>
                     </div>
@@ -337,10 +349,113 @@
         </div>
     </header>
 
+    <!-- §5.3 — Bandeau annonce maintenance programmée -->
+    @php $maintenanceEnabled = \App\Models\SystemSetting::get('maintenance_banner_enabled', false); @endphp
+    @if($maintenanceEnabled)
+    <div class="flex items-center justify-between gap-4 px-4 py-2.5 text-sm flex-wrap"
+         style="background:#1E293B; color:#CBD5E1;">
+        <div class="flex items-center gap-2.5 flex-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" stroke-width="2" class="flex-shrink-0">
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <span style="color:#FBBF24; font-weight:600;">Maintenance programmée</span>
+            <span>{{ \App\Models\SystemSetting::get('maintenance_banner_message', '') }}</span>
+        </div>
+        <a href="mailto:contact@leadxchange.com" class="text-xs font-semibold whitespace-nowrap" style="color:#2DD4B0;">
+            Nous contacter →
+        </a>
+    </div>
+    @endif
+
+    <!-- §3.3 CGU — Bannière mise à jour si utilisateur n'a pas accepté la version courante -->
+    @auth
+    @php
+        $cguCurrentVersion = \App\Models\SystemSetting::get('cgu_current_version', '1.1');
+        $userCguVersion    = auth()->user()->cgu_version;
+        $cguNeedsAcceptance = $userCguVersion !== $cguCurrentVersion;
+    @endphp
+    @if($cguNeedsAcceptance)
+    <div id="cgu-update-banner" class="bg-amber-50 border-b border-amber-200 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
+            <div class="flex items-center gap-3">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" class="flex-shrink-0"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <p class="text-sm text-amber-800">
+                    <span class="font-semibold">Nos Conditions Générales d'Utilisation ont été mises à jour (v{{ $cguCurrentVersion }}).</span>
+                    La poursuite de l'utilisation vaut acceptation.
+                    <a href="{{ url('/legal/cgu') }}" target="_blank" class="underline font-semibold ml-1">Lire les CGU →</a>
+                </p>
+            </div>
+            <form method="POST" action="{{ route('cgu.accept') }}" class="flex-shrink-0">
+                @csrf
+                <button type="submit"
+                        class="px-4 py-1.5 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
+                        style="background:#D97706;">
+                    J'accepte la v{{ $cguCurrentVersion }}
+                </button>
+            </form>
+        </div>
+    </div>
+    @endif
+    @endauth
+
     <!-- Main Content -->
     <main class="min-h-screen" id="main-content">
         @yield('content')
     </main>
+
+    <!-- §9 — Footer légal -->
+    <footer class="border-t border-gray-100 bg-white mt-8 py-4 px-6">
+        <div class="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-3 text-xs text-gray-400">
+            <span>© {{ date('Y') }} X-tensia SAS — LeadXchange</span>
+            <div class="flex items-center gap-4">
+                <a href="{{ url('/legal/cgu') }}" target="_blank" class="hover:text-gray-600 transition">CGU</a>
+                <a href="{{ url('/legal/privacy') }}" target="_blank" class="hover:text-gray-600 transition">Confidentialité</a>
+                <a href="{{ route('rgpd.request') }}" class="hover:text-gray-600 transition">Mes droits RGPD</a>
+                <a href="mailto:contact@leadxchange.com" class="hover:text-gray-600 transition">Contact</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- §15 CNIL — Bannière de consentement cookies -->
+    @if(!isset($_COOKIE['lx_cookie_consent']))
+    <div id="lx-cookie-banner"
+         class="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 text-white px-4 py-4 shadow-2xl"
+         style="border-top:2px solid #14A98C;">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div class="flex-1 text-sm text-gray-300 leading-relaxed">
+                <span class="text-white font-semibold">🍪 Cookies & Confidentialité</span> —
+                Nous utilisons des cookies essentiels au fonctionnement et des cookies analytiques pour améliorer votre expérience.
+                <a href="{{ url('/legal/privacy') }}" target="_blank" class="underline text-teal-400 hover:text-teal-300 ml-1">En savoir plus</a>
+            </div>
+            <div class="flex gap-3 flex-shrink-0">
+                <button onclick="lxCookieRefuse()"
+                        class="px-4 py-2 rounded-xl text-sm font-semibold border border-gray-600 text-gray-300 hover:bg-gray-800 transition">
+                    Refuser
+                </button>
+                <button onclick="lxCookieAccept()"
+                        class="px-4 py-2 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
+                        style="background:#14A98C;">
+                    Accepter
+                </button>
+            </div>
+        </div>
+    </div>
+    <script>
+    function lxSetCookie(name, value, days) {
+        const d = new Date(); d.setTime(d.getTime() + days*24*60*60*1000);
+        document.cookie = name + '=' + value + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+    }
+    function lxCookieAccept() {
+        lxSetCookie('lx_cookie_consent', 'accepted', 395); // ~13 mois CNIL
+        document.getElementById('lx-cookie-banner').style.display = 'none';
+    }
+    function lxCookieRefuse() {
+        lxSetCookie('lx_cookie_consent', 'refused', 395);
+        document.getElementById('lx-cookie-banner').style.display = 'none';
+    }
+    </script>
+    @endif
 
     <!-- Toast -->
     <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
@@ -582,6 +697,128 @@
         window.API_TOKEN = '{{ session("web_api_token", "") }}';
         window.CSRF      = '{{ csrf_token() }}';
     </script>
+
+    @php
+        // Build a JS-accessible map: feature key → {label, plan_label, plan_price}
+        $lxPermsMap = [];
+        $allPlans = \App\Models\Plan::where('is_active', true)->orderBy('price')->get();
+        foreach (\App\Http\Controllers\Admin\SuperAdmin\PlanController::PERMISSIONS as $pKey => $pDef) {
+            $label = \App\Models\PermissionDefinition::labelFor($pKey)
+                   ?? ucfirst(str_replace('_', ' ', $pKey));
+            $upgradePlan = $allPlans->first(function ($p) use ($pKey) {
+                $perms = is_array($p->permissions) ? $p->permissions : [];
+                if (! array_key_exists($pKey, $perms)) return false;
+                $val = $perms[$pKey];
+                return $val === true || (is_int($val) && $val > 0);
+            });
+            $lxPermsMap[$pKey] = [
+                'label'      => $label,
+                'plan_label' => $upgradePlan?->label ?? null,
+                'plan_price' => $upgradePlan ? ($upgradePlan->price > 0 ? number_format($upgradePlan->price, 2, ',', ' ') . ' €/mois' : 'Gratuit') : null,
+            ];
+        }
+    @endphp
+
+    {{-- ── Global Upgrade Modal ──────────────────────────────────── --}}
+    <div id="lx-upgrade-modal"
+         style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;">
+        <div id="lx-upgrade-box"
+             style="background:#fff;border-radius:24px;max-width:420px;width:100%;box-shadow:0 25px 60px rgba(0,0,0,.18);overflow:hidden;transform:scale(.95);opacity:0;transition:transform .2s ease,opacity .2s ease;">
+
+            {{-- Header gradient --}}
+            <div style="background:linear-gradient(135deg,#6366F1,#4338CA);padding:28px 28px 20px;text-align:center;">
+                <div style="width:52px;height:52px;border-radius:16px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </div>
+                <h2 style="color:#fff;font-size:17px;font-weight:700;margin:0 0 4px;">Fonctionnalité Premium</h2>
+                <p id="lx-upgrade-label" style="color:rgba(255,255,255,.75);font-size:13px;margin:0;"></p>
+            </div>
+
+            {{-- Body --}}
+            <div style="padding:24px 28px;">
+                <p id="lx-upgrade-desc" style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 16px;text-align:center;"></p>
+
+                <div id="lx-upgrade-plan-wrap" style="display:none;background:linear-gradient(135deg,#EEF2FF,#E0E7FF);border-radius:14px;padding:14px 18px;margin-bottom:20px;text-align:center;">
+                    <p style="font-size:11px;color:#6366F1;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin:0 0 4px;">Disponible à partir du plan</p>
+                    <p id="lx-upgrade-plan-name" style="font-size:15px;font-weight:700;color:#4338CA;margin:0 0 2px;"></p>
+                    <p id="lx-upgrade-plan-price" style="font-size:12px;color:#6366F1;margin:0;"></p>
+                </div>
+
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <a href="{{ route('upgrade') }}"
+                       style="display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 20px;border-radius:14px;background:linear-gradient(135deg,#6366F1,#4338CA);color:#fff;font-size:14px;font-weight:600;text-decoration:none;transition:opacity .15s;"
+                       onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        Voir les plans & upgrader
+                    </a>
+                    <button onclick="lxCloseUpgradeModal()"
+                            style="padding:11px 20px;border-radius:14px;border:1.5px solid #E2E8F0;background:transparent;color:#64748B;font-size:13px;font-weight:500;cursor:pointer;transition:background .15s;"
+                            onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
+                        Continuer avec mon plan actuel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.LX_PERMS = @json($lxPermsMap);
+
+        window.openUpgradeModal = function(feature) {
+            const perm  = window.LX_PERMS[feature] || {};
+            const label = perm.label || feature.replace(/_/g,' ');
+            const modal = document.getElementById('lx-upgrade-modal');
+            const box   = document.getElementById('lx-upgrade-box');
+
+            document.getElementById('lx-upgrade-label').textContent = '« ' + label + ' »';
+            document.getElementById('lx-upgrade-desc').textContent  =
+                'Cette fonctionnalité n\'est pas incluse dans votre plan actuel. Passez à un plan supérieur pour y accéder.';
+
+            const planWrap = document.getElementById('lx-upgrade-plan-wrap');
+            if (perm.plan_label) {
+                document.getElementById('lx-upgrade-plan-name').textContent  = perm.plan_label;
+                document.getElementById('lx-upgrade-plan-price').textContent = perm.plan_price || '';
+                planWrap.style.display = 'block';
+            } else {
+                planWrap.style.display = 'none';
+            }
+
+            modal.style.display = 'flex';
+            requestAnimationFrame(() => {
+                box.style.transform = 'scale(1)';
+                box.style.opacity   = '1';
+            });
+
+            document.addEventListener('keydown', lxUpgradeKeydown);
+        };
+
+        window.lxCloseUpgradeModal = function() {
+            const modal = document.getElementById('lx-upgrade-modal');
+            const box   = document.getElementById('lx-upgrade-box');
+            box.style.transform = 'scale(.95)';
+            box.style.opacity   = '0';
+            setTimeout(() => modal.style.display = 'none', 200);
+            document.removeEventListener('keydown', lxUpgradeKeydown);
+        };
+
+        function lxUpgradeKeydown(e) {
+            if (e.key === 'Escape') lxCloseUpgradeModal();
+        }
+
+        document.getElementById('lx-upgrade-modal').addEventListener('click', function(e) {
+            if (e.target === this) lxCloseUpgradeModal();
+        });
+
+        @if(session('upgrade_feature'))
+        window.addEventListener('DOMContentLoaded', function() {
+            openUpgradeModal('{{ session("upgrade_feature") }}');
+        });
+        @endif
+    </script>
+
     @stack('scripts')
 </body>
 </html>

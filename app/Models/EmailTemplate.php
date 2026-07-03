@@ -53,6 +53,36 @@ class EmailTemplate extends Model
                 'cta_url'   => '#',
             ],
         ],
+        'new_group' => [
+            'name'            => 'Nouveau groupe dans votre région',
+            'default_subject' => 'Nouveau groupe LeadXchange : {{group_name}}',
+            'variables'       => ['name', 'group_name', 'group_description', 'group_url', 'city', 'sector', 'creator_name'],
+            'sample'          => [
+                'name'              => 'Jean Dupont',
+                'group_name'        => 'Entrepreneurs Tech Paris',
+                'group_description' => 'Un espace d\'échange pour les entrepreneurs du secteur technologique.',
+                'group_url'         => '#',
+                'city'              => 'Paris',
+                'sector'            => 'Technologie',
+                'creator_name'      => 'Marie Martin',
+            ],
+        ],
+        'new_event' => [
+            'name'            => 'Nouvel événement dans votre région',
+            'default_subject' => 'Événement à venir : {{event_title}}',
+            'variables'       => ['name', 'event_title', 'event_description', 'event_url', 'city', 'starts_at', 'event_type', 'creator_name', 'price_label'],
+            'sample'          => [
+                'name'              => 'Jean Dupont',
+                'event_title'       => 'Networking B2B Printemps 2026',
+                'event_description' => 'Rencontrez les meilleurs professionnels de votre secteur autour d\'un cocktail.',
+                'event_url'         => '#',
+                'city'              => 'Lyon',
+                'starts_at'         => '15 juillet 2026 à 18h30',
+                'event_type'        => 'En présentiel',
+                'creator_name'      => 'Sophie Bernard',
+                'price_label'       => 'Gratuit',
+            ],
+        ],
     ];
 
     // ── Core rendering ────────────────────────────────────────────────────────

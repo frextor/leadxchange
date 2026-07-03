@@ -11,7 +11,10 @@ use Illuminate\Support\Facades\Log;
 
 class LeadService
 {
-    public function __construct(private FirebaseService $firebase) {}
+    public function __construct(
+        private FirebaseService $firebase,
+        private PointsService   $points,
+    ) {}
 
     // ─────────────────────────────────────────────────────────────────────────
     // Create & send a lead
@@ -91,11 +94,9 @@ class LeadService
         DB::beginTransaction();
         try {
             $lead->update(['status' => Lead::STATUS_ACCEPTED, 'points_deducted' => true]);
-            $lead->load('sender');
-            $senderPoints    = SystemSetting::get('points.lead_accepted_sender', 2);
-            $receiverDeduct  = SystemSetting::get('points.lead_received_deduction', 1);
-            $lead->sender?->adjustPoints(+$senderPoints, 'lead_accepted');
-            $lead->receiver->adjustPoints(-$receiverDeduct, 'lead_received');
+            $lead->load('sender', 'receiver');
+            // CGU §6.2.1 + §6.3.1 : sender +2, receiver -1
+            $this->points->onLeadAccepted($lead);
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -216,11 +217,11 @@ class LeadService
                 'reactivity' => $reactivity,
             ]);
 
-            $lead->update(['lead_type' => $leadType]);
+            $lead->update(['lead_type' => $leadType, 'points_deducted' => true]);
+            $lead->load('sender', 'receiver');
 
-            if (!$lead->points_deducted) {
-                $lead->update(['points_deducted' => true]);
-            }
+            // CGU §6.2.2 + §6.3.2 : bonus points based on lead_type
+            $this->points->onLeadRated($lead, $leadType ?? '');
 
             DB::commit();
         } catch (\Exception $e) {
@@ -229,7 +230,13 @@ class LeadService
         }
 
         $avg = ($quality + $relevance + $reactivity) / 3.0;
-        Log::info('Lead rated', ['lead_id' => $lead->id, 'rater' => $rater->id, 'lead_type' => $leadType, 'avg' => round($avg, 2)]);
+        Log::info('Lead rated', [
+            'lead_id'   => $lead->id,
+            'rater'     => $rater->id,
+            'lead_type' => $leadType,
+            'bonus_pts' => \App\Services\PointsService::bonusFor($leadType),
+            'avg'       => round($avg, 2),
+        ]);
 
         return $rating;
     }

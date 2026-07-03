@@ -134,19 +134,20 @@
                     <a href="#" class="text-xs text-teal-600 hover:underline mt-0.5 inline-block">Historique des points →</a>
                 </div>
                 {{-- CTA --}}
-                @if(auth()->user()->canFeature('send_leads'))
+                @if(auth()->user()->canFeature('can_send_leads'))
                 <button onclick="document.getElementById('sendLeadModal').classList.remove('hidden')"
                         class="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-white bg-gray-900 hover:bg-gray-800 transition">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
                     Envoyer un Lead
                 </button>
                 @else
-                <a href="{{ route('upgrade') }}"
-                   class="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold border-2 border-dashed border-indigo-200 text-indigo-400 hover:border-indigo-400 hover:text-indigo-600 transition bg-indigo-50/50">
+                <button type="button" onclick="openUpgradeModal('can_send_leads')"
+                        class="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold border-2 border-dashed border-indigo-200 text-indigo-400 hover:border-indigo-400 hover:text-indigo-600 transition bg-indigo-50/50 cursor-pointer"
+                        style="background:transparent;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                     Envoyer un Lead
                     <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-500 ml-1">Upgrade</span>
-                </a>
+                </button>
                 @endif
             </div>
         </div>
@@ -273,17 +274,18 @@
             </div>
             <p class="font-semibold text-gray-600">Aucun lead envoyé</p>
             <p class="text-sm text-gray-400 mt-1">Partagez une opportunité commerciale avec votre réseau</p>
-            @if(auth()->user()->canFeature('send_leads'))
+            @if(auth()->user()->canFeature('can_send_leads'))
             <button onclick="document.getElementById('sendLeadModal').classList.remove('hidden')"
                     class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-gray-900 hover:bg-gray-800 transition">
                 Envoyer votre premier lead
             </button>
             @else
-            <a href="{{ route('upgrade') }}"
-               class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-indigo-200 text-indigo-500 hover:bg-indigo-50 transition">
+            <button type="button" onclick="openUpgradeModal('can_send_leads')"
+                    class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-indigo-200 text-indigo-500 hover:bg-indigo-50 transition cursor-pointer"
+                    style="background:transparent;">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                 Upgrade pour envoyer des leads
-            </a>
+            </button>
             @endif
         </div>
         @else
@@ -299,7 +301,7 @@
 </div>
 
 {{-- ════ SEND LEAD MODAL ════ --}}
-@if(auth()->user()->canFeature('send_leads'))
+@if(auth()->user()->canFeature('can_send_leads'))
 <div id="sendLeadModal"
      class="{{ $errors->any() && !session('success') ? '' : 'hidden' }} fixed inset-0 z-50 flex items-center justify-center p-4"
      style="background:rgba(0,0,0,.5);">
@@ -477,6 +479,34 @@
                 <textarea name="description" rows="3" maxlength="2000"
                           placeholder="Contexte, besoins spécifiques, historique de la relation…"
                           class="lx-textarea">{{ old('description') }}</textarea>
+            </div>
+
+            {{-- §7.3 + §7.4 CGU — Conformité RGPD et données interdites --}}
+            <div class="rounded-xl border border-blue-100 bg-blue-50 p-4 space-y-3">
+                <p class="text-[10px] font-bold text-blue-600 uppercase tracking-widest flex items-center gap-1.5">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Déclarations obligatoires (CGU §7)
+                </p>
+
+                {{-- §7.3 — Consentement RGPD --}}
+                <label class="flex items-start gap-2.5 cursor-pointer group">
+                    <input type="checkbox" name="rgpd_consent" value="1" required
+                           class="mt-0.5 w-4 h-4 rounded flex-shrink-0" style="accent-color:#1E8F88;">
+                    <span class="text-xs text-blue-800 leading-snug group-hover:text-blue-900">
+                        <span class="font-semibold">Consentement RGPD :</span>
+                        Je certifie avoir obtenu le consentement du prospect <strong>ou</strong> disposer d'une base légale (art. 6 RGPD) pour partager ses données personnelles à des fins de prospection commerciale.
+                    </span>
+                </label>
+
+                {{-- §7.4 — Données interdites --}}
+                <label class="flex items-start gap-2.5 cursor-pointer group">
+                    <input type="checkbox" name="no_sensitive_data" value="1" required
+                           class="mt-0.5 w-4 h-4 rounded flex-shrink-0" style="accent-color:#1E8F88;">
+                    <span class="text-xs text-blue-800 leading-snug group-hover:text-blue-900">
+                        <span class="font-semibold">Données licites :</span>
+                        Ce lead ne contient aucune donnée sensible (santé, opinions politiques…), aucune donnée de mineur, ni d'information couverte par un accord de confidentialité.
+                    </span>
+                </label>
             </div>
 
             {{-- Actions --}}

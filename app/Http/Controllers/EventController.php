@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\NotifyUsersNewEventJob;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\EventInvitation;
@@ -135,8 +136,8 @@ class EventController extends Controller
 
     public function store(Request $request)
     {
-        if (! $request->user()->canFeature('can_create_events')) {
-            return redirect()->route('upgrade')->with('upgrade_reason', 'Votre plan ne permet pas de créer des événements.');
+        if (! $request->user()->canFeature('can_organize_group_events')) {
+            return back()->with('upgrade_feature', 'can_organize_group_events');
         }
 
         $validated = $request->validate([
@@ -162,11 +163,6 @@ class EventController extends Controller
         }
 
         $user  = $request->user();
-        $user->loadMissing('subscription.plan');
-
-        if (!$user->isAmbassador() && !$user->getFeature('create_events', false)) {
-            return back()->with('error', 'Only approved ambassadors or eligible plans can create events.');
-        }
 
         $event = Event::create([
             'title'           => $validated['title'],
@@ -190,12 +186,18 @@ class EventController extends Controller
 
         $event->attendees()->attach($user->id, ['role' => 'organizer']);
 
+        NotifyUsersNewEventJob::dispatch($event);
+
         return redirect()->route('events.show', $event->id)
-            ->with('success', 'Event "' . $event->title . '" created successfully!');
+            ->with('success', 'Événement "' . $event->title . '" créé avec succès !');
     }
 
     public function join(Request $request, int $id)
     {
+        if (! $request->user()->canFeature('can_participate_events')) {
+            return back()->with('upgrade_feature', 'can_participate_events');
+        }
+
         $event = Event::findOrFail($id);
         $user  = $request->user();
 
@@ -290,6 +292,10 @@ class EventController extends Controller
 
     public function acceptInvitation(Request $request, int $invId)
     {
+        if (! $request->user()->canFeature('can_participate_events')) {
+            return back()->with('upgrade_feature', 'can_participate_events');
+        }
+
         $invitation = EventInvitation::where('user_id', $request->user()->id)
             ->where('status', 'pending')
             ->findOrFail($invId);

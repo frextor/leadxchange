@@ -11,18 +11,25 @@ use Illuminate\Support\Facades\DB;
 
 class ConsulService
 {
-    /** Check if a user has an active paid subscription (eligible for consul). */
+    /** Check if a user has an active paid subscription (eligible for ambassador promotion). */
     public function hasPremiumAccess(User $user): bool
     {
         return $user->subscription?->status === 'active'
             && (float) ($user->subscription->plan?->price ?? 0) > 0;
     }
 
+    /** Check if a user has the Ambassadeur plan or status (required for consul request). */
+    public function hasAmbassadeurAccess(User $user): bool
+    {
+        return $user->isAmbassador()
+            || $user->subscription?->plan?->name === 'ambassadeur';
+    }
+
     /** Submit a consul request. */
     public function request(User $user): ConsulRequest
     {
-        if (! $this->hasPremiumAccess($user)) {
-            throw new \RuntimeException('Un abonnement payant est requis pour demander le rôle Consul.');
+        if (! $this->hasAmbassadeurAccess($user)) {
+            throw new \RuntimeException('Vous devez avoir le plan Ambassadeur pour demander le rôle Consul.');
         }
 
         if ($user->consulRequests()->where('status', 'pending')->exists()) {

@@ -14,7 +14,11 @@
     .greeting { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 16px; }
     .text { font-size: 15px; line-height: 1.7; color: #374151; margin-bottom: 20px; }
     .divider { height: 1px; background-color: #E5E7EB; margin: 24px 0; }
-    /* Bouton : forcé inline sur le <a> pour compatibilité maximale */
+    .btn { display:inline-block; background-color:#4338CA; color:#ffffff!important; text-decoration:none; padding:14px 28px; border-radius:8px; font-weight:600; font-size:14px; letter-spacing:0.3px; }
+    .btn-teal { background-color:#0D9488; }
+    .info-card { background:#F0FDFA; border:1px solid #99F6E4; border-radius:12px; padding:20px; margin:20px 0; }
+    .info-card-blue { background:#EFF6FF; border-color:#BFDBFE; }
+    .tag { display:inline-block; font-size:12px; padding:3px 10px; border-radius:99px; margin-right:6px; margin-bottom:4px; }
 </style>
 </head>
 <body style="background-color:#F3F4F6; margin:0; padding:0;">

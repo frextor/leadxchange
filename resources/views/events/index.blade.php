@@ -70,7 +70,7 @@
             <h1 class="text-2xl font-semibold text-gray-900 tracking-tight">Events</h1>
             <p class="text-sm text-gray-500 mt-1">Discover and join professional events in your network</p>
         </div>
-        @if(auth()->user()->canFeature('create_events'))
+        @if(auth()->user()->canFeature('can_organize_group_events'))
         <button onclick="document.getElementById('createEventModal').classList.remove('hidden')"
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition"
                 style="background:#1E8F88;" onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
@@ -78,17 +78,18 @@
             Organize an event
         </button>
         @else
-        <a href="{{ route('upgrade') }}"
-           class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border-2 border-dashed border-teal-200 text-teal-500 hover:border-teal-400 hover:bg-teal-50/50 transition">
+        <button type="button" onclick="openUpgradeModal('can_organize_group_events')"
+                class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border-2 border-dashed border-teal-200 text-teal-500 hover:border-teal-400 hover:bg-teal-50/50 transition cursor-pointer"
+                style="background:transparent;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             Organize an event
             <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-600">Upgrade</span>
-        </a>
+        </button>
         @endif
     </div>
 
     {{-- ── CREATE EVENT MODAL ── --}}
-    @if(auth()->user()->canFeature('create_events'))
+    @if(auth()->user()->canFeature('can_organize_group_events'))
     <div id="createEventModal"
          class="{{ $errors->any() ? '' : 'hidden' }} fixed inset-0 z-50 flex items-center justify-center p-4"
          style="background:rgba(0,0,0,0.5);">
