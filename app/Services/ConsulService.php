@@ -53,7 +53,14 @@ class ConsulService
         )->get();
 
         foreach ($notifiables as $notifiable) {
-            $notifiable->notify(new ConsulRequestSubmitted($consulRequest));
+            try {
+                $notifiable->notify(new ConsulRequestSubmitted($consulRequest));
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('ConsulRequestSubmitted notification failed', [
+                    'notifiable_id' => $notifiable->id,
+                    'error'         => $e->getMessage(),
+                ]);
+            }
         }
 
         return $consulRequest;

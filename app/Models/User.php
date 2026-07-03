@@ -241,12 +241,20 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function recalculateBadge(): void
     {
-        $balance = $this->points_balance ?? 0;
+        $balance      = $this->points_balance ?? 0;
+        $platiniumMin = \App\Models\SystemSetting::get('badge_platinium_min', 20);
+        $orMin        = \App\Models\SystemSetting::get('badge_or_min', 15);
+        $argentMin    = \App\Models\SystemSetting::get('badge_argent_min', 10);
+        $bronzeMin    = \App\Models\SystemSetting::get('badge_bronze_min', 5);
+
         $level = match (true) {
-            $balance >= 151 => 'or',
-            $balance >= 51  => 'argent',
-            default         => 'bronze',
+            $balance >= $platiniumMin => 'platinium',
+            $balance >= $orMin        => 'or',
+            $balance >= $argentMin    => 'argent',
+            $balance >= $bronzeMin    => 'bronze',
+            default                   => 'neutre',
         };
+
         if ($this->badge_level !== $level) {
             $this->update(['badge_level' => $level]);
         }

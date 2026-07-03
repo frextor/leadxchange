@@ -36,7 +36,7 @@ class UserService
 
         $query = User::query()
             ->where('id', '!=', $currentUserId)
-            ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'city:id,name'])
+            ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'city:id,name', 'consulRequests'])
             ->select(['id', 'first_name', 'last_name', 'email', 'phone', 'phone_country_code', 'city_id', 'birthday', 'gender', 'company_id', 'points_balance', 'badge_level', 'ambassador_status']);
 
         // Search — scoped to requested fields (or all fields if none specified)
@@ -209,7 +209,7 @@ class UserService
                 {$interestSql} as rec_score
             ", $scoreBindings)
             ->leftJoin('profiles', 'profiles.user_id', '=', 'users.id')
-            ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'city:id,name'])
+            ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'city:id,name', 'consulRequests'])
             ->tap($applyWhere)
             ->orderBy('rec_score', 'desc')
             ->orderBy('users.created_at', 'desc')
@@ -268,9 +268,10 @@ class UserService
                     : null,
             ],
             'balance'          => (int) ($user->points_balance ?? 0),
-            'badge'            => $this->badgePayload($user->badge_level ?? 'bronze'),
+            'badge'            => $this->badgePayload($user->badge_level ?? 'neutre'),
             'rating'           => $this->ratingPayload($user),
             'ambassador_status' => $user->ambassador_status ?? 'none',
+            'consul_status'    => $this->deriveConsulStatus($user),
             'company'          => $user->company ? [
                 'id'      => $user->company->id,
                 'name'    => $user->company->name,
@@ -288,7 +289,7 @@ class UserService
 
     public function getUserById(int $userId, int $currentUserId): ?array
     {
-        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'nationality:id,name,flag', 'subscription.plan:id,name,label,max_users'])
+        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'nationality:id,name,flag', 'subscription.plan:id,name,label,max_users', 'consulRequests'])
             ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'ambassador_status', 'created_at'])
             ->find($userId);
 
@@ -307,7 +308,7 @@ class UserService
 
     public function getProfileById(int $userId, int $currentUserId): ?array
     {
-        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'subscription.plan:id,name,label,max_users'])
+        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'subscription.plan:id,name,label,max_users', 'consulRequests'])
             ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'ambassador_status', 'created_at'])
             ->find($userId);
 
@@ -388,26 +389,49 @@ class UserService
         return ['score' => $score, 'stars' => $stars];
     }
 
+    private function deriveConsulStatus(User $user): ?string
+    {
+        if (!$user->relationLoaded('consulRequests')) {
+            return null;
+        }
+        $requests = $user->consulRequests;
+        if ($requests->where('status', 'approved')->isNotEmpty()) return 'approved';
+        if ($requests->where('status', 'pending')->isNotEmpty())  return 'pending';
+        return $requests->sortByDesc('id')->first()?->status;
+    }
+
     private function badgePayload(string $level): array
     {
         return match ($level) {
+            'platinium' => [
+                'level'      => 'platinium',
+                'label'      => 'Platinium',
+                'color'      => '#1D4ED8',
+                'background' => '#EFF6FF',
+            ],
             'or' => [
-                'level' => 'or',
-                'label' => 'Or',
-                'color' => '#B45309',
+                'level'      => 'or',
+                'label'      => 'Or',
+                'color'      => '#B45309',
                 'background' => '#FEF3C7',
             ],
             'argent' => [
-                'level' => 'argent',
-                'label' => 'Argent',
-                'color' => '#475569',
+                'level'      => 'argent',
+                'label'      => 'Argent',
+                'color'      => '#475569',
                 'background' => '#F1F5F9',
             ],
-            default => [
-                'level' => 'bronze',
-                'label' => 'Bronze',
-                'color' => '#92400E',
+            'bronze' => [
+                'level'      => 'bronze',
+                'label'      => 'Bronze',
+                'color'      => '#92400E',
                 'background' => '#FFEDD5',
+            ],
+            default => [
+                'level'      => 'neutre',
+                'label'      => 'Neutre',
+                'color'      => '#9CA3AF',
+                'background' => '#F9FAFB',
             ],
         };
     }

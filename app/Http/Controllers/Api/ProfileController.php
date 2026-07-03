@@ -3,14 +3,19 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ConsulRequest;
 use App\Models\Interest;
+use App\Services\ConsulService;
 use App\Services\ProfileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProfileController extends Controller
 {
-    public function __construct(private ProfileService $profileService) {}
+    public function __construct(
+        private ProfileService $profileService,
+        private ConsulService  $consulService,
+    ) {}
 
     public function show(Request $request): JsonResponse
     {
@@ -196,6 +201,26 @@ class ProfileController extends Controller
         return response()->json([
             'message' => 'Ambassador request submitted.',
             'ambassador_status' => 'pending',
+        ]);
+    }
+
+    public function requestConsul(Request $request): JsonResponse
+    {
+        $user = $request->user()->loadMissing('subscription.plan');
+
+        try {
+            $this->consulService->request($user);
+        } catch (\RuntimeException $e) {
+            $consulStatus = $user->isConsul() ? 'approved' : ($user->hasPendingConsulRequest() ? 'pending' : null);
+            return response()->json([
+                'message'      => $e->getMessage(),
+                'consul_status' => $consulStatus,
+            ], 422);
+        }
+
+        return response()->json([
+            'message'      => 'Consul request submitted.',
+            'consul_status' => 'pending',
         ]);
     }
 

@@ -289,7 +289,7 @@ class AuthService
      */
     public function getUserData(User $user): array
     {
-        $user->load(['company.sector', 'subscription.plan', 'profile', 'nationality', 'city']);
+        $user->load(['company.sector', 'subscription.plan', 'profile', 'nationality', 'city', 'consulRequests']);
 
         $sectorIds = array_unique(array_merge(
             $user->profile?->looking_for      ?? [],
@@ -324,7 +324,7 @@ class AuthService
                 'notifications'      => $user->notifications,
                 'role'               => $user->role,
                 'balance'            => (int) ($user->points_balance ?? 0),
-                'badge'              => $this->badgePayload($user->badge_level ?? 'bronze'),
+                'badge'              => $this->badgePayload($user->badge_level ?? 'neutre'),
                 'rating'             => $rating,
                 'email_verified_at'  => $user->email_verified_at,
                 'created_at'         => $user->created_at,
@@ -364,9 +364,18 @@ class AuthService
                 'is_enterprise_owner' => $this->isEnterpriseOwnerSubscription($user->subscription),
             ] : null,
             'ambassador_status' => $user->ambassador_status ?? 'none',
+            'consul_status'    => $this->deriveConsulStatus($user),
             'onboarding_completed' => (bool) ($user->onboarding_completed ?? false),
             'profile_completed'    => (bool) $user->hasCompletedProfile(),
         ];
+    }
+
+    private function deriveConsulStatus(User $user): ?string
+    {
+        $requests = $user->consulRequests;
+        if ($requests->where('status', 'approved')->isNotEmpty()) return 'approved';
+        if ($requests->where('status', 'pending')->isNotEmpty())  return 'pending';
+        return $requests->sortByDesc('id')->first()?->status;
     }
 
     private function presentationVideoPayload(?\App\Models\Profile $profile, bool $includePrivateStatus = false): ?array
@@ -446,23 +455,35 @@ class AuthService
     private function badgePayload(string $level): array
     {
         return match ($level) {
+            'platinium' => [
+                'level'      => 'platinium',
+                'label'      => 'Platinium',
+                'color'      => '#1D4ED8',
+                'background' => '#EFF6FF',
+            ],
             'or' => [
-                'level' => 'or',
-                'label' => 'Or',
-                'color' => '#B45309',
+                'level'      => 'or',
+                'label'      => 'Or',
+                'color'      => '#B45309',
                 'background' => '#FEF3C7',
             ],
             'argent' => [
-                'level' => 'argent',
-                'label' => 'Argent',
-                'color' => '#475569',
+                'level'      => 'argent',
+                'label'      => 'Argent',
+                'color'      => '#475569',
                 'background' => '#F1F5F9',
             ],
-            default => [
-                'level' => 'bronze',
-                'label' => 'Bronze',
-                'color' => '#92400E',
+            'bronze' => [
+                'level'      => 'bronze',
+                'label'      => 'Bronze',
+                'color'      => '#92400E',
                 'background' => '#FFEDD5',
+            ],
+            default => [
+                'level'      => 'neutre',
+                'label'      => 'Neutre',
+                'color'      => '#9CA3AF',
+                'background' => '#F9FAFB',
             ],
         };
     }

@@ -13,7 +13,7 @@ class ConsulRequestSubmitted extends Notification
         return [
             'type'       => 'consul_request_submitted',
             'message'    => "{$user->first_name} {$user->last_name} demande le rôle Consul.",
-            'url'        => route('admin.consul.index'),
+            'url'        => route('admin.super.consul.index'),
             'user_id'    => $user->id,
             'request_id' => $this->consulRequest->id,
         ];

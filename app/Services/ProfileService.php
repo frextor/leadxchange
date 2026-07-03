@@ -53,7 +53,7 @@ class ProfileService
                 'sector'  => $user->company->sector ? ['id' => $user->company->sector->id, 'name' => $user->company->sector->name] : null,
             ] : null,
             'balance'      => (int) ($user->points_balance ?? 0),
-            'badge'        => $this->badgePayload($user->badge_level ?? 'bronze'),
+            'badge'        => $this->badgePayload($user->badge_level ?? 'neutre'),
             'rating'       => $rating,
             'completion'   => $this->getCompletionPercentage($user),
         ];
@@ -234,23 +234,35 @@ class ProfileService
     private function badgePayload(string $level): array
     {
         return match ($level) {
+            'platinium' => [
+                'level'      => 'platinium',
+                'label'      => 'Platinium',
+                'color'      => '#1D4ED8',
+                'background' => '#EFF6FF',
+            ],
             'or' => [
-                'level' => 'or',
-                'label' => 'Or',
-                'color' => '#B45309',
+                'level'      => 'or',
+                'label'      => 'Or',
+                'color'      => '#B45309',
                 'background' => '#FEF3C7',
             ],
             'argent' => [
-                'level' => 'argent',
-                'label' => 'Argent',
-                'color' => '#475569',
+                'level'      => 'argent',
+                'label'      => 'Argent',
+                'color'      => '#475569',
                 'background' => '#F1F5F9',
             ],
-            default => [
-                'level' => 'bronze',
-                'label' => 'Bronze',
-                'color' => '#92400E',
+            'bronze' => [
+                'level'      => 'bronze',
+                'label'      => 'Bronze',
+                'color'      => '#92400E',
                 'background' => '#FFEDD5',
+            ],
+            default => [
+                'level'      => 'neutre',
+                'label'      => 'Neutre',
+                'color'      => '#9CA3AF',
+                'background' => '#F9FAFB',
             ],
         };
     }

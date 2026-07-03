@@ -90,7 +90,7 @@ class LeadScoreService
         $badge = $this->badge($score);
 
         $user->update([
-            'points_balance' => $score,
+            'points_balance' => max(0, $score),
             'badge_level'    => $badge,
         ]);
     }
