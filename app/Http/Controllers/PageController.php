@@ -14,6 +14,7 @@ class PageController extends Controller
         $content = $page->content;
         $title   = htmlspecialchars($page->title);
         $updated = $page->updated_at->format('d/m/Y');
+        $year    = date('Y');
 
         $html = <<<HTML
 <!DOCTYPE html>
@@ -233,7 +234,7 @@ class PageController extends Controller
     </div>
 
     <div class="lx-footer">
-        <p>© {{ date('Y') }} X-tensia SAS — Tous droits réservés</p>
+        <p>© {$year} X-tensia SAS — Tous droits réservés</p>
         <p style="margin-top:6px;">
             <a href="/legal/cgu">CGU</a> &nbsp;·&nbsp;
             <a href="/legal/privacy">Politique de confidentialité</a> &nbsp;·&nbsp;

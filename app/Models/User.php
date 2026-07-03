@@ -48,6 +48,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'ambassador_rejection_reason',
         'admin_permissions',
         'stripe_customer_id',
+        'cgu_version',
+        'cgu_accepted_at',
     ];
 
     /**
