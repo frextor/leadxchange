@@ -44,7 +44,9 @@
     <div class="mb-7 flex items-center justify-center gap-2 text-sm">
         <span class="text-gray-500">Plan actuel :</span>
         <span class="font-bold text-gray-900">{{ $currentPlan->label }}</span>
-        @if($currentPlan->price == 0)
+        @if($currentPlan->is_enterprise)
+        <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">Entreprise</span>
+        @elseif(!$currentPlan->price)
         <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">Gratuit</span>
         @else
         <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-600">{{ currency_format($currentPlan->price) }}/mois</span>
@@ -82,7 +84,12 @@
 
             {{-- Price --}}
             <div class="px-5 py-4 border-y border-gray-100" style="background:{{ $t['bg'] }};">
-                @if((float)$plan->price === 0.0)
+                @if($plan->is_enterprise)
+                <div class="flex items-baseline gap-2">
+                    <span class="text-3xl font-extrabold text-gray-900">Sur devis</span>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">{{ $plan->contact_cta ?? 'Pack multi-licences personnalisé' }}</p>
+                @elseif(!$plan->price)
                 <div class="flex items-baseline gap-2">
                     <span class="text-3xl font-extrabold text-gray-900">Gratuit</span>
                     <span class="text-xs text-gray-400">pour toujours</span>
@@ -125,7 +132,15 @@
                 <div class="w-full py-2.5 rounded-xl text-xs font-semibold text-center border-2 border-indigo-200 text-indigo-400 bg-indigo-50">
                     ✓ Plan actuel
                 </div>
-                @elseif((float)$plan->price === 0.0)
+                @elseif($plan->is_enterprise)
+                <a href="#contact"
+                   class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-white transition hover:opacity-90 active:scale-[.98]"
+                   style="background:linear-gradient(135deg,{{ $t['top'] }},{{ $t['accent'] }});"
+                   onclick="showUpgradeContact('{{ $plan->label }}')">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.39 18a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 3.18 2 2 0 0 1 4.11 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91A16 16 0 0 0 14 14.91l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    Demander un devis
+                </a>
+                @elseif(!$plan->price)
                 <div class="w-full py-2.5 rounded-xl text-xs font-semibold text-center bg-gray-50 text-gray-400 border border-gray-200">
                     Plan gratuit
                 </div>

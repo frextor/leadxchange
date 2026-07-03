@@ -153,6 +153,14 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     // Platform settings
     Route::get('settings/currency',     [SettingsController::class, 'currency'])->name('settings.currency');
     Route::put('settings/currency',     [SettingsController::class, 'updateCurrency'])->name('settings.currency.update');
+    // Enterprise licenses — attribution des packs aux comptes holders
+    Route::get('enterprise',               [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseLicenseController::class, 'index'])->name('enterprise.index');
+    Route::get('enterprise/create',        [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseLicenseController::class, 'create'])->name('enterprise.create');
+    Route::post('enterprise',              [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseLicenseController::class, 'store'])->name('enterprise.store');
+    Route::get('enterprise/{license}/edit',[\App\Http\Controllers\Admin\SuperAdmin\EnterpriseLicenseController::class, 'edit'])->name('enterprise.edit');
+    Route::put('enterprise/{license}',     [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseLicenseController::class, 'update'])->name('enterprise.update');
+    Route::delete('enterprise/{license}',  [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseLicenseController::class, 'destroy'])->name('enterprise.destroy');
+
     // §8.2 CGU — Signalements comportements abusifs
     Route::get('reports',                      [UserReportController::class, 'index'])->name('reports.index');
     Route::post('reports/{report}/action',     [UserReportController::class, 'action'])->name('reports.action');

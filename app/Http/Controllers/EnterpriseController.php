@@ -3,72 +3,234 @@
 namespace App\Http\Controllers;
 
 use App\Models\EnterpriseInvitation;
+use App\Models\EnterpriseLicense;
+use App\Models\Plan;
 use App\Models\Subscription;
-use App\Services\EnterpriseInvitationService;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class EnterpriseController extends Controller
 {
-    public function __construct(private EnterpriseInvitationService $service) {}
+    // ── Team management (holder only) ────────────────────────────────────────
 
-    public function index(Request $request)
+    public function team(Request $request)
     {
-        $user = $request->user();
+        $user    = $request->user();
+        $license = $user->enterpriseLicense()->first();
 
-        // Invitations sent by this owner
-        $sentInvitations = EnterpriseInvitation::with(['acceptedUser:id,first_name,last_name,email'])
-            ->where('owner_id', $user->id)
+        abort_unless($license, 403, 'Vous n\'avez pas de licence entreprise.');
+        abort_if($license->isExpired(), 403, 'Votre licence entreprise a expiré.');
+
+        $invitations = $license->invitations()
+            ->with('user')
+            ->orderByRaw("FIELD(status,'active','pending','revoked')")
             ->latest()
             ->get();
 
-        // Invitations received (by email)
-        $receivedInvitations = EnterpriseInvitation::with(['owner:id,first_name,last_name,email'])
-            ->where('email', $user->email)
-            ->latest()
-            ->get();
-
-        // Active enterprise subscription
-        $subscription = Subscription::where('user_id', $user->id)
-            ->where('status', 'active')
-            ->with('plan')
-            ->first();
-
-        $isEnterpriseOwner = $subscription && ($subscription->plan->max_users ?? 1) > 1;
-        $seatUsed = $sentInvitations->where('status', 'accepted')->count() + 1; // +1 for owner
-        $seatTotal = $subscription?->plan?->max_users ?? 1;
-
-        return view('enterprise.index', compact(
-            'sentInvitations', 'receivedInvitations',
-            'isEnterpriseOwner', 'subscription', 'seatUsed', 'seatTotal'
-        ));
+        return view('enterprise.team', compact('license', 'invitations'));
     }
 
-    public function store(Request $request)
+    public function invite(Request $request)
     {
-        $request->validate(['email' => ['required', 'email', 'max:200']]);
+        $user    = $request->user();
+        $license = $user->enterpriseLicense()->first();
 
-        try {
-            $this->service->sendInvitation($request->user(), $request->email);
-            return back()->with('success', "Invitation envoyée à {$request->email}.");
-        } catch (\Exception $e) {
-            return back()->withErrors(['error' => $e->getMessage()]);
+        abort_unless($license, 403);
+        abort_if($license->isExpired(), 403, 'Votre licence entreprise a expiré.');
+
+        $request->validate(['email' => ['required', 'email', 'max:255']]);
+        $email = strtolower(trim($request->email));
+
+        if ($email === strtolower($user->email)) {
+            return back()->with('error', 'Vous ne pouvez pas vous inviter vous-même.');
         }
-    }
 
-    public function accept(Request $request, string $token)
-    {
-        try {
-            $this->service->acceptInvitation($request->user(), $token);
-            return redirect()->route('dashboard')->with('success', 'Vous avez rejoint l\'équipe !');
-        } catch (\Exception $e) {
-            return redirect()->route('enterprise.index')->withErrors(['error' => $e->getMessage()]);
+        if ($license->seatsAvailable() <= 0) {
+            return back()->with('error', 'Toutes les licences de votre pack sont utilisées. Contactez-nous pour en ajouter.');
         }
+
+        // Check if already invited on this license
+        $existing = $license->invitations()->where('email', $email)->first();
+        if ($existing) {
+            if ($existing->status === 'revoked') {
+                // Re-activate a revoked seat
+                $existing->update(['status' => 'pending', 'token' => EnterpriseInvitation::generateToken(), 'accepted_at' => null]);
+                $license->increment('seats_used');
+                $this->sendInvitationEmail($existing, $license);
+                return back()->with('success', 'Invitation renvoyée à ' . $email . '.');
+            }
+            return back()->with('error', $email . ' a déjà été invité(e).');
+        }
+
+        // Find or auto-create the user account
+        $targetUser  = User::where('email', $email)->first();
+        $autoCreated = false;
+        $tempPassword = null;
+
+        if (! $targetUser) {
+            $tempPassword = Str::random(12);
+            $targetUser   = User::create([
+                'first_name'        => explode('@', $email)[0],
+                'last_name'         => '',
+                'email'             => $email,
+                'password'          => Hash::make($tempPassword),
+                'role'              => 'user',
+                'email_verified_at' => now(),
+            ]);
+            $autoCreated = true;
+        }
+
+        $invitation = EnterpriseInvitation::create([
+            'license_id'  => $license->id,
+            'invited_by'  => $user->id,
+            'email'       => $email,
+            'user_id'     => $targetUser->id,
+            'status'      => 'pending',
+            'token'       => EnterpriseInvitation::generateToken(),
+        ]);
+
+        $license->increment('seats_used');
+        $this->sendInvitationEmail($invitation, $license, $autoCreated ? $tempPassword : null);
+
+        return back()->with('success', $autoCreated
+            ? "Compte créé et invitation envoyée à {$email}."
+            : "Invitation envoyée à {$email}."
+        );
     }
 
-    public function revoke(Request $request, EnterpriseInvitation $invitation)
+    public function revoke(Request $request, int $invId)
     {
-        abort_if($invitation->owner_id !== $request->user()->id, 403);
+        $user    = $request->user();
+        $license = $user->enterpriseLicense()->first();
+        abort_unless($license, 403);
+
+        $invitation = $license->invitations()->findOrFail($invId);
+
+        if ($invitation->status === 'revoked') {
+            return back()->with('info', 'Cette licence est déjà révoquée.');
+        }
+
         $invitation->update(['status' => 'revoked']);
-        return back()->with('success', 'Invitation révoquée.');
+        $license->decrement('seats_used');
+
+        if ($invitation->user_id) {
+            $this->downgradeToBasic($invitation->user_id);
+        }
+
+        return back()->with('success', 'Licence révoquée pour ' . $invitation->email . '.');
+    }
+
+    // ── Join flow (public, tokenised) ─────────────────────────────────────────
+
+    public function join(string $token)
+    {
+        $invitation = EnterpriseInvitation::with('license.holder')
+            ->where('token', $token)
+            ->where('status', 'pending')
+            ->firstOrFail();
+
+        $existingUser = $invitation->user;
+
+        return view('enterprise.join', compact('invitation', 'existingUser'));
+    }
+
+    public function processJoin(Request $request, string $token)
+    {
+        $invitation = EnterpriseInvitation::with('license')
+            ->where('token', $token)
+            ->where('status', 'pending')
+            ->firstOrFail();
+
+        $request->validate([
+            'first_name' => ['required', 'string', 'max:80'],
+            'last_name'  => ['required', 'string', 'max:80'],
+            'password'   => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $targetUser = $invitation->user ?? User::where('email', $invitation->email)->first();
+
+        if (! $targetUser) {
+            $targetUser = User::create([
+                'first_name'        => $request->first_name,
+                'last_name'         => $request->last_name,
+                'email'             => $invitation->email,
+                'password'          => Hash::make($request->password),
+                'role'              => 'user',
+                'email_verified_at' => now(),
+            ]);
+        } else {
+            $targetUser->update([
+                'first_name' => $request->first_name,
+                'last_name'  => $request->last_name,
+                'password'   => Hash::make($request->password),
+            ]);
+        }
+
+        $invitation->update([
+            'user_id'     => $targetUser->id,
+            'status'      => 'active',
+            'accepted_at' => now(),
+        ]);
+
+        $this->grantEnterprisePlan($targetUser, $invitation->license);
+        auth()->login($targetUser);
+
+        return redirect()->route('dashboard')
+            ->with('success', 'Bienvenue ! Votre licence Entreprise est maintenant active.');
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private function grantEnterprisePlan(User $user, EnterpriseLicense $license): void
+    {
+        Subscription::where('user_id', $user->id)->update(['status' => 'cancelled']);
+
+        Subscription::create([
+            'user_id'            => $user->id,
+            'plan_id'            => $license->plan_id,
+            'status'             => 'active',
+            'started_at'         => now(),
+            'current_period_end' => $license->expires_at,
+        ]);
+    }
+
+    private function downgradeToBasic(int $userId): void
+    {
+        $basicPlan = Plan::where('name', 'basic')->first();
+        Subscription::where('user_id', $userId)->update(['status' => 'cancelled']);
+
+        if ($basicPlan) {
+            Subscription::create([
+                'user_id'    => $userId,
+                'plan_id'    => $basicPlan->id,
+                'status'     => 'active',
+                'started_at' => now(),
+            ]);
+        }
+    }
+
+    private function sendInvitationEmail(EnterpriseInvitation $invitation, EnterpriseLicense $license, ?string $tempPassword = null): void
+    {
+        try {
+            $license->loadMissing('holder');
+            $holderName = trim(($license->holder?->first_name ?? '') . ' ' . ($license->holder?->last_name ?? '')) ?: 'LeadXchange';
+
+            \App\Jobs\SendQueuedEmailJob::dispatch(
+                to:       $invitation->email,
+                subject:  $holderName . ' vous invite à rejoindre son équipe LeadXchange',
+                type:     'enterprise_invitation',
+                mailable: new \App\Mail\EnterpriseInvitationMail($invitation, $holderName, $tempPassword),
+                toName:   $invitation->email,
+                metadata: ['invitation_id' => $invitation->id],
+            );
+        } catch (\Exception $e) {
+            Log::warning('Enterprise invitation email failed', [
+                'invitation_id' => $invitation->id,
+                'error'         => $e->getMessage(),
+            ]);
+        }
     }
 }

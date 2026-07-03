@@ -293,14 +293,21 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(EventPayment::class);
     }
 
-    public function sentEnterpriseInvitations()
+    /** License held by this user (enterprise account holder). */
+    public function enterpriseLicense()
     {
-        return $this->hasMany(EnterpriseInvitation::class, 'owner_id');
+        return $this->hasOne(EnterpriseLicense::class, 'holder_user_id');
     }
 
-    public function acceptedEnterpriseInvitation()
+    /** Invitation this user accepted as a member of someone else's enterprise pack. */
+    public function enterpriseInvitation()
     {
-        return $this->hasOne(EnterpriseInvitation::class, 'accepted_user_id');
+        return $this->hasOne(EnterpriseInvitation::class, 'user_id')->where('status', 'active');
+    }
+
+    public function isEnterpriseHolder(): bool
+    {
+        return $this->enterpriseLicense()->exists();
     }
 
     /**

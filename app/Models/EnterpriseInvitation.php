@@ -2,46 +2,42 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class EnterpriseInvitation extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
-        'owner_id',
-        'subscription_id',
-        'accepted_user_id',
-        'email',
-        'token_hash',
-        'status',
-        'expires_at',
-        'accepted_at',
+        'license_id', 'invited_by', 'email', 'user_id', 'status', 'token', 'accepted_at',
     ];
 
     protected $casts = [
-        'expires_at' => 'datetime',
         'accepted_at' => 'datetime',
     ];
 
-    public function owner()
+    public function license(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'owner_id');
+        return $this->belongsTo(EnterpriseLicense::class);
     }
 
-    public function subscription()
+    public function inviter(): BelongsTo
     {
-        return $this->belongsTo(Subscription::class);
+        return $this->belongsTo(User::class, 'invited_by');
     }
 
-    public function acceptedUser()
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'accepted_user_id');
+        return $this->belongsTo(User::class);
     }
 
-    public function isPending(): bool
+    public static function generateToken(): string
     {
-        return $this->status === 'pending' && $this->expires_at?->isFuture();
+        return Str::random(48);
+    }
+
+    public function joinUrl(): string
+    {
+        return route('enterprise.join', $this->token);
     }
 }

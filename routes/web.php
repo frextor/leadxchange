@@ -64,8 +64,11 @@ Route::get('/.well-known/assetlinks.json', function () {
     ])->header('Content-Type', 'application/json');
 })->name('android.assetlinks');
 
-// Enterprise invitation fallback: app handles the deep link when installed;
-// otherwise the browser lands on the regular registration page with the token.
+// Enterprise join page (public — no auth required, creates account automatically if needed)
+Route::get('/enterprise/join/{token}',  [EnterpriseController::class, 'join'])->name('enterprise.join');
+Route::post('/enterprise/join/{token}', [EnterpriseController::class, 'processJoin'])->name('enterprise.join.process');
+
+// Legacy deep-link redirect (kept for mobile app deep links)
 Route::get('/enterprise/invitations/{token}', function (string $token) {
     $appUrl = 'x-tensia://enterprise/invitations/' . rawurlencode($token);
     $fallbackUrl = route('register', ['invitation_token' => $token]);
@@ -298,11 +301,10 @@ Route::middleware(['auth', 'user'])->group(function () {
     Route::delete('/profile/video', [ProfileController::class, 'deleteVideo'])->name('profile.video.delete');
     Route::get('/profile/{id}',     [ProfileController::class, 'show'])->name('profile.show');
 
-    // Enterprise invitations
-    Route::get('/enterprise',                           [EnterpriseController::class, 'index'])->name('enterprise.index');
-    Route::post('/enterprise/invitations',              [EnterpriseController::class, 'store'])->name('enterprise.invitations.store');
-    Route::post('/enterprise/invitations/{token}/accept', [EnterpriseController::class, 'accept'])->name('enterprise.invitations.accept');
-    Route::delete('/enterprise/invitations/{invitation}/revoke', [EnterpriseController::class, 'revoke'])->name('enterprise.invitations.revoke');
+    // Enterprise team management (holder only)
+    Route::get('/enterprise/team',                    [EnterpriseController::class, 'team'])->name('enterprise.team');
+    Route::post('/enterprise/team/invite',            [EnterpriseController::class, 'invite'])->name('enterprise.invite');
+    Route::post('/enterprise/team/{inv}/revoke',      [EnterpriseController::class, 'revoke'])->name('enterprise.revoke');
 
     // Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
