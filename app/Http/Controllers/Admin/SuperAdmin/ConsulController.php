@@ -14,7 +14,7 @@ class ConsulController extends Controller
 {
     public function __construct(private ConsulService $service) {}
 
-    // ── Consul requests (admin + ambassador) ─────────────────────────────────
+    // ── Ambassador requests (from Consuls) ───────────────────────────────────
 
     public function index(Request $request): View
     {
@@ -43,7 +43,7 @@ class ConsulController extends Controller
 
         try {
             $this->service->approve($consulRequest, auth()->user());
-            return back()->with('success', "{$consulRequest->user->first_name} {$consulRequest->user->last_name} est maintenant Consul.");
+            return back()->with('success', "{$consulRequest->user->first_name} {$consulRequest->user->last_name} est maintenant Ambassadeur.");
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
@@ -52,7 +52,6 @@ class ConsulController extends Controller
     public function reject(Request $request, ConsulRequest $consulRequest): RedirectResponse
     {
         $this->authorize('validate', ConsulRequest::class);
-
         $request->validate(['reason' => ['nullable', 'string', 'max:500']]);
 
         try {
@@ -63,13 +62,12 @@ class ConsulController extends Controller
         }
     }
 
-    // ── Ambassador management (admin only) ───────────────────────────────────
+    // ── Consul management (admin nominates Premium users as Consul) ──────────
 
-    public function ambassadors(Request $request): View
+    public function consuls(Request $request): View
     {
         $this->authorize('promoteAmbassador', ConsulRequest::class);
 
-        // All paid-plan users (eligible for ambassador or already ambassador)
         $query = User::with(['subscription.plan', 'city'])
             ->where('role', 'user')
             ->whereHas('subscription', fn($q) => $q->where('status', 'active')
@@ -83,33 +81,49 @@ class ConsulController extends Controller
         }
 
         if ($request->filled('status')) {
-            $request->status === 'ambassador'
-                ? $query->where('ambassador_status', 'approved')
-                : $query->where(fn($q) => $q->whereNull('ambassador_status')->orWhere('ambassador_status', '!=', 'approved'));
+            match ($request->status) {
+                'consul'    => $query->where('consul_status', 'approved'),
+                'eligible'  => $query->whereNull('consul_status'),
+                default     => null,
+            };
         }
 
         $users = $query->orderBy('first_name')->paginate(25)->withQueryString();
 
         $counts = [
-            'total'      => User::where('role', 'user')->whereHas('subscription', fn($q) => $q->where('status', 'active')->whereHas('plan', fn($p) => $p->where('price', '>', 0)))->count(),
-            'ambassador' => User::where('ambassador_status', 'approved')->count(),
-            'eligible'   => User::where('role', 'user')->whereHas('subscription', fn($q) => $q->where('status', 'active')->whereHas('plan', fn($p) => $p->where('price', '>', 0)))->where(fn($q) => $q->whereNull('ambassador_status')->orWhere('ambassador_status', '!=', 'approved'))->count(),
+            'total'   => User::where('role', 'user')->whereHas('subscription', fn($q) => $q->where('status', 'active')->whereHas('plan', fn($p) => $p->where('price', '>', 0)))->count(),
+            'consul'  => User::where('consul_status', 'approved')->count(),
+            'eligible'=> User::where('role', 'user')->whereHas('subscription', fn($q) => $q->where('status', 'active')->whereHas('plan', fn($p) => $p->where('price', '>', 0)))->whereNull('consul_status')->count(),
         ];
 
-        return view('admin.super_admin.consul.ambassadors', compact('users', 'counts'));
+        return view('admin.super_admin.consul.consuls', compact('users', 'counts'));
     }
 
-    public function promoteAmbassador(User $user): RedirectResponse
+    public function nominateConsul(User $user): RedirectResponse
     {
         $this->authorize('promoteAmbassador', ConsulRequest::class);
 
         try {
-            $this->service->promoteAmbassador($user, auth()->user());
-            return back()->with('success', "{$user->first_name} {$user->last_name} est maintenant Ambassadeur.");
+            $this->service->nominateConsul($user, auth()->user());
+            return back()->with('success', "{$user->first_name} {$user->last_name} est maintenant Consul.");
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
     }
+
+    public function revokeConsul(User $user): RedirectResponse
+    {
+        $this->authorize('promoteAmbassador', ConsulRequest::class);
+
+        try {
+            $this->service->revokeConsul($user);
+            return back()->with('success', "Rôle Consul retiré à {$user->first_name} {$user->last_name}.");
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    // ── Ambassador management (keep for revoking ambassador) ────────────────
 
     public function revokeAmbassador(User $user): RedirectResponse
     {
@@ -121,5 +135,17 @@ class ConsulController extends Controller
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    /** @deprecated Kept for route compatibility */
+    public function ambassadors(Request $request): View
+    {
+        return $this->consuls($request);
+    }
+
+    /** @deprecated Kept for route compatibility */
+    public function promoteAmbassador(User $user): RedirectResponse
+    {
+        return $this->nominateConsul($user);
     }
 }

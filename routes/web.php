@@ -219,24 +219,26 @@ Route::middleware(['auth', 'user'])->group(function () {
             'details'    => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $labels = [
-            'access'       => 'Droit d\'accès (Art. 15)',
-            'rectification'=> 'Droit de rectification (Art. 16)',
-            'erasure'      => 'Droit à l\'effacement (Art. 17)',
-            'portability'  => 'Droit à la portabilité (Art. 20)',
-            'opposition'   => 'Droit d\'opposition (Art. 21)',
-            'limitation'   => 'Droit à la limitation (Art. 18)',
-        ];
+        $user = auth()->user();
 
-        $user    = auth()->user();
+        // Save to database
+        \App\Models\RgpdRequest::create([
+            'user_id'    => $user->id,
+            'right_type' => $request->right_type,
+            'details'    => $request->details,
+            'status'     => 'pending',
+        ]);
+
+        // Send email to DPO admin
+        $labels = \App\Models\RgpdRequest::RIGHTS;
         $type    = $labels[$request->right_type];
         $details = $request->details ?? 'Aucun détail fourni.';
-
-        // Envoyer email à l'admin DPO
-        \Illuminate\Support\Facades\Mail::raw(
-            "Demande RGPD\n\nUtilisateur : {$user->first_name} {$user->last_name} ({$user->email})\nDroit demandé : {$type}\nDétails : {$details}\nDate : " . now()->format('d/m/Y H:i'),
-            fn($m) => $m->to('contact@leadxchange.com')->subject("[RGPD] Demande de {$user->first_name} {$user->last_name} — {$type}")
-        );
+        try {
+            \Illuminate\Support\Facades\Mail::raw(
+                "Demande RGPD\n\nUtilisateur : {$user->first_name} {$user->last_name} ({$user->email})\nDroit demandé : {$type}\nDétails : {$details}\nDate : " . now()->format('d/m/Y H:i'),
+                fn($m) => $m->to('contact@leadxchange.com')->subject("[RGPD] Demande de {$user->first_name} {$user->last_name} — {$type}")
+            );
+        } catch (\Throwable) {}
 
         return back()->with('rgpd_success', "Votre demande a été envoyée. Nous vous répondrons sous 1 mois (Art. 12 RGPD).");
     })->name('rgpd.submit');

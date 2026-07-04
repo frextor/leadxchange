@@ -1,14 +1,14 @@
 @extends('admin.layouts.admin')
-@section('title', 'Demandes Consul')
-@section('page-title', 'Consul')
+@section('title', 'Demandes Ambassadeur')
+@section('page-title', 'Ambassadeurs')
 
 @section('content')
 
 <div class="flex items-start justify-between mb-6">
     <div>
         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Administration</p>
-        <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Demandes de rôle Consul</h1>
-        <p class="text-sm text-gray-400 mt-1">Validez ou refusez les demandes des utilisateurs Premium.</p>
+        <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Demandes de rôle Ambassadeur</h1>
+        <p class="text-sm text-gray-400 mt-1">Validez ou refusez les demandes des Consuls qui souhaitent devenir Ambassadeur.</p>
     </div>
 </div>
 

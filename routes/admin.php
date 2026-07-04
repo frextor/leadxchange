@@ -116,14 +116,22 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     // Route::get('ambassadors', ...)->name('ambassadors.index'); // retiré
 
     // Consul requests (admin + ambassador)
+    // Ambassador requests (from Consuls — index is the request queue)
     Route::get('consul',                          [ConsulController::class, 'index'])->name('consul.index');
     Route::post('consul/{consulRequest}/approve', [ConsulController::class, 'approve'])->name('consul.approve');
     Route::post('consul/{consulRequest}/reject',  [ConsulController::class, 'reject'])->name('consul.reject');
 
-    // Ambassador management (admin only)
-    Route::get('manage-ambassadors',                     [ConsulController::class, 'ambassadors'])->name('ambassadors.manage');
-    Route::post('manage-ambassadors/{user}/promote',     [ConsulController::class, 'promoteAmbassador'])->name('ambassadors.promote');
-    Route::delete('manage-ambassadors/{user}/revoke',    [ConsulController::class, 'revokeAmbassador'])->name('ambassadors.revoke');
+    // Consul management — admin nominates Premium users as Consul
+    Route::get('manage-consuls',                       [ConsulController::class, 'consuls'])->name('consuls.manage');
+    Route::post('manage-consuls/{user}/nominate',      [ConsulController::class, 'nominateConsul'])->name('consuls.nominate');
+    Route::delete('manage-consuls/{user}/revoke',      [ConsulController::class, 'revokeConsul'])->name('consuls.revoke');
+
+    // Ambassador revocation (still needed)
+    Route::delete('manage-ambassadors/{user}/revoke',  [ConsulController::class, 'revokeAmbassador'])->name('ambassadors.revoke');
+
+    // Legacy route kept for backward compat
+    Route::get('manage-ambassadors',                   [ConsulController::class, 'consuls'])->name('ambassadors.manage');
+    Route::post('manage-ambassadors/{user}/promote',   [ConsulController::class, 'nominateConsul'])->name('ambassadors.promote');
 
     // Sectors
     Route::get('sectors',                    [SectorController::class, 'index'])->name('sectors.index');
@@ -161,9 +169,18 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::put('enterprise/{license}',     [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseLicenseController::class, 'update'])->name('enterprise.update');
     Route::delete('enterprise/{license}',  [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseLicenseController::class, 'destroy'])->name('enterprise.destroy');
 
+    // Pages légales (CGU, Confidentialité)
+    Route::get('pages',              [\App\Http\Controllers\Admin\SuperAdmin\PageController::class, 'index'])->name('pages.index');
+    Route::get('pages/{page}/edit',  [\App\Http\Controllers\Admin\SuperAdmin\PageController::class, 'edit'])->name('pages.edit');
+    Route::put('pages/{page}',       [\App\Http\Controllers\Admin\SuperAdmin\PageController::class, 'update'])->name('pages.update');
+
     // §8.2 CGU — Signalements comportements abusifs
     Route::get('reports',                      [UserReportController::class, 'index'])->name('reports.index');
     Route::post('reports/{report}/action',     [UserReportController::class, 'action'])->name('reports.action');
+
+    // §10.8 RGPD — Demandes d'exercice des droits
+    Route::get('rgpd',                         [\App\Http\Controllers\Admin\SuperAdmin\RgpdRequestController::class, 'index'])->name('rgpd.index');
+    Route::put('rgpd/{rgpdRequest}',           [\App\Http\Controllers\Admin\SuperAdmin\RgpdRequestController::class, 'update'])->name('rgpd.update');
 
     Route::get('settings/maintenance',         [SettingsController::class, 'maintenance'])->name('settings.maintenance');
     Route::put('settings/maintenance',         [SettingsController::class, 'updateMaintenance'])->name('settings.maintenance.update');

@@ -3,18 +3,15 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Services\ConsulService;
-
 class ConsulRequestPolicy
 {
-    public function __construct(private ConsulService $service) {}
 
-    /** Can the user submit a consul request? Requires the Ambassadeur plan/status. */
+    /** Can the user submit an ambassador request? Must be Consul, not yet Ambassador, no pending request. */
     public function create(User $user): bool
     {
-        return $this->service->hasAmbassadeurAccess($user)
-            && ! $user->isConsul()
-            && ! $user->consulRequests()->where('status', 'pending')->exists();
+        return $user->isConsul()
+            && ! $user->isAmbassador()
+            && ! $user->hasPendingAmbassadorRequest();
     }
 
     /** Can the user validate (approve/reject) consul requests? */

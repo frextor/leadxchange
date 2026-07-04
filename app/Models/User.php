@@ -46,6 +46,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'ambassador_reviewed_at',
         'ambassador_reviewed_by',
         'ambassador_rejection_reason',
+        'consul_status',
+        'consul_nominated_at',
+        'consul_nominated_by',
         'admin_permissions',
         'stripe_customer_id',
         'cgu_version',
@@ -77,6 +80,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'points_balance'             => 'integer',
         'ambassador_requested_at'    => 'datetime',
         'ambassador_reviewed_at'     => 'datetime',
+        'consul_nominated_at'        => 'datetime',
         'admin_permissions'          => 'array',
     ];
 
@@ -143,19 +147,27 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->subscription?->plan?->permission($key, $default) ?? $default;
     }
 
+    // Hierarchy: Basic → Premium → Consul (admin appoints) → Ambassadeur (consul requests, admin approves)
+
+    public function isConsul(): bool
+    {
+        return $this->consul_status === 'approved';
+    }
+
     public function isAmbassador(): bool
     {
         return $this->ambassador_status === 'approved';
     }
 
-    public function isConsul(): bool
-    {
-        return $this->consulRequests()->where('status', 'approved')->exists();
-    }
-
-    public function hasPendingConsulRequest(): bool
+    public function hasPendingAmbassadorRequest(): bool
     {
         return $this->consulRequests()->where('status', 'pending')->exists();
+    }
+
+    /** @deprecated Use hasPendingAmbassadorRequest() */
+    public function hasPendingConsulRequest(): bool
+    {
+        return $this->hasPendingAmbassadorRequest();
     }
 
     public function consulRequests()
@@ -387,10 +399,10 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function canFeature(string $key): bool
     {
-        // Resolve effective plan: ambassador > consul > subscription plan > basic
+        // Resolve effective plan: ambassadeur > consul > subscription plan > basic
         $effectivePlanName = null;
-        if ($this->isAmbassador())     $effectivePlanName = 'ambassadeur';
-        elseif ($this->isConsul())     $effectivePlanName = 'consul';
+        if ($this->isAmbassador())  $effectivePlanName = 'ambassadeur';
+        elseif ($this->isConsul())  $effectivePlanName = 'consul';
 
         $plan = $effectivePlanName
             ? \App\Models\Plan::where('name', $effectivePlanName)->first()

@@ -17,7 +17,7 @@ class ConsulRequestController extends Controller
 
         try {
             $this->service->request($request->user());
-            return back()->with('success', 'Votre demande de rôle Consul a été envoyée. Vous serez notifié(e) de la décision.');
+            return back()->with('success', 'Votre demande de rôle Ambassadeur a été envoyée. Vous serez notifié(e) de la décision.');
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
