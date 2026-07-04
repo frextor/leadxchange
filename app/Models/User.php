@@ -324,6 +324,23 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->enterpriseLicense()->exists();
     }
 
+    /** Returns "Premium — CompanyName" for enterprise members, otherwise the plan label. */
+    public function planDisplayLabel(): string
+    {
+        if ($this->isEnterpriseHolder()) {
+            $name = $this->enterpriseLicense?->company_name ?? $this->enterpriseLicense()->value('company_name');
+            return 'Premium' . ($name ? ' — ' . $name : '');
+        }
+        $inv = $this->relationLoaded('enterpriseInvitation')
+            ? $this->enterpriseInvitation
+            : $this->enterpriseInvitation()->with('license')->first();
+        if ($inv) {
+            $name = $inv->license?->company_name;
+            return 'Premium' . ($name ? ' — ' . $name : '');
+        }
+        return $this->subscription?->plan?->label ?? 'Basic';
+    }
+
     /**
      * Get the user's active plan through subscription.
      */

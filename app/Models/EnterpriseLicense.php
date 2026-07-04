@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class EnterpriseLicense extends Model
 {
     protected $fillable = [
-        'holder_user_id', 'plan_id', 'seats_total', 'seats_used', 'notes', 'expires_at',
+        'holder_user_id', 'company_name', 'plan_id', 'seats_total', 'seats_used', 'notes', 'expires_at',
     ];
 
     protected $casts = [
@@ -39,8 +39,7 @@ class EnterpriseLicense extends Model
 
     public function seatsAvailable(): int
     {
-        // holder always occupies 1 seat
-        return max(0, $this->seats_total - $this->seats_used);
+        return $this->invitations()->where('status', 'available')->count();
     }
 
     public function isExpired(): bool

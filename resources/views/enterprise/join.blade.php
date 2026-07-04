@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Rejoindre l'équipe — LeadXchange</title>
+    <title>Rejoindre {{ $invitation->license->company_name }} — LeadXchange</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,14 +14,13 @@
 
 <div class="w-full max-w-md">
 
-    {{-- Card --}}
     <div class="bg-white rounded-3xl shadow-xl overflow-hidden">
 
         {{-- Header --}}
         <div class="px-8 pt-8 pb-6 text-center" style="background:linear-gradient(135deg,#6366F1,#4338CA);">
             <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
                  style="background:rgba(255,255,255,.18);">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                     <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
@@ -30,7 +29,7 @@
                  style="background:rgba(255,255,255,.2);color:rgba(255,255,255,.9);">
                 Pack Entreprise LeadXchange
             </div>
-            <h1 class="text-xl font-bold text-white mb-1">Vous êtes invité(e) !</h1>
+            <h1 class="text-xl font-bold text-white mb-1">{{ $invitation->license->company_name }}</h1>
             <p class="text-sm text-indigo-200">
                 <strong class="text-white">{{ $invitation->license->holder?->first_name }} {{ $invitation->license->holder?->last_name }}</strong>
                 vous invite à rejoindre son équipe.
@@ -47,7 +46,7 @@
             @endif
 
             <p class="text-xs text-gray-500 mb-5 leading-relaxed">
-                Finalisez votre compte pour activer votre licence Entreprise.
+                Finalisez votre compte pour activer votre licence Premium.
                 @if($existingUser)
                     Votre adresse <strong>{{ $invitation->email }}</strong> a déjà un compte — choisissez un nouveau mot de passe pour le sécuriser.
                 @endif
@@ -56,11 +55,18 @@
             <form method="POST" action="{{ route('enterprise.join.process', $invitation->token) }}" class="space-y-4">
                 @csrf
 
-                {{-- Email (read-only) --}}
+                {{-- Email field: editable if no email pre-set, read-only otherwise --}}
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">Adresse e-mail</label>
+                    @if($invitation->email)
                     <input type="email" value="{{ $invitation->email }}" readonly
                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-500 cursor-not-allowed">
+                    @else
+                    <input type="email" name="email" required
+                           value="{{ old('email') }}"
+                           placeholder="votre@email.com"
+                           class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    @endif
                 </div>
 
                 {{-- Name row --}}
@@ -69,46 +75,41 @@
                         <label class="block text-xs font-semibold text-gray-600 mb-1.5">Prénom</label>
                         <input type="text" name="first_name" required
                                value="{{ old('first_name', $existingUser?->first_name) }}"
-                               class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
-                               style="--tw-ring-color:#6366F1;">
+                               class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1.5">Nom</label>
                         <input type="text" name="last_name" required
                                value="{{ old('last_name', $existingUser?->last_name) }}"
-                               class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
-                               style="--tw-ring-color:#6366F1;">
+                               class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                     </div>
                 </div>
 
-                {{-- Password --}}
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">
                         {{ $existingUser ? 'Nouveau mot de passe' : 'Choisir un mot de passe' }}
                     </label>
                     <input type="password" name="password" required minlength="8"
-                           class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
-                           style="--tw-ring-color:#6366F1;"
+                           class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                            placeholder="8 caractères minimum">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">Confirmer le mot de passe</label>
                     <input type="password" name="password_confirmation" required
-                           class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
-                           style="--tw-ring-color:#6366F1;">
+                           class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                 </div>
 
                 <button type="submit"
                         class="w-full py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90 mt-2"
                         style="background:linear-gradient(135deg,#6366F1,#4338CA);">
-                    Activer ma licence Entreprise →
+                    Activer ma licence Premium →
                 </button>
             </form>
 
             <p class="text-center text-xs text-gray-400 mt-5">
-                En acceptant, vous rejoignez l'équipe de
-                {{ $invitation->license->holder?->first_name }} {{ $invitation->license->holder?->last_name }}.
-                Votre accès Entreprise est géré par ce compte.
+                En acceptant, vous rejoignez l'équipe
+                <strong>{{ $invitation->license->company_name }}</strong>.
+                Votre accès est géré par le titulaire du pack.
             </p>
         </div>
     </div>

@@ -123,8 +123,9 @@
 
                 {{-- Profile completion as stars --}}
                 @php
-                    $stars = round($completion / 20);
-                    $userPlan = auth()->user()->subscription?->plan;
+                    $stars        = round($completion / 20);
+                    $userPlan     = auth()->user()->subscription?->plan;
+                    $planLabel    = auth()->user()->planDisplayLabel();
                 @endphp
                 <div class="flex items-center gap-2 mt-1">
                     <div class="flex gap-0.5">
@@ -147,7 +148,7 @@
                 </a>
                 <span class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-white/90 border border-white/20" style="background:rgba(255,255,255,0.12);">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                    Plan {{ $userPlan?->label ?? 'Basic' }}
+                    {{ $planLabel }}
                 </span>
 
                 {{-- Role badges & consul request --}}
@@ -513,7 +514,7 @@
                 <h2 class="text-xl font-bold text-gray-900 tracking-tight">Nos offres d'abonnement</h2>
                 <p class="text-sm text-gray-500 mt-1">
                     Vous êtes sur le plan
-                    <strong class="text-gray-800">{{ $currentPlan?->label ?? 'Basic (gratuit)' }}</strong>.
+                    <strong class="text-gray-800">{{ $planLabel ?? 'Basic (gratuit)' }}</strong>.
                     Passez à l'offre suivante pour débloquer plus de fonctionnalités.
                 </p>
             </div>

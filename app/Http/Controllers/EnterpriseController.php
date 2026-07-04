@@ -14,19 +14,19 @@ use Illuminate\Support\Str;
 
 class EnterpriseController extends Controller
 {
-    // ── Team management (holder only) ────────────────────────────────────────
+    // ── Team management (holder only) ─────────────────────────────────────────
 
     public function team(Request $request)
     {
         $user    = $request->user();
-        $license = $user->enterpriseLicense()->first();
+        $license = $user->enterpriseLicense()->with('invitations.user')->first();
 
         abort_unless($license, 403, 'Vous n\'avez pas de licence entreprise.');
         abort_if($license->isExpired(), 403, 'Votre licence entreprise a expiré.');
 
         $invitations = $license->invitations()
             ->with('user')
-            ->orderByRaw("FIELD(status,'active','pending','revoked')")
+            ->orderByRaw("FIELD(status,'active','pending','available','revoked')")
             ->latest()
             ->get();
 
@@ -48,24 +48,24 @@ class EnterpriseController extends Controller
             return back()->with('error', 'Vous ne pouvez pas vous inviter vous-même.');
         }
 
-        if ($license->seatsAvailable() <= 0) {
-            return back()->with('error', 'Toutes les licences de votre pack sont utilisées. Contactez-nous pour en ajouter.');
+        // Already has active/pending invitation on this license
+        $existingActive = $license->invitations()
+            ->whereNotNull('email')
+            ->where('email', $email)
+            ->whereIn('status', ['pending', 'active'])
+            ->first();
+
+        if ($existingActive) {
+            return back()->with('error', $email . ' possède déjà une licence active ou en attente.');
         }
 
-        // Check if already invited on this license
-        $existing = $license->invitations()->where('email', $email)->first();
-        if ($existing) {
-            if ($existing->status === 'revoked') {
-                // Re-activate a revoked seat
-                $existing->update(['status' => 'pending', 'token' => EnterpriseInvitation::generateToken(), 'accepted_at' => null]);
-                $license->increment('seats_used');
-                $this->sendInvitationEmail($existing, $license);
-                return back()->with('success', 'Invitation renvoyée à ' . $email . '.');
-            }
-            return back()->with('error', $email . ' a déjà été invité(e).');
+        // Claim an available slot
+        $slot = $license->invitations()->where('status', EnterpriseInvitation::STATUS_AVAILABLE)->first();
+
+        if (! $slot) {
+            return back()->with('error', 'Aucune licence disponible. Augmentez votre quota ou révoquez un membre inactif.');
         }
 
-        // Find or auto-create the user account
         $targetUser  = User::where('email', $email)->first();
         $autoCreated = false;
         $tempPassword = null;
@@ -83,17 +83,16 @@ class EnterpriseController extends Controller
             $autoCreated = true;
         }
 
-        $invitation = EnterpriseInvitation::create([
-            'license_id'  => $license->id,
-            'invited_by'  => $user->id,
-            'email'       => $email,
-            'user_id'     => $targetUser->id,
-            'status'      => 'pending',
-            'token'       => EnterpriseInvitation::generateToken(),
+        $slot->update([
+            'email'      => $email,
+            'user_id'    => $targetUser->id,
+            'status'     => EnterpriseInvitation::STATUS_PENDING,
+            'invited_by' => $user->id,
+            'token'      => EnterpriseInvitation::generateToken(),
         ]);
 
         $license->increment('seats_used');
-        $this->sendInvitationEmail($invitation, $license, $autoCreated ? $tempPassword : null);
+        $this->sendInvitationEmail($slot, $license, $autoCreated ? $tempPassword : null);
 
         return back()->with('success', $autoCreated
             ? "Compte créé et invitation envoyée à {$email}."
@@ -109,18 +108,27 @@ class EnterpriseController extends Controller
 
         $invitation = $license->invitations()->findOrFail($invId);
 
-        if ($invitation->status === 'revoked') {
-            return back()->with('info', 'Cette licence est déjà révoquée.');
+        if ($invitation->status === EnterpriseInvitation::STATUS_AVAILABLE) {
+            return back()->with('info', 'Cette licence est déjà disponible.');
         }
 
-        $invitation->update(['status' => 'revoked']);
-        $license->decrement('seats_used');
-
-        if ($invitation->user_id) {
+        // Downgrade the member if they had been granted a plan
+        if ($invitation->user_id && in_array($invitation->status, ['active', 'pending'])) {
             $this->downgradeToBasic($invitation->user_id);
+            $license->decrement('seats_used');
         }
 
-        return back()->with('success', 'Licence révoquée pour ' . $invitation->email . '.');
+        // Reset slot back to available for re-use
+        $invitation->update([
+            'status'      => EnterpriseInvitation::STATUS_AVAILABLE,
+            'email'       => null,
+            'user_id'     => null,
+            'invited_by'  => null,
+            'accepted_at' => null,
+            'token'       => EnterpriseInvitation::generateToken(),
+        ]);
+
+        return back()->with('success', 'Licence libérée. Le membre a été rétrogradé en Basic. La licence est à nouveau disponible.');
     }
 
     // ── Join flow (public, tokenised) ─────────────────────────────────────────
@@ -129,10 +137,10 @@ class EnterpriseController extends Controller
     {
         $invitation = EnterpriseInvitation::with('license.holder')
             ->where('token', $token)
-            ->where('status', 'pending')
+            ->whereIn('status', [EnterpriseInvitation::STATUS_PENDING, EnterpriseInvitation::STATUS_AVAILABLE])
             ->firstOrFail();
 
-        $existingUser = $invitation->user;
+        $existingUser = $invitation->user ?? ($invitation->email ? User::where('email', $invitation->email)->first() : null);
 
         return view('enterprise.join', compact('invitation', 'existingUser'));
     }
@@ -141,58 +149,97 @@ class EnterpriseController extends Controller
     {
         $invitation = EnterpriseInvitation::with('license')
             ->where('token', $token)
-            ->where('status', 'pending')
+            ->whereIn('status', [EnterpriseInvitation::STATUS_PENDING, EnterpriseInvitation::STATUS_AVAILABLE])
             ->firstOrFail();
 
-        $request->validate([
+        $wasAvailable = $invitation->status === EnterpriseInvitation::STATUS_AVAILABLE;
+
+        // Determine validation rules based on whether email is pre-set
+        $rules = [
             'first_name' => ['required', 'string', 'max:80'],
             'last_name'  => ['required', 'string', 'max:80'],
             'password'   => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
-
-        $targetUser = $invitation->user ?? User::where('email', $invitation->email)->first();
-
-        if (! $targetUser) {
-            $targetUser = User::create([
-                'first_name'        => $request->first_name,
-                'last_name'         => $request->last_name,
-                'email'             => $invitation->email,
-                'password'          => Hash::make($request->password),
-                'role'              => 'user',
-                'email_verified_at' => now(),
-            ]);
-        } else {
-            $targetUser->update([
-                'first_name' => $request->first_name,
-                'last_name'  => $request->last_name,
-                'password'   => Hash::make($request->password),
-            ]);
+        ];
+        if ($wasAvailable) {
+            $rules['email'] = ['required', 'email', 'max:255'];
         }
 
-        $invitation->update([
-            'user_id'     => $targetUser->id,
-            'status'      => 'active',
-            'accepted_at' => now(),
-        ]);
+        $request->validate($rules);
+
+        if ($wasAvailable) {
+            $email = strtolower(trim($request->email));
+            $targetUser = User::where('email', $email)->first();
+
+            if (! $targetUser) {
+                $targetUser = User::create([
+                    'first_name'        => $request->first_name,
+                    'last_name'         => $request->last_name,
+                    'email'             => $email,
+                    'password'          => Hash::make($request->password),
+                    'role'              => 'user',
+                    'email_verified_at' => now(),
+                ]);
+            } else {
+                $targetUser->update([
+                    'first_name' => $request->first_name,
+                    'last_name'  => $request->last_name,
+                    'password'   => Hash::make($request->password),
+                ]);
+            }
+
+            $invitation->update([
+                'email'       => $email,
+                'user_id'     => $targetUser->id,
+                'status'      => EnterpriseInvitation::STATUS_ACTIVE,
+                'accepted_at' => now(),
+            ]);
+
+            $invitation->license->increment('seats_used');
+        } else {
+            // Email was pre-set (invited via email)
+            $targetUser = $invitation->user ?? User::where('email', $invitation->email)->first();
+
+            if (! $targetUser) {
+                $targetUser = User::create([
+                    'first_name'        => $request->first_name,
+                    'last_name'         => $request->last_name,
+                    'email'             => $invitation->email,
+                    'password'          => Hash::make($request->password),
+                    'role'              => 'user',
+                    'email_verified_at' => now(),
+                ]);
+            } else {
+                $targetUser->update([
+                    'first_name' => $request->first_name,
+                    'last_name'  => $request->last_name,
+                    'password'   => Hash::make($request->password),
+                ]);
+            }
+
+            $invitation->update([
+                'user_id'     => $targetUser->id,
+                'status'      => EnterpriseInvitation::STATUS_ACTIVE,
+                'accepted_at' => now(),
+            ]);
+        }
 
         $this->grantEnterprisePlan($targetUser, $invitation->license);
         auth()->login($targetUser);
 
         return redirect()->route('dashboard')
-            ->with('success', 'Bienvenue ! Votre licence Entreprise est maintenant active.');
+            ->with('success', 'Bienvenue ! Votre licence Premium « ' . $invitation->license->company_name . ' » est maintenant active.');
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private function grantEnterprisePlan(User $user, EnterpriseLicense $license): void
     {
-        Subscription::where('user_id', $user->id)->update(['status' => 'cancelled']);
+        Subscription::where('user_id', $user->id)->update(['status' => 'canceled']);
 
         Subscription::create([
             'user_id'            => $user->id,
             'plan_id'            => $license->plan_id,
             'status'             => 'active',
-            'started_at'         => now(),
             'current_period_end' => $license->expires_at,
         ]);
     }
@@ -200,14 +247,13 @@ class EnterpriseController extends Controller
     private function downgradeToBasic(int $userId): void
     {
         $basicPlan = Plan::where('name', 'basic')->first();
-        Subscription::where('user_id', $userId)->update(['status' => 'cancelled']);
+        Subscription::where('user_id', $userId)->update(['status' => 'canceled']);
 
         if ($basicPlan) {
             Subscription::create([
-                'user_id'    => $userId,
-                'plan_id'    => $basicPlan->id,
-                'status'     => 'active',
-                'started_at' => now(),
+                'user_id' => $userId,
+                'plan_id' => $basicPlan->id,
+                'status'  => 'active',
             ]);
         }
     }
@@ -217,10 +263,11 @@ class EnterpriseController extends Controller
         try {
             $license->loadMissing('holder');
             $holderName = trim(($license->holder?->first_name ?? '') . ' ' . ($license->holder?->last_name ?? '')) ?: 'LeadXchange';
+            $company    = $license->company_name ?: $holderName;
 
             \App\Jobs\SendQueuedEmailJob::dispatch(
                 to:       $invitation->email,
-                subject:  $holderName . ' vous invite à rejoindre son équipe LeadXchange',
+                subject:  $company . ' vous invite à rejoindre son équipe LeadXchange',
                 type:     'enterprise_invitation',
                 mailable: new \App\Mail\EnterpriseInvitationMail($invitation, $holderName, $tempPassword),
                 toName:   $invitation->email,

@@ -8,6 +8,11 @@ use Illuminate\Support\Str;
 
 class EnterpriseInvitation extends Model
 {
+    const STATUS_AVAILABLE = 'available';
+    const STATUS_PENDING   = 'pending';
+    const STATUS_ACTIVE    = 'active';
+    const STATUS_REVOKED   = 'revoked';
+
     protected $fillable = [
         'license_id', 'invited_by', 'email', 'user_id', 'status', 'token', 'accepted_at',
     ];

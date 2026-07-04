@@ -25,7 +25,7 @@
         <table class="w-full text-sm">
             <thead>
                 <tr class="border-b border-gray-100 bg-gray-50 text-left">
-                    <th class="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Titulaire</th>
+                    <th class="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Entreprise / Titulaire</th>
                     <th class="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Licences</th>
                     <th class="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Expiration</th>
                     <th class="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
@@ -46,12 +46,11 @@
                             <span class="text-sm font-semibold text-gray-700">{{ $license->seats_total }}</span>
                         </div>
                         @php
-                            $pct = $license->seats_total > 0 ? min(100, round($license->seats_used / $license->seats_total * 100)) : 0;
-                            $barW = 'width:' . $pct . '%';
+                            $pct    = $license->seats_total > 0 ? min(100, round($license->seats_used / $license->seats_total * 100)) : 0;
                             $barCls = $pct >= 90 ? 'bg-red-500' : 'bg-indigo-500';
                         @endphp
                         <div class="h-1.5 rounded-full bg-gray-100 mt-1 w-20 overflow-hidden">
-                            <div class="h-full rounded-full {{ $barCls }}" style="{{ $barW }}"></div>
+                            <div class="h-full rounded-full {{ $barCls }}" style="width:{{ $pct }}%"></div>
                         </div>
                     </td>
                     <td class="px-5 py-4 text-sm text-gray-500">
