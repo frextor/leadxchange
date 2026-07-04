@@ -59,6 +59,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     // Notation
     Route::get('/notation',                         [NotationController::class, 'index'])->name('admin.notation.index');
+    Route::get('/notation/icons',                   [NotationController::class, 'icons'])->name('admin.notation.icons');
+    Route::post('/notation/icons/plan/{key}',       [NotationController::class, 'uploadPlanIcon'])->name('admin.notation.icons.plan');
+    Route::post('/notation/icons/badge/{key}',      [NotationController::class, 'uploadBadgeIcon'])->name('admin.notation.icons.badge');
     Route::put('/notation/{user}',                  [NotationController::class, 'update'])->name('admin.notation.update');
     Route::post('/notation/{user}/recalculate',     [NotationController::class, 'recalculate'])->name('admin.notation.recalculate');
     Route::post('/notation/recalculate-all',        [NotationController::class, 'recalculateAll'])->name('admin.notation.recalculate-all');

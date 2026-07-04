@@ -135,9 +135,15 @@
             </a>
 
             <a href="{{ route('admin.notation.index') }}"
-               class="nav-item {{ request()->routeIs('admin.notation*') ? 'active' : '' }}">
+               class="nav-item {{ request()->routeIs('admin.notation.index') ? 'active' : '' }}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                 Notation & Badges
+            </a>
+            <a href="{{ route('admin.notation.icons') }}"
+               class="nav-item {{ request()->routeIs('admin.notation.icons*') ? 'active' : '' }}"
+               style="padding-left:28px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                Icônes & Visuels
             </a>
 
             <a href="{{ route('admin.events.index') }}"
