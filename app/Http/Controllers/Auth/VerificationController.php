@@ -25,8 +25,7 @@ class VerificationController extends Controller
 
         // Si déjà vérifié
         if ($user->hasVerifiedEmail()) {
-            return redirect()->route('dashboard')
-                ->with('info', 'Votre email est déjà vérifié.');
+            return view('auth.email-verified');
         }
 
         // Marquer comme vérifié
@@ -39,8 +38,7 @@ class VerificationController extends Controller
             Auth::login($user);
         }
 
-        return redirect()->route('dashboard')
-            ->with('success', 'Votre email a été vérifié avec succès !');
+        return view('auth.email-verified');
     }
 
     /**
