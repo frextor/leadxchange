@@ -78,6 +78,8 @@ class EnterpriseController extends Controller
                 'email'             => $email,
                 'password'          => Hash::make($tempPassword),
                 'role'              => 'user',
+                'points_balance'    => 0,
+                'badge_level'       => 'neutre',
                 'email_verified_at' => now(),
             ]);
             $autoCreated = true;
@@ -177,6 +179,8 @@ class EnterpriseController extends Controller
                     'email'             => $email,
                     'password'          => Hash::make($request->password),
                     'role'              => 'user',
+                    'points_balance'    => 0,
+                    'badge_level'       => 'neutre',
                     'email_verified_at' => now(),
                 ]);
             } else {
@@ -206,6 +210,8 @@ class EnterpriseController extends Controller
                     'email'             => $invitation->email,
                     'password'          => Hash::make($request->password),
                     'role'              => 'user',
+                    'points_balance'    => 0,
+                    'badge_level'       => 'neutre',
                     'email_verified_at' => now(),
                 ]);
             } else {

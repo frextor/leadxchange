@@ -405,6 +405,52 @@
     @endif
     @endauth
 
+    <!-- Email verification banner -->
+    @auth
+    @if(! auth()->user()->hasVerifiedEmail())
+    <div class="sticky top-[72px] z-40 w-full" id="verify-banner">
+        <div class="bg-amber-50 border-b border-amber-200 px-4 py-3">
+            <div class="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-amber-900">Vérifiez votre adresse email</p>
+                        <p class="text-xs text-amber-700 mt-0.5">
+                            Un lien de confirmation a été envoyé à <strong>{{ auth()->user()->email }}</strong>.
+                            Vérifiez votre boîte de réception (et les spams).
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 flex-shrink-0">
+                    <form method="POST" action="{{ route('verification.send') }}">
+                        @csrf
+                        <button type="submit"
+                                class="px-4 py-2 rounded-xl text-xs font-bold text-white transition hover:opacity-90"
+                                style="background:linear-gradient(135deg,#F59E0B,#D97706);">
+                            Renvoyer l'email
+                        </button>
+                    </form>
+                    <button type="button" onclick="document.getElementById('verify-banner').remove()"
+                            class="w-7 h-7 flex items-center justify-center rounded-full text-amber-500 hover:bg-amber-100 transition flex-shrink-0">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        @if(session('success') && str_contains(session('success', ''), 'vérification'))
+        <div class="bg-emerald-50 border-b border-emerald-200 px-4 py-2.5 text-center text-sm text-emerald-700 font-medium">
+            {{ session('success') }}
+        </div>
+        @endif
+    </div>
+    @endif
+    @endauth
+
     <!-- Main Content -->
     <main class="min-h-screen" id="main-content">
         @yield('content')

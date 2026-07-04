@@ -35,11 +35,43 @@ class LeadScoreService
     public static function thresholds(): array
     {
         return [
-            'platinium' => SystemSetting::get('badge_platinium_min', 20),
-            'or'        => SystemSetting::get('badge_or_min',        15),
-            'argent'    => SystemSetting::get('badge_argent_min',    10),
-            'bronze'    => SystemSetting::get('badge_bronze_min',     5),
+            'platinium' => (int) SystemSetting::get('badge_platinium_min', 20),
+            'or'        => (int) SystemSetting::get('badge_or_min',        15),
+            'argent'    => (int) SystemSetting::get('badge_argent_min',    10),
+            'bronze'    => (int) SystemSetting::get('badge_bronze_min',     5),
             'neutre'    => 0,
+        ];
+    }
+
+    /**
+     * Returns explicit [min, max] ranges per badge (max=null means ∞).
+     * Falls back to derived values when explicit max not yet stored.
+     */
+    public static function ranges(): array
+    {
+        $t = static::thresholds();
+
+        return [
+            'neutre'    => [
+                'min' => 0,
+                'max' => (int) SystemSetting::get('badge_neutre_max',   $t['bronze']    - 1),
+            ],
+            'bronze'    => [
+                'min' => $t['bronze'],
+                'max' => (int) SystemSetting::get('badge_bronze_max',   $t['argent']    - 1),
+            ],
+            'argent'    => [
+                'min' => $t['argent'],
+                'max' => (int) SystemSetting::get('badge_argent_max',   $t['or']        - 1),
+            ],
+            'or'        => [
+                'min' => $t['or'],
+                'max' => (int) SystemSetting::get('badge_or_max',       $t['platinium'] - 1),
+            ],
+            'platinium' => [
+                'min' => $t['platinium'],
+                'max' => null,
+            ],
         ];
     }
 
@@ -76,9 +108,10 @@ class LeadScoreService
 
     public function badge(int $score): string
     {
-        foreach (self::thresholds() as $badge => $threshold) {
-            if ($score >= $threshold) {
-                return $badge;
+        // Iterate from highest badge to lowest; first range that contains the score wins.
+        foreach (array_reverse(self::ranges()) as $badgeName => $range) {
+            if ($score >= $range['min'] && ($range['max'] === null || $score <= $range['max'])) {
+                return $badgeName;
             }
         }
         return 'neutre';

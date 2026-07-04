@@ -49,11 +49,13 @@ class AuthService
                 'password'           => Hash::make($data['password']),
                 'phone'              => $data['phone']              ?? null,
                 'phone_country_code' => $data['phone_country_code'] ?? null,
-                'city_id'     => $data['city_id']     ?? null,
+                'city_id'            => $data['city_id']            ?? null,
                 'nationality_id'     => $data['nationality_id']     ?? null,
                 'gender'             => $data['gender']             ?? null,
                 'birthday'           => $data['birthday']           ?? null,
                 'role'               => 'user',
+                'points_balance'     => 0,
+                'badge_level'        => 'neutre',
                 // §3.1 + §3.3 — Stocker la version CGU acceptée à l'inscription
                 'cgu_version'        => \App\Models\SystemSetting::get('cgu_current_version', '1.1'),
                 'cgu_accepted_at'    => now(),
@@ -115,11 +117,13 @@ class AuthService
 
             if (!$user) {
                 $user = User::create([
-                    'first_name' => $firstName,
-                    'last_name' => $lastName,
-                    'email' => $email,
-                    'password' => Hash::make(Str::random(48)),
-                    'role' => 'user',
+                    'first_name'      => $firstName,
+                    'last_name'       => $lastName,
+                    'email'           => $email,
+                    'password'        => Hash::make(Str::random(48)),
+                    'role'            => 'user',
+                    'points_balance'  => 0,
+                    'badge_level'     => 'neutre',
                     'onboarding_completed' => false,
                 ]);
 

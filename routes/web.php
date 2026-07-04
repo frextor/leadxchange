@@ -147,7 +147,7 @@ Route::middleware('auth')->group(function () {
 // ==========================================
 // Protected Routes (Authenticated)
 // ==========================================
-Route::middleware(['auth', 'user'])->group(function () {
+Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

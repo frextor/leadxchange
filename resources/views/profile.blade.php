@@ -60,6 +60,40 @@ $currentServicesOffered = $profile?->services_offered ?? [];
 $canViewFull = $isOwnProfile || auth()->user()->canFeature('can_view_member_name');
 @endphp
 
+{{-- ── Email verification notice (shown when redirected here for verification) ── --}}
+@if($isOwnProfile && ! auth()->user()->hasVerifiedEmail())
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+    <div class="flex items-start gap-4 bg-amber-50 border border-amber-300 rounded-2xl px-5 py-4 shadow-sm">
+        <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+            </svg>
+        </div>
+        <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold text-amber-900">Confirmez votre adresse email pour accéder au site</p>
+            <p class="text-sm text-amber-700 mt-1">
+                Un lien de confirmation a été envoyé à <strong>{{ auth()->user()->email }}</strong>.
+                Cliquez sur le lien dans l'email pour activer votre compte.
+                Vérifiez aussi vos spams.
+            </p>
+            @if(session('success'))
+            <p class="text-sm font-semibold text-emerald-700 mt-2">✓ {{ session('success') }}</p>
+            @endif
+            <form method="POST" action="{{ route('verification.send') }}" class="mt-3">
+                @csrf
+                <button type="submit"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
+                        style="background:linear-gradient(135deg,#F59E0B,#D97706);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    Renvoyer l'email de confirmation
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+
 @if(!$canViewFull)
 <x-upgrade-gate feature="can_view_member_name" :full-page="true"
     title="Profil masqué"

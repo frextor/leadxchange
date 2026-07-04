@@ -193,8 +193,8 @@
                 Consuls
             </a>
 
-            <a href="{{ route('admin.super.consul.index') }}"
-               class="nav-item sa {{ request()->routeIs('admin.super.consul*') ? 'active' : '' }}">
+            <a href="{{ route('admin.super.ambassadors.manage') }}"
+               class="nav-item sa {{ request()->routeIs('admin.super.ambassadors*') ? 'active' : '' }}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                 Ambassadeurs
                 @php $pc = \App\Models\ConsulRequest::where('status','pending')->count(); @endphp
@@ -314,8 +314,7 @@
                     <p class="text-[13px] font-semibold text-slate-700 truncate leading-none">
                         {{ auth()->user()->first_name }} {{ auth()->user()->last_name }}
                     </p>
-                    <p class="text-[11px] font-medium mt-0.5 truncate"
-                       style="color:{{ auth()->user()->role === 'super_admin' ? '#8B5CF6' : '#14B8A6' }};">
+                    <p class="text-[11px] font-medium mt-0.5 truncate {{ auth()->user()->role === 'super_admin' ? 'text-violet-500' : 'text-teal-500' }}">
                         {{ auth()->user()->role === 'super_admin' ? 'Super Admin' : 'Administrateur' }}
                     </p>
                 </div>

@@ -1,125 +1,346 @@
 @extends('admin.layouts.admin')
 @section('title', 'Ambassadeurs')
-@section('page-title', 'Gestion des Ambassadeurs')
-@section('page-subtitle', 'Approbation et suivi des demandes')
 
 @section('content')
-<div class="py-6 space-y-4">
 
-    {{-- Status tabs --}}
-    <div class="flex gap-2">
-        @foreach(['pending' => ['Pending', '#F59E0B', '#FFFBEB'], 'approved' => ['Approuvés', '#10B981', '#ECFDF5'], 'rejected' => ['Refusés', '#EF4444', '#FEF2F2']] as $s => [$label, $color, $bg])
-        <a href="{{ route('admin.super.ambassadors.manage') }}"
-           class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition border"
-           style="{{ $status === $s ? "background:{$bg};color:{$color};border-color:{$color};" : 'background:white;color:#6B7280;border-color:#E5E7EB;' }}">
-            {{ $label }}
-            <span class="text-xs font-bold px-1.5 py-0.5 rounded-full"
-                  style="{{ $status === $s ? "background:{$color};color:white;" : 'background:#F3F4F6;color:#6B7280;' }}">
-                {{ $counts[$s] }}
-            </span>
-        </a>
-        @endforeach
+<div class="flex items-start justify-between mb-6">
+    <div>
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Super Admin</p>
+        <h1 class="text-2xl font-bold text-gray-900">Ambassadeurs</h1>
+        <p class="text-sm text-gray-400 mt-1">Nommez des Ambassadeurs parmi les membres Premium, ou traitez les demandes des Consuls.</p>
+    </div>
+</div>
 
-        @if(request('region_id'))
-        <a href="{{ route('admin.super.ambassadors.manage') }}"
-           class="ml-auto px-3 py-2 rounded-xl text-xs text-gray-400 border border-gray-200 hover:bg-gray-50 transition">
-            Effacer filtre
-        </a>
+@if(session('success'))
+<div class="mb-5 flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl px-5 py-3 text-sm font-medium">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><path d="m9 11 3 3L22 4"/></svg>
+    {{ session('success') }}
+</div>
+@endif
+@if(session('error'))
+<div class="mb-5 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-3 text-sm font-medium">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    {{ session('error') }}
+</div>
+@endif
+
+{{-- KPI strip --}}
+<div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-4">
+        <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#D97706"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div>
+            <p class="text-2xl font-extrabold text-gray-900">{{ $counts['ambassador'] }}</p>
+            <p class="text-xs text-gray-400 font-medium mt-0.5">Ambassadeurs actifs</p>
+        </div>
+    </div>
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-4">
+        <div class="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EA580C" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div>
+            <p class="text-2xl font-extrabold text-gray-900">{{ $counts['pending'] }}</p>
+            <p class="text-xs text-gray-400 font-medium mt-0.5">Demandes en attente</p>
+        </div>
+    </div>
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-4">
+        <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div>
+            <p class="text-2xl font-extrabold text-gray-900">{{ $counts['eligible'] }}</p>
+            <p class="text-xs text-gray-400 font-medium mt-0.5">Membres éligibles</p>
+        </div>
+    </div>
+</div>
+
+{{-- Main tabs --}}
+<div class="flex items-center gap-1 mb-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-1.5 w-fit">
+    <a href="{{ route('admin.super.ambassadors.manage', ['tab' => 'nominate']) }}"
+       class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition
+              {{ $tab === 'nominate' ? 'bg-amber-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50' }}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="{{ $tab === 'nominate' ? 'white' : '#D97706' }}">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+        Nommer un Ambassadeur
+    </a>
+    <a href="{{ route('admin.super.ambassadors.manage', ['tab' => 'requests', 'req_status' => 'pending']) }}"
+       class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition
+              {{ $tab === 'requests' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50' }}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{ $tab === 'requests' ? 'white' : '#6366F1' }}" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/>
+        </svg>
+        Demandes des Consuls
+        @if($requestCounts['pending'] > 0)
+        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full
+                     {{ $tab === 'requests' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-700' }}">
+            {{ $requestCounts['pending'] }}
+        </span>
         @endif
+    </a>
+</div>
+
+{{-- ════════════════════════════════════════════════════
+     TAB 1 : NOMMER UN AMBASSADEUR
+════════════════════════════════════════════════════ --}}
+@if($tab === 'nominate')
+
+<form method="GET" action="{{ route('admin.super.ambassadors.manage') }}" class="flex items-center gap-3 mb-5">
+    <input type="hidden" name="tab" value="nominate">
+    <div class="relative flex-1 max-w-sm">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" name="search" value="{{ request('search') }}" placeholder="Nom, prénom, email…"
+               class="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-amber-400 transition">
+    </div>
+    <select name="filter" onchange="this.form.submit()"
+            class="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white text-gray-700 focus:outline-none focus:border-amber-400 transition">
+        <option value="">Tous les membres payants</option>
+        <option value="ambassador" {{ request('filter') === 'ambassador' ? 'selected' : '' }}>Ambassadeurs uniquement</option>
+        <option value="eligible"   {{ request('filter') === 'eligible'   ? 'selected' : '' }}>Éligibles uniquement</option>
+    </select>
+    @if(request()->hasAny(['search','filter']))
+    <a href="{{ route('admin.super.ambassadors.manage', ['tab' => 'nominate']) }}"
+       class="px-3 py-2 rounded-xl text-sm text-gray-500 border border-gray-200 hover:bg-gray-50 transition">Reset</a>
+    @endif
+</form>
+
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+        <span class="text-sm text-gray-500">{{ $nominatableUsers->total() }} membre{{ $nominatableUsers->total() > 1 ? 's' : '' }}</span>
+        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Abonnement payant requis</span>
     </div>
 
-    {{-- Region filter --}}
-    <form method="GET" action="{{ route('admin.super.ambassadors.manage') }}" class="flex items-center gap-3">
-        <input type="hidden" name="status" value="{{ $status }}">
-        <select name="region_id" onchange="this.form.submit()"
-                class="h-9 px-3 rounded-xl border border-gray-200 text-sm outline-none focus:border-amber-400 transition" style="appearance:none;">
-            <option value="">Toutes les régions</option>
-            @foreach($regions as $r)
-            <option value="{{ $r->id }}" {{ request('region_id') == $r->id ? 'selected' : '' }}>{{ $r->name }}</option>
-            @endforeach
-        </select>
-    </form>
+    <div class="divide-y divide-gray-50">
+        @forelse($nominatableUsers as $usr)
+        @php
+            $isAmb = $usr->isAmbassador();
+            $isCon = $usr->isConsul();
+        @endphp
+        <div class="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/50 transition {{ $isAmb ? 'bg-amber-50/30' : '' }}">
 
-    {{-- List --}}
-    <div class="space-y-3">
-        @forelse($applicants as $user)
-        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-            <div class="flex items-start gap-4">
-                <div class="w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0"
-                     style="background:linear-gradient(135deg,#34d4bf,#1E8F88);">
-                    {{ strtoupper(substr($user->first_name, 0, 1)) }}
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <p class="font-semibold text-gray-900">{{ $user->first_name }} {{ $user->last_name }}</p>
-                        @if($user->region)
-                        <span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">{{ $user->region->name }}</span>
-                        @endif
-                        @if($user->ambassador_status === 'pending')
-                        <span class="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-semibold">⏳ En attente</span>
-                        @elseif($user->ambassador_status === 'approved')
-                        <span class="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-semibold">✓ Approuvé</span>
-                        @elseif($user->ambassador_status === 'rejected')
-                        <span class="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-semibold">✗ Refusé</span>
-                        @endif
-                    </div>
-                    <p class="text-xs text-gray-400 mt-0.5">{{ $user->email }}</p>
-                    @if($user->ambassador_requested_at)
-                    <p class="text-xs text-gray-400 mt-1">Demande : {{ $user->ambassador_requested_at->format('d/m/Y à H:i') }}</p>
-                    @endif
-                    @if($user->ambassador_status === 'rejected' && $user->ambassador_rejection_reason)
-                    <p class="text-xs text-red-500 mt-1">Motif : {{ $user->ambassador_rejection_reason }}</p>
-                    @endif
-                </div>
-
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    <a href="{{ route('admin.super.ambassadors.manage') }}"
-                       class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
-                        Voir profil
-                    </a>
-                    @if($user->ambassador_status === 'pending')
-                    <form method="POST" action="{{ route('admin.super.ambassadors.promote', $user) }}">
-                        @csrf
-                        <button type="submit"
-                                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition"
-                                style="background:#10B981;">
-                            Approuver
-                        </button>
-                    </form>
-                    <button type="button"
-                            onclick="document.getElementById('reject-{{ $user->id }}').classList.toggle('hidden')"
-                            class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition">
-                        Refuser
-                    </button>
-                    @endif
-                </div>
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                 style="background:{{ $isAmb ? 'linear-gradient(135deg,#F59E0B,#D97706)' : ($isCon ? 'linear-gradient(135deg,#2DD4BF,#0D9488)' : 'linear-gradient(135deg,#34d4bf,#1E8F88)') }};">
+                {{ strtoupper(substr($usr->first_name, 0, 1)) }}
             </div>
 
-            {{-- Reject form --}}
-            @if($user->ambassador_status === 'pending')
-            <div id="reject-{{ $user->id }}" class="hidden mt-4 pt-4 border-t border-gray-100">
-                <form method="POST" action="{{ route('admin.super.ambassadors.revoke', $user) }}" class="flex gap-2">
-                    @csrf
-                    <input type="text" name="reason" placeholder="Motif du refus (obligatoire)" required
-                           class="flex-1 h-9 px-3 rounded-xl border border-gray-200 text-sm outline-none focus:border-red-400 transition">
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <p class="text-sm font-semibold text-gray-900">{{ $usr->first_name }} {{ $usr->last_name }}</p>
+                    @if($isAmb)
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        Ambassadeur
+                    </span>
+                    @elseif($isCon)
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-700">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        Consul
+                    </span>
+                    @endif
+                </div>
+                <p class="text-xs text-gray-400 mt-0.5 truncate">{{ $usr->email }}</p>
+            </div>
+
+            <div class="hidden sm:block text-right flex-shrink-0">
+                <p class="text-xs font-semibold text-gray-700">{{ $usr->subscription?->plan?->label ?? '—' }}</p>
+                <p class="text-[10px] text-gray-400">{{ $usr->city?->name ?? '—' }}</p>
+            </div>
+
+            <div class="flex-shrink-0">
+                @if($isAmb)
+                <form method="POST" action="{{ route('admin.super.ambassadors.revoke', $usr) }}"
+                      onsubmit="return confirm('Retirer le rôle Ambassadeur à {{ addslashes($usr->first_name . ' ' . $usr->last_name) }} ?')">
+                    @csrf @method('DELETE')
                     <button type="submit"
-                            class="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-red-500 hover:bg-red-600 transition">
-                        Confirmer le refus
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        Retirer
                     </button>
                 </form>
+                @else
+                <form method="POST" action="{{ route('admin.super.ambassadors.nominate', $usr) }}"
+                      onsubmit="return confirm('Nommer {{ addslashes($usr->first_name . ' ' . $usr->last_name) }} Ambassadeur ?')">
+                    @csrf
+                    <button type="submit"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition"
+                            style="background:linear-gradient(135deg,#F59E0B,#D97706);">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        Nommer Ambassadeur
+                    </button>
+                </form>
+                @endif
             </div>
-            @endif
         </div>
         @empty
-        <div class="bg-white rounded-2xl border border-gray-200 p-10 text-center text-gray-400">
-            Aucune demande {{ $status === 'pending' ? 'en attente' : ($status === 'approved' ? 'approuvée' : 'refusée') }}.
+        <div class="px-5 py-16 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-3">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <p class="text-sm font-semibold text-gray-400">Aucun membre éligible trouvé.</p>
+            <p class="text-xs text-gray-300 mt-1">Seuls les membres avec un abonnement payant apparaissent ici.</p>
         </div>
         @endforelse
     </div>
 
-    @if($applicants->hasPages())
-    <div>{{ $applicants->withQueryString()->links() }}</div>
+    @if($nominatableUsers->hasPages())
+    <div class="px-5 py-3 border-t border-gray-100">{{ $nominatableUsers->links() }}</div>
     @endif
-
 </div>
+
+<div class="mt-4 flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-2xl px-5 py-4 text-sm text-amber-800">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+    <ul class="space-y-0.5 text-amber-700 text-xs">
+        <li>• Tout membre avec un abonnement payant (Premium, Consul…) peut être nommé Ambassadeur directement par l'admin.</li>
+        <li>• La nomination attribue automatiquement le plan <strong>Ambassadeur</strong> et notifie l'utilisateur.</li>
+        <li>• Révoquer un Ambassadeur nommé directement le fait revenir au plan <strong>Premium</strong>. S'il était aussi Consul, il revient au plan <strong>Consul</strong>.</li>
+    </ul>
+</div>
+
+{{-- ════════════════════════════════════════════════════
+     TAB 2 : DEMANDES DES CONSULS
+════════════════════════════════════════════════════ --}}
+@else
+
+{{-- Sub-tabs --}}
+<div class="flex items-center gap-1 mb-5 bg-white rounded-2xl border border-gray-100 shadow-sm p-1.5 w-fit">
+    @foreach(['pending' => 'En attente', 'approved' => 'Approuvées', 'rejected' => 'Refusées'] as $s => $label)
+    <a href="{{ route('admin.super.ambassadors.manage', ['tab' => 'requests', 'req_status' => $s]) }}"
+       class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition
+              {{ $reqStatus === $s ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50' }}">
+        {{ $label }}
+        @if($requestCounts[$s] > 0)
+        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full
+                     {{ $reqStatus === $s ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500' }}">
+            {{ $requestCounts[$s] }}
+        </span>
+        @endif
+    </a>
+    @endforeach
+</div>
+
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    @forelse($requests as $req)
+    <div class="flex items-start gap-4 px-5 py-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition">
+
+        <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+             style="background:linear-gradient(135deg,#6366F1,#4338CA);">
+            {{ strtoupper(substr($req->user->first_name, 0, 1)) }}
+        </div>
+
+        <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+                <p class="font-semibold text-gray-900">{{ $req->user->first_name }} {{ $req->user->last_name }}</p>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 font-semibold">Consul</span>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-semibold">
+                    {{ $req->user->subscription?->plan?->label ?? 'Sans plan' }}
+                </span>
+                @if($req->user->city)
+                <span class="text-xs text-gray-400">📍 {{ $req->user->city->name }}</span>
+                @endif
+            </div>
+            <p class="text-xs text-gray-400 mt-0.5">{{ $req->user->email }} · Demande le {{ $req->created_at->format('d/m/Y') }}</p>
+            @if($req->isRejected() && $req->rejection_reason)
+            <p class="text-xs text-red-500 mt-1">Raison du refus : {{ $req->rejection_reason }}</p>
+            @endif
+            @if($req->isApproved())
+            <p class="text-xs text-emerald-600 mt-1">
+                Approuvé par {{ $req->validator?->first_name }} le {{ $req->validated_at?->format('d/m/Y') }}
+            </p>
+            @endif
+        </div>
+
+        <div class="flex-shrink-0 self-center">
+            @if($req->isPending())
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> En attente
+            </span>
+            @elseif($req->isApproved())
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Approuvée
+            </span>
+            @else
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Refusée
+            </span>
+            @endif
+        </div>
+
+        @if($req->isPending())
+        <div class="flex items-center gap-2 flex-shrink-0 self-center">
+            <form method="POST" action="{{ route('admin.super.consul.approve', $req) }}">
+                @csrf
+                <button type="submit"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition"
+                        style="background:#059669;">✓ Approuver</button>
+            </form>
+            <button type="button"
+                    onclick="openRejectModal({{ $req->id }})"
+                    class="px-3 py-1.5 rounded-xl text-xs font-bold border border-red-200 text-red-600 hover:bg-red-50 transition">
+                ✕ Refuser
+            </button>
+        </div>
+        @endif
+
+    </div>
+    @empty
+    <div class="px-5 py-16 text-center">
+        <div class="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-3">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <p class="text-sm text-gray-400 font-medium">
+            Aucune demande {{ $reqStatus === 'pending' ? 'en attente' : ($reqStatus === 'approved' ? 'approuvée' : 'refusée') }}.
+        </p>
+    </div>
+    @endforelse
+</div>
+
+@if($requests->hasPages())
+<div class="mt-4">{{ $requests->links() }}</div>
+@endif
+
+{{-- Reject modal --}}
+<div id="reject-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+        <h3 class="text-base font-bold text-gray-900 mb-4">Refuser la demande</h3>
+        <form id="reject-form" method="POST">
+            @csrf
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Raison (optionnelle)</label>
+                <textarea name="reason" rows="3"
+                          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-red-300 resize-none transition"
+                          placeholder="Expliquez la raison du refus…"></textarea>
+            </div>
+            <div class="flex gap-3">
+                <button type="submit"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition"
+                        style="background:#DC2626;">Confirmer le refus</button>
+                <button type="button" onclick="closeRejectModal()"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition">Annuler</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+const rejectBase = '{{ url("/admin/super/consul") }}';
+function openRejectModal(id) {
+    document.getElementById('reject-form').action = rejectBase + '/' + id + '/reject';
+    const m = document.getElementById('reject-modal');
+    m.classList.remove('hidden'); m.classList.add('flex');
+}
+function closeRejectModal() {
+    const m = document.getElementById('reject-modal');
+    m.classList.add('hidden'); m.classList.remove('flex');
+}
+document.getElementById('reject-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeRejectModal();
+});
+</script>
+@endpush
+
+@endif
+
 @endsection

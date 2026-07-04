@@ -37,6 +37,7 @@ class DashboardController extends Controller
         $missing    = $this->profileService->getMissingFields($user);
 
         $prospects = User::with(['profile', 'company', 'city'])
+            ->where('role', 'user')
             ->where('id', '!=', $user->id)
             ->whereNotIn('id', $connectedIds->toArray())
             ->latest()

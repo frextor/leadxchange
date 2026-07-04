@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\NotationController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VideoController;
 use App\Http\Controllers\Admin\SuperAdmin\AdminManagerController;
+use App\Http\Controllers\Admin\SuperAdmin\AmbassadorController;
 use App\Http\Controllers\Admin\SuperAdmin\ConsulController;
 use App\Http\Controllers\Admin\SuperAdmin\UserReportController;
 use App\Http\Controllers\Admin\SuperAdmin\CityController;
@@ -130,8 +131,8 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::post('manage-ambassadors/{user}/nominate',  [ConsulController::class, 'nominateAmbassador'])->name('ambassadors.nominate');
     Route::delete('manage-ambassadors/{user}/revoke',  [ConsulController::class, 'revokeAmbassador'])->name('ambassadors.revoke');
 
-    // Legacy routes kept for backward compat
-    Route::get('manage-ambassadors',                   [ConsulController::class, 'consuls'])->name('ambassadors.manage');
+    // Unified Ambassadeurs page
+    Route::get('manage-ambassadors',                   [AmbassadorController::class, 'index'])->name('ambassadors.manage');
     Route::post('manage-ambassadors/{user}/promote',   [ConsulController::class, 'nominateConsul'])->name('ambassadors.promote');
 
     // Sectors

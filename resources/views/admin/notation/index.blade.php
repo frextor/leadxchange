@@ -182,17 +182,12 @@
 
 {{-- ── Configuration des ranges de badges ───────────────────────────────── --}}
 @php
-$bronzeMin    = $thresholds['bronze']    ?? 5;
-$argentMin    = $thresholds['argent']    ?? 10;
-$orMin        = $thresholds['or']        ?? 15;
-$platiniumMin = $thresholds['platinium'] ?? 20;
-
 $badgeRanges = [
-    'neutre'    => ['label'=>'Neutre',    'icon'=>'○',  'color'=>'gray',   'min'=>0,           'max'=>$bronzeMin - 1,    'minKey'=>null,              'maxKey'=>'badge_bronze_min', 'minFixed'=>true],
-    'bronze'    => ['label'=>'Bronze',    'icon'=>'🏆', 'color'=>'amber',  'min'=>$bronzeMin,   'max'=>$argentMin - 1,    'minKey'=>'badge_bronze_min','maxKey'=>'badge_argent_min', 'minFixed'=>false],
-    'argent'    => ['label'=>'Argent',    'icon'=>'🏆', 'color'=>'slate',  'min'=>$argentMin,   'max'=>$orMin - 1,        'minKey'=>'badge_argent_min','maxKey'=>'badge_or_min',     'minFixed'=>false],
-    'or'        => ['label'=>'Or',        'icon'=>'🏆', 'color'=>'yellow', 'min'=>$orMin,       'max'=>$platiniumMin - 1, 'minKey'=>'badge_or_min',   'maxKey'=>'badge_platinium_min','minFixed'=>false],
-    'platinium' => ['label'=>'Platinium', 'icon'=>'💎', 'color'=>'indigo', 'min'=>$platiniumMin,'max'=>null,              'minKey'=>'badge_platinium_min','maxKey'=>null,             'minFixed'=>false],
+    'neutre'    => ['label'=>'Neutre',    'icon'=>'○',  'color'=>'gray',   'min'=>$ranges['neutre']['min'],    'max'=>$ranges['neutre']['max'],    'minKey'=>null,                  'maxKey'=>'badge_neutre_max',    'minFixed'=>true,  'maxFixed'=>false],
+    'bronze'    => ['label'=>'Bronze',    'icon'=>'🏆', 'color'=>'amber',  'min'=>$ranges['bronze']['min'],    'max'=>$ranges['bronze']['max'],    'minKey'=>'badge_bronze_min',    'maxKey'=>'badge_bronze_max',    'minFixed'=>false, 'maxFixed'=>false],
+    'argent'    => ['label'=>'Argent',    'icon'=>'🏆', 'color'=>'slate',  'min'=>$ranges['argent']['min'],    'max'=>$ranges['argent']['max'],    'minKey'=>'badge_argent_min',    'maxKey'=>'badge_argent_max',    'minFixed'=>false, 'maxFixed'=>false],
+    'or'        => ['label'=>'Or',        'icon'=>'🏆', 'color'=>'yellow', 'min'=>$ranges['or']['min'],        'max'=>$ranges['or']['max'],        'minKey'=>'badge_or_min',        'maxKey'=>'badge_or_max',        'minFixed'=>false, 'maxFixed'=>false],
+    'platinium' => ['label'=>'Platinium', 'icon'=>'💎', 'color'=>'indigo', 'min'=>$ranges['platinium']['min'], 'max'=>$ranges['platinium']['max'], 'minKey'=>'badge_platinium_min', 'maxKey'=>null,                  'minFixed'=>false, 'maxFixed'=>true],
 ];
 $colorMap = [
     'gray'   => ['bg'=>'bg-gray-50',    'border'=>'border-gray-200',   'text'=>'text-gray-500',   'input'=>'border-gray-300'],
@@ -207,7 +202,7 @@ $colorMap = [
     <div class="flex items-center justify-between mb-5">
         <div>
             <p class="text-sm font-bold text-gray-900">Plages de points par badge</p>
-            <p class="text-xs text-gray-400 mt-0.5">Définissez les intervalles de score pour chaque niveau. La borne haute se calcule automatiquement.</p>
+            <p class="text-xs text-gray-400 mt-0.5">Définissez librement les bornes <strong>De</strong> et <strong>À</strong> pour chaque niveau.</p>
         </div>
         <form method="POST" action="{{ route('admin.notation.thresholds') }}" id="thresholds-form" class="hidden">@csrf</form>
     </div>
@@ -236,11 +231,7 @@ $colorMap = [
                            form="thresholds-form"
                            value="{{ $b['min'] }}"
                            min="1"
-                           onchange="updateRanges()"
-                           data-badge="{{ $bKey }}"
-                           data-type="min"
-                           class="w-20 h-9 text-center text-sm font-bold rounded-lg border-2 {{ $c['input'] }} {{ $c['bg'] }} {{ $c['text'] }} focus:outline-none focus:ring-2 transition"
-                           style="focus-ring-color:currentColor;">
+                           class="w-20 h-9 text-center text-sm font-bold rounded-lg border-2 {{ $c['input'] }} {{ $c['bg'] }} {{ $c['text'] }} focus:outline-none focus:ring-2 transition">
                     @endif
                 </div>
 
@@ -249,10 +240,16 @@ $colorMap = [
                 {{-- Max --}}
                 <div class="flex flex-col items-center gap-0.5">
                     <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">À</span>
-                    <div id="max-display-{{ $bKey }}"
-                         class="w-20 h-9 flex items-center justify-center rounded-lg border bg-white border-gray-200 text-sm font-bold {{ $c['text'] }}">
-                        {{ $b['max'] !== null ? $b['max'] : '∞' }}
-                    </div>
+                    @if($b['maxFixed'])
+                    <div class="w-20 h-9 flex items-center justify-center rounded-lg border bg-white border-gray-200 text-sm font-bold {{ $c['text'] }}">∞</div>
+                    @else
+                    <input type="number"
+                           name="{{ $b['maxKey'] }}"
+                           form="thresholds-form"
+                           value="{{ $b['max'] }}"
+                           min="0"
+                           class="w-20 h-9 text-center text-sm font-bold rounded-lg border-2 {{ $c['input'] }} {{ $c['bg'] }} {{ $c['text'] }} focus:outline-none focus:ring-2 transition">
+                    @endif
                 </div>
 
                 {{-- pts label --}}
@@ -453,29 +450,6 @@ $colorMap = [
 @push('scripts')
 <script>
 const editRouteBase = '{{ url("/admin/notation") }}';
-
-// ── Live range preview ────────────────────────────────────────────────────
-function updateRanges() {
-    const get = name => {
-        const el = document.querySelector(`[name="${name}"]`);
-        return el ? parseInt(el.value) || 0 : 0;
-    };
-    const set = (id, val) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = val;
-    };
-
-    const bMin = get('badge_bronze_min');
-    const aMin = get('badge_argent_min');
-    const oMin = get('badge_or_min');
-    const pMin = get('badge_platinium_min');
-
-    set('max-display-neutre',    bMin > 1 ? bMin - 1 : 0);
-    set('max-display-bronze',    aMin > 1 ? aMin - 1 : bMin);
-    set('max-display-argent',    oMin > 1 ? oMin - 1 : aMin);
-    set('max-display-or',        pMin > 1 ? pMin - 1 : oMin);
-    set('max-display-platinium', '∞');
-}
 
 function openEdit(userId, points, badge) {
     document.getElementById('edit-form').action = editRouteBase + '/' + userId;

@@ -63,8 +63,9 @@ class NotationController extends Controller
         ];
 
         $thresholds = LeadScoreService::thresholds();
+        $ranges     = LeadScoreService::ranges();
 
-        return view('admin.notation.index', compact('users', 'details', 'received', 'badges', 'thresholds'));
+        return view('admin.notation.index', compact('users', 'details', 'received', 'badges', 'thresholds', 'ranges'));
     }
 
     public function update(Request $request, User $user): RedirectResponse
@@ -102,6 +103,10 @@ class NotationController extends Controller
             'badge_argent_min'    => ['required', 'integer', 'min:1'],
             'badge_or_min'        => ['required', 'integer', 'min:1'],
             'badge_platinium_min' => ['required', 'integer', 'min:1'],
+            'badge_neutre_max'    => ['nullable', 'integer', 'min:0'],
+            'badge_bronze_max'    => ['nullable', 'integer', 'min:1'],
+            'badge_argent_max'    => ['nullable', 'integer', 'min:1'],
+            'badge_or_max'        => ['nullable', 'integer', 'min:1'],
         ]);
 
         SystemSetting::set('badge_bronze_min',    $request->badge_bronze_min);
@@ -109,7 +114,19 @@ class NotationController extends Controller
         SystemSetting::set('badge_or_min',        $request->badge_or_min);
         SystemSetting::set('badge_platinium_min', $request->badge_platinium_min);
 
-        // Recalculate all users with new thresholds
+        if ($request->filled('badge_neutre_max')) {
+            SystemSetting::set('badge_neutre_max', $request->badge_neutre_max);
+        }
+        if ($request->filled('badge_bronze_max')) {
+            SystemSetting::set('badge_bronze_max', $request->badge_bronze_max);
+        }
+        if ($request->filled('badge_argent_max')) {
+            SystemSetting::set('badge_argent_max', $request->badge_argent_max);
+        }
+        if ($request->filled('badge_or_max')) {
+            SystemSetting::set('badge_or_max', $request->badge_or_max);
+        }
+
         $count = $this->scorer->updateAll();
 
         return back()->with('success', "Seuils mis à jour. {$count} utilisateur(s) recalculés.");
