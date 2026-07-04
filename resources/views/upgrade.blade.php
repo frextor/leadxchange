@@ -133,13 +133,13 @@
                     ✓ Plan actuel
                 </div>
                 @elseif($plan->is_enterprise)
-                <a href="#contact"
-                   class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-white transition hover:opacity-90 active:scale-[.98]"
-                   style="background:linear-gradient(135deg,{{ $t['top'] }},{{ $t['accent'] }});"
-                   onclick="showUpgradeContact('{{ $plan->label }}')">
+                <button type="button"
+                        onclick="toggleEnterpriseForm()"
+                        class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-white transition hover:opacity-90 active:scale-[.98]"
+                        style="background:linear-gradient(135deg,{{ $t['top'] }},{{ $t['accent'] }});">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.39 18a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 3.18 2 2 0 0 1 4.11 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91A16 16 0 0 0 14 14.91l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                     Demander un devis
-                </a>
+                </button>
                 @elseif(!$plan->price)
                 <div class="w-full py-2.5 rounded-xl text-xs font-semibold text-center bg-gray-50 text-gray-400 border border-gray-200">
                     Plan gratuit
@@ -173,7 +173,88 @@
         @endforeach
     </div>
 
-    {{-- Contact section --}}
+    {{-- Enterprise quote form (hidden by default, toggled by the CTA button) --}}
+    <div id="enterprise-form" class="max-w-lg mx-auto" style="display:none;">
+        <div class="bg-white rounded-2xl border-2 border-blue-100 shadow-sm overflow-hidden">
+            <div class="px-6 pt-5 pb-4" style="background:linear-gradient(135deg,#EFF6FF,#E0F2FE);">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                         style="background:rgba(37,99,235,.12);">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="1.8"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-gray-900">Demande de devis Pack Entreprise</h2>
+                        <p class="text-xs text-gray-500">Notre équipe vous contactera sous 24 h.</p>
+                    </div>
+                </div>
+            </div>
+
+            @if(session('enterprise_quote_sent'))
+            <div class="px-6 py-8 text-center">
+                <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 bg-emerald-50">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                </div>
+                <h3 class="text-base font-bold text-gray-900 mb-1">Demande envoyée !</h3>
+                <p class="text-sm text-gray-500">Notre équipe va étudier votre demande et vous recontacter rapidement.</p>
+            </div>
+            @else
+            <form method="POST" action="{{ route('enterprise.request-quote') }}" class="px-6 py-5 space-y-4">
+                @csrf
+
+                @if($errors->any())
+                <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+                    {{ $errors->first() }}
+                </div>
+                @endif
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Nom de l'entreprise <span class="text-red-400">*</span></label>
+                    <input type="text" name="company_name" required maxlength="100"
+                           value="{{ old('company_name') }}"
+                           placeholder="Acme SAS"
+                           class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Nombre d'utilisateurs souhaités <span class="text-red-400">*</span></label>
+                    <div class="flex items-center gap-3">
+                        <input type="number" name="seats_needed" required min="2" max="500"
+                               value="{{ old('seats_needed', 10) }}"
+                               class="w-28 rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-center font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <span class="text-xs text-gray-400">licences (vous inclus — minimum 2)</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Téléphone</label>
+                    <input type="tel" name="phone" maxlength="30"
+                           value="{{ old('phone') }}"
+                           placeholder="+33 6 00 00 00 00"
+                           class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Message (optionnel)</label>
+                    <textarea name="message" maxlength="1000" rows="3"
+                              placeholder="Décrivez votre besoin, secteur d'activité, délai souhaité…"
+                              class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none">{{ old('message') }}</textarea>
+                </div>
+
+                <button type="submit"
+                        class="w-full py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
+                        style="background:linear-gradient(135deg,#1D4ED8,#1E40AF);">
+                    Envoyer ma demande →
+                </button>
+
+                <p class="text-center text-xs text-gray-400">
+                    Votre demande sera traitée par notre équipe sous 24 h ouvrées.
+                </p>
+            </form>
+            @endif
+        </div>
+    </div>
+
+    {{-- Generic contact section (non-enterprise plans) --}}
     <div id="contact" class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center max-w-lg mx-auto">
         <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
              style="background:linear-gradient(135deg,#EEF2FF,#E0E7FF);">
@@ -202,6 +283,30 @@ function showUpgradeContact(planName) {
         document.getElementById('contact').scrollIntoView({ behavior: 'smooth' });
     }, 100);
 }
+function toggleEnterpriseForm() {
+    var el = document.getElementById('enterprise-form');
+    var contact = document.getElementById('contact');
+    if (el.style.display === 'none') {
+        el.style.display = 'block';
+        contact.style.display = 'none';
+        setTimeout(function() { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+    } else {
+        el.style.display = 'none';
+        contact.style.display = 'block';
+    }
+}
+@if(session('enterprise_quote_sent'))
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('enterprise-form').style.display = 'block';
+    document.getElementById('contact').style.display = 'none';
+});
+@endif
+@if($errors->any() && old('company_name'))
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('enterprise-form').style.display = 'block';
+    document.getElementById('contact').style.display = 'none';
+});
+@endif
 </script>
 @endpush
 

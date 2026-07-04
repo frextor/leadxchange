@@ -19,18 +19,19 @@ class SystemNotificationMail extends Mailable
         public readonly string  $body,
         public readonly ?string $actionLabel = null,
         public readonly ?string $actionUrl   = null,
+        public readonly string  $templateKey = 'system_notification',
     ) {}
 
     public function envelope(): Envelope
     {
-        $resolved = EmailTemplate::resolve('system_notification', $this->vars());
+        $resolved = EmailTemplate::resolve($this->templateKey, $this->vars());
 
         return new Envelope(subject: $resolved['subject'] ?? ($this->title . ' — LeadXchange'));
     }
 
     public function content(): Content
     {
-        $resolved = EmailTemplate::resolve('system_notification', $this->vars());
+        $resolved = EmailTemplate::resolve($this->templateKey, $this->vars());
 
         if ($resolved) {
             return new Content(view: 'emails.db_template', with: ['content' => $resolved['body']]);

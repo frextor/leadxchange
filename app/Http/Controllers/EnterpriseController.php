@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\SystemNotificationMail;
 use App\Models\EnterpriseInvitation;
 use App\Models\EnterpriseLicense;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class EnterpriseController extends Controller
@@ -66,40 +69,20 @@ class EnterpriseController extends Controller
             return back()->with('error', 'Aucune licence disponible. Augmentez votre quota ou révoquez un membre inactif.');
         }
 
-        $targetUser  = User::where('email', $email)->first();
-        $autoCreated = false;
-        $tempPassword = null;
-
-        if (! $targetUser) {
-            $tempPassword = Str::random(12);
-            $targetUser   = User::create([
-                'first_name'        => explode('@', $email)[0],
-                'last_name'         => '',
-                'email'             => $email,
-                'password'          => Hash::make($tempPassword),
-                'role'              => 'user',
-                'points_balance'    => 0,
-                'badge_level'       => 'neutre',
-                'email_verified_at' => now(),
-            ]);
-            $autoCreated = true;
-        }
+        $targetUser = User::where('email', $email)->first();
 
         $slot->update([
             'email'      => $email,
-            'user_id'    => $targetUser->id,
+            'user_id'    => $targetUser?->id,
             'status'     => EnterpriseInvitation::STATUS_PENDING,
             'invited_by' => $user->id,
             'token'      => EnterpriseInvitation::generateToken(),
         ]);
 
         $license->increment('seats_used');
-        $this->sendInvitationEmail($slot, $license, $autoCreated ? $tempPassword : null);
+        $this->sendInvitationEmail($slot, $license);
 
-        return back()->with('success', $autoCreated
-            ? "Compte créé et invitation envoyée à {$email}."
-            : "Invitation envoyée à {$email}."
-        );
+        return back()->with('success', "Invitation envoyée à {$email}.");
     }
 
     public function revoke(Request $request, int $invId)
@@ -133,6 +116,48 @@ class EnterpriseController extends Controller
         return back()->with('success', 'Licence libérée. Le membre a été rétrogradé en Basic. La licence est à nouveau disponible.');
     }
 
+    // ── Enterprise quote request ──────────────────────────────────────────────
+
+    public function requestQuote(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'company_name' => ['required', 'string', 'max:100'],
+            'seats_needed' => ['required', 'integer', 'min:2', 'max:500'],
+            'phone'        => ['nullable', 'string', 'max:30'],
+            'message'      => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $user = $request->user();
+
+        $body = "<p>Nouvelle demande de devis Pack Entreprise :</p>
+<ul>
+<li><strong>Entreprise :</strong> {$data['company_name']}</li>
+<li><strong>Utilisateurs souhaités :</strong> {$data['seats_needed']} licences</li>
+<li><strong>Demandeur :</strong> {$user->first_name} {$user->last_name} ({$user->email})</li>
+<li><strong>Téléphone :</strong> " . ($data['phone'] ?: '—') . "</li>
+<li><strong>Message :</strong> " . nl2br(htmlspecialchars($data['message'] ?? '')) . "</li>
+</ul>
+<p><a href=\"" . route('admin.users.show', $user) . "\">Voir le profil dans l'administration →</a></p>";
+
+        try {
+            $adminEmail = env('ADMIN_EMAIL', config('mail.from.address'));
+            Mail::to($adminEmail)->send(new SystemNotificationMail(
+                recipientName: 'Équipe LeadXchange',
+                title:         'Demande de devis Pack Entreprise — ' . $data['company_name'],
+                body:          $body,
+                actionLabel:   'Créer la licence',
+                actionUrl:     route('admin.super.enterprise.create'),
+            ));
+        } catch (\Exception $e) {
+            Log::warning('Enterprise quote request email failed', [
+                'user_id' => $user->id,
+                'error'   => $e->getMessage(),
+            ]);
+        }
+
+        return back()->with('enterprise_quote_sent', true);
+    }
+
     // ── Join flow (public, tokenised) ─────────────────────────────────────────
 
     public function join(string $token)
@@ -144,7 +169,10 @@ class EnterpriseController extends Controller
 
         $existingUser = $invitation->user ?? ($invitation->email ? User::where('email', $invitation->email)->first() : null);
 
-        return view('enterprise.join', compact('invitation', 'existingUser'));
+        // Existing user with a pending invite → confirmation page (no registration needed)
+        $confirmOnly = ($existingUser && $invitation->status === EnterpriseInvitation::STATUS_PENDING && $invitation->user_id);
+
+        return view('enterprise.join', compact('invitation', 'existingUser', 'confirmOnly'));
     }
 
     public function processJoin(Request $request, string $token)
@@ -156,20 +184,16 @@ class EnterpriseController extends Controller
 
         $wasAvailable = $invitation->status === EnterpriseInvitation::STATUS_AVAILABLE;
 
-        // Determine validation rules based on whether email is pre-set
-        $rules = [
-            'first_name' => ['required', 'string', 'max:80'],
-            'last_name'  => ['required', 'string', 'max:80'],
-            'password'   => ['required', 'string', 'min:8', 'confirmed'],
-        ];
+        // ── Case 1: available slot (no email pre-set) — full registration form ──
         if ($wasAvailable) {
-            $rules['email'] = ['required', 'email', 'max:255'];
-        }
+            $request->validate([
+                'email'      => ['required', 'email', 'max:255'],
+                'first_name' => ['required', 'string', 'max:80'],
+                'last_name'  => ['required', 'string', 'max:80'],
+                'password'   => ['required', 'string', 'min:8', 'confirmed'],
+            ]);
 
-        $request->validate($rules);
-
-        if ($wasAvailable) {
-            $email = strtolower(trim($request->email));
+            $email      = strtolower(trim($request->email));
             $targetUser = User::where('email', $email)->first();
 
             if (! $targetUser) {
@@ -199,28 +223,34 @@ class EnterpriseController extends Controller
             ]);
 
             $invitation->license->increment('seats_used');
-        } else {
-            // Email was pre-set (invited via email)
-            $targetUser = $invitation->user ?? User::where('email', $invitation->email)->first();
 
-            if (! $targetUser) {
-                $targetUser = User::create([
-                    'first_name'        => $request->first_name,
-                    'last_name'         => $request->last_name,
-                    'email'             => $invitation->email,
-                    'password'          => Hash::make($request->password),
-                    'role'              => 'user',
-                    'points_balance'    => 0,
-                    'badge_level'       => 'neutre',
-                    'email_verified_at' => now(),
-                ]);
-            } else {
-                $targetUser->update([
-                    'first_name' => $request->first_name,
-                    'last_name'  => $request->last_name,
-                    'password'   => Hash::make($request->password),
-                ]);
-            }
+        // ── Case 2: pending invitation — existing user, just confirm ──
+        } elseif ($invitation->user_id && $invitation->user) {
+            $targetUser = $invitation->user;
+
+            $invitation->update([
+                'status'      => EnterpriseInvitation::STATUS_ACTIVE,
+                'accepted_at' => now(),
+            ]);
+
+        // ── Case 3: pending invitation — new user, registration form ──
+        } else {
+            $request->validate([
+                'first_name' => ['required', 'string', 'max:80'],
+                'last_name'  => ['required', 'string', 'max:80'],
+                'password'   => ['required', 'string', 'min:8', 'confirmed'],
+            ]);
+
+            $targetUser = User::create([
+                'first_name'        => $request->first_name,
+                'last_name'         => $request->last_name,
+                'email'             => $invitation->email,
+                'password'          => Hash::make($request->password),
+                'role'              => 'user',
+                'points_balance'    => 0,
+                'badge_level'       => 'neutre',
+                'email_verified_at' => now(),
+            ]);
 
             $invitation->update([
                 'user_id'     => $targetUser->id,
@@ -264,7 +294,7 @@ class EnterpriseController extends Controller
         }
     }
 
-    private function sendInvitationEmail(EnterpriseInvitation $invitation, EnterpriseLicense $license, ?string $tempPassword = null): void
+    private function sendInvitationEmail(EnterpriseInvitation $invitation, EnterpriseLicense $license): void
     {
         try {
             $license->loadMissing('holder');
@@ -275,7 +305,7 @@ class EnterpriseController extends Controller
                 to:       $invitation->email,
                 subject:  $company . ' vous invite à rejoindre son équipe LeadXchange',
                 type:     'enterprise_invitation',
-                mailable: new \App\Mail\EnterpriseInvitationMail($invitation, $holderName, $tempPassword),
+                mailable: new \App\Mail\EnterpriseInvitationMail($invitation, $holderName),
                 toName:   $invitation->email,
                 metadata: ['invitation_id' => $invitation->id],
             );

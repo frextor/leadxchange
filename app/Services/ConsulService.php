@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Mail\SystemNotificationMail;
 use App\Models\ConsulRequest;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class ConsulService
 {
@@ -54,6 +56,17 @@ class ConsulService
                 'Félicitations ! Vous avez été nommé Consul par l\'administration.',
                 ['url' => route('dashboard')]
             );
+        } catch (\Throwable) {}
+
+        try {
+            Mail::to($user->email)->send(new SystemNotificationMail(
+                recipientName: $user->first_name,
+                title:         'Vous êtes maintenant Consul',
+                body:          'Félicitations <strong>' . $user->first_name . '</strong> ! Vous venez d\'être nommé <strong>Consul</strong> sur LeadXchange par l\'administration. Votre plan a été mis à jour automatiquement.',
+                actionLabel:   'Accéder à mon dashboard',
+                actionUrl:     route('dashboard'),
+                templateKey:   'consul_nominated',
+            ));
         } catch (\Throwable) {}
     }
 
@@ -121,6 +134,17 @@ class ConsulService
                 'Félicitations ! Vous avez été nommé Ambassadeur par l\'administration.',
                 ['url' => route('dashboard')]
             );
+        } catch (\Throwable) {}
+
+        try {
+            Mail::to($user->email)->send(new SystemNotificationMail(
+                recipientName: $user->first_name,
+                title:         'Vous êtes maintenant Ambassadeur',
+                body:          'Félicitations <strong>' . $user->first_name . '</strong> ! Vous venez d\'être nommé <strong>Ambassadeur</strong> sur LeadXchange par l\'administration. Votre plan a été mis à jour automatiquement.',
+                actionLabel:   'Accéder à mon dashboard',
+                actionUrl:     route('dashboard'),
+                templateKey:   'ambassador_nominated',
+            ));
         } catch (\Throwable) {}
     }
 
@@ -204,6 +228,17 @@ class ConsulService
                 ['url' => route('dashboard')]
             );
         } catch (\Throwable) {}
+
+        try {
+            Mail::to($consulRequest->user->email)->send(new SystemNotificationMail(
+                recipientName: $consulRequest->user->first_name,
+                title:         'Demande Ambassadeur approuvée !',
+                body:          'Félicitations <strong>' . $consulRequest->user->first_name . '</strong> ! Votre demande de rôle <strong>Ambassadeur</strong> a été approuvée. Vous avez maintenant accès à toutes les fonctionnalités Ambassadeur sur LeadXchange.',
+                actionLabel:   'Accéder à mon dashboard',
+                actionUrl:     route('dashboard'),
+                templateKey:   'ambassador_approved',
+            ));
+        } catch (\Throwable) {}
     }
 
     /** Reject an ambassador request. */
@@ -228,6 +263,23 @@ class ConsulService
                 'Votre demande de rôle Ambassadeur a été refusée.' . ($reason ? ' Raison : ' . $reason : ''),
                 ['url' => route('dashboard')]
             );
+        } catch (\Throwable) {}
+
+        try {
+            $body = 'Votre demande de rôle <strong>Ambassadeur</strong> n\'a pas pu être approuvée pour le moment.';
+            if ($reason) {
+                $body .= '<br><br><strong>Motif :</strong> ' . htmlspecialchars($reason);
+            }
+            $body .= '<br><br>N\'hésitez pas à soumettre une nouvelle demande ultérieurement.';
+
+            Mail::to($consulRequest->user->email)->send(new SystemNotificationMail(
+                recipientName: $consulRequest->user->first_name,
+                title:         'Demande Ambassadeur non approuvée',
+                body:          $body,
+                actionLabel:   'Mon profil',
+                actionUrl:     route('profile.me'),
+                templateKey:   'ambassador_rejected',
+            ));
         } catch (\Throwable) {}
     }
 

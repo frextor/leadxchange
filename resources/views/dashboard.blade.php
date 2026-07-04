@@ -491,6 +491,60 @@
     @endif
 
 
+    {{-- ── ENTERPRISE TEAM CARD (holders only) ── --}}
+    @if(auth()->user()->isEnterpriseHolder())
+    @php $elic = auth()->user()->enterpriseLicense()->withCount(['invitations as active_count' => fn($q) => $q->where('status','active')])->first(); @endphp
+    @if($elic)
+    <div class="mb-8">
+        <div class="bg-white rounded-2xl border-2 overflow-hidden"
+             style="border-color:#BFDBFE;">
+            <div class="h-1.5" style="background:linear-gradient(90deg,#1D4ED8,#2563EB);"></div>
+            <div class="px-6 py-5 flex items-center gap-5 flex-wrap">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                     style="background:#EFF6FF;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="1.8">
+                        <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/>
+                    </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-bold uppercase tracking-widest mb-0.5" style="color:#1D4ED8;">Pack Entreprise</p>
+                    <p class="text-base font-bold text-gray-900 leading-tight">{{ $elic->company_name }}</p>
+                    <div class="flex items-center gap-4 mt-1.5">
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-xl font-extrabold text-gray-900">{{ $elic->seats_used }}</span>
+                            <span class="text-xs text-gray-400">/ {{ $elic->seats_total }} licences attribuées</span>
+                        </div>
+                        @if($elic->seatsAvailable() > 0)
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
+                            {{ $elic->seatsAvailable() }} disponible{{ $elic->seatsAvailable() > 1 ? 's' : '' }}
+                        </span>
+                        @endif
+                    </div>
+                </div>
+                <a href="{{ route('enterprise.team') }}"
+                   class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90 flex-shrink-0"
+                   style="background:linear-gradient(135deg,#1D4ED8,#1E40AF);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Gérer mon équipe
+                </a>
+            </div>
+            {{-- Mini progress bar --}}
+            @php $seatPct = $elic->seats_total > 0 ? round($elic->seats_used / $elic->seats_total * 100) : 0; @endphp
+            <div class="px-6 pb-4">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[11px] text-gray-400">Utilisation des licences</span>
+                    <span class="text-[11px] font-bold text-gray-600">{{ $seatPct }}%</span>
+                </div>
+                <div class="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                    <div class="h-full rounded-full transition-all"
+                         style="width:{{ $seatPct }}%;background:linear-gradient(90deg,#2563EB,#1D4ED8);"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+    @endif
+
     {{-- ── PLANS & FONCTIONNALITÉS ── --}}
     @if($plans->isNotEmpty())
     @php
@@ -593,7 +647,10 @@
 
                     {{-- Prix --}}
                     <div class="flex items-baseline gap-1 mb-5">
-                        @if((float)$plan->price === 0.0)
+                        @if($plan->is_enterprise)
+                        <span class="text-2xl font-extrabold text-gray-900 tracking-tight">Sur devis</span>
+                        <span class="text-xs text-gray-400">multi-licences</span>
+                        @elseif(is_null($plan->price) || (float)$plan->price === 0.0)
                         <span class="text-3xl font-extrabold text-gray-900 tracking-tight">Gratuit</span>
                         <span class="text-xs text-gray-400">pour toujours</span>
                         @else
@@ -637,10 +694,19 @@
 
                     {{-- CTA --}}
                     @if($isCurrent)
+                    @if($plan->is_enterprise && auth()->user()->isEnterpriseHolder())
+                    <a href="{{ route('enterprise.team') }}"
+                       class="w-full py-2.5 rounded-xl text-xs font-bold text-white transition hover:opacity-90 flex items-center justify-center gap-1.5"
+                       style="background:{{ $t['color'] }};">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+                        Gérer mon équipe →
+                    </a>
+                    @else
                     <div class="w-full py-2.5 rounded-xl text-xs font-bold text-center border"
                          style="color:{{ $t['color'] }};border-color:{{ $t['color'] }};background:{{ $t['light'] }};">
                         ✓ Votre plan actuel
                     </div>
+                    @endif
                     @elseif($plan->stripe_price_id)
                     <form method="POST" action="{{ route('checkout', $plan) }}">
                         @csrf

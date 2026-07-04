@@ -83,6 +83,53 @@ class EmailTemplate extends Model
                 'price_label'       => 'Gratuit',
             ],
         ],
+        'consul_nominated' => [
+            'name'            => 'Nomination Consul',
+            'default_subject' => 'Vous êtes maintenant Consul — LeadXchange',
+            'variables'       => ['name', 'dashboard_url'],
+            'sample'          => ['name' => 'Jean Dupont', 'dashboard_url' => '#'],
+        ],
+        'ambassador_nominated' => [
+            'name'            => 'Nomination Ambassadeur (directe)',
+            'default_subject' => 'Vous êtes maintenant Ambassadeur — LeadXchange',
+            'variables'       => ['name', 'dashboard_url'],
+            'sample'          => ['name' => 'Jean Dupont', 'dashboard_url' => '#'],
+        ],
+        'ambassador_approved' => [
+            'name'            => 'Demande Ambassadeur approuvée',
+            'default_subject' => 'Demande Ambassadeur approuvée — LeadXchange',
+            'variables'       => ['name', 'dashboard_url'],
+            'sample'          => ['name' => 'Jean Dupont', 'dashboard_url' => '#'],
+        ],
+        'ambassador_rejected' => [
+            'name'            => 'Demande Ambassadeur refusée',
+            'default_subject' => 'Demande Ambassadeur non approuvée — LeadXchange',
+            'variables'       => ['name', 'reason', 'profile_url'],
+            'sample'          => ['name' => 'Jean Dupont', 'reason' => 'Profil incomplet.', 'profile_url' => '#'],
+        ],
+        'plan_purchased' => [
+            'name'            => 'Confirmation d\'achat de plan',
+            'default_subject' => 'Votre plan {{plan_label}} est activé — LeadXchange',
+            'variables'       => ['name', 'plan_label', 'dashboard_url'],
+            'sample'          => ['name' => 'Jean Dupont', 'plan_label' => 'Premium', 'dashboard_url' => '#'],
+        ],
+        'plan_changed' => [
+            'name'            => 'Changement de plan (admin)',
+            'default_subject' => 'Votre plan a été mis à jour — LeadXchange',
+            'variables'       => ['name', 'plan_label', 'dashboard_url'],
+            'sample'          => ['name' => 'Jean Dupont', 'plan_label' => 'Consul', 'dashboard_url' => '#'],
+        ],
+        'profile_reminder' => [
+            'name'            => 'Rappel de complétion de profil',
+            'default_subject' => 'Complétez votre profil LeadXchange',
+            'variables'       => ['name', 'completion_pct', 'missing_fields', 'profile_url'],
+            'sample'          => [
+                'name'           => 'Jean Dupont',
+                'completion_pct' => '60',
+                'missing_fields' => '<ul style="margin:8px 0;padding-left:20px;"><li style="margin:4px 0;">Photo de profil</li><li style="margin:4px 0;">Secteur d\'activité</li><li style="margin:4px 0;">Biographie</li><li style="margin:4px 0;">Services proposés</li></ul>',
+                'profile_url'    => '#',
+            ],
+        ],
     ];
 
     // ── Core rendering ────────────────────────────────────────────────────────

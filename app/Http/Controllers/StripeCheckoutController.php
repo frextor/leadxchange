@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\SystemNotificationMail;
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Mail;
 use Stripe\Exception\SignatureVerificationException;
 use Stripe\StripeClient;
 use Stripe\Webhook;
@@ -89,6 +92,21 @@ class StripeCheckoutController extends Controller
                         'cancel_at_period_end'  => (bool) ($sub?->cancel_at_period_end ?? false),
                     ]
                 );
+
+                try {
+                    $notifUser = User::find($userId);
+                    $notifPlan = Plan::find($planId);
+                    if ($notifUser && $notifPlan) {
+                        Mail::to($notifUser->email)->send(new SystemNotificationMail(
+                            recipientName: $notifUser->first_name,
+                            title:         'Votre plan ' . $notifPlan->label . ' est activé !',
+                            body:          'Merci pour votre abonnement <strong>' . $notifPlan->label . '</strong>. Votre plan est maintenant actif — profitez de toutes les fonctionnalités LeadXchange !',
+                            actionLabel:   'Accéder à mon dashboard',
+                            actionUrl:     route('dashboard'),
+                            templateKey:   'plan_purchased',
+                        ));
+                    }
+                } catch (\Throwable) {}
             }
         }
 

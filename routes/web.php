@@ -282,6 +282,9 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
     Route::post('/enterprise/team/invite',            [EnterpriseController::class, 'invite'])->name('enterprise.invite');
     Route::post('/enterprise/team/{inv}/revoke',      [EnterpriseController::class, 'revoke'])->name('enterprise.revoke');
 
+    // Enterprise quote request
+    Route::post('/enterprise/request-quote',          [EnterpriseController::class, 'requestQuote'])->name('enterprise.request-quote');
+
     // Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 });

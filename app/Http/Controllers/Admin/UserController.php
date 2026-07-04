@@ -144,6 +144,18 @@ class UserController extends Controller
         }
 
         $label = $plan->price > 0 ? $plan->label : 'Basic (gratuit)';
+
+        try {
+            Mail::to($user->email)->send(new \App\Mail\SystemNotificationMail(
+                recipientName: $user->first_name,
+                title:         'Votre plan a été mis à jour',
+                body:          'Votre plan LeadXchange a été changé en <strong>' . $plan->label . '</strong> par l\'administration. Reconnectez-vous pour bénéficier de vos nouveaux accès.',
+                actionLabel:   'Accéder à mon dashboard',
+                actionUrl:     route('dashboard'),
+                templateKey:   'plan_changed',
+            ));
+        } catch (\Throwable) {}
+
         return back()->with('success', "Plan de {$user->first_name} {$user->last_name} changé en {$label}.");
     }
 
