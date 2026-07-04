@@ -85,6 +85,45 @@ class ConsulService
         });
     }
 
+    /** Directly nominate a Premium user as Ambassador (admin action, no consul prerequisite). */
+    public function nominateAmbassador(User $user, User $admin): void
+    {
+        if (! $this->hasPremiumAccess($user)) {
+            throw new \RuntimeException('L\'utilisateur doit avoir un abonnement payant pour devenir Ambassadeur.');
+        }
+
+        if ($user->isAmbassador()) {
+            throw new \RuntimeException('Cet utilisateur est déjà Ambassadeur.');
+        }
+
+        $ambassadeurPlan = \App\Models\Plan::where('name', 'ambassadeur')->first();
+
+        DB::transaction(function () use ($user, $admin, $ambassadeurPlan) {
+            $user->update([
+                'ambassador_status'      => 'approved',
+                'ambassador_reviewed_at' => now(),
+                'ambassador_reviewed_by' => $admin->id,
+            ]);
+
+            if ($ambassadeurPlan) {
+                \App\Models\Subscription::updateOrCreate(
+                    ['user_id' => $user->id],
+                    ['plan_id' => $ambassadeurPlan->id, 'status' => 'active']
+                );
+            }
+        });
+
+        try {
+            Notification::storeForUser(
+                $user,
+                'ambassador_nominated',
+                'Vous êtes maintenant Ambassadeur',
+                'Félicitations ! Vous avez été nommé Ambassadeur par l\'administration.',
+                ['url' => route('dashboard')]
+            );
+        } catch (\Throwable) {}
+    }
+
     /** Submit an ambassador request (consul → ambassador). */
     public function request(User $user): ConsulRequest
     {
@@ -192,28 +231,29 @@ class ConsulService
         } catch (\Throwable) {}
     }
 
-    /** Revoke Ambassador status and downgrade to Consul plan. */
+    /** Revoke Ambassador status — downgrades to Consul if user is Consul, otherwise to Premium. */
     public function revokeAmbassador(User $user): void
     {
         if (! $user->isAmbassador()) {
             throw new \RuntimeException('Cet utilisateur n\'est pas Ambassadeur.');
         }
 
-        $consulPlan = \App\Models\Plan::where('name', 'consul')->first();
+        $fallbackPlan = $user->isConsul()
+            ? \App\Models\Plan::where('name', 'consul')->first()
+            : \App\Models\Plan::where('name', 'premium')->first();
 
-        DB::transaction(function () use ($user, $consulPlan) {
+        DB::transaction(function () use ($user, $fallbackPlan) {
             $user->update([
                 'ambassador_status'      => null,
                 'ambassador_reviewed_at' => now(),
                 'ambassador_reviewed_by' => auth()->id(),
             ]);
 
-            // Cancel pending ambassador requests
             $user->consulRequests()->where('status', 'approved')->update(['status' => 'revoked']);
 
-            if ($consulPlan) {
+            if ($fallbackPlan) {
                 \App\Models\Subscription::where('user_id', $user->id)
-                    ->update(['plan_id' => $consulPlan->id, 'status' => 'active']);
+                    ->update(['plan_id' => $fallbackPlan->id, 'status' => 'active']);
             }
         });
     }

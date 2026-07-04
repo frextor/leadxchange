@@ -123,7 +123,19 @@ class ConsulController extends Controller
         }
     }
 
-    // ── Ambassador management (keep for revoking ambassador) ────────────────
+    // ── Ambassador management ────────────────────────────────────────────────
+
+    public function nominateAmbassador(User $user): RedirectResponse
+    {
+        $this->authorize('promoteAmbassador', ConsulRequest::class);
+
+        try {
+            $this->service->nominateAmbassador($user, auth()->user());
+            return back()->with('success', "{$user->first_name} {$user->last_name} est maintenant Ambassadeur.");
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
 
     public function revokeAmbassador(User $user): RedirectResponse
     {

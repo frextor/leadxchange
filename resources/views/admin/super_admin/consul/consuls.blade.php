@@ -28,7 +28,17 @@
 @endif
 
 {{-- KPI strip --}}
-<div class="grid grid-cols-3 gap-4 mb-6">
+@php $ambassadorCount = \App\Models\User::where('ambassador_status', 'approved')->count(); @endphp
+<div class="grid grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-4">
+        <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#D97706"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div>
+            <p class="text-2xl font-extrabold text-gray-900">{{ $ambassadorCount }}</p>
+            <p class="text-xs text-gray-400 font-medium mt-0.5">Ambassadeurs</p>
+        </div>
+    </div>
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-4">
         <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -53,7 +63,7 @@
         </div>
         <div>
             <p class="text-2xl font-extrabold text-gray-900">{{ $counts['total'] }}</p>
-            <p class="text-xs text-gray-400 font-medium mt-0.5">Membres avec plan payant</p>
+            <p class="text-xs text-gray-400 font-medium mt-0.5">Membres payants</p>
         </div>
     </div>
 </div>
@@ -117,17 +127,8 @@
             </div>
 
             <div class="flex-shrink-0 flex items-center gap-2">
-                @if($isConsul && !$isAmbassador)
-                <form method="POST" action="{{ route('admin.super.consuls.revoke', $user) }}"
-                      onsubmit="return confirm('Retirer le rôle Consul à {{ addslashes($user->first_name . ' ' . $user->last_name) }} ?')">
-                    @csrf @method('DELETE')
-                    <button type="submit"
-                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                        Retirer Consul
-                    </button>
-                </form>
-                @elseif($isAmbassador)
+                @if($isAmbassador)
+                {{-- Ambassador: revoke ambassador (→ consul if also consul, else → premium) --}}
                 <div class="flex items-center gap-2">
                     <form method="POST" action="{{ route('admin.super.ambassadors.revoke', $user) }}"
                           onsubmit="return confirm('Retirer le rôle Ambassadeur à {{ addslashes($user->first_name . ' ' . $user->last_name) }} ?')">
@@ -137,16 +138,42 @@
                             Retirer Ambassadeur
                         </button>
                     </form>
+                    @if($isConsul)
                     <form method="POST" action="{{ route('admin.super.consuls.revoke', $user) }}"
-                          onsubmit="return confirm('Retirer consul ET ambassadeur ?')">
+                          onsubmit="return confirm('Retirer Consul ET Ambassadeur à {{ addslashes($user->first_name . ' ' . $user->last_name) }} ?')">
                         @csrf @method('DELETE')
                         <button type="submit"
                                 class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition">
                             Retirer tout
                         </button>
                     </form>
+                    @endif
                 </div>
+
+                @elseif($isConsul)
+                {{-- Consul (not yet Ambassador): can be promoted to Ambassador, or revoked --}}
+                <form method="POST" action="{{ route('admin.super.ambassadors.nominate', $user) }}"
+                      onsubmit="return confirm('Nommer {{ addslashes($user->first_name . ' ' . $user->last_name) }} Ambassadeur ?')">
+                    @csrf
+                    <button type="submit"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition"
+                            style="background:linear-gradient(135deg,#F59E0B,#D97706);">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        Nommer Ambassadeur
+                    </button>
+                </form>
+                <form method="POST" action="{{ route('admin.super.consuls.revoke', $user) }}"
+                      onsubmit="return confirm('Retirer le rôle Consul à {{ addslashes($user->first_name . ' ' . $user->last_name) }} ?')">
+                    @csrf @method('DELETE')
+                    <button type="submit"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        Retirer Consul
+                    </button>
+                </form>
+
                 @else
+                {{-- Premium eligible: nominate as Consul or directly as Ambassador --}}
                 <form method="POST" action="{{ route('admin.super.consuls.nominate', $user) }}">
                     @csrf
                     <button type="submit"
@@ -154,6 +181,16 @@
                             style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                         Nommer Consul
+                    </button>
+                </form>
+                <form method="POST" action="{{ route('admin.super.ambassadors.nominate', $user) }}"
+                      onsubmit="return confirm('Nommer {{ addslashes($user->first_name . ' ' . $user->last_name) }} directement Ambassadeur ?')">
+                    @csrf
+                    <button type="submit"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition"
+                            style="background:linear-gradient(135deg,#F59E0B,#D97706);">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        Ambassadeur
                     </button>
                 </form>
                 @endif
@@ -177,8 +214,9 @@
     <div>
         <p class="font-semibold">Hiérarchie des rôles</p>
         <ul class="mt-1 space-y-0.5 text-blue-600 text-xs">
-            <li>• <strong>Premium</strong> → <strong>Consul</strong> (nommé par l'admin) → <strong>Ambassadeur</strong> (demandé par le Consul, approuvé par l'admin)</li>
-            <li>• Nommer Consul attribue automatiquement le plan <strong>Consul</strong>.</li>
+            <li>• <strong>Voie 1 :</strong> Premium → <strong>Consul</strong> (nommé par l'admin) → <strong>Ambassadeur</strong> (demandé par le Consul, approuvé par l'admin)</li>
+            <li>• <strong>Voie 2 :</strong> Premium → <strong>Ambassadeur</strong> (nommé directement par l'admin, sans passer par Consul)</li>
+            <li>• Révoquer un Ambassadeur (voie 1) le redescend au rang Consul. Révoquer un Ambassadeur direct (voie 2) le redescend à Premium.</li>
             <li>• Retirer le rôle Consul révoque aussi l'Ambassadeur si applicable.</li>
         </ul>
     </div>

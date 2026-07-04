@@ -546,7 +546,7 @@
                 </div>
                 <p class="font-semibold text-gray-700 text-base">No events found</p>
                 <p class="text-sm text-gray-400 mt-1">Be the first to organize a networking event!</p>
-                <button onclick="document.getElementById('createEventModal').classList.remove('hidden')"
+                <button onclick="const m=document.getElementById('createEventModal');if(m)m.classList.remove('hidden')"
                         class="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition"
                         style="background:#1E8F88;" onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
@@ -616,9 +616,12 @@ function updateSwatches() {
 document.querySelectorAll('.swatch-label input').forEach(i => i.addEventListener('change', updateSwatches));
 
 /* ── Modal close on backdrop ── */
-document.getElementById('createEventModal').addEventListener('click', function(e) {
-    if (e.target === this) this.classList.add('hidden');
-});
+const createModal = document.getElementById('createEventModal');
+if (createModal) {
+    createModal.addEventListener('click', function(e) {
+        if (e.target === this) this.classList.add('hidden');
+    });
+}
 document.getElementById('inviteModal').addEventListener('click', function(e) {
     if (e.target === this) this.classList.add('hidden');
 });

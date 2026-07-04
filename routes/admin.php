@@ -126,10 +126,11 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::post('manage-consuls/{user}/nominate',      [ConsulController::class, 'nominateConsul'])->name('consuls.nominate');
     Route::delete('manage-consuls/{user}/revoke',      [ConsulController::class, 'revokeConsul'])->name('consuls.revoke');
 
-    // Ambassador revocation (still needed)
+    // Ambassador management (nominate directly or revoke)
+    Route::post('manage-ambassadors/{user}/nominate',  [ConsulController::class, 'nominateAmbassador'])->name('ambassadors.nominate');
     Route::delete('manage-ambassadors/{user}/revoke',  [ConsulController::class, 'revokeAmbassador'])->name('ambassadors.revoke');
 
-    // Legacy route kept for backward compat
+    // Legacy routes kept for backward compat
     Route::get('manage-ambassadors',                   [ConsulController::class, 'consuls'])->name('ambassadors.manage');
     Route::post('manage-ambassadors/{user}/promote',   [ConsulController::class, 'nominateConsul'])->name('ambassadors.promote');
 
