@@ -49,20 +49,7 @@ class SettingsController extends Controller
 
             'plans'         => Plan::where('is_active', true)->where('is_visible', true)
                                    ->orderBy('sort_order')
-                                   ->get(['id', 'name', 'label', 'description', 'price', 'billing_period', 'max_leads', 'max_groups', 'max_users', 'features'])
-                                   ->map(function ($plan) {
-                                       $data     = $plan->toArray();
-                                       $features = $data['features'];
-                                       // Indexed arrays (e.g. ["Feature A", "Feature B"]) are not
-                                       // valid key-value objects. Wrap them under an "items" key so
-                                       // the response is always a JSON object.
-                                       if (is_array($features) && array_is_list($features)) {
-                                           $data['features'] = ['items' => $features];
-                                       } elseif (empty($features)) {
-                                           $data['features'] = new \stdClass();
-                                       }
-                                       return $data;
-                                   }),
+                                   ->get(['id', 'name', 'label', 'description', 'price', 'billing_period', 'max_leads', 'max_groups', 'max_users']),
 
             'cities'        => City::where('is_active', true)->with('country:id,name,code,flag')
                                    ->orderByRaw("CASE WHEN country_id = (SELECT id FROM countries WHERE code = 'MA') THEN 0 ELSE 1 END")
