@@ -5,14 +5,11 @@ namespace App\Http\Controllers\Admin\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\ConsulRequest;
 use App\Models\User;
-use App\Services\ConsulService;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class AmbassadorController extends Controller
 {
-    public function __construct(private ConsulService $service) {}
 
     public function index(Request $request): View
     {
@@ -27,7 +24,7 @@ class AmbassadorController extends Controller
             'eligible'   => User::where('role', 'user')
                 ->whereHas('subscription', fn($q) => $q->where('status', 'active')
                     ->whereHas('plan', fn($p) => $p->where('price', '>', 0)))
-                ->whereNull('ambassador_status')
+                ->where('ambassador_status', 'none')
                 ->count(),
         ];
 
@@ -46,7 +43,7 @@ class AmbassadorController extends Controller
 
         match ($request->get('filter')) {
             'ambassador' => $nominateQuery->where('ambassador_status', 'approved'),
-            'eligible'   => $nominateQuery->whereNull('ambassador_status'),
+            'eligible'   => $nominateQuery->where('ambassador_status', 'none'),
             default      => null,
         };
 

@@ -296,7 +296,7 @@ class ConsulService
 
         DB::transaction(function () use ($user, $fallbackPlan) {
             $user->update([
-                'ambassador_status'      => null,
+                'ambassador_status'      => 'none',
                 'ambassador_reviewed_at' => now(),
                 'ambassador_reviewed_by' => auth()->id(),
             ]);
