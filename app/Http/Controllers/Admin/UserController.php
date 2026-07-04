@@ -3,19 +3,24 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\ProfileReminderMail;
 use App\Models\City;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\ProfileService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
 class UserController extends Controller
 {
+    public function __construct(private ProfileService $profileService) {}
+
     public function index(Request $request): View
     {
-        $query = User::with(['region', 'subscription.plan', 'city'])
+        $query = User::with(['region', 'subscription.plan', 'city', 'profile', 'company'])
             ->where('role', '!=', 'super_admin');
 
         if ($request->filled('search')) {
@@ -55,7 +60,17 @@ class UserController extends Controller
             'unverified' => User::where('role', 'user')->whereNull('email_verified_at')->count(),
         ];
 
-        return view('admin.users.index', compact('users', 'regions', 'plans', 'counts'));
+        $completions = [];
+        foreach ($users as $u) {
+            if ($u->role === 'user') {
+                $completions[$u->id] = [
+                    'pct'     => $this->profileService->getCompletionPercentage($u),
+                    'missing' => $this->profileService->getMissingFields($u),
+                ];
+            }
+        }
+
+        return view('admin.users.index', compact('users', 'regions', 'plans', 'counts', 'completions'));
     }
 
     public function show(User $user): View
@@ -77,6 +92,13 @@ class UserController extends Controller
         ];
 
         return view('admin.users.show', compact('user', 'stats', 'plans'));
+    }
+
+    public function sendProfileReminder(User $user): RedirectResponse
+    {
+        $missing = $this->profileService->getMissingFields($user);
+        Mail::to($user->email)->send(new ProfileReminderMail($user, $missing));
+        return back()->with('success', "Rappel envoyé à {$user->first_name} ({$user->email}).");
     }
 
     public function edit(User $user): View

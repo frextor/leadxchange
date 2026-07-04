@@ -122,7 +122,7 @@
 
                 {{-- Greeting --}}
                 <h1 class="text-3xl font-bold text-white mb-1">
-                    Hi {{ auth()->user()->first_name }} 👋
+                    Bonjour {{ auth()->user()->first_name }} 👋
                 </h1>
 
                 {{-- Profile completion as stars --}}
