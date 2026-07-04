@@ -59,20 +59,28 @@ Email : <a href="mailto:contact@leadxchange.com">contact@leadxchange.com</a><br>
 RCS Nanterre : 999 916 190 — Capital : 5 000 €<br>
 <em>Version 1.1 — 12/06/2026</em></p>';
 
-        DB::table('pages')->where('slug', 'cgu')->update([
-            'title'      => 'Conditions Générales d\'Utilisation — LeadXchange',
-            'content'    => $cgu,
-            'updated_at' => '2026-06-12 00:00:00',
-        ]);
+        DB::table('pages')->updateOrInsert(
+            ['slug' => 'cgu'],
+            [
+                'title'      => 'Conditions Générales d\'Utilisation — LeadXchange',
+                'content'    => $cgu,
+                'created_at' => '2026-06-12 00:00:00',
+                'updated_at' => '2026-06-12 00:00:00',
+            ]
+        );
 
         $privacy = '<h2>Politique de Confidentialité</h2>
 <p>Cette page sera complétée lors de la mise en œuvre de la Section 10 (RGPD).</p>
 <p>Contact : <a href="mailto:contact@leadxchange.com">contact@leadxchange.com</a></p>';
 
-        DB::table('pages')->where('slug', 'privacy')->update([
-            'title'      => 'Politique de Confidentialité — LeadXchange',
-            'content'    => $privacy,
-            'updated_at' => now(),
-        ]);
+        DB::table('pages')->updateOrInsert(
+            ['slug' => 'privacy'],
+            [
+                'title'      => 'Politique de Confidentialité — LeadXchange',
+                'content'    => $privacy,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
     }
 }
