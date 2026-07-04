@@ -106,13 +106,17 @@
             <div>
                 {{-- Badges --}}
                 <div class="flex items-center gap-2 mb-3">
-                    @php $planName = auth()->user()->subscription?->plan?->name; @endphp
-                    @if($planName && $planName !== 'basic')
-                    <span class="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
-                          style="background:rgba(255,215,0,0.2); color:#FFD700; border:1px solid rgba(255,215,0,0.3);">
-                        ★ {{ strtoupper($planName) }}
-                    </span>
-                    @endif
+                    @php
+                        $dashPlanName = auth()->user()->subscription?->plan?->name ?? 'basic';
+                        $dashPlanKey = 'basic';
+                        if (auth()->user()->isAmbassador()) $dashPlanKey = 'ambassadeur';
+                        elseif (auth()->user()->isConsul())  $dashPlanKey = 'consul';
+                        elseif ($dashPlanName === 'premium') $dashPlanKey = 'premium';
+                    @endphp
+                    <img src="{{ asset('images/plans/' . $dashPlanKey . '.jpg') }}"
+                         alt="{{ $dashPlanKey }}"
+                         onerror="this.style.display='none'"
+                         class="h-8 w-auto object-contain drop-shadow-md">
                     <span class="text-xs text-white/50">{{ now()->isoFormat('dddd, D MMMM') }}</span>
                 </div>
 
@@ -146,9 +150,12 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
                     Complete Profile
                 </a>
-                <span class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-white/90 border border-white/20" style="background:rgba(255,255,255,0.12);">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                    {{ $planLabel }}
+                <span class="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/20" style="background:rgba(255,255,255,0.12);">
+                    <img src="{{ asset('images/plans/' . $dashPlanKey . '.jpg') }}"
+                         alt="{{ $dashPlanKey }}"
+                         onerror="this.style.display='none'"
+                         class="h-6 w-auto object-contain">
+                    <span class="text-xs font-semibold text-white/90">{{ $planLabel }}</span>
                 </span>
 
                 {{-- Role badges & consul request --}}
@@ -158,17 +165,23 @@
 
                 {{-- Badge Ambassadeur --}}
                 @if($authUser->isAmbassador())
-                <span class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold border" style="background:rgba(255,215,0,0.2); border-color:rgba(255,215,0,0.35); color:#FFD700;">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FFD700" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                    Ambassadeur ✓
+                <span class="flex items-center gap-2 px-2 py-1 rounded-xl border border-white/20" style="background:rgba(255,255,255,0.12);">
+                    <img src="{{ asset('images/plans/ambassadeur.jpg') }}"
+                         alt="Ambassadeur"
+                         onerror="this.style.display='none'"
+                         class="h-6 w-auto object-contain">
+                    <span class="text-xs font-semibold text-white/90">Ambassadeur ✓</span>
                 </span>
                 @endif
 
                 {{-- Badge Consul + bouton demande Ambassadeur --}}
                 @if($authUser->isConsul())
-                <span class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-white/90 border border-white/20" style="background:rgba(255,255,255,0.12);">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                    Consul ✓
+                <span class="flex items-center gap-2 px-2 py-1 rounded-xl border border-white/20" style="background:rgba(255,255,255,0.12);">
+                    <img src="{{ asset('images/plans/consul.jpg') }}"
+                         alt="Consul"
+                         onerror="this.style.display='none'"
+                         class="h-6 w-auto object-contain">
+                    <span class="text-xs font-semibold text-white/90">Consul ✓</span>
                 </span>
                 @if(!$authUser->isAmbassador())
                     @if($authUser->hasPendingAmbassadorRequest())
