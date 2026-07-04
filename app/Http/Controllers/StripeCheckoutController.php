@@ -104,6 +104,7 @@ class StripeCheckoutController extends Controller
                             actionLabel:   'Accéder à mon dashboard',
                             actionUrl:     route('dashboard'),
                             templateKey:   'plan_purchased',
+                            extraVars:     ['plan_label' => $notifPlan->label],
                         ));
                     }
                 } catch (\Throwable) {}

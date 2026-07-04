@@ -20,6 +20,7 @@ class SystemNotificationMail extends Mailable
         public readonly ?string $actionLabel = null,
         public readonly ?string $actionUrl   = null,
         public readonly string  $templateKey = 'system_notification',
+        public readonly array   $extraVars   = [],
     ) {}
 
     public function envelope(): Envelope
@@ -42,12 +43,16 @@ class SystemNotificationMail extends Mailable
 
     private function vars(): array
     {
-        return [
-            'name'         => $this->recipientName,
-            'title'        => $this->title,
-            'body'         => $this->body,
-            'action_label' => $this->actionLabel ?? '',
-            'action_url'   => $this->actionUrl ?? '#',
-        ];
+        $url = $this->actionUrl ?? '#';
+
+        return array_merge([
+            'name'          => $this->recipientName,
+            'title'         => $this->title,
+            'body'          => $this->body,
+            'action_label'  => $this->actionLabel ?? '',
+            'action_url'    => $url,
+            'dashboard_url' => $url,
+            'profile_url'   => $url,
+        ], $this->extraVars);
     }
 }

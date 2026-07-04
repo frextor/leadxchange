@@ -279,6 +279,7 @@ class ConsulService
                 actionLabel:   'Mon profil',
                 actionUrl:     route('profile.me'),
                 templateKey:   'ambassador_rejected',
+                extraVars:     ['reason' => $reason ?? ''],
             ));
         } catch (\Throwable) {}
     }

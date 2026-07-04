@@ -31,7 +31,7 @@ class StripeWebhookController extends Controller
                 $request->header('Stripe-Signature'),
                 config('services.stripe.webhook_secret'),
             );
-        } catch (UnexpectedValueException|SignatureVerificationException $e) {
+        } catch (UnexpectedValueException|SignatureVerificationException) {
             return response()->json(['message' => 'Invalid Stripe webhook signature.'], 400);
         }
 
@@ -218,6 +218,7 @@ class StripeWebhookController extends Controller
                     actionLabel:   'Accéder à mon dashboard',
                     actionUrl:     route('dashboard'),
                     templateKey:   'plan_purchased',
+                    extraVars:     ['plan_label' => $plan->label],
                 ));
             } catch (\Throwable) {}
         }

@@ -153,6 +153,7 @@ class UserController extends Controller
                 actionLabel:   'Accéder à mon dashboard',
                 actionUrl:     route('dashboard'),
                 templateKey:   'plan_changed',
+                extraVars:     ['plan_label' => $plan->label],
             ));
         } catch (\Throwable) {}
 
