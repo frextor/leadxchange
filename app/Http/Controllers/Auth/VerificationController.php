@@ -25,7 +25,7 @@ class VerificationController extends Controller
 
         // Si déjà vérifié
         if ($user->hasVerifiedEmail()) {
-            return view('auth.email-verified');
+            return $this->deepLinkResponse($request);
         }
 
         // Marquer comme vérifié
@@ -36,6 +36,28 @@ class VerificationController extends Controller
         // Connecter l'utilisateur si ce n'est pas déjà fait
         if (!Auth::check()) {
             Auth::login($user);
+        }
+
+        return $this->deepLinkResponse($request);
+    }
+
+    /**
+     * Return the appropriate response after email verification.
+     *
+     * Mobile browsers: HTTP 302 redirect to the custom URL scheme so the OS
+     * opens the app directly (no JavaScript required — OS intercepts the redirect).
+     * Desktop browsers: serve the JS bridge page which tries window.location and
+     * falls back to the web dashboard after 2.5 s.
+     */
+    private function deepLinkResponse(Request $request)
+    {
+        $ua = $request->header('User-Agent', '');
+        $isMobile = str_contains($ua, 'iPhone')
+                 || str_contains($ua, 'iPad')
+                 || str_contains($ua, 'Android');
+
+        if ($isMobile) {
+            return redirect('x-tensia://auth/email-verified');
         }
 
         return view('auth.email-verified');
