@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\SystemNotificationMail;
 use App\Models\EventPayment;
 use App\Models\EventInvitation;
 use App\Models\Plan;
@@ -12,6 +13,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Stripe\Exception\SignatureVerificationException;
 use Stripe\Stripe;
 use Stripe\Webhook;
@@ -138,8 +140,12 @@ class StripeWebhookController extends Controller
             return;
         }
 
-        DB::transaction(function () use ($user, $plan, $stripeSubscription) {
-            $localStatus = $this->localSubscriptionStatus($stripeSubscription->status);
+        $previousStatus = Subscription::where('stripe_subscription_id', $stripeSubscription->id)
+            ->value('status');
+
+        $localStatus = $this->localSubscriptionStatus($stripeSubscription->status);
+
+        DB::transaction(function () use ($user, $plan, $stripeSubscription, $localStatus) {
 
             // If Stripe reports this subscription as active but it is scheduled for
             // cancellation (cancel_at_period_end=true), and the user already has a
@@ -201,6 +207,20 @@ class StripeWebhookController extends Controller
                 ],
             );
         });
+
+        // Send confirmation email only on first activation (not on renewals)
+        if ($localStatus === 'active' && $previousStatus !== 'active') {
+            try {
+                Mail::to($user->email)->send(new SystemNotificationMail(
+                    recipientName: $user->first_name,
+                    title:         'Votre plan ' . $plan->label . ' est activé !',
+                    body:          'Merci pour votre abonnement <strong>' . $plan->label . '</strong>. Votre plan est maintenant actif — profitez de toutes les fonctionnalités LeadXchange !',
+                    actionLabel:   'Accéder à mon dashboard',
+                    actionUrl:     route('dashboard'),
+                    templateKey:   'plan_purchased',
+                ));
+            } catch (\Throwable) {}
+        }
     }
 
     private function localSubscriptionStatus(string $stripeStatus): string
