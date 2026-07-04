@@ -279,6 +279,44 @@ $canViewFull = $isOwnProfile || auth()->user()->canFeature('can_view_member_name
             </div>
             @endif
 
+            {{-- Status & Badge card --}}
+            @php
+                $planKey = 'basic';
+                if (($user['ambassador_status'] ?? '') === 'approved') {
+                    $planKey = 'ambassadeur';
+                } elseif (($user['consul_status'] ?? '') === 'approved') {
+                    $planKey = 'consul';
+                } elseif (($user['plan']['name'] ?? '') === 'premium') {
+                    $planKey = 'premium';
+                }
+                $badgeKey = $user['badge']['level'] ?? 'neutre';
+                $badgeLabel = $user['badge']['label'] ?? 'Neutre';
+                $planLabels = ['basic'=>'Basic','premium'=>'Premium','consul'=>'Consul','ambassadeur'=>'Ambassadeur'];
+                $planLabel = $planLabels[$planKey] ?? ucfirst($planKey);
+            @endphp
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                {{-- Plan image --}}
+                <div class="relative bg-gray-50">
+                    <img src="{{ asset('images/plans/' . $planKey . '.jpg') }}"
+                         alt="{{ $planLabel }}"
+                         onerror="this.closest('.relative').style.display='none'"
+                         class="w-full h-28 object-contain px-4 py-2">
+                    <span class="absolute top-2 left-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Plan</span>
+                </div>
+                {{-- Divider + badge score --}}
+                <div class="border-t border-gray-100 px-4 py-3 flex items-center gap-3">
+                    <img src="{{ asset('images/badges/' . $badgeKey . '.jpg') }}"
+                         alt="{{ $badgeLabel }}"
+                         onerror="this.style.display='none'"
+                         class="h-14 w-14 object-contain flex-shrink-0">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Badge score</p>
+                        <p class="text-sm font-bold text-gray-900 mt-0.5">{{ $badgeLabel }}</p>
+                        <p class="text-xs text-gray-400">{{ $user['balance'] ?? 0 }} points</p>
+                    </div>
+                </div>
+            </div>
+
         </aside>
 
         {{-- ── MAIN CONTENT ── --}}

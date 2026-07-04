@@ -118,7 +118,13 @@
             {{-- Right: Points widget + CTA --}}
             <div class="flex flex-col items-end gap-4 flex-shrink-0">
                 {{-- Points + progress --}}
-                <div class="text-right">
+                <div class="flex items-end gap-4">
+                    {{-- Badge image --}}
+                    <img src="{{ asset('images/badges/' . $badgeLevel . '.jpg') }}"
+                         alt="{{ $badge['label'] }}"
+                         onerror="this.style.display='none'"
+                         class="h-20 w-auto object-contain flex-shrink-0">
+                    <div class="text-right">
                     <div class="flex items-center gap-2 justify-end">
                         <span class="text-sm font-semibold {{ $badge['classes'] }}">{{ $badge['icon'] }} {{ $badge['label'] }}</span>
                         <span class="text-sm font-bold text-gray-900">{{ $userPoints }} <span class="text-xs font-medium text-gray-400">PTS</span></span>
@@ -132,7 +138,8 @@
                     <p class="text-xs text-amber-600 mt-1.5">Niveau maximum atteint 🥇</p>
                     @endif
                     <a href="#" class="text-xs text-teal-600 hover:underline mt-0.5 inline-block">Historique des points →</a>
-                </div>
+                    </div>{{-- /text-right --}}
+                </div>{{-- /flex items-end --}}
                 {{-- CTA --}}
                 @if(auth()->user()->canFeature('can_send_leads'))
                 <button onclick="document.getElementById('sendLeadModal').classList.remove('hidden')"
