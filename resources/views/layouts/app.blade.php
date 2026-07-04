@@ -335,10 +335,10 @@
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 flex-shrink-0"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                             Mon abonnement
                         </a>
-                        {{-- §10.8 RGPD --}}
-                        <a href="{{ route('rgpd.request') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 flex-shrink-0"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                            Mes droits RGPD
+                        {{-- Support --}}
+                        <a href="{{ route('support.index') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            Support
                         </a>
                     </div>
                     <div class="border-t border-gray-100">
@@ -463,7 +463,7 @@
             <div class="flex items-center gap-4">
                 <a href="{{ url('/legal/cgu') }}" target="_blank" class="hover:text-gray-600 transition">CGU</a>
                 <a href="{{ url('/legal/privacy') }}" target="_blank" class="hover:text-gray-600 transition">Confidentialité</a>
-                <a href="{{ route('rgpd.request') }}" class="hover:text-gray-600 transition">Mes droits RGPD</a>
+                <a href="{{ route('support.index') }}" class="hover:text-gray-600 transition">Support</a>
                 <a href="mailto:contact@leadxchange.com" class="hover:text-gray-600 transition">Contact</a>
             </div>
         </div>

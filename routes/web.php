@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\SupportController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\VerificationController;
@@ -208,42 +209,15 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
     Route::post('/account/billing/cancel',    [\App\Http\Controllers\BillingController::class, 'cancel'])->name('billing.cancel');
     Route::post('/account/billing/reactivate',[\App\Http\Controllers\BillingController::class, 'reactivate'])->name('billing.reactivate');
 
-    // §10.8 RGPD — Exercice des droits
-    Route::get('/rgpd/request', function () {
-        return view('rgpd.request');
-    })->name('rgpd.request');
+    // Support (RGPD + Signalement + Mes demandes)
+    Route::get('/support',            [SupportController::class, 'index'])->name('support.index');
+    Route::post('/support/rgpd',      [SupportController::class, 'submitRgpd'])->name('support.rgpd');
+    Route::post('/support/report',    [SupportController::class, 'submitReport'])->name('support.report');
+    // Backward compat — old RGPD URL redirects to new Support page
+    Route::get('/rgpd/request',  fn() => redirect()->route('support.index'))->name('rgpd.request');
+    Route::post('/rgpd/request', fn() => redirect()->route('support.index'))->name('rgpd.submit');
 
-    Route::post('/rgpd/request', function (\Illuminate\Http\Request $request) {
-        $request->validate([
-            'right_type' => ['required', 'in:access,rectification,erasure,portability,opposition,limitation'],
-            'details'    => ['nullable', 'string', 'max:1000'],
-        ]);
-
-        $user = auth()->user();
-
-        // Save to database
-        \App\Models\RgpdRequest::create([
-            'user_id'    => $user->id,
-            'right_type' => $request->right_type,
-            'details'    => $request->details,
-            'status'     => 'pending',
-        ]);
-
-        // Send email to DPO admin
-        $labels = \App\Models\RgpdRequest::RIGHTS;
-        $type    = $labels[$request->right_type];
-        $details = $request->details ?? 'Aucun détail fourni.';
-        try {
-            \Illuminate\Support\Facades\Mail::raw(
-                "Demande RGPD\n\nUtilisateur : {$user->first_name} {$user->last_name} ({$user->email})\nDroit demandé : {$type}\nDétails : {$details}\nDate : " . now()->format('d/m/Y H:i'),
-                fn($m) => $m->to('contact@leadxchange.com')->subject("[RGPD] Demande de {$user->first_name} {$user->last_name} — {$type}")
-            );
-        } catch (\Throwable) {}
-
-        return back()->with('rgpd_success', "Votre demande a été envoyée. Nous vous répondrons sous 1 mois (Art. 12 RGPD).");
-    })->name('rgpd.submit');
-
-    // §8.2 CGU — Signaler un comportement abusif
+    // §8.2 CGU — Signaler un comportement abusif (depuis un profil)
     Route::post('/users/{user}/report', function (\Illuminate\Http\Request $request, \App\Models\User $user) {
         $request->validate([
             'reason'  => ['required', 'in:' . implode(',', array_keys(\App\Models\UserReport::REASONS))],
