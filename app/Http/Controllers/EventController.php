@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\NotifyUsersNewEventJob;
+use App\Services\ActivityLogger;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\EventInvitation;
@@ -189,6 +190,8 @@ class EventController extends Controller
         $event->attendees()->attach($user->id, ['role' => 'organizer']);
 
         NotifyUsersNewEventJob::dispatch($event);
+
+        ActivityLogger::log('event.created', "Événement « {$event->title} » créé", $user->id, $event);
 
         return redirect()->route('events.show', $event->id)
             ->with('success', 'Événement "' . $event->title . '" créé avec succès !');

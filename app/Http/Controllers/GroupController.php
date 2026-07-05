@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\EnforcePlanLimits;
 use App\Jobs\NotifyUsersNewGroupJob;
+use App\Services\ActivityLogger;
 use App\Models\City;
 use App\Models\Group;
 use App\Models\GroupInvitation;
@@ -275,6 +276,8 @@ class GroupController extends Controller
             } catch (\Throwable) {}
         }
 
+        ActivityLogger::log('group.invitation_sent', "Invitation envoyée à {$target?->first_name} {$target?->last_name} pour le groupe « {$group->name} »", $user->id, $group, ['invited_user_id' => $targetId]);
+
         return back()->with('success', 'Invitation envoyée.');
     }
 
@@ -396,6 +399,8 @@ class GroupController extends Controller
 
         NotifyUsersNewGroupJob::dispatch($group);
 
+        ActivityLogger::log('group.created', "Groupe « {$group->name} » créé", $user->id, $group);
+
         return redirect()->route('groups.show', $group->id)
             ->with('success', 'Groupe "' . $group->name . '" créé avec succès !');
     }
@@ -475,6 +480,8 @@ class GroupController extends Controller
             } catch (\Throwable) {}
         }
 
+        ActivityLogger::log('group.join_requested', "{$user->first_name} {$user->last_name} a demandé à rejoindre le groupe « {$group->name} »", $user->id, $group);
+
         return back()->with('success', 'Demande envoyée — le responsable du groupe vous répondra bientôt.');
     }
 
@@ -521,6 +528,8 @@ class GroupController extends Controller
             } catch (\Throwable) {}
         }
 
+        ActivityLogger::log('group.join_approved', "Demande de {$requester?->first_name} {$requester?->last_name} acceptée pour le groupe « {$group->name} »", $request->user()->id, $group, ['approved_user_id' => $userId]);
+
         return back()->with('success', 'Demande acceptée — ' . ($requester?->first_name ?? 'Utilisateur') . ' est maintenant membre.');
     }
 
@@ -562,6 +571,8 @@ class GroupController extends Controller
                 );
             } catch (\Throwable) {}
         }
+
+        ActivityLogger::log('group.join_rejected', "Demande de {$requester?->first_name} {$requester?->last_name} refusée pour le groupe « {$group->name} »", $request->user()->id, $group, ['rejected_user_id' => $userId]);
 
         return back()->with('success', 'Demande refusée.');
     }
