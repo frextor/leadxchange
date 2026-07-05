@@ -30,41 +30,38 @@ class StripeAnalyticsService
         return Cache::remember('stripe_analytics.mrr', self::TTL, function () {
             if ($this->isConfigured()) {
                 try {
-                    $stripe = $this->client();
-                    $total  = 0.0;
+                    $total = 0.0;
 
-                    $subscriptions = $stripe->subscriptions->all([
+                    $subs = $this->client()->subscriptions->all([
                         'status' => 'active',
                         'limit'  => 100,
                         'expand' => ['data.items.data.price'],
                     ]);
 
-                    foreach ($subscriptions->autoPagingIterator() as $sub) {
+                    foreach ($subs->autoPagingIterator() as $sub) {
                         foreach ($sub->items->data as $item) {
                             $price    = $item->price;
-                            $amount   = $price->unit_amount / 100;
+                            $amount   = ($price->unit_amount ?? 0) / 100;
                             $interval = $price->recurring->interval ?? 'month';
-                            $count    = $item->quantity ?? 1;
+                            $qty      = $item->quantity ?? 1;
 
-                            // Normalize all intervals to monthly
                             $monthly = match ($interval) {
                                 'year'  => $amount / 12,
                                 'week'  => $amount * 4.33,
                                 'day'   => $amount * 30,
-                                default => $amount, // month
+                                default => $amount,
                             };
 
-                            $total += $monthly * $count;
+                            $total += $monthly * $qty;
                         }
                     }
 
                     return round($total, 2);
                 } catch (\Throwable $e) {
-                    Log::warning('StripeAnalyticsService::mrr Stripe failed', ['error' => $e->getMessage()]);
+                    Log::warning('StripeAnalyticsService::mrr failed', ['error' => $e->getMessage()]);
                 }
             }
 
-            // Fallback: local DB
             return (float) DB::table('subscriptions')
                 ->join('plans', 'subscriptions.plan_id', '=', 'plans.id')
                 ->where('subscriptions.status', 'active')
@@ -78,39 +75,63 @@ class StripeAnalyticsService
         return round($this->mrr() * 12, 2);
     }
 
-    // ── Churn rate from Stripe subscription events ───────────────────────────
+    // ── Total active subscriptions (paginated count, no total_count) ──────────
+
+    public function totalActive(): int
+    {
+        return Cache::remember('stripe_analytics.total_active', self::TTL, function () {
+            if ($this->isConfigured()) {
+                try {
+                    $count = 0;
+                    $subs  = $this->client()->subscriptions->all([
+                        'status' => 'active',
+                        'limit'  => 100,
+                    ]);
+                    foreach ($subs->autoPagingIterator() as $_) {
+                        $count++;
+                    }
+                    return $count;
+                } catch (\Throwable $e) {
+                    Log::warning('StripeAnalyticsService::totalActive failed', ['error' => $e->getMessage()]);
+                }
+            }
+            return Subscription::where('status', 'active')->count();
+        });
+    }
+
+    // ── Churn rate ────────────────────────────────────────────────────────────
 
     public function churnRate(): float
     {
         return Cache::remember('stripe_analytics.churn', self::TTL, function () {
             if ($this->isConfigured()) {
                 try {
-                    $stripe    = $this->client();
-                    $since     = now()->subDays(30)->timestamp;
+                    $stripe = $this->client();
+                    $since  = now()->subDays(30)->timestamp;
 
-                    // Count subscriptions cancelled in last 30 days
+                    // Subscriptions cancelled in last 30 days
                     $cancelled = 0;
                     $events = $stripe->events->all([
                         'type'    => 'customer.subscription.deleted',
                         'created' => ['gte' => $since],
                         'limit'   => 100,
                     ]);
-                    foreach ($events->autoPagingIterator() as $_evt) {
+                    foreach ($events->autoPagingIterator() as $_) {
                         $cancelled++;
                     }
 
-                    // Active subscriptions count at start of period
-                    $active = $this->activeSubscriptionsCountAt($stripe, now()->subDays(30)->timestamp);
+                    if ($cancelled === 0) return 0.0;
 
-                    if ($active === 0) return 0.0;
+                    // Base: current active + those cancelled in period (= active at period start)
+                    $currentActive = $this->totalActive();
+                    $activeAtStart = max($currentActive + $cancelled, 1);
 
-                    return round(($cancelled / $active) * 100, 2);
+                    return round(($cancelled / $activeAtStart) * 100, 2);
                 } catch (\Throwable $e) {
-                    Log::warning('StripeAnalyticsService::churnRate Stripe failed', ['error' => $e->getMessage()]);
+                    Log::warning('StripeAnalyticsService::churnRate failed', ['error' => $e->getMessage()]);
                 }
             }
 
-            // Fallback: local DB
             $start         = now()->subDays(30);
             $activeAtStart = Subscription::where('status', 'active')->where('created_at', '<=', $start)->count();
             if ($activeAtStart === 0) return 0.0;
@@ -119,20 +140,7 @@ class StripeAnalyticsService
         });
     }
 
-    private function activeSubscriptionsCountAt(StripeClient $stripe, int $timestamp): int
-    {
-        // Approximate: active subs created before the timestamp
-        $count = 0;
-        $subs  = $stripe->subscriptions->all(['status' => 'active', 'limit' => 100]);
-        foreach ($subs->autoPagingIterator() as $sub) {
-            if ($sub->created <= $timestamp) {
-                $count++;
-            }
-        }
-        return max($count, 1);
-    }
-
-    // ── LTV = ARPU / monthly_churn_rate ──────────────────────────────────────
+    // ── LTV = ARPU / monthly_churn ────────────────────────────────────────────
 
     public function ltv(): ?float
     {
@@ -142,25 +150,14 @@ class StripeAnalyticsService
 
             if ($mrr <= 0 || $churn <= 0) return null;
 
-            // Active customer count
-            $customerCount = 1;
-            if ($this->isConfigured()) {
-                try {
-                    $subs = $this->client()->subscriptions->all(['status' => 'active', 'limit' => 1]);
-                    $customerCount = max($subs->total_count ?? 1, 1);
-                } catch (\Throwable) {
-                    $customerCount = max(Subscription::where('status', 'active')->count(), 1);
-                }
-            } else {
-                $customerCount = max(Subscription::where('status', 'active')->count(), 1);
-            }
+            $customerCount = max($this->totalActive(), 1);
+            $arpu          = $mrr / $customerCount;
 
-            $arpu = $mrr / $customerCount;
             return round($arpu / ($churn / 100), 2);
         });
     }
 
-    // ── Monthly revenue from Stripe payment_intents (last N months) ─────────
+    // ── Monthly revenue (charges API — captures ALL successful payments) ──────
 
     public function monthlyRevenueChart(int $months = 12): array
     {
@@ -170,29 +167,27 @@ class StripeAnalyticsService
             $fr     = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
 
             for ($i = $months - 1; $i >= 0; $i--) {
-                $d        = now()->subMonths($i)->startOfMonth();
-                $key      = $d->format('Y-m');
-                $labels[] = $fr[$d->month - 1] . ' ' . $d->format('y');
+                $d          = now()->subMonths($i)->startOfMonth();
+                $key        = $d->format('Y-m');
+                $labels[]   = $fr[$d->month - 1] . ' ' . $d->format('y');
                 $data[$key] = 0.0;
             }
 
             if ($this->isConfigured()) {
                 try {
-                    $stripe = $this->client();
-                    $from   = now()->subMonths($months)->startOfMonth()->timestamp;
+                    $from = now()->subMonths($months)->startOfMonth()->timestamp;
 
-                    // Use payment_intents to capture ALL successful payments
-                    $payments = $stripe->paymentIntents->all([
+                    // charges API: captures both subscription & one-time payments
+                    $charges = $this->client()->charges->all([
                         'created' => ['gte' => $from],
                         'limit'   => 100,
                     ]);
 
-                    foreach ($payments->autoPagingIterator() as $pi) {
-                        if ($pi->status !== 'succeeded') continue;
-                        $key = date('Y-m', $pi->created);
+                    foreach ($charges->autoPagingIterator() as $charge) {
+                        if ($charge->status !== 'succeeded' || $charge->refunded) continue;
+                        $key = date('Y-m', $charge->created);
                         if (array_key_exists($key, $data)) {
-                            // amount is in smallest currency unit (cents)
-                            $data[$key] += $pi->amount_received / 100;
+                            $data[$key] += ($charge->amount_captured ?? $charge->amount) / 100;
                         }
                     }
                 } catch (\Throwable $e) {
@@ -232,32 +227,36 @@ class StripeAnalyticsService
         return $data;
     }
 
-    // ── Recent payments from Stripe payment_intents ──────────────────────────
+    // ── Recent payments (charges API — all payments, not just invoices) ───────
 
     public function recentPayments(int $limit = 20): array
     {
         return Cache::remember("stripe_analytics.recent_payments_{$limit}", self::TTL, function () use ($limit) {
             if ($this->isConfigured()) {
                 try {
-                    $stripe   = $this->client();
-                    $payments = $stripe->paymentIntents->all([
-                        'limit'  => $limit,
-                        'expand' => ['data.customer', 'data.latest_charge'],
+                    // Fetch more than needed to account for non-succeeded charges
+                    $charges = $this->client()->charges->all([
+                        'limit'  => min($limit * 2, 100),
+                        'expand' => ['data.customer', 'data.invoice'],
                     ]);
 
-                    return collect($payments->data)
-                        ->filter(fn ($pi) => $pi->status === 'succeeded')
-                        ->map(fn ($pi) => [
-                            'id'          => $pi->id,
-                            'amount'      => $pi->amount_received / 100,
-                            'currency'    => strtoupper($pi->currency),
+                    return collect($charges->data)
+                        ->filter(fn ($c) => $c->status === 'succeeded' && !$c->refunded)
+                        ->take($limit)
+                        ->map(fn ($c) => [
+                            'id'          => $c->id,
+                            'amount'      => ($c->amount_captured ?? $c->amount) / 100,
+                            'currency'    => strtoupper($c->currency),
                             'status'      => 'paid',
-                            'customer'    => $pi->customer?->email
-                                             ?? $pi->receipt_email
+                            'customer'    => $c->customer?->email
+                                             ?? $c->billing_details?->email
+                                             ?? $c->receipt_email
                                              ?? '—',
-                            'description' => $pi->description ?? 'Paiement',
-                            'date'        => date('d/m/Y', $pi->created),
-                            'stripe_url'  => $pi->latest_charge?->receipt_url ?? null,
+                            'description' => $c->invoice?->lines?->data[0]?->description
+                                             ?? $c->description
+                                             ?? 'Paiement',
+                            'date'        => date('d/m/Y', $c->created),
+                            'stripe_url'  => $c->receipt_url ?? null,
                         ])
                         ->values()
                         ->toArray();
@@ -310,23 +309,25 @@ class StripeAnalyticsService
                     $stripe = $this->client();
                     $since  = now()->subDays(30)->timestamp;
 
+                    // New: subscription.created events (covers all statuses at creation)
                     $newCount = 0;
-                    $newSubs  = $stripe->subscriptions->all([
-                        'status'  => 'active',
+                    $newEvents = $stripe->events->all([
+                        'type'    => 'customer.subscription.created',
                         'created' => ['gte' => $since],
                         'limit'   => 100,
                     ]);
-                    foreach ($newSubs->autoPagingIterator() as $_) {
+                    foreach ($newEvents->autoPagingIterator() as $_) {
                         $newCount++;
                     }
 
+                    // Cancelled: subscription.deleted events
                     $cancelledCount = 0;
-                    $events = $stripe->events->all([
+                    $delEvents = $stripe->events->all([
                         'type'    => 'customer.subscription.deleted',
                         'created' => ['gte' => $since],
                         'limit'   => 100,
                     ]);
-                    foreach ($events->autoPagingIterator() as $_) {
+                    foreach ($delEvents->autoPagingIterator() as $_) {
                         $cancelledCount++;
                     }
 
@@ -336,7 +337,6 @@ class StripeAnalyticsService
                 }
             }
 
-            // Fallback: local DB
             $since = now()->subDays(30);
             return [
                 'new'       => Subscription::where('created_at', '>=', $since)->count(),
@@ -346,39 +346,54 @@ class StripeAnalyticsService
         });
     }
 
-    // ── Total active subscriptions count from Stripe ─────────────────────────
+    // ── Per-plan breakdown from Stripe subscriptions ──────────────────────────
 
-    public function totalActive(): int
+    /**
+     * Returns [stripe_price_id => count] for active subscriptions.
+     * Used to show accurate per-plan counts on the analytics view.
+     */
+    public function activePlanCounts(): array
     {
-        return Cache::remember('stripe_analytics.total_active', self::TTL, function () {
-            if ($this->isConfigured()) {
-                try {
-                    $subs = $this->client()->subscriptions->all([
-                        'status' => 'active',
-                        'limit'  => 1,
-                    ]);
-                    return $subs->total_count ?? Subscription::where('status', 'active')->count();
-                } catch (\Throwable $e) {
-                    Log::warning('StripeAnalyticsService::totalActive failed', ['error' => $e->getMessage()]);
+        return Cache::remember('stripe_analytics.plan_counts', self::TTL, function () {
+            if (!$this->isConfigured()) return [];
+
+            try {
+                $counts = [];
+                $subs   = $this->client()->subscriptions->all([
+                    'status' => 'active',
+                    'limit'  => 100,
+                    'expand' => ['data.items.data.price'],
+                ]);
+
+                foreach ($subs->autoPagingIterator() as $sub) {
+                    foreach ($sub->items->data as $item) {
+                        $priceId = $item->price->id ?? null;
+                        if ($priceId) {
+                            $counts[$priceId] = ($counts[$priceId] ?? 0) + ($item->quantity ?? 1);
+                        }
+                    }
                 }
+
+                return $counts;
+            } catch (\Throwable $e) {
+                Log::warning('StripeAnalyticsService::activePlanCounts failed', ['error' => $e->getMessage()]);
+                return [];
             }
-            return Subscription::where('status', 'active')->count();
         });
     }
 
     public function clearCache(): void
     {
-        $keys = [
+        foreach ([
             'stripe_analytics.mrr',
-            'stripe_analytics.arr',
             'stripe_analytics.churn',
             'stripe_analytics.ltv',
-            'stripe_analytics.new_vs_cancelled',
             'stripe_analytics.total_active',
+            'stripe_analytics.new_vs_cancelled',
+            'stripe_analytics.plan_counts',
             'stripe_analytics.monthly_revenue_12',
             'stripe_analytics.recent_payments_20',
-        ];
-        foreach ($keys as $key) {
+        ] as $key) {
             Cache::forget($key);
         }
     }

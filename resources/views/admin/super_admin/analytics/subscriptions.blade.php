@@ -214,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <tbody>
                 @foreach($plans as $plan)
                 @php
-                    $planShare = $total > 0 ? round($plan->active_subscriptions_count / $total * 100, 1) : 0;
+                    $planShare = $total > 0 ? round($plan->stripe_active_count / $total * 100, 1) : 0;
                     $planColors = ['#7C3AED','#14B8A6','#F59E0B','#3B82F6','#EF4444','#EC4899'];
                     $pci = $loop->index % count($planColors);
                 @endphp
@@ -225,11 +225,11 @@ document.addEventListener('DOMContentLoaded', function () {
                             <span class="text-sm font-semibold text-slate-800">{{ $plan->label }}</span>
                         </div>
                     </td>
-                    <td class="px-5 py-3 text-center text-sm font-bold text-slate-700">{{ number_format($plan->active_subscriptions_count) }}</td>
+                    <td class="px-5 py-3 text-center text-sm font-bold text-slate-700">{{ number_format($plan->stripe_active_count) }}</td>
                     <td class="px-5 py-3 text-center text-sm font-semibold text-violet-600">{{ $planShare }}%</td>
                     <td class="px-5 py-3 text-center text-sm text-slate-600">{{ number_format($plan->price, 2) }} €</td>
                     <td class="px-5 py-3 text-center text-sm font-semibold text-slate-700">
-                        {{ number_format($plan->active_subscriptions_count * $plan->price, 2) }} €
+                        {{ number_format($plan->stripe_active_count * $plan->price, 2) }} €
                     </td>
                     <td class="px-5 py-3">
                         <div class="h-2 bg-gray-100 rounded-full w-32 overflow-hidden">

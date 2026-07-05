@@ -8,7 +8,6 @@ use App\Models\ConsulRequest;
 use App\Models\Event;
 use App\Models\Lead;
 use App\Models\Plan;
-use App\Models\Subscription;
 use App\Models\User;
 use App\Services\AnalyticsService;
 use App\Services\StripeAnalyticsService;
@@ -93,20 +92,33 @@ class AnalyticsController extends Controller
 
     public function subscriptions(): View
     {
+        $stripeConnected  = $this->stripeAnalytics->isConfigured();
+        $total            = $this->stripeAnalytics->totalActive();
+        $activePlanCounts = $this->stripeAnalytics->activePlanCounts(); // [stripe_price_id => count]
+
+        // Plans enriched with Stripe counts when available, fallback to DB count
+        $plans = Plan::withCount('activeSubscriptions')->orderBy('sort_order')->get()
+            ->each(function ($plan) use ($stripeConnected, $activePlanCounts) {
+                if ($stripeConnected && $plan->stripe_price_id && isset($activePlanCounts[$plan->stripe_price_id])) {
+                    $plan->stripe_active_count = $activePlanCounts[$plan->stripe_price_id];
+                } else {
+                    $plan->stripe_active_count = $plan->active_subscriptions_count;
+                }
+            });
+
         return view('admin.super_admin.analytics.subscriptions', [
-            'growthChart'     => $this->analytics->subscriptionGrowthChart(12),
-            'distribution'    => $this->analytics->subscriptionDistribution(),
-            'total'           => $this->stripeAnalytics->totalActive(),
-            'plans'           => Plan::withCount('activeSubscriptions')->orderBy('sort_order')->get(),
-            // Stripe-powered metrics
-            'mrr'             => $this->stripeAnalytics->mrr(),
-            'arr'             => $this->stripeAnalytics->arr(),
-            'churnRate'       => $this->stripeAnalytics->churnRate(),
-            'ltv'             => $this->stripeAnalytics->ltv(),
-            'revenueChart'    => $this->stripeAnalytics->monthlyRevenueChart(12),
-            'recentPayments'  => $this->stripeAnalytics->recentPayments(20),
-            'newVsCancelled'  => $this->stripeAnalytics->newVsCancelled(),
-            'stripeConnected' => $this->stripeAnalytics->isConfigured(),
+            'growthChart'      => $this->analytics->subscriptionGrowthChart(12),
+            'distribution'     => $this->analytics->subscriptionDistribution(),
+            'total'            => $total,
+            'plans'            => $plans,
+            'mrr'              => $this->stripeAnalytics->mrr(),
+            'arr'              => $this->stripeAnalytics->arr(),
+            'churnRate'        => $this->stripeAnalytics->churnRate(),
+            'ltv'              => $this->stripeAnalytics->ltv(),
+            'revenueChart'     => $this->stripeAnalytics->monthlyRevenueChart(12),
+            'recentPayments'   => $this->stripeAnalytics->recentPayments(20),
+            'newVsCancelled'   => $this->stripeAnalytics->newVsCancelled(),
+            'stripeConnected'  => $stripeConnected,
         ]);
     }
 
