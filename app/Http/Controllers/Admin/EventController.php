@@ -7,6 +7,7 @@ use App\Models\Event;
 use App\Models\Sector;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Services\ActivityLogger;
 use Illuminate\View\View;
 
 class EventController extends Controller
@@ -49,6 +50,7 @@ class EventController extends Controller
     {
         $title = $event->title;
         $event->delete();
+        ActivityLogger::log('admin.event.deleted', "Événement \"{$title}\" supprimé");
 
         return redirect()->route('admin.events.index')
             ->with('success', "Événement \"{$title}\" supprimé.");

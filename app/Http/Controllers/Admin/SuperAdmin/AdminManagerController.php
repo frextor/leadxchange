@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use App\Services\ActivityLogger;
 use Illuminate\View\View;
 
 class AdminManagerController extends Controller
@@ -49,6 +50,7 @@ class AdminManagerController extends Controller
             'onboarding_completed' => true,
         ]);
 
+        ActivityLogger::log('admin.admin.created', "Admin {$validated['first_name']} {$validated['last_name']} créé ({$validated['email']})");
         return redirect()->route('admin.super.admins.index')
             ->with('success', "Admin {$validated['first_name']} {$validated['last_name']} créé.");
     }
@@ -73,6 +75,7 @@ class AdminManagerController extends Controller
             'admin_permissions' => $request->permissions ?? null,
         ]);
 
+        ActivityLogger::log('admin.admin.promoted', "{$user->first_name} {$user->last_name} promu administrateur");
         return redirect()->route('admin.super.admins.index')
             ->with('success', "{$user->first_name} {$user->last_name} promu administrateur.");
     }
@@ -105,6 +108,7 @@ class AdminManagerController extends Controller
         }
 
         $user->update($data);
+        ActivityLogger::log('admin.admin.updated', "Permissions de {$user->first_name} {$user->last_name} mises à jour");
 
         return back()->with('success', 'Permissions mises à jour.');
     }
@@ -119,6 +123,7 @@ class AdminManagerController extends Controller
         }
 
         $user->update(['role' => 'user', 'admin_permissions' => null]);
+        ActivityLogger::log('admin.admin.demoted', "{$user->first_name} {$user->last_name} rétrogradé en utilisateur");
 
         return redirect()->route('admin.super.admins.index')
             ->with('success', "{$user->first_name} {$user->last_name} rétrogradé en utilisateur.");

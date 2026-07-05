@@ -11,45 +11,43 @@ class EnterpriseInvitationController extends Controller
 {
     public function __construct(private EnterpriseInvitationService $invitations) {}
 
+    /** List all invitation slots for the authenticated holder. */
     public function index(Request $request): JsonResponse
     {
-        $subscription = $this->invitations->activeEnterpriseSubscription($request->user());
+        $license = $this->invitations->licenseForHolder($request->user());
 
-        if (!$subscription) {
-            return response()->json([
-                'message' => 'An active enterprise subscription is required.',
-            ], 403);
+        if (! $license) {
+            return response()->json(['message' => 'Vous n\'avez pas de licence entreprise active.'], 403);
         }
 
-        $items = $request->user()
-            ->sentEnterpriseInvitations()
-            ->with('acceptedUser:id,first_name,last_name,email')
-            ->where('subscription_id', $subscription->id)
+        $items = $license->invitations()
+            ->with('user:id,first_name,last_name,email')
+            ->orderByRaw("FIELD(status,'active','pending','available','revoked')")
             ->latest()
             ->get()
-            ->map(fn($invitation) => [
-                'id' => $invitation->id,
-                'email' => $invitation->email,
-                'status' => $invitation->status,
-                'expires_at' => $invitation->expires_at,
-                'accepted_at' => $invitation->accepted_at,
-                'accepted_user' => $invitation->acceptedUser ? [
-                    'id' => $invitation->acceptedUser->id,
-                    'name' => trim($invitation->acceptedUser->first_name . ' ' . $invitation->acceptedUser->last_name),
-                    'email' => $invitation->acceptedUser->email,
+            ->map(fn($inv) => [
+                'id'          => $inv->id,
+                'email'       => $inv->email,
+                'status'      => $inv->status,
+                'accepted_at' => $inv->accepted_at,
+                'user'        => $inv->user ? [
+                    'id'    => $inv->user->id,
+                    'name'  => trim($inv->user->first_name . ' ' . $inv->user->last_name),
+                    'email' => $inv->user->email,
                 ] : null,
             ]);
 
         return response()->json([
-            'data' => $items,
-            'seats' => [
-                'used' => $this->invitations->seatsUsed($subscription),
-                'limit' => $this->invitations->seatsLimit($subscription),
-                'remaining' => $this->invitations->seatsRemaining($subscription),
+            'data'  => $items,
+            'seats' => $this->invitations->seatsInfo($license),
+            'license' => [
+                'company_name' => $license->company_name,
+                'expires_at'   => $license->expires_at,
             ],
         ]);
     }
 
+    /** Send an invitation to an email address (claims an available slot). */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -63,16 +61,16 @@ class EnterpriseInvitationController extends Controller
         }
 
         return response()->json([
-            'message' => 'Invitation sent.',
+            'message' => 'Invitation envoyée.',
             'data' => [
-                'id' => $invitation->id,
-                'email' => $invitation->email,
+                'id'     => $invitation->id,
+                'email'  => $invitation->email,
                 'status' => $invitation->status,
-                'expires_at' => $invitation->expires_at,
             ],
         ], 201);
     }
 
+    /** Get invitation details by token (public — used before account creation). */
     public function show(string $token): JsonResponse
     {
         try {
@@ -83,15 +81,16 @@ class EnterpriseInvitationController extends Controller
 
         return response()->json([
             'data' => [
-                'email' => $invitation->email,
-                'owner_name' => trim($invitation->owner->first_name . ' ' . $invitation->owner->last_name),
-                'company_name' => $invitation->owner->company?->name,
-                'plan_label' => $invitation->subscription->plan?->label,
-                'expires_at' => $invitation->expires_at,
+                'email'        => $invitation->email,
+                'holder_name'  => trim(($invitation->license->holder?->first_name ?? '') . ' ' . ($invitation->license->holder?->last_name ?? '')),
+                'company_name' => $invitation->license->company_name,
+                'plan_label'   => $invitation->license->plan?->label,
+                'expires_at'   => $invitation->license->expires_at,
             ],
         ]);
     }
 
+    /** Accept an enterprise invitation (authenticated user). */
     public function accept(string $token, Request $request): JsonResponse
     {
         try {
@@ -103,8 +102,9 @@ class EnterpriseInvitationController extends Controller
         return response()->json([
             'message' => 'Enterprise invitation accepted.',
             'data' => [
-                'plan_label' => $invitation->subscription->plan?->label,
-                'accepted_at' => $invitation->accepted_at,
+                'plan_label'   => $invitation->license->plan?->label,
+                'company_name' => $invitation->license->company_name,
+                'accepted_at'  => $invitation->accepted_at,
             ],
         ]);
     }

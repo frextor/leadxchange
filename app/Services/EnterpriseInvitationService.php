@@ -4,146 +4,195 @@ namespace App\Services;
 
 use App\Mail\EnterpriseInvitationMail;
 use App\Models\EnterpriseInvitation;
+use App\Models\EnterpriseLicense;
+use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class EnterpriseInvitationService
 {
-    public function activeEnterpriseSubscription(User $owner): ?Subscription
+    /** Find the active, non-expired license held by this user. */
+    public function licenseForHolder(User $holder): ?EnterpriseLicense
     {
-        return $owner->subscriptions()
+        return EnterpriseLicense::where('holder_user_id', $holder->id)
+            ->where(fn($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
             ->with('plan')
-            ->where('status', 'active')
-            ->whereNotNull('stripe_subscription_id')
-            ->latest()
-            ->get()
-            ->first(fn(Subscription $subscription) => ($subscription->plan?->max_users ?? 1) > 1);
+            ->first();
     }
 
-    public function seatsUsed(Subscription $subscription): int
+    /** Seat counters. */
+    public function seatsInfo(EnterpriseLicense $license): array
     {
-        return 1 + EnterpriseInvitation::where('subscription_id', $subscription->id)
-            ->where('status', 'accepted')
-            ->count();
+        return [
+            'used'      => $license->seats_used,
+            'total'     => $license->seats_total,
+            'remaining' => max(0, $license->seats_total - $license->seats_used),
+        ];
     }
 
-    public function seatsLimit(Subscription $subscription): int
+    /**
+     * Claim an available slot and send an invitation email.
+     * Mobile mirror of EnterpriseController::invite().
+     */
+    public function invite(User $holder, string $email): EnterpriseInvitation
     {
-        return max(1, (int) ($subscription->plan?->max_users ?? 1));
-    }
-
-    public function seatsRemaining(Subscription $subscription): int
-    {
-        return max(0, $this->seatsLimit($subscription) - $this->seatsUsed($subscription));
-    }
-
-    public function invite(User $owner, string $email): EnterpriseInvitation
-    {
-        $subscription = $this->activeEnterpriseSubscription($owner);
-
-        if (!$subscription) {
-            throw new \InvalidArgumentException('An active enterprise subscription is required to invite users.');
+        $license = $this->licenseForHolder($holder);
+        if (! $license) {
+            throw new \InvalidArgumentException('Vous n\'avez pas de licence entreprise active.');
         }
 
         $email = Str::lower(trim($email));
 
-        return DB::transaction(function () use ($owner, $subscription, $email) {
-            $existingAccepted = EnterpriseInvitation::where('subscription_id', $subscription->id)
-                ->where('email', $email)
-                ->where('status', 'accepted')
-                ->first();
+        if ($email === Str::lower($holder->email)) {
+            throw new \InvalidArgumentException('Vous ne pouvez pas vous inviter vous-même.');
+        }
 
-            if ($existingAccepted) {
-                throw new \InvalidArgumentException('This user is already using an enterprise seat.');
-            }
+        $existing = $license->invitations()
+            ->whereNotNull('email')
+            ->where('email', $email)
+            ->whereIn('status', [EnterpriseInvitation::STATUS_PENDING, EnterpriseInvitation::STATUS_ACTIVE])
+            ->first();
 
-            $pendingCount = EnterpriseInvitation::where('subscription_id', $subscription->id)
-                ->where('status', 'pending')
-                ->where('expires_at', '>', now())
-                ->count();
+        if ($existing) {
+            throw new \InvalidArgumentException("{$email} possède déjà une invitation active ou en cours.");
+        }
 
-            if ($this->seatsUsed($subscription) + $pendingCount >= $this->seatsLimit($subscription)) {
-                throw new \InvalidArgumentException('No enterprise seats are available.');
-            }
+        $slot = $license->invitations()
+            ->where('status', EnterpriseInvitation::STATUS_AVAILABLE)
+            ->first();
 
-            $plainToken = Str::random(64);
+        if (! $slot) {
+            throw new \InvalidArgumentException('Aucune licence disponible. Augmentez votre quota ou révoquez un membre inactif.');
+        }
 
-            $invitation = EnterpriseInvitation::updateOrCreate(
-                [
-                    'subscription_id' => $subscription->id,
-                    'email' => $email,
-                    'status' => 'pending',
-                ],
-                [
-                    'owner_id' => $owner->id,
-                    'accepted_user_id' => null,
-                    'token_hash' => hash('sha256', $plainToken),
-                    'expires_at' => now()->addDays(14),
-                    'accepted_at' => null,
-                ],
-            );
+        return DB::transaction(function () use ($holder, $license, $email, $slot) {
+            $targetUser = User::where('email', $email)->first();
 
-            Mail::to($email)->send(new EnterpriseInvitationMail($invitation->fresh(['owner', 'subscription.plan']), $plainToken));
+            $slot->update([
+                'email'      => $email,
+                'user_id'    => $targetUser?->id,
+                'status'     => EnterpriseInvitation::STATUS_PENDING,
+                'invited_by' => $holder->id,
+                'token'      => EnterpriseInvitation::generateToken(),
+            ]);
 
-            return $invitation->fresh(['acceptedUser', 'subscription.plan']);
+            $license->increment('seats_used');
+            $this->sendInvitationEmail($slot->fresh(), $license);
+
+            return $slot->fresh(['license', 'user']);
         });
     }
 
+    /** Find a pending or available invitation by its token. */
     public function findValidByToken(string $token): EnterpriseInvitation
     {
-        $invitation = EnterpriseInvitation::with(['owner.company', 'subscription.plan'])
-            ->where('token_hash', hash('sha256', $token))
-            ->where('status', 'pending')
+        $invitation = EnterpriseInvitation::with(['license.holder', 'license.plan', 'user'])
+            ->where('token', $token)
+            ->whereIn('status', [EnterpriseInvitation::STATUS_PENDING, EnterpriseInvitation::STATUS_AVAILABLE])
             ->first();
 
-        if (!$invitation || !$invitation->expires_at?->isFuture()) {
-            throw new \InvalidArgumentException('This invitation is invalid or expired.');
+        if (! $invitation) {
+            throw new \InvalidArgumentException('This invitation is invalid or has already been used.');
+        }
+
+        if ($invitation->license->isExpired()) {
+            throw new \InvalidArgumentException('This enterprise license has expired.');
         }
 
         return $invitation;
     }
 
+    /**
+     * Validate that a token can be accepted by a given email before account creation.
+     * - Available slots: no email restriction (any email accepted)
+     * - Pending invites: email must match the one on the invitation
+     */
     public function assertTokenCanBeAcceptedByEmail(string $token, string $email): EnterpriseInvitation
     {
         $invitation = $this->findValidByToken($token);
 
-        if (Str::lower(trim($email)) !== Str::lower($invitation->email)) {
+        if (
+            $invitation->status === EnterpriseInvitation::STATUS_PENDING
+            && $invitation->email !== null
+            && Str::lower(trim($email)) !== Str::lower($invitation->email)
+        ) {
             throw new \InvalidArgumentException('This invitation was sent to another email address.');
-        }
-
-        if ($this->seatsRemaining($invitation->subscription) <= 0) {
-            throw new \InvalidArgumentException('No enterprise seats are available.');
         }
 
         return $invitation;
     }
 
+    /**
+     * Accept the invitation for an existing user: grant enterprise plan, mark slot active.
+     * Mirror of EnterpriseController::processJoin() for the API.
+     */
     public function acceptForUser(string $token, User $user): EnterpriseInvitation
     {
         return DB::transaction(function () use ($token, $user) {
-            $invitation = $this->assertTokenCanBeAcceptedByEmail($token, $user->email);
+            $invitation = $this->findValidByToken($token);
 
-            Subscription::where('user_id', $user->id)
-                ->where('status', 'active')
-                ->update(['status' => 'canceled', 'ends_at' => now()]);
+            // Re-check email for pending invites (available slots accept any user)
+            if (
+                $invitation->status === EnterpriseInvitation::STATUS_PENDING
+                && $invitation->email !== null
+                && Str::lower($user->email) !== Str::lower($invitation->email)
+            ) {
+                throw new \InvalidArgumentException('This invitation was sent to another email address.');
+            }
 
-            Subscription::create([
-                'user_id' => $user->id,
-                'plan_id' => $invitation->subscription->plan_id,
-                'status' => 'active',
-                'current_period_end' => $invitation->subscription->current_period_end,
-            ]);
+            $wasAvailable = $invitation->status === EnterpriseInvitation::STATUS_AVAILABLE;
 
             $invitation->update([
-                'accepted_user_id' => $user->id,
-                'status' => 'accepted',
+                'user_id'     => $user->id,
+                'email'       => $invitation->email ?? $user->email,
+                'status'      => EnterpriseInvitation::STATUS_ACTIVE,
                 'accepted_at' => now(),
             ]);
 
-            return $invitation->fresh(['owner', 'acceptedUser', 'subscription.plan']);
+            // seats_used was already incremented when the invite was sent (pending).
+            // For available slots that are accepted directly, count the seat now.
+            if ($wasAvailable) {
+                $invitation->license->increment('seats_used');
+            }
+
+            // Grant the enterprise plan
+            Subscription::where('user_id', $user->id)
+                ->update(['status' => 'canceled', 'ends_at' => now()]);
+
+            Subscription::create([
+                'user_id'            => $user->id,
+                'plan_id'            => $invitation->license->plan_id,
+                'status'             => 'active',
+                'current_period_end' => $invitation->license->expires_at,
+            ]);
+
+            return $invitation->fresh(['license.plan', 'license.holder', 'user']);
         });
+    }
+
+    private function sendInvitationEmail(EnterpriseInvitation $invitation, EnterpriseLicense $license): void
+    {
+        try {
+            $license->loadMissing('holder');
+            $holderName = trim(($license->holder?->first_name ?? '') . ' ' . ($license->holder?->last_name ?? '')) ?: 'LeadXchange';
+            $company    = $license->company_name ?: $holderName;
+
+            \App\Jobs\SendQueuedEmailJob::dispatch(
+                to:       $invitation->email,
+                subject:  $company . ' vous invite à rejoindre son équipe LeadXchange',
+                type:     'enterprise_invitation',
+                mailable: new EnterpriseInvitationMail($invitation, $holderName),
+                toName:   $invitation->email,
+                metadata: ['invitation_id' => $invitation->id],
+            );
+        } catch (\Exception $e) {
+            Log::warning('Enterprise invitation email failed', [
+                'invitation_id' => $invitation->id,
+                'error'         => $e->getMessage(),
+            ]);
+        }
     }
 }

@@ -25,7 +25,9 @@
         <table class="w-full text-sm">
             <thead>
                 <tr class="border-b border-gray-100 bg-gray-50 text-left">
-                    <th class="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Entreprise / Titulaire</th>
+                    <th class="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Entreprise</th>
+                    <th class="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Titulaire</th>
+                    <th class="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Plan</th>
                     <th class="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Licences</th>
                     <th class="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Expiration</th>
                     <th class="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
@@ -36,8 +38,19 @@
                 @forelse($licenses as $license)
                 <tr class="border-b border-gray-50 hover:bg-gray-50 transition {{ $loop->last ? 'border-0' : '' }}">
                     <td class="px-5 py-4">
-                        <p class="font-semibold text-gray-900">{{ $license->holder?->first_name }} {{ $license->holder?->last_name }}</p>
+                        <p class="font-semibold text-gray-900">{{ $license->company_name ?: '—' }}</p>
+                        @if($license->notes)
+                        <p class="text-xs text-gray-400 mt-0.5 truncate max-w-[160px]" title="{{ $license->notes }}">{{ $license->notes }}</p>
+                        @endif
+                    </td>
+                    <td class="px-5 py-4">
+                        <p class="text-sm font-medium text-gray-700">{{ $license->holder?->first_name }} {{ $license->holder?->last_name }}</p>
                         <p class="text-xs text-gray-400">{{ $license->holder?->email }}</p>
+                    </td>
+                    <td class="px-5 py-4">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
+                            {{ $license->plan?->label ?? '—' }}
+                        </span>
                     </td>
                     <td class="px-5 py-4">
                         <div class="flex items-center gap-2">
@@ -82,7 +95,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="5" class="px-5 py-12 text-center text-gray-400 text-sm">
+                    <td colspan="7" class="px-5 py-12 text-center text-gray-400 text-sm">
                         Aucune licence entreprise configurée.
                     </td>
                 </tr>

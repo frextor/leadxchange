@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Country;
+use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -30,6 +31,7 @@ class CountryController extends Controller
             'flag' => ['nullable', 'string', 'max:10'],
         ]);
         Country::create($request->only('name', 'code', 'flag'));
+        ActivityLogger::log('admin.country.created', "Pays \"{$request->name}\" créé");
         return back()->with('success', "Pays \"{$request->name}\" créé.");
     }
 
@@ -41,6 +43,7 @@ class CountryController extends Controller
             'flag' => ['nullable', 'string', 'max:10'],
         ]);
         $country->update($request->only('name', 'code', 'flag'));
+        ActivityLogger::log('admin.country.updated', "Pays \"{$country->name}\" mis à jour");
         return back()->with('success', 'Pays mis à jour.');
     }
 
@@ -49,7 +52,9 @@ class CountryController extends Controller
         if ($country->cities()->exists()) {
             return back()->with('error', 'Impossible : des villes sont liées à ce pays.');
         }
+        $name = $country->name;
         $country->delete();
+        ActivityLogger::log('admin.country.deleted', "Pays \"{$name}\" supprimé");
         return back()->with('success', 'Pays supprimé.');
     }
 }

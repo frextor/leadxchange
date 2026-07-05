@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\LeadScoreService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -80,6 +81,7 @@ class NotationController extends Controller
             'badge_level'    => $request->badge_level,
         ]);
 
+        ActivityLogger::log('admin.notation.updated', "Notation de {$user->first_name} {$user->last_name} mise à jour", null, $user, ['points' => $request->points_balance, 'badge' => $request->badge_level]);
         return back()->with('success', "{$user->first_name} {$user->last_name} — notation mise à jour.");
     }
 
@@ -87,12 +89,14 @@ class NotationController extends Controller
     {
         $this->scorer->updateUser($user);
         $fresh = $user->fresh();
+        ActivityLogger::log('admin.notation.recalculated', "Score de {$user->first_name} {$user->last_name} recalculé : {$fresh->points_balance} pts ({$fresh->badge_level})", null, $user);
         return back()->with('success', "Score de {$user->first_name} recalculé : {$fresh->points_balance} pts ({$fresh->badge_level}).");
     }
 
     public function recalculateAll(): RedirectResponse
     {
         $count = $this->scorer->updateAll();
+        ActivityLogger::log('admin.notation.recalculated_all', "{$count} utilisateur(s) recalculés");
         return back()->with('success', "{$count} utilisateur(s) recalculés.");
     }
 
@@ -128,6 +132,7 @@ class NotationController extends Controller
         }
 
         $count = $this->scorer->updateAll();
+        ActivityLogger::log('admin.notation.thresholds_updated', "Seuils de badges mis à jour. {$count} utilisateur(s) recalculés");
 
         return back()->with('success', "Seuils mis à jour. {$count} utilisateur(s) recalculés.");
     }

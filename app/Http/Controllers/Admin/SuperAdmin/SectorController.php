@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Sector;
+use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -25,6 +26,7 @@ class SectorController extends Controller
     {
         $request->validate(['name' => ['required', 'string', 'max:100', 'unique:sectors,name']]);
         Sector::create(['name' => $request->name]);
+        ActivityLogger::log('admin.sector.created', "Secteur \"{$request->name}\" créé");
         return back()->with('success', "Secteur \"{$request->name}\" créé.");
     }
 
@@ -32,6 +34,7 @@ class SectorController extends Controller
     {
         $request->validate(['name' => ['required', 'string', 'max:100', "unique:sectors,name,{$sector->id}"]]);
         $sector->update(['name' => $request->name]);
+        ActivityLogger::log('admin.sector.updated', "Secteur \"{$sector->name}\" mis à jour");
         return back()->with('success', 'Secteur mis à jour.');
     }
 
@@ -40,7 +43,9 @@ class SectorController extends Controller
         if ($sector->companies()->exists()) {
             return back()->with('error', 'Impossible : des entreprises utilisent ce secteur.');
         }
+        $name = $sector->name;
         $sector->delete();
+        ActivityLogger::log('admin.sector.deleted', "Secteur \"{$name}\" supprimé");
         return back()->with('success', 'Secteur supprimé.');
     }
 }

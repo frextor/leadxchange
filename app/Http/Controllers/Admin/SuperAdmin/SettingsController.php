@@ -7,6 +7,7 @@ use App\Models\SystemSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use App\Services\ActivityLogger;
 use Illuminate\View\View;
 
 class SettingsController extends Controller
@@ -33,6 +34,7 @@ class SettingsController extends Controller
         }
 
         Cache::forget('system_settings');
+        ActivityLogger::log('admin.settings.updated', "Paramètres de devise mis à jour (symbole : {$data['currency_symbol']})");
 
         return back()->with('success', 'Paramètres de devise enregistrés.');
     }
@@ -57,6 +59,7 @@ class SettingsController extends Controller
         Cache::forget('system_settings');
 
         $status = $request->boolean('maintenance_banner_enabled') ? 'activé' : 'désactivé';
+        ActivityLogger::log('admin.settings.updated', "Bandeau de maintenance {$status}");
         return back()->with('success', "Bandeau de maintenance {$status}.");
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RgpdRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Services\ActivityLogger;
 use Illuminate\View\View;
 
 class RgpdRequestController extends Controller
@@ -41,6 +42,7 @@ class RgpdRequestController extends Controller
             'processed_at' => in_array($request->status, ['completed', 'rejected']) ? now() : null,
         ]);
 
+        ActivityLogger::log('admin.rgpd.processed', "Demande RGPD #{$rgpdRequest->id} : {$request->status}", null, $rgpdRequest, ['status' => $request->status]);
         return back()->with('success', 'Demande RGPD mise à jour.');
     }
 }

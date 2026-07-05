@@ -9,6 +9,7 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\DB;
 
 class EnterpriseLicenseController extends Controller
@@ -17,7 +18,7 @@ class EnterpriseLicenseController extends Controller
     {
         $licenses = EnterpriseLicense::with(['holder', 'plan'])
             ->withCount(['invitations', 'activeInvitations'])
-            ->latest()
+            ->orderByDesc('created_at')
             ->paginate(20);
 
         return view('admin.enterprise.index', compact('licenses'));
@@ -79,6 +80,7 @@ class EnterpriseLicenseController extends Controller
             }
         });
 
+        ActivityLogger::log('admin.enterprise.created', "Pack entreprise \"{$validated['company_name']}\" créé ({$validated['seats_total']} sièges)");
         return redirect()->route('admin.super.enterprise.index')
             ->with('success', 'Pack « ' . $validated['company_name'] . ' » créé — ' . ($validated['seats_total'] - 1) . ' licences générées automatiquement.');
     }
@@ -143,11 +145,13 @@ class EnterpriseLicenseController extends Controller
                 ->update(['current_period_end' => $validated['expires_at'] ?? null]);
         });
 
+        ActivityLogger::log('admin.enterprise.updated', "Pack entreprise \"{$license->company_name}\" mis à jour");
         return back()->with('success', 'Licence mise à jour.');
     }
 
     public function destroy(EnterpriseLicense $license)
     {
+        $companyName = $license->company_name;
         DB::transaction(function () use ($license) {
             $basicPlan = Plan::where('name', 'basic')->first();
 
@@ -177,6 +181,7 @@ class EnterpriseLicenseController extends Controller
             $license->delete();
         });
 
+        ActivityLogger::log('admin.enterprise.deleted', "Pack entreprise \"{$companyName}\" supprimé");
         return redirect()->route('admin.super.enterprise.index')
             ->with('success', 'Pack entreprise supprimé. Tous les membres ont été rétrogradés en Basic.');
     }

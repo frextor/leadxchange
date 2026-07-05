@@ -8,6 +8,7 @@ use App\Models\Sector;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\ActivityLogger;
 use Illuminate\View\View;
 
 class GroupController extends Controller
@@ -55,6 +56,7 @@ class GroupController extends Controller
     {
         $name = $group->name;
         $group->delete();
+        ActivityLogger::log('admin.group.deleted', "Groupe \"{$name}\" supprimé");
 
         return redirect()->route('admin.groups.index')
             ->with('success', "Groupe \"{$name}\" supprimé.");

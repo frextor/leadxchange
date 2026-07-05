@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use App\Services\ActivityLogger;
 use Stripe\StripeClient;
 
 class PlanController extends Controller
@@ -60,6 +61,7 @@ class PlanController extends Controller
             'is_active'      => $request->boolean('is_active', true),
         ]);
 
+        ActivityLogger::log('admin.plan.created', "Plan \"{$validated['label']}\" créé");
         return redirect()->route('admin.super.plans.index')
             ->with('success', 'Plan créé avec succès.');
     }
@@ -97,6 +99,7 @@ class PlanController extends Controller
             'is_active'      => $request->boolean('is_active'),
         ]);
 
+        ActivityLogger::log('admin.plan.updated', "Plan \"{$plan->label}\" mis à jour");
         return redirect()->route('admin.super.plans.index')
             ->with('success', 'Plan mis à jour.');
     }
@@ -227,6 +230,7 @@ class PlanController extends Controller
             $plan->update(['permissions' => $perms]);
         }
 
+        ActivityLogger::log('admin.plan.permissions_updated', 'Permissions des plans mises à jour');
         return back()->with('success', 'Permissions des plans mises à jour.');
     }
 
@@ -234,6 +238,7 @@ class PlanController extends Controller
     {
         $plan->update(['is_active' => !$plan->is_active]);
         $label = $plan->is_active ? 'activé' : 'désactivé';
+        ActivityLogger::log('admin.plan.toggled', "Plan \"{$plan->label}\" {$label}");
         return back()->with('success', "Plan « {$plan->label} » {$label}.");
     }
 

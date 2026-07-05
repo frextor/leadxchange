@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Profile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Services\ActivityLogger;
 use Illuminate\View\View;
 
 class VideoController extends Controller
@@ -38,6 +39,7 @@ class VideoController extends Controller
             'presentation_video_rejection_reason' => null,
         ]);
 
+        ActivityLogger::log('admin.video.approved', "Vidéo approuvée (profil #{$profile->user_id})", null, $profile);
         return back()->with('success', 'Vidéo approuvée et publiée sur le profil.');
     }
 
@@ -52,6 +54,7 @@ class VideoController extends Controller
             'presentation_video_rejection_reason' => $request->reason,
         ]);
 
+        ActivityLogger::log('admin.video.rejected', "Vidéo rejetée (profil #{$profile->user_id})", null, $profile, ['reason' => $request->reason]);
         return back()->with('success', 'Vidéo rejetée. L\'utilisateur sera notifié.');
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\City;
 use App\Models\Country;
+use App\Services\ActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,6 +43,7 @@ class CityController extends Controller
             'country_id' => ['required', 'exists:countries,id'],
         ]);
         City::create($request->only('name', 'country_id'));
+        ActivityLogger::log('admin.city.created', "Région \"{$request->name}\" créée");
         return back()->with('success', "Région \"{$request->name}\" créée.");
     }
 
@@ -52,6 +54,7 @@ class CityController extends Controller
             'country_id' => ['required', 'exists:countries,id'],
         ]);
         $city->update($request->only('name', 'country_id'));
+        ActivityLogger::log('admin.city.updated', "Région \"{$city->name}\" mise à jour");
         return back()->with('success', 'Région mise à jour.');
     }
 
@@ -60,6 +63,7 @@ class CityController extends Controller
         $city->update(['is_active' => !$city->is_active]);
         $status = $city->is_active ? 'activée' : 'désactivée';
         $message = "Région \"{$city->name}\" {$status}.";
+        ActivityLogger::log('admin.city.toggled', "Région \"{$city->name}\" {$status}", null, $city);
 
         if (request()->expectsJson()) {
             return response()->json([
@@ -74,7 +78,9 @@ class CityController extends Controller
 
     public function destroy(City $city): RedirectResponse
     {
+        $name = $city->name;
         $city->delete();
+        ActivityLogger::log('admin.city.deleted', "Région \"{$name}\" supprimée");
         return back()->with('success', 'Région supprimée.');
     }
 }

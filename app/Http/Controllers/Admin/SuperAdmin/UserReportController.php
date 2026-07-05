@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\UserReport;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Services\ActivityLogger;
 use Illuminate\View\View;
 
 class UserReportController extends Controller
@@ -44,6 +45,7 @@ class UserReportController extends Controller
         ]);
 
         $labels = ['reviewed'=>'examiné','actioned'=>'traité','dismissed'=>'clôturé'];
+        ActivityLogger::log('admin.report.actioned', "Signalement #{$report->id} {$labels[$request->action]}", null, $report, ['action' => $request->action]);
         return back()->with('success', "Signalement {$labels[$request->action]}.");
     }
 }
