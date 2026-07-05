@@ -27,7 +27,7 @@
 @endif
 
 {{-- KPI strip --}}
-<div class="grid grid-cols-3 gap-4 mb-6">
+<div class="grid grid-cols-4 gap-4 mb-6">
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-4">
         <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -37,6 +37,16 @@
             <p class="text-xs text-gray-400 font-medium mt-0.5">Consuls actifs</p>
         </div>
     </div>
+    <a href="{{ route('admin.super.consuls.manage', ['status' => 'pending']) }}"
+       class="bg-white rounded-2xl border {{ $counts['pending'] > 0 ? 'border-amber-300' : 'border-gray-100' }} shadow-sm px-5 py-4 flex items-center gap-4 hover:bg-amber-50/50 transition">
+        <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div>
+            <p class="text-2xl font-extrabold {{ $counts['pending'] > 0 ? 'text-amber-600' : 'text-gray-900' }}">{{ $counts['pending'] }}</p>
+            <p class="text-xs text-gray-400 font-medium mt-0.5">Demandes en attente</p>
+        </div>
+    </a>
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-4">
         <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -67,6 +77,7 @@
     <select name="status" onchange="this.form.submit()"
             class="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white text-gray-700 focus:outline-none focus:border-teal-400 transition">
         <option value="">Tous les membres payants</option>
+        <option value="pending"  {{ request('status') === 'pending'  ? 'selected' : '' }}>Demandes en attente ({{ $counts['pending'] }})</option>
         <option value="consul"   {{ request('status') === 'consul'   ? 'selected' : '' }}>Consuls uniquement</option>
         <option value="eligible" {{ request('status') === 'eligible' ? 'selected' : '' }}>Éligibles uniquement</option>
     </select>
@@ -84,8 +95,8 @@
 
     <div class="divide-y divide-gray-50">
         @forelse($users as $user)
-        @php $isConsul = $user->isConsul(); $isAmbassador = $user->isAmbassador(); @endphp
-        <div class="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/50 transition {{ $isConsul ? 'bg-teal-50/30' : '' }}">
+        @php $isConsul = $user->isConsul(); $isAmbassador = $user->isAmbassador(); $isPendingConsul = $user->consul_status === 'pending'; @endphp
+        <div class="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/50 transition {{ $isConsul ? 'bg-teal-50/30' : ($isPendingConsul ? 'bg-amber-50/40' : '') }}">
 
             <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
                  style="background: {{ $isConsul ? 'linear-gradient(135deg,#2DD4BF,#0D9488)' : 'linear-gradient(135deg,#34d4bf,#1E8F88)' }};">
@@ -99,6 +110,11 @@
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-700">
                         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                         Consul
+                    </span>
+                    @elseif($isPendingConsul)
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Demande Consul en attente
                     </span>
                     @endif
                     {{-- Show Ambassador badge as read-only info only --}}
@@ -119,7 +135,7 @@
 
             <div class="flex-shrink-0 flex items-center gap-2">
                 @if($isConsul)
-                {{-- Consul: only revoke consul action --}}
+                {{-- Consul: revoke --}}
                 <form method="POST" action="{{ route('admin.super.consuls.revoke', $user) }}"
                       onsubmit="return confirm('Retirer le rôle Consul à {{ addslashes($user->first_name . ' ' . $user->last_name) }} ?')">
                     @csrf @method('DELETE')
@@ -129,8 +145,28 @@
                         Retirer Consul
                     </button>
                 </form>
+                @elseif($isPendingConsul)
+                {{-- Pending: approve or reject --}}
+                <form method="POST" action="{{ route('admin.super.consuls.nominate', $user) }}">
+                    @csrf
+                    <button type="submit"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition"
+                            style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+                        Approuver
+                    </button>
+                </form>
+                <form method="POST" action="{{ route('admin.super.consuls.reject-request', $user) }}"
+                      onsubmit="return confirm('Refuser la demande Consul de {{ addslashes($user->first_name . ' ' . $user->last_name) }} ?')">
+                    @csrf @method('DELETE')
+                    <button type="submit"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        Refuser
+                    </button>
+                </form>
                 @else
-                {{-- Premium eligible: nominate as Consul only --}}
+                {{-- Premium eligible: nominate --}}
                 <form method="POST" action="{{ route('admin.super.consuls.nominate', $user) }}">
                     @csrf
                     <button type="submit"

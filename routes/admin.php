@@ -134,8 +134,9 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
 
     // Consul management — admin nominates Premium users as Consul
     Route::get('manage-consuls',                       [ConsulController::class, 'consuls'])->name('consuls.manage');
-    Route::post('manage-consuls/{user}/nominate',      [ConsulController::class, 'nominateConsul'])->name('consuls.nominate');
-    Route::delete('manage-consuls/{user}/revoke',      [ConsulController::class, 'revokeConsul'])->name('consuls.revoke');
+    Route::post('manage-consuls/{user}/nominate',              [ConsulController::class, 'nominateConsul'])->name('consuls.nominate');
+    Route::delete('manage-consuls/{user}/revoke',              [ConsulController::class, 'revokeConsul'])->name('consuls.revoke');
+    Route::delete('manage-consuls/{user}/reject-request',      [ConsulController::class, 'rejectConsulRequest'])->name('consuls.reject-request');
 
     // Ambassador management (nominate directly or revoke)
     Route::post('manage-ambassadors/{user}/nominate',  [ConsulController::class, 'nominateAmbassador'])->name('ambassadors.nominate');

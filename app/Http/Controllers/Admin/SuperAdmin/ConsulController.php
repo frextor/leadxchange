@@ -83,6 +83,7 @@ class ConsulController extends Controller
         if ($request->filled('status')) {
             match ($request->status) {
                 'consul'    => $query->where('consul_status', 'approved'),
+                'pending'   => $query->where('consul_status', 'pending'),
                 'eligible'  => $query->whereNull('consul_status'),
                 default     => null,
             };
@@ -93,6 +94,7 @@ class ConsulController extends Controller
         $counts = [
             'total'   => User::where('role', 'user')->whereHas('subscription', fn($q) => $q->where('status', 'active')->whereHas('plan', fn($p) => $p->where('price', '>', 0)))->count(),
             'consul'  => User::where('consul_status', 'approved')->count(),
+            'pending' => User::where('consul_status', 'pending')->count(),
             'eligible'=> User::where('role', 'user')->whereHas('subscription', fn($q) => $q->where('status', 'active')->whereHas('plan', fn($p) => $p->where('price', '>', 0)))->whereNull('consul_status')->count(),
         ];
 
@@ -109,6 +111,19 @@ class ConsulController extends Controller
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    public function rejectConsulRequest(User $user): RedirectResponse
+    {
+        $this->authorize('promoteAmbassador', ConsulRequest::class);
+
+        if ($user->consul_status !== 'pending') {
+            return back()->with('error', 'Cet utilisateur n\'a pas de demande Consul en attente.');
+        }
+
+        $user->update(['consul_status' => null]);
+
+        return back()->with('success', "Demande Consul de {$user->first_name} {$user->last_name} refusée.");
     }
 
     public function revokeConsul(User $user): RedirectResponse
