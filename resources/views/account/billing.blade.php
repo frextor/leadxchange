@@ -138,16 +138,75 @@
         </div>
     </div>
 
-    {{-- §12.3 — Facturation --}}
+    {{-- §12.3 — Factures --}}
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5">
-        <h2 class="text-sm font-bold text-gray-900 mb-1">Factures</h2>
-        <p class="text-xs text-gray-400 mb-4">Les factures sont émises mensuellement ou annuellement (CGU §12.3).</p>
+        <div class="flex items-center justify-between mb-1">
+            <h2 class="text-sm font-bold text-gray-900">Factures</h2>
+            @if(count($invoices) > 0)
+            <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-teal-50 text-teal-700">
+                {{ count($invoices) }} facture{{ count($invoices) > 1 ? 's' : '' }}
+            </span>
+            @endif
+        </div>
+        <p class="text-xs text-gray-400 mb-4">Les factures sont émises par Stripe (CGU §12.3). Cliquez sur PDF pour télécharger.</p>
 
-        @if($subscription?->stripe_subscription_id && config('services.stripe.secret'))
-        <div class="text-sm text-gray-500 text-center py-6 bg-gray-50 rounded-xl border border-gray-100">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5" class="mx-auto mb-2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-            <p class="font-medium text-gray-600">Factures disponibles via Stripe</p>
-            <p class="text-xs text-gray-400 mt-1">Contactez <a href="mailto:contact@leadxchange.com" class="text-teal-600 underline">contact@leadxchange.com</a> pour obtenir vos factures.</p>
+        @if(count($invoices) > 0)
+        <div class="rounded-xl border border-gray-100 overflow-hidden">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-100">
+                        <th class="text-left text-[11px] font-bold text-gray-400 uppercase px-4 py-2.5">N° Facture</th>
+                        <th class="text-left text-[11px] font-bold text-gray-400 uppercase px-4 py-2.5 hidden sm:table-cell">Description</th>
+                        <th class="text-center text-[11px] font-bold text-gray-400 uppercase px-4 py-2.5">Date</th>
+                        <th class="text-right text-[11px] font-bold text-gray-400 uppercase px-4 py-2.5">Montant</th>
+                        <th class="px-4 py-2.5"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($invoices as $invoice)
+                    <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition">
+                        <td class="px-4 py-3">
+                            <span class="font-mono text-xs text-gray-600">{{ $invoice['number'] }}</span>
+                        </td>
+                        <td class="px-4 py-3 text-xs text-gray-500 max-w-[180px] truncate hidden sm:table-cell">
+                            {{ $invoice['description'] }}
+                            @if($invoice['period'])
+                            <span class="text-gray-300 ml-1">({{ $invoice['period'] }})</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 text-center text-xs text-gray-500 whitespace-nowrap">
+                            {{ $invoice['date'] }}
+                        </td>
+                        <td class="px-4 py-3 text-right font-bold text-gray-800 whitespace-nowrap">
+                            {{ number_format($invoice['amount'], 2, ',', ' ') }} {{ $invoice['currency'] }}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                @if($invoice['pdf_url'])
+                                <a href="{{ $invoice['pdf_url'] }}" target="_blank"
+                                   class="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-teal-50 text-teal-700 hover:bg-teal-100 transition whitespace-nowrap">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                    PDF
+                                </a>
+                                @endif
+                                @if($invoice['receipt_url'])
+                                <a href="{{ $invoice['receipt_url'] }}" target="_blank"
+                                   class="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-400 hover:text-gray-600 transition whitespace-nowrap">
+                                    Voir ↗
+                                </a>
+                                @endif
+                            </div>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @elseif($subscription && (float)($subscription->plan?->price ?? 0) > 0)
+        <div class="text-sm text-gray-400 text-center py-8 bg-gray-50 rounded-xl border border-gray-100">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5" class="mx-auto mb-2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <p class="font-medium text-gray-500">Aucune facture disponible pour le moment</p>
+            <p class="text-xs text-gray-400 mt-1">Les factures apparaîtront ici après votre premier paiement.</p>
         </div>
         @else
         <div class="text-sm text-gray-400 text-center py-6 bg-gray-50 rounded-xl border border-gray-100">

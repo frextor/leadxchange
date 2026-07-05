@@ -95,7 +95,7 @@ class StripeAnalyticsService
                         'created' => ['gte' => $since],
                         'limit'   => 100,
                     ]);
-                    foreach ($events->autoPagingIterator() as $evt) {
+                    foreach ($events->autoPagingIterator() as $_evt) {
                         $cancelled++;
                     }
 
@@ -160,7 +160,7 @@ class StripeAnalyticsService
         });
     }
 
-    // ── Monthly revenue from Stripe invoices (last N months) ─────────────────
+    // ── Monthly revenue from Stripe payment_intents (last N months) ─────────
 
     public function monthlyRevenueChart(int $months = 12): array
     {
@@ -181,16 +181,18 @@ class StripeAnalyticsService
                     $stripe = $this->client();
                     $from   = now()->subMonths($months)->startOfMonth()->timestamp;
 
-                    $invoices = $stripe->invoices->all([
-                        'status'  => 'paid',
+                    // Use payment_intents to capture ALL successful payments
+                    $payments = $stripe->paymentIntents->all([
                         'created' => ['gte' => $from],
                         'limit'   => 100,
                     ]);
 
-                    foreach ($invoices->autoPagingIterator() as $inv) {
-                        $key = date('Y-m', $inv->created);
+                    foreach ($payments->autoPagingIterator() as $pi) {
+                        if ($pi->status !== 'succeeded') continue;
+                        $key = date('Y-m', $pi->created);
                         if (array_key_exists($key, $data)) {
-                            $data[$key] += $inv->amount_paid / 100;
+                            // amount is in smallest currency unit (cents)
+                            $data[$key] += $pi->amount_received / 100;
                         }
                     }
                 } catch (\Throwable $e) {
@@ -230,7 +232,7 @@ class StripeAnalyticsService
         return $data;
     }
 
-    // ── Recent payments from Stripe invoices ─────────────────────────────────
+    // ── Recent payments from Stripe payment_intents ──────────────────────────
 
     public function recentPayments(int $limit = 20): array
     {
@@ -238,24 +240,27 @@ class StripeAnalyticsService
             if ($this->isConfigured()) {
                 try {
                     $stripe   = $this->client();
-                    $invoices = $stripe->invoices->all([
-                        'status' => 'paid',
+                    $payments = $stripe->paymentIntents->all([
                         'limit'  => $limit,
-                        'expand' => ['data.customer', 'data.subscription'],
+                        'expand' => ['data.customer', 'data.latest_charge'],
                     ]);
 
-                    return collect($invoices->data)->map(fn ($inv) => [
-                        'id'          => $inv->id,
-                        'amount'      => $inv->amount_paid / 100,
-                        'currency'    => strtoupper($inv->currency),
-                        'status'      => 'paid',
-                        'customer'    => $inv->customer?->email ?? $inv->customer_email ?? '—',
-                        'description' => $inv->lines?->data[0]?->description
-                                         ?? $inv->subscription?->description
-                                         ?? 'Abonnement',
-                        'date'        => date('d/m/Y', $inv->created),
-                        'stripe_url'  => $inv->hosted_invoice_url ?? null,
-                    ])->toArray();
+                    return collect($payments->data)
+                        ->filter(fn ($pi) => $pi->status === 'succeeded')
+                        ->map(fn ($pi) => [
+                            'id'          => $pi->id,
+                            'amount'      => $pi->amount_received / 100,
+                            'currency'    => strtoupper($pi->currency),
+                            'status'      => 'paid',
+                            'customer'    => $pi->customer?->email
+                                             ?? $pi->receipt_email
+                                             ?? '—',
+                            'description' => $pi->description ?? 'Paiement',
+                            'date'        => date('d/m/Y', $pi->created),
+                            'stripe_url'  => $pi->latest_charge?->receipt_url ?? null,
+                        ])
+                        ->values()
+                        ->toArray();
                 } catch (\Throwable $e) {
                     Log::warning('StripeAnalyticsService::recentPayments failed', ['error' => $e->getMessage()]);
                 }
