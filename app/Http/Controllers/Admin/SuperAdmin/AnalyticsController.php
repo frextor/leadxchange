@@ -11,12 +11,16 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\AnalyticsService;
+use App\Services\StripeAnalyticsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AnalyticsController extends Controller
 {
-    public function __construct(private AnalyticsService $analytics) {}
+    public function __construct(
+        private AnalyticsService       $analytics,
+        private StripeAnalyticsService $stripeAnalytics,
+    ) {}
 
     public function overview(): View
     {
@@ -91,14 +95,19 @@ class AnalyticsController extends Controller
     public function subscriptions(): View
     {
         return view('admin.super_admin.analytics.subscriptions', [
-            'growthChart'  => $this->analytics->subscriptionGrowthChart(12),
-            'distribution' => $this->analytics->subscriptionDistribution(),
-            'total'        => Subscription::where('status', 'active')->count(),
-            'plans'        => Plan::withCount('activeSubscriptions')->orderBy('sort_order')->get(),
-            'revenue'      => DB::table('subscriptions')
-                ->join('plans', 'subscriptions.plan_id', '=', 'plans.id')
-                ->where('subscriptions.status', 'active')
-                ->sum('plans.price'),
+            'growthChart'     => $this->analytics->subscriptionGrowthChart(12),
+            'distribution'    => $this->analytics->subscriptionDistribution(),
+            'total'           => Subscription::where('status', 'active')->count(),
+            'plans'           => Plan::withCount('activeSubscriptions')->orderBy('sort_order')->get(),
+            // Stripe-powered metrics
+            'mrr'             => $this->stripeAnalytics->mrr(),
+            'arr'             => $this->stripeAnalytics->arr(),
+            'churnRate'       => $this->stripeAnalytics->churnRate(),
+            'ltv'             => $this->stripeAnalytics->ltv(),
+            'revenueChart'    => $this->stripeAnalytics->monthlyRevenueChart(12),
+            'recentPayments'  => $this->stripeAnalytics->recentPayments(20),
+            'newVsCancelled'  => $this->stripeAnalytics->newVsCancelled(),
+            'stripeConnected' => $this->stripeAnalytics->isConfigured(),
         ]);
     }
 
