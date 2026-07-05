@@ -416,7 +416,7 @@ class AnalyticsService
                     DB::raw('COALESCE(ec.cnt,0) as events_count'),
                     DB::raw('COALESCE(lc.cnt,0) as leads_count')
                 )
-                ->having(DB::raw('COALESCE(uc.cnt,0)'), '>', 0)
+                ->having('users_count', '>', 0)
                 ->orderByDesc('users_count')
                 ->limit(20)
                 ->get()->toArray()

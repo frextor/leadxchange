@@ -41,6 +41,15 @@ class ConsulService
                 'consul_nominated_by'=> $admin->id,
             ]);
 
+            // Sync any pending consul_requests row
+            ConsulRequest::where('user_id', $user->id)
+                ->where('status', ConsulRequest::STATUS_PENDING)
+                ->update([
+                    'status'       => ConsulRequest::STATUS_APPROVED,
+                    'validated_by' => $admin->id,
+                    'validated_at' => now(),
+                ]);
+
             if ($consulPlan) {
                 \App\Models\Subscription::updateOrCreate(
                     ['user_id' => $user->id],
@@ -98,6 +107,10 @@ class ConsulService
                 'consul_nominated_at' => null,
                 'consul_nominated_by' => null,
             ]);
+
+            ConsulRequest::where('user_id', $user->id)
+                ->whereIn('status', [ConsulRequest::STATUS_PENDING, ConsulRequest::STATUS_APPROVED])
+                ->update(['status' => 'revoked']);
 
             if ($premiumPlan) {
                 \App\Models\Subscription::where('user_id', $user->id)

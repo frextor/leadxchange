@@ -30,6 +30,8 @@ class ProfileService
         $profile = $user->profile;
         $rating = $this->ratingPayload($user);
 
+        $user->loadMissing('subscription.plan');
+
         return [
             'id'              => $user->id,
             'first_name'      => $user->first_name,
@@ -52,10 +54,21 @@ class ProfileService
                 'website' => $user->company->website,
                 'sector'  => $user->company->sector ? ['id' => $user->company->sector->id, 'name' => $user->company->sector->name] : null,
             ] : null,
-            'balance'      => (int) ($user->points_balance ?? 0),
-            'badge'        => $this->badgePayload($user->badge_level ?? 'neutre'),
-            'rating'       => $rating,
-            'completion'   => $this->getCompletionPercentage($user),
+            'balance'           => (int) ($user->points_balance ?? 0),
+            'badge'             => $this->badgePayload($user->badge_level ?? 'neutre'),
+            'rating'            => $rating,
+            'completion'        => $this->getCompletionPercentage($user),
+            'consul_status'     => $user->consul_status,
+            'ambassador_status' => $user->ambassador_status,
+            'subscription'      => $user->subscription ? [
+                'status' => $user->subscription->status,
+                'plan'   => $user->subscription->plan ? [
+                    'id'    => $user->subscription->plan->id,
+                    'name'  => $user->subscription->plan->name,
+                    'label' => $user->subscription->plan->label,
+                    'price' => $user->subscription->plan->price,
+                ] : null,
+            ] : null,
         ];
     }
 

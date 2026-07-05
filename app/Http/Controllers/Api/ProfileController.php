@@ -210,30 +210,27 @@ class ProfileController extends Controller
 
     public function requestConsul(Request $request): JsonResponse
     {
-        $user = $request->user()->loadMissing('subscription.plan');
+        $user = $request->user();
 
         if ($user->isConsul()) {
             return response()->json([
-                'message'      => 'Vous êtes déjà Consul.',
+                'message'       => 'Vous êtes déjà Consul.',
                 'consul_status' => 'approved',
             ], 422);
         }
 
         if ($user->consul_status === 'pending') {
             return response()->json([
-                'message'      => 'Vous avez déjà une demande en attente.',
+                'message'       => 'Vous avez déjà une demande en attente.',
                 'consul_status' => 'pending',
             ], 422);
         }
 
-        if (! $this->consulService->hasPremiumAccess($user)) {
-            return response()->json([
-                'message'      => 'Vous devez avoir un abonnement Premium pour demander le statut Consul.',
-                'consul_status' => null,
-            ], 422);
-        }
-
         $user->update(['consul_status' => 'pending']);
+
+        ConsulRequest::firstOrCreate(
+            ['user_id' => $user->id, 'status' => ConsulRequest::STATUS_PENDING]
+        );
 
         $admins = \App\Models\User::whereIn('role', ['admin', 'super_admin'])->get();
         foreach ($admins as $admin) {
@@ -242,14 +239,14 @@ class ProfileController extends Controller
                     $admin,
                     'consul_request_submitted',
                     'Nouvelle demande Consul',
-                    "{$user->first_name} {$user->last_name} (Premium) demande le statut Consul.",
-                    ['user_id' => $user->id]
+                    "{$user->first_name} {$user->last_name} demande le statut Consul.",
+                    ['url' => route('admin.super.consuls.manage'), 'user_id' => $user->id]
                 );
             } catch (\Throwable) {}
         }
 
         return response()->json([
-            'message'      => 'Consul request submitted.',
+            'message'       => 'Consul request submitted.',
             'consul_status' => 'pending',
         ]);
     }
