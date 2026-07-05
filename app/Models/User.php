@@ -159,6 +159,19 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->ambassador_status === 'approved';
     }
 
+    /** True when the user has submitted a request to be promoted to Consul (admin must approve). */
+    public function hasPendingConsulPromotion(): bool
+    {
+        return $this->consul_status === 'pending';
+    }
+
+    /** True when a Premium user has an active paid plan (eligible for Consul nomination). */
+    public function hasPaidPlan(): bool
+    {
+        return $this->subscription?->status === 'active'
+            && (float) ($this->subscription->plan?->price ?? 0) > 0;
+    }
+
     public function hasPendingAmbassadorRequest(): bool
     {
         return $this->consulRequests()->where('status', 'pending')->exists();

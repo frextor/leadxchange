@@ -177,27 +177,54 @@ $canViewFull = $isOwnProfile || auth()->user()->canFeature('can_view_member_name
                                 Modifier le profil
                             </button>
 
-                            {{-- Consul request button (own profile) --}}
+                            {{-- Role progression (own profile) --}}
                             @php $me = auth()->user(); @endphp
-                            @if($me->isConsul())
+                            @if($me->isAmbassador())
+                            {{-- Top level: nothing to request --}}
+                            <div class="mt-2 w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-[10px] text-xs font-semibold border"
+                                 style="background:linear-gradient(135deg,#FFFBEB,#FEF3C7);color:#92400E;border-color:#FDE68A;">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                Ambassadeur ✓
+                            </div>
+                            @elseif($me->isConsul())
+                            {{-- Consul: show badge + request ambassador --}}
                             <div class="mt-2 w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-[10px] text-xs font-semibold border"
                                  style="background:#F0FDF4;color:#065F46;border-color:#6EE7B7;">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                                 Consul ✓
                             </div>
-                            @elseif($me->hasPendingConsulRequest())
+                            @if($me->hasPendingAmbassadorRequest())
                             <div class="mt-2 w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-[10px] text-xs font-semibold border"
                                  style="background:#FFFBEB;color:#92400E;border-color:#FDE68A;">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-                                Demande Consul en attente…
+                                Demande Ambassadeur en attente…
                             </div>
-                            @elseif($me->isAmbassador())
+                            @else
                             <form method="POST" action="{{ route('consul.request') }}" class="mt-2">
                                 @csrf
                                 <button type="submit"
                                         class="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-[10px] text-xs font-semibold border transition hover:opacity-90"
-                                        style="background:#F0FDF4;color:#065F46;border-color:#6EE7B7;">
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                        style="background:linear-gradient(135deg,#FFFBEB,#FEF3C7);color:#92400E;border-color:#FDE68A;">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                    Demander le rôle Ambassadeur
+                                </button>
+                            </form>
+                            @endif
+                            @elseif($me->hasPendingConsulPromotion())
+                            {{-- Premium: consul request pending --}}
+                            <div class="mt-2 w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-[10px] text-xs font-semibold border"
+                                 style="background:#F0FDFA;color:#0F766E;border-color:#5EEAD4;">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                                Demande Consul en attente…
+                            </div>
+                            @elseif($me->hasPaidPlan())
+                            {{-- Premium: can request consul --}}
+                            <form method="POST" action="{{ route('consul.request-promote') }}" class="mt-2">
+                                @csrf
+                                <button type="submit"
+                                        class="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-[10px] text-xs font-semibold border transition hover:opacity-90"
+                                        style="background:#F0FDFA;color:#0F766E;border-color:#5EEAD4;">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                                     Demander le rôle Consul
                                 </button>
                             </form>

@@ -241,8 +241,9 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
         return back()->with('success', 'Merci d\'avoir accepté les nouvelles CGU v' . $version . '.');
     })->name('cgu.accept');
 
-    // Consul request (user-facing)
-    Route::post('/consul/request', [\App\Http\Controllers\ConsulRequestController::class, 'store'])->name('consul.request');
+    // Consul/Ambassador requests (user-facing)
+    Route::post('/consul/request',         [\App\Http\Controllers\ConsulRequestController::class, 'store'])->name('consul.request');
+    Route::post('/consul/request-promote', [\App\Http\Controllers\ConsulRequestController::class, 'requestConsulPromotion'])->name('consul.request-promote');
 
     // Leads (Exchanges)
     Route::get('/leads',                  [LeadController::class, 'index'])->name('leads.index');
