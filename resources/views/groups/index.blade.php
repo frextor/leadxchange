@@ -97,13 +97,27 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">City</label>
-                    <select name="city_id" class="gr-input" style="appearance:none;">
-                        <option value="">— No city —</option>
-                        @foreach($cities as $city)
-                            <option value="{{ $city->id }}" {{ old('city_id', auth()->user()->city_id) == $city->id ? 'selected' : '' }}>{{ $city->name }}</option>
-                        @endforeach
-                    </select>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                        Ville
+                        @if(auth()->user()->isConsul())
+                        <span class="ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-teal-50 text-teal-700 border border-teal-100">Votre ville</span>
+                        @endif
+                    </label>
+                    @if(auth()->user()->isConsul())
+                        <input type="hidden" name="city_id" value="{{ auth()->user()->city_id }}">
+                        <div class="gr-input flex items-center gap-2 bg-gray-50 cursor-default" style="appearance:none;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2BB6A3" stroke-width="2" class="flex-shrink-0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <span class="text-sm text-gray-700">{{ auth()->user()->city?->name ?? '—' }}</span>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" class="ml-auto flex-shrink-0"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </div>
+                    @else
+                        <select name="city_id" class="gr-input" style="appearance:none;">
+                            <option value="">— No city —</option>
+                            @foreach($cities as $city)
+                                <option value="{{ $city->id }}" {{ old('city_id', auth()->user()->city_id) == $city->id ? 'selected' : '' }}>{{ $city->name }}</option>
+                            @endforeach
+                        </select>
+                    @endif
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">

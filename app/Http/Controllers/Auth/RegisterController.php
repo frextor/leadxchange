@@ -36,7 +36,7 @@ class RegisterController extends Controller
     {
         return view('auth.register', [
             'nationalities' => Nationality::orderBy('country')->get(),
-            'cities'        => City::active()->orderBy('name')->get(['id', 'name']),
+            'cities'        => City::active()->with('country:id,name')->orderBy('name')->get(['id', 'name', 'country_id']),
             'sectors'       => Sector::orderBy('name')->get(['id', 'name']),  // §4.1
         ]);
     }
@@ -58,7 +58,8 @@ class RegisterController extends Controller
             'phone'          => ['nullable', 'string', 'max:30', 'unique:users,phone'],
             'gender'         => ['required', 'in:male,female,other'],
             'nationality_id' => ['required', 'integer', 'exists:nationalities,id'],
-            'city_id' => ['required', 'integer', 'exists:cities,id'],
+            'city_id'   => ['required', 'integer', 'exists:cities,id'],
+            'region_id' => ['nullable', 'integer', 'exists:cities,id'],
             'birthday'       => ['required', 'date', 'before:-18 years'],  // §3.2 : ≥ 18 ans
             'legal_capacity' => ['required', 'accepted'],                  // §3.2 : capacité juridique
             // §4.1 — Secteur d'activité et fonction obligatoires
@@ -101,6 +102,7 @@ class RegisterController extends Controller
                 'gender'             => $validated['gender'],
                 'nationality_id'     => $validated['nationality_id'],
                 'city_id'            => $validated['city_id'],
+                'region_id'          => $validated['region_id'] ?? $validated['city_id'],
                 'birthday'           => $validated['birthday'],
                 'job_title'          => $validated['job_title'],     // §4.1
                 'sector_id'          => $validated['sector_id'],     // §4.1

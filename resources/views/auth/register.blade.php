@@ -214,12 +214,17 @@
                 @error('nationality_id') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
 
-            {{-- City of Living (searchable) --}}
+            {{-- City of Living (searchable + IP auto-detect) --}}
             <div class="relative">
-                <input type="text" id="city_search" placeholder="Ville de résidence" autocomplete="off"
-                    value="{{ old('city_id') ? $cities->firstWhere('id', old('city_id'))?->name : '' }}"
-                    class="lx-input px-4 py-3.5 @error('city_id') lx-error @enderror"
-                    oninput="filterCities(this.value)" onfocus="showCityDropdown()" onblur="hideCityDropdown()">
+                <div class="relative">
+                    <input type="text" id="city_search" placeholder="Ville de résidence" autocomplete="off"
+                        value="{{ old('city_id') ? $cities->firstWhere('id', old('city_id'))?->name : '' }}"
+                        class="lx-input px-4 py-3.5 pr-10 @error('city_id') lx-error @enderror"
+                        oninput="filterCities(this.value)" onfocus="showCityDropdown()" onblur="hideCityDropdown()">
+                    <span id="city_geo_icon" title="Géolocalisation IP" class="absolute right-3 top-1/2 -translate-y-1/2 hidden">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2BB6A3" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="9"/></svg>
+                    </span>
+                </div>
                 <input type="hidden" id="city_id" name="city_id" value="{{ old('city_id') }}">
                 <div id="city_dropdown"
                      class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto hidden">
@@ -232,7 +237,30 @@
                         </button>
                     @endforeach
                 </div>
+                <p id="city_geo_hint" class="mt-1 text-xs text-teal-600 hidden">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="inline -mt-0.5"><path d="m5 12 5 5L20 7"/></svg>
+                    Ville détectée automatiquement — vous pouvez la modifier.
+                </p>
                 @error('city_id') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- Region (auto-filled from IP, editable) --}}
+            <div class="relative">
+                <select id="region_id" name="region_id"
+                        onchange="this.dataset.manuallySet='1'"
+                        class="lx-input px-4 py-3.5 @error('region_id') lx-error @enderror">
+                    <option value="">— Région (optionnelle) —</option>
+                    @foreach($cities->groupBy(fn($c) => $c->country ?? '') as $country => $group)
+                        <optgroup label="{{ $country }}">
+                            @foreach($group as $city)
+                                <option value="{{ $city->id }}" {{ old('region_id') == $city->id ? 'selected' : '' }}>
+                                    {{ $city->name }}
+                                </option>
+                            @endforeach
+                        </optgroup>
+                    @endforeach
+                </select>
+                @error('region_id') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
 
             {{-- Birthday --}}
@@ -397,6 +425,7 @@
         document.getElementById('progress-bar').style.width = '100%';
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(detectCityByIP, 300);
     }
 
     function goToStep1() {
@@ -411,6 +440,49 @@
         document.getElementById('progress-bar').style.width = '0%';
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ── IP Geolocation ──────────────────────────────────────────────────────
+    const _cities = @json($cities->map(fn($c) => ['id' => $c->id, 'name' => $c->name, 'country' => $c->country?->name ?? ''])->values());
+
+    function normalize(str) {
+        return str.toLowerCase()
+            .normalize('NFD').replace(/[̀-ͯ]/g, '')
+            .replace(/[^a-z0-9 ]/g, '').trim();
+    }
+
+    function matchCity(ipCity, ipCountryCode) {
+        // exact normalized match first, then startsWith
+        const n = normalize(ipCity);
+        let found = _cities.find(c => normalize(c.name) === n);
+        if (!found) {
+            found = _cities.find(c => normalize(c.name).startsWith(n) || n.startsWith(normalize(c.name)));
+        }
+        return found || null;
+    }
+
+    function detectCityByIP() {
+        if (document.getElementById('city_id').value) return; // already set (old() or manual)
+        fetch('https://ip-api.com/json?fields=status,city,countryCode,regionName')
+            .then(r => r.json())
+            .then(data => {
+                if (data.status !== 'success' || !data.city) return;
+                const match = matchCity(data.city, data.countryCode);
+                if (!match) return;
+                // Fill city
+                document.getElementById('city_id').value    = match.id;
+                document.getElementById('city_search').value = match.name;
+                document.getElementById('city_geo_icon').classList.remove('hidden');
+                document.getElementById('city_geo_hint').classList.remove('hidden');
+                // Fill region if not already set
+                const regionSel = document.getElementById('region_id');
+                if (!regionSel.value) {
+                    for (const opt of regionSel.options) {
+                        if (parseInt(opt.value) === match.id) { opt.selected = true; break; }
+                    }
+                }
+            })
+            .catch(() => {});
     }
 
     function filterCities(q) {
@@ -431,9 +503,18 @@
     }
 
     function selectCity(id, name) {
-        document.getElementById('city_id').value = id;
+        document.getElementById('city_id').value     = id;
         document.getElementById('city_search').value = name;
         document.getElementById('city_dropdown').classList.add('hidden');
+        document.getElementById('city_geo_icon').classList.remove('hidden');
+        document.getElementById('city_geo_hint').classList.add('hidden');
+        // Sync region to selected city if region wasn't manually changed
+        const regionSel = document.getElementById('region_id');
+        if (!regionSel.dataset.manuallySet) {
+            for (const opt of regionSel.options) {
+                if (parseInt(opt.value) === id) { opt.selected = true; break; }
+            }
+        }
     }
 
     // Auto-jump to step 2 on server-side validation errors

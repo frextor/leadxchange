@@ -7,7 +7,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GroupInvitation extends Model
 {
-    protected $fillable = ['group_id', 'invited_by', 'user_id', 'status'];
+    protected $fillable = ['group_id', 'invited_by', 'user_id', 'status', 'type'];
+
+    const TYPE_INVITATION = 'invitation';
+    const TYPE_REQUEST    = 'request';
 
     public function group(): BelongsTo  { return $this->belongsTo(Group::class); }
     public function inviter(): BelongsTo { return $this->belongsTo(User::class, 'invited_by'); }

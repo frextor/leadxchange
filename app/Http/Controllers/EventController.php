@@ -16,7 +16,7 @@ class EventController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $user->loadMissing('profile');
+        $user->loadMissing(['profile', 'city']);
 
         $userSectorIds = array_unique(array_merge(
             $user->profile?->looking_for      ?? [],
@@ -162,7 +162,8 @@ class EventController extends Controller
             $coverImagePath = $request->file('cover_image')->store('events/covers', 'public');
         }
 
-        $user  = $request->user();
+        $user   = $request->user();
+        $cityId = $user->isConsul() ? $user->city_id : ($validated['city_id'] ?? $user->city_id);
 
         $event = Event::create([
             'title'           => $validated['title'],
@@ -174,7 +175,8 @@ class EventController extends Controller
             'starts_at'       => $validated['starts_at'],
             'ends_at'         => $validated['ends_at'] ?? null,
             'sector_id'       => $validated['sector_id'] ?? null,
-            'city_id'         => $validated['city_id'] ?? $user->city_id,
+            'city_id'         => $cityId,
+            'region_id'       => $user->region_id ?? $cityId,
             'cover_color'     => $validated['cover_color'] ?? '#1E8F88',
             'cover_image'     => $coverImagePath,
             'price'           => $validated['price'] ?? null,

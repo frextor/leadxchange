@@ -115,14 +115,19 @@
                         </button>
                     </form>
                 @else
-                @if(auth()->user()->canFeature('can_join_pole'))
+                @if($hasPendingRequest)
+                    <span class="px-4 py-2 rounded-xl text-sm font-semibold border border-amber-200 text-amber-600 bg-amber-50 inline-flex items-center gap-1.5">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Demande en attente…
+                    </span>
+                @elseif(auth()->user()->canFeature('can_join_pole'))
                     <form method="POST" action="{{ route('groups.join', $group->id) }}">
                         @csrf
                         <button type="submit"
                             class="px-4 py-2 rounded-xl text-sm font-semibold text-white transition shadow-sm"
                             style="background:#1E8F88;"
                             onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
-                            Rejoindre
+                            Demander à rejoindre
                         </button>
                     </form>
                 @else
@@ -140,6 +145,56 @@
 
     @if($group->description)
     <p class="text-sm text-gray-500 mb-6 px-1">{{ $group->description }}</p>
+    @endif
+
+    {{-- ── Pending join requests (admin/owner only) ─────────────────────────── --}}
+    @if($isAdmin && $pendingRequests->isNotEmpty())
+    <div class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 overflow-hidden">
+        <div class="flex items-center gap-2 px-5 py-3 border-b border-amber-100">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span class="text-sm font-semibold text-amber-800">Demandes d'adhésion en attente ({{ $pendingRequests->count() }})</span>
+        </div>
+        <div class="divide-y divide-amber-100">
+            @foreach($pendingRequests as $req)
+            <div class="flex items-center gap-3 px-5 py-3">
+                @if($req->user?->profile?->avatar)
+                    <img src="{{ $req->user->profile->avatar_url }}" class="w-9 h-9 rounded-full object-cover flex-shrink-0">
+                @else
+                    <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                         style="background:#D97706;">
+                        {{ strtoupper(substr($req->user?->first_name ?? '?', 0, 1) . substr($req->user?->last_name ?? '', 0, 1)) }}
+                    </div>
+                @endif
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-gray-800 truncate">
+                        {{ $req->user?->first_name }} {{ $req->user?->last_name }}
+                    </p>
+                    @if($req->user?->profile?->job_title)
+                    <p class="text-xs text-gray-500 truncate">{{ $req->user->profile->job_title }}</p>
+                    @endif
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <form method="POST" action="{{ route('groups.requests.approve', [$group->id, $req->user_id]) }}">
+                        @csrf
+                        <button type="submit"
+                            class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition"
+                            style="background:#1E8F88;"
+                            onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
+                            Accepter
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ route('groups.requests.reject', [$group->id, $req->user_id]) }}">
+                        @csrf
+                        <button type="submit"
+                            class="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition">
+                            Refuser
+                        </button>
+                    </form>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
     @endif
 
     {{-- Flash messages --}}

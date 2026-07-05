@@ -242,6 +242,14 @@ class PlanController extends Controller
         return back()->with('success', "Plan « {$plan->label} » {$label}.");
     }
 
+    public function toggleVisible(Plan $plan): RedirectResponse
+    {
+        $plan->update(['is_visible' => !$plan->is_visible]);
+        $label = $plan->is_visible ? 'affiché' : 'masqué';
+        ActivityLogger::log('admin.plan.visibility_toggled', "Plan \"{$plan->label}\" {$label} sur la page d'accueil");
+        return back()->with('success', "Plan « {$plan->label} » {$label} sur la page d'accueil.");
+    }
+
     // ── Stripe integration ────────────────────────────────────────────────────
 
     private function stripe(): StripeClient

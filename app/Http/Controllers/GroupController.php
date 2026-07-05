@@ -21,7 +21,7 @@ class GroupController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $user->loadMissing('profile');
+        $user->loadMissing(['profile', 'city']);
 
         $userSectorIds  = array_unique(array_merge(
             $user->profile?->looking_for      ?? [],
@@ -120,8 +120,24 @@ class GroupController extends Controller
                 ->get()
             : collect();
 
+        $hasPendingRequest = !$isMember && GroupInvitation::where('group_id', $id)
+            ->where('user_id', $user->id)
+            ->where('type', GroupInvitation::TYPE_REQUEST)
+            ->where('status', 'pending')
+            ->exists();
+
+        $pendingRequests = $isAdmin
+            ? GroupInvitation::with('user.profile')
+                ->where('group_id', $id)
+                ->where('type', GroupInvitation::TYPE_REQUEST)
+                ->where('status', 'pending')
+                ->latest()
+                ->get()
+            : collect();
+
         return view('groups.show', compact(
-            'group', 'members', 'posts', 'isMember', 'isAdmin', 'isOwner', 'userRole', 'connections'
+            'group', 'members', 'posts', 'isMember', 'isAdmin', 'isOwner', 'userRole',
+            'connections', 'hasPendingRequest', 'pendingRequests'
         ));
     }
 
@@ -230,8 +246,34 @@ class GroupController extends Controller
 
         GroupInvitation::updateOrCreate(
             ['group_id' => $id, 'user_id' => $targetId],
-            ['invited_by' => $user->id, 'status' => 'pending']
+            ['invited_by' => $user->id, 'status' => 'pending', 'type' => GroupInvitation::TYPE_INVITATION]
         );
+
+        $target = \App\Models\User::find($targetId);
+        if ($target) {
+            try {
+                \App\Models\Notification::storeForUser(
+                    $target,
+                    'group_invitation',
+                    'Invitation à rejoindre un groupe',
+                    "{$user->first_name} {$user->last_name} vous invite à rejoindre le groupe « {$group->name} ».",
+                    ['url' => route('groups.index'), 'group_id' => $id]
+                );
+            } catch (\Throwable) {}
+
+            try {
+                \Illuminate\Support\Facades\Mail::to($target->email)->send(
+                    new \App\Mail\SystemNotificationMail(
+                        recipientName: $target->first_name,
+                        title:         'Vous avez été invité(e) à rejoindre « ' . $group->name . ' »',
+                        body:          '<strong>' . $user->first_name . ' ' . $user->last_name . '</strong> vous invite à rejoindre le groupe <strong>' . $group->name . '</strong> sur LeadXchange. Connectez-vous pour accepter ou refuser cette invitation.',
+                        actionLabel:   'Voir l\'invitation',
+                        actionUrl:     route('groups.index'),
+                        templateKey:   'group_invitation',
+                    )
+                );
+            } catch (\Throwable) {}
+        }
 
         return back()->with('success', 'Invitation envoyée.');
     }
@@ -336,11 +378,13 @@ class GroupController extends Controller
             $photoPath = $request->file('cover_photo')->store('groups', 'public');
         }
 
+        $cityId = $user->isConsul() ? $user->city_id : ($validated['city_id'] ?? $user->city_id);
+
         $group = Group::create([
             'name'          => $validated['name'],
             'description'   => $validated['description'] ?? null,
             'sector_id'     => $validated['sector_id'] ?? null,
-            'city_id'       => $validated['city_id'] ?? $user->city_id,
+            'city_id'       => $cityId,
             'cover_color'   => $validated['cover_color'] ?? '#1E8F88',
             'cover_photo'   => $photoPath,
             'created_by'    => $user->id,
@@ -374,15 +418,152 @@ class GroupController extends Controller
             return $redirect;
         }
 
-        $group = Group::findOrFail($id);
+        $group = Group::with(['creator'])->findOrFail($id);
         $user  = $request->user();
 
-        if (!$group->isMember($user->id)) {
-            $group->members()->attach($user->id, ['role' => 'member']);
-            $group->increment('members_count');
+        if ($group->isMember($user->id)) {
+            return back()->with('info', 'Vous êtes déjà membre de ce groupe.');
         }
 
-        return back()->with('success', 'Vous avez rejoint le groupe "' . $group->name . '".');
+        $existing = GroupInvitation::where('group_id', $id)
+            ->where('user_id', $user->id)
+            ->where('type', GroupInvitation::TYPE_REQUEST)
+            ->where('status', 'pending')
+            ->exists();
+
+        if ($existing) {
+            return back()->with('info', 'Votre demande est déjà en attente.');
+        }
+
+        GroupInvitation::create([
+            'group_id'   => $id,
+            'user_id'    => $user->id,
+            'invited_by' => null,
+            'type'       => GroupInvitation::TYPE_REQUEST,
+            'status'     => 'pending',
+        ]);
+
+        // Notify all group admins + owner
+        $adminIds = $group->members()
+            ->wherePivotIn('role', ['owner', 'admin'])
+            ->pluck('users.id');
+
+        $admins = \App\Models\User::whereIn('id', $adminIds)->get();
+
+        foreach ($admins as $admin) {
+            try {
+                \App\Models\Notification::storeForUser(
+                    $admin,
+                    'group_join_request',
+                    'Nouvelle demande d\'adhésion',
+                    "{$user->first_name} {$user->last_name} souhaite rejoindre le groupe « {$group->name} ».",
+                    ['url' => route('groups.show', $id), 'group_id' => $id, 'user_id' => $user->id]
+                );
+            } catch (\Throwable) {}
+
+            try {
+                \Illuminate\Support\Facades\Mail::to($admin->email)->send(
+                    new \App\Mail\SystemNotificationMail(
+                        recipientName: $admin->first_name,
+                        title:         'Demande d\'adhésion au groupe « ' . $group->name . ' »',
+                        body:          '<strong>' . $user->first_name . ' ' . $user->last_name . '</strong> souhaite rejoindre votre groupe <strong>' . $group->name . '</strong>. Consultez les demandes en attente pour accepter ou refuser.',
+                        actionLabel:   'Voir la demande',
+                        actionUrl:     route('groups.show', $id),
+                        templateKey:   'group_join_request',
+                    )
+                );
+            } catch (\Throwable) {}
+        }
+
+        return back()->with('success', 'Demande envoyée — le responsable du groupe vous répondra bientôt.');
+    }
+
+    public function approveRequest(Request $request, int $id, int $userId)
+    {
+        $group = Group::findOrFail($id);
+        abort_unless($group->isAdmin($request->user()->id), 403);
+
+        $invitation = GroupInvitation::where('group_id', $id)
+            ->where('user_id', $userId)
+            ->where('type', GroupInvitation::TYPE_REQUEST)
+            ->where('status', 'pending')
+            ->firstOrFail();
+
+        if (!$group->isMember($userId)) {
+            $group->members()->attach($userId, ['role' => 'member']);
+            $group->increment('members_count');
+        }
+        $invitation->update(['status' => 'accepted']);
+
+        $requester = \App\Models\User::find($userId);
+        if ($requester) {
+            try {
+                \App\Models\Notification::storeForUser(
+                    $requester,
+                    'group_join_accepted',
+                    'Demande acceptée',
+                    "Votre demande pour rejoindre le groupe « {$group->name} » a été acceptée. Bienvenue !",
+                    ['url' => route('groups.show', $id), 'group_id' => $id]
+                );
+            } catch (\Throwable) {}
+
+            try {
+                \Illuminate\Support\Facades\Mail::to($requester->email)->send(
+                    new \App\Mail\SystemNotificationMail(
+                        recipientName: $requester->first_name,
+                        title:         'Vous avez rejoint « ' . $group->name . ' » !',
+                        body:          'Bonne nouvelle ! Votre demande pour rejoindre le groupe <strong>' . $group->name . '</strong> a été <strong>acceptée</strong>. Vous pouvez maintenant accéder au groupe et participer aux échanges.',
+                        actionLabel:   'Accéder au groupe',
+                        actionUrl:     route('groups.show', $id),
+                        templateKey:   'group_join_accepted',
+                    )
+                );
+            } catch (\Throwable) {}
+        }
+
+        return back()->with('success', 'Demande acceptée — ' . ($requester?->first_name ?? 'Utilisateur') . ' est maintenant membre.');
+    }
+
+    public function rejectRequest(Request $request, int $id, int $userId)
+    {
+        $group = Group::findOrFail($id);
+        abort_unless($group->isAdmin($request->user()->id), 403);
+
+        $invitation = GroupInvitation::where('group_id', $id)
+            ->where('user_id', $userId)
+            ->where('type', GroupInvitation::TYPE_REQUEST)
+            ->where('status', 'pending')
+            ->firstOrFail();
+
+        $invitation->update(['status' => 'declined']);
+
+        $requester = \App\Models\User::find($userId);
+        if ($requester) {
+            try {
+                \App\Models\Notification::storeForUser(
+                    $requester,
+                    'group_join_rejected',
+                    'Demande refusée',
+                    "Votre demande pour rejoindre le groupe « {$group->name} » n'a pas été retenue.",
+                    ['url' => route('groups.index')]
+                );
+            } catch (\Throwable) {}
+
+            try {
+                \Illuminate\Support\Facades\Mail::to($requester->email)->send(
+                    new \App\Mail\SystemNotificationMail(
+                        recipientName: $requester->first_name,
+                        title:         'Demande non retenue — ' . $group->name,
+                        body:          'Votre demande pour rejoindre le groupe <strong>' . $group->name . '</strong> n\'a pas été retenue pour le moment. Vous pouvez explorer d\'autres groupes et en faire la demande.',
+                        actionLabel:   'Explorer les groupes',
+                        actionUrl:     route('groups.index'),
+                        templateKey:   'group_join_rejected',
+                    )
+                );
+            } catch (\Throwable) {}
+        }
+
+        return back()->with('success', 'Demande refusée.');
     }
 
     public function leave(Request $request, int $id)

@@ -129,6 +129,7 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::get('plans/{plan}/edit',              [PlanController::class, 'edit'])->name('plans.edit');
     Route::put('plans/{plan}',                   [PlanController::class, 'update'])->name('plans.update');
     Route::post('plans/{plan}/toggle',           [PlanController::class, 'toggleStatus'])->name('plans.toggle');
+    Route::post('plans/{plan}/toggle-visible',   [PlanController::class, 'toggleVisible'])->name('plans.toggle-visible');
 
     // Activity log
     Route::get('activity-log',               [ActivityLogController::class, 'index'])->name('activity-log.index');
