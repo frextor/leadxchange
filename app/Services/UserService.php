@@ -395,13 +395,7 @@ class UserService
 
     private function deriveConsulStatus(User $user): ?string
     {
-        if (!$user->relationLoaded('consulRequests')) {
-            return null;
-        }
-        $requests = $user->consulRequests;
-        if ($requests->where('status', 'approved')->isNotEmpty()) return 'approved';
-        if ($requests->where('status', 'pending')->isNotEmpty())  return 'pending';
-        return $requests->sortByDesc('id')->first()?->status;
+        return $user->consul_status;
     }
 
     private function badgePayload(string $level): array
