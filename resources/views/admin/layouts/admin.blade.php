@@ -171,6 +171,15 @@
 
             <p class="nav-section" style="color:#8B5CF6;">Super Admin</p>
 
+            <a href="{{ route('admin.super.analytics.overview') }}"
+               class="nav-item sa {{ request()->routeIs('admin.super.analytics*') ? 'active' : '' }}"
+               style="background:{{ request()->routeIs('admin.super.analytics*') ? '' : 'linear-gradient(135deg,#F5F3FF,#EDE9FE)' }}; margin-bottom:4px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                Analytiques
+                <span class="ml-auto text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                      style="background:#DDD6FE; color:#5B21B6;">Pro</span>
+            </a>
+
             <a href="{{ route('admin.super.subscribers.index') }}"
                class="nav-item sa {{ request()->routeIs('admin.super.subscribers*') ? 'active' : '' }}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>

@@ -198,6 +198,10 @@ class ProfileController extends Controller
             'ambassador_rejection_reason' => null,
         ]);
 
+        ConsulRequest::firstOrCreate(
+            ['user_id' => $user->id, 'status' => ConsulRequest::STATUS_PENDING],
+        );
+
         return response()->json([
             'message' => 'Ambassador request submitted.',
             'ambassador_status' => 'pending',

@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\SuperAdmin\EmailTemplateController;
 use App\Http\Controllers\Admin\SuperAdmin\SettingsController;
 use App\Http\Controllers\Admin\SuperAdmin\SmtpController;
 use App\Http\Controllers\Admin\SuperAdmin\ActivityLogController;
+use App\Http\Controllers\Admin\SuperAdmin\AnalyticsController;
 use App\Http\Controllers\Admin\SuperAdmin\PaymentsController;
 use App\Http\Controllers\Admin\SuperAdmin\SubscriberController;
 use Illuminate\Support\Facades\Route;
@@ -90,6 +91,19 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
 
     // Dashboard
     Route::get('/',          [SuperDashboardController::class, 'index'])->name('dashboard');
+
+    // Analytics Dashboard
+    Route::prefix('analytics')->name('analytics.')->group(function () {
+        Route::get('/',             [AnalyticsController::class, 'overview'])->name('overview');
+        Route::get('/users',        [AnalyticsController::class, 'users'])->name('users');
+        Route::get('/leads',        [AnalyticsController::class, 'leads'])->name('leads');
+        Route::get('/connections',  [AnalyticsController::class, 'connections'])->name('connections');
+        Route::get('/events',       [AnalyticsController::class, 'events'])->name('events');
+        Route::get('/subscriptions',[AnalyticsController::class, 'subscriptions'])->name('subscriptions');
+        Route::get('/ambassadors',  [AnalyticsController::class, 'ambassadors'])->name('ambassadors');
+        Route::get('/regional',     [AnalyticsController::class, 'regional'])->name('regional');
+        Route::get('/system',       [AnalyticsController::class, 'system'])->name('system');
+    });
 
     // Admin management
     Route::get('admins',                     [AdminManagerController::class, 'index'])->name('admins.index');

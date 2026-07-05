@@ -57,6 +57,98 @@
     </div>
 </div>
 
+{{-- Pending ambassador requests from consuls --}}
+@if($requestCounts['pending'] > 0 || $pendingRequests->isNotEmpty())
+<div class="mb-6">
+    <div class="flex items-center gap-2 mb-3">
+        <h2 class="text-sm font-bold text-gray-800">Demandes d'ambassadeur en attente</h2>
+        @if($requestCounts['pending'] > 0)
+        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white" style="background:#F59E0B;">
+            {{ $requestCounts['pending'] }}
+        </span>
+        @endif
+    </div>
+    <div class="bg-white rounded-2xl border border-amber-100 shadow-sm overflow-hidden">
+        @forelse($pendingRequests as $req)
+        <div class="flex items-center gap-4 px-5 py-3.5 border-b border-gray-50 last:border-0 hover:bg-amber-50/30 transition">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                 style="background:linear-gradient(135deg,#F59E0B,#D97706);">
+                {{ strtoupper(substr($req->user->first_name ?? '?', 0, 1)) }}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <p class="text-sm font-semibold text-gray-900">{{ $req->user->first_name }} {{ $req->user->last_name }}</p>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-700">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        Consul
+                    </span>
+                    <span class="text-xs text-gray-400">{{ $req->user->subscription?->plan?->label ?? '—' }}</span>
+                    @if($req->user->city)
+                    <span class="text-xs text-gray-400">· {{ $req->user->city->name }}</span>
+                    @endif
+                </div>
+                <p class="text-xs text-gray-400 mt-0.5">{{ $req->user->email }} · Demande le {{ $req->created_at->format('d/m/Y') }}</p>
+            </div>
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 flex-shrink-0">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> En attente
+            </span>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <form method="POST" action="{{ route('admin.super.consul.approve', $req) }}">
+                    @csrf
+                    <button type="submit"
+                            class="px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition"
+                            style="background:#059669;">
+                        ✓ Approuver
+                    </button>
+                </form>
+                <button type="button"
+                        onclick="openRejectModal({{ $req->id }})"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold border border-red-200 text-red-600 hover:bg-red-50 transition">
+                    ✕ Refuser
+                </button>
+            </div>
+        </div>
+        @empty
+        <div class="px-5 py-6 text-center text-sm text-gray-400">Aucune demande en attente.</div>
+        @endforelse
+        @if($requestCounts['approved'] > 0 || $requestCounts['rejected'] > 0)
+        <div class="px-5 py-3 border-t border-gray-50 bg-gray-50/50 flex items-center justify-between">
+            <p class="text-xs text-gray-400">
+                {{ $requestCounts['approved'] }} approuvée{{ $requestCounts['approved'] > 1 ? 's' : '' }} ·
+                {{ $requestCounts['rejected'] }} refusée{{ $requestCounts['rejected'] > 1 ? 's' : '' }}
+            </p>
+            <a href="{{ route('admin.super.consul.index') }}" class="text-xs font-semibold text-indigo-600 hover:underline">
+                Voir tout l'historique →
+            </a>
+        </div>
+        @endif
+    </div>
+</div>
+@endif
+
+{{-- Reject modal --}}
+<div id="reject-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+        <h3 class="text-base font-bold text-gray-900 mb-4">Refuser la demande</h3>
+        <form id="reject-form" method="POST">
+            @csrf
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Raison (optionnelle)</label>
+                <textarea name="reason" rows="3"
+                          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-red-300 focus:ring-2 focus:ring-red-50 transition resize-none"
+                          placeholder="Expliquez la raison du refus…"></textarea>
+            </div>
+            <div class="flex gap-3">
+                <button type="submit"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition"
+                        style="background:#DC2626;">Confirmer le refus</button>
+                <button type="button" onclick="closeRejectModal()"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition">Annuler</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {{-- Filters --}}
 <form method="GET" class="flex items-center gap-3 mb-5">
     <div class="relative flex-1 max-w-sm">
@@ -170,3 +262,19 @@
 </div>
 
 @endsection
+
+@push('scripts')
+<script>
+const rejectBase = '{{ url("/admin/super/consul") }}';
+function openRejectModal(id) {
+    document.getElementById('reject-form').action = rejectBase + '/' + id + '/reject';
+    const m = document.getElementById('reject-modal');
+    m.classList.remove('hidden'); m.classList.add('flex');
+}
+function closeRejectModal() {
+    const m = document.getElementById('reject-modal');
+    m.classList.add('hidden'); m.classList.remove('flex');
+}
+document.getElementById('reject-modal').addEventListener('click', function(e) { if(e.target===this) closeRejectModal(); });
+</script>
+@endpush

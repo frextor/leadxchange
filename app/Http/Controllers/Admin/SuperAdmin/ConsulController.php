@@ -96,7 +96,18 @@ class ConsulController extends Controller
             'eligible'=> User::where('role', 'user')->whereHas('subscription', fn($q) => $q->where('status', 'active')->whereHas('plan', fn($p) => $p->where('price', '>', 0)))->whereNull('consul_status')->count(),
         ];
 
-        return view('admin.super_admin.consul.consuls', compact('users', 'counts'));
+        $pendingRequests = ConsulRequest::with(['user.subscription.plan', 'user.city'])
+            ->where('status', ConsulRequest::STATUS_PENDING)
+            ->latest()
+            ->get();
+
+        $requestCounts = [
+            'pending'  => ConsulRequest::where('status', 'pending')->count(),
+            'approved' => ConsulRequest::where('status', 'approved')->count(),
+            'rejected' => ConsulRequest::where('status', 'rejected')->count(),
+        ];
+
+        return view('admin.super_admin.consul.consuls', compact('users', 'counts', 'pendingRequests', 'requestCounts'));
     }
 
     public function nominateConsul(User $user): RedirectResponse

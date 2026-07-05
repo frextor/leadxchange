@@ -214,10 +214,6 @@ class ConsulService
             throw new \RuntimeException('Cette demande n\'est plus en attente.');
         }
 
-        if (! $consulRequest->user->isConsul()) {
-            throw new \RuntimeException('L\'utilisateur n\'est plus Consul.');
-        }
-
         $ambassadeurPlan = \App\Models\Plan::where('name', 'ambassadeur')->first();
 
         DB::transaction(function () use ($consulRequest, $validator, $ambassadeurPlan) {
