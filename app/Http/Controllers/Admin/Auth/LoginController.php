@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -45,6 +46,7 @@ class LoginController extends Controller
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey($request), self::DECAY_SECONDS);
+            ActivityLogger::log('admin.login_failed', "Tentative admin échouée ({$request->input('email')})", null, null, ['email' => $request->input('email')]);
 
             throw ValidationException::withMessages([
                 'general' => 'Identifiants incorrects ou accès non autorisé.',
@@ -57,6 +59,7 @@ class LoginController extends Controller
             $request->session()->regenerateToken();
 
             RateLimiter::hit($this->throttleKey($request), self::DECAY_SECONDS);
+            ActivityLogger::log('admin.login_failed', "Tentative admin non autorisée ({$request->input('email')})", null, null, ['email' => $request->input('email'), 'reason' => 'not_super_admin']);
 
             throw ValidationException::withMessages([
                 'general' => 'Identifiants incorrects ou accès non autorisé.',
@@ -65,6 +68,7 @@ class LoginController extends Controller
 
         RateLimiter::clear($this->throttleKey($request));
         $request->session()->regenerate();
+        ActivityLogger::log('admin.login', "Connexion admin ({$request->input('email')})", Auth::id());
 
         // Stocker l'ID en attente de 2FA
         $request->session()->put('auth.2fa.user_id', Auth::id());

@@ -99,7 +99,7 @@
         </div>
 
         {{-- Navigation --}}
-        <nav class="flex-1 px-3 py-3 overflow-y-auto space-y-0.5">
+        <nav id="sidebar-nav" class="flex-1 px-3 py-3 overflow-y-auto space-y-0.5">
 
             {{-- ── PLATEFORME ── --}}
             <p class="nav-section">Plateforme</p>
@@ -239,6 +239,11 @@
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                         Stripe
                     </a>
+                    <a href="{{ route('admin.super.payments.index') }}"
+                       class="nav-item sa {{ request()->routeIs('admin.super.payments*') ? 'active' : '' }}">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        Paiements
+                    </a>
                     <a href="{{ route('admin.super.enterprise.index') }}"
                        class="nav-item sa {{ request()->routeIs('admin.super.enterprise*') ? 'active' : '' }}">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
@@ -272,6 +277,12 @@
                class="nav-item sa {{ request()->routeIs('admin.super.interests*') ? 'active' : '' }}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                 Intérêts
+            </a>
+
+            <a href="{{ route('admin.super.activity-log.index') }}"
+               class="nav-item sa {{ request()->routeIs('admin.super.activity-log*') ? 'active' : '' }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="12" y2="12"/><line x1="15" y1="15" x2="12" y2="12"/></svg>
+                Journal d'activité
             </a>
 
             <a href="{{ route('admin.super.settings.currency') }}"
@@ -381,6 +392,23 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+// ── Sidebar scroll persistence ─────────────────────────────────────────────
+(function () {
+    var nav = document.getElementById('sidebar-nav');
+    if (!nav) return;
+
+    var key = 'adminSidebarScroll';
+
+    // Restore immediately (before paint) to avoid visible jump
+    var saved = sessionStorage.getItem(key);
+    if (saved) nav.scrollTop = parseInt(saved, 10);
+
+    // Save on every scroll (passive, no perf impact)
+    nav.addEventListener('scroll', function () {
+        sessionStorage.setItem(key, nav.scrollTop);
+    }, { passive: true });
+})();
+
 function swalDelete(btn, name) {
     Swal.fire({
         title: 'Supprimer ?',

@@ -6,6 +6,7 @@ use App\Http\Controllers\SupportController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\VerificationController;
+use App\Http\Controllers\Auth\LinkedInController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
@@ -38,17 +39,9 @@ Route::get('/', function () {
     return view('landing');
 })->name('home');
 
-// LinkedIn OAuth callback fallback for mobile app links.
-Route::get('/auth/linkedin/callback', function (Request $request) {
-    $query = http_build_query($request->only([
-        'code',
-        'state',
-        'error',
-        'error_description',
-    ]));
-
-    return redirect()->away('x-tensia://auth/linkedin/callback' . ($query !== '' ? "?{$query}" : ''));
-})->name('linkedin.mobile.callback');
+// LinkedIn OAuth — web login redirect + shared callback (web & mobile)
+Route::get('/auth/linkedin',          [LinkedInController::class, 'redirect'])->name('login.linkedin');
+Route::get('/auth/linkedin/callback', [LinkedInController::class, 'callback'])->name('linkedin.callback');
 
 Route::get('/.well-known/assetlinks.json', function () {
     return response()->json([

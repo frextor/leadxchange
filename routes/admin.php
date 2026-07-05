@@ -21,6 +21,8 @@ use App\Http\Controllers\Admin\SuperAdmin\SectorController;
 use App\Http\Controllers\Admin\SuperAdmin\EmailTemplateController;
 use App\Http\Controllers\Admin\SuperAdmin\SettingsController;
 use App\Http\Controllers\Admin\SuperAdmin\SmtpController;
+use App\Http\Controllers\Admin\SuperAdmin\ActivityLogController;
+use App\Http\Controllers\Admin\SuperAdmin\PaymentsController;
 use App\Http\Controllers\Admin\SuperAdmin\SubscriberController;
 use Illuminate\Support\Facades\Route;
 
@@ -107,11 +109,15 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::get('plans/permission-labels',        [PlanController::class, 'permissionLabels'])->name('plans.permission-labels');
     Route::put('plans/permission-labels',        [PlanController::class, 'updatePermissionLabels'])->name('plans.permission-labels.update');
     Route::get('plans/stripe',                   [PlanController::class, 'stripeIndex'])->name('plans.stripe');
+    Route::get('payments',                       [PaymentsController::class, 'index'])->name('payments.index');
     Route::post('plans/stripe/sync-all',         [PlanController::class, 'stripeSyncAll'])->name('plans.stripe.sync-all');
     Route::post('plans/stripe/{plan}/sync',      [PlanController::class, 'stripeSyncPlan'])->name('plans.stripe.sync');
     Route::get('plans/{plan}/edit',              [PlanController::class, 'edit'])->name('plans.edit');
     Route::put('plans/{plan}',                   [PlanController::class, 'update'])->name('plans.update');
     Route::post('plans/{plan}/toggle',           [PlanController::class, 'toggleStatus'])->name('plans.toggle');
+
+    // Activity log
+    Route::get('activity-log',               [ActivityLogController::class, 'index'])->name('activity-log.index');
 
     // Subscribers
     Route::get('subscribers',                [SubscriberController::class, 'index'])->name('subscribers.index');

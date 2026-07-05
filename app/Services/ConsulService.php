@@ -6,6 +6,7 @@ use App\Mail\SystemNotificationMail;
 use App\Models\ConsulRequest;
 use App\Models\Notification;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
@@ -47,6 +48,13 @@ class ConsulService
                 );
             }
         });
+
+        ActivityLogger::log(
+            'admin.consul_nominated',
+            "{$user->first_name} {$user->last_name} nommé Consul par {$admin->first_name} {$admin->last_name}",
+            $admin->id,
+            $user,
+        );
 
         try {
             Notification::storeForUser(
@@ -96,6 +104,13 @@ class ConsulService
                     ->update(['plan_id' => $premiumPlan->id, 'status' => 'active']);
             }
         });
+
+        ActivityLogger::log(
+            'admin.consul_revoked',
+            "Statut Consul révoqué pour {$user->first_name} {$user->last_name}",
+            auth()->id(),
+            $user,
+        );
     }
 
     /** Directly nominate a Premium user as Ambassador (admin action, no consul prerequisite). */
@@ -125,6 +140,13 @@ class ConsulService
                 );
             }
         });
+
+        ActivityLogger::log(
+            'admin.ambassador_nominated',
+            "{$user->first_name} {$user->last_name} nommé Ambassadeur par {$admin->first_name} {$admin->last_name}",
+            $admin->id,
+            $user,
+        );
 
         try {
             Notification::storeForUser(
@@ -219,6 +241,13 @@ class ConsulService
             }
         });
 
+        ActivityLogger::log(
+            'admin.ambassador_approved',
+            "Demande Ambassadeur de {$consulRequest->user->first_name} {$consulRequest->user->last_name} approuvée",
+            $validator->id,
+            $consulRequest->user,
+        );
+
         try {
             Notification::storeForUser(
                 $consulRequest->user,
@@ -254,6 +283,14 @@ class ConsulService
             'validated_at'     => now(),
             'rejection_reason' => $reason,
         ]);
+
+        ActivityLogger::log(
+            'admin.ambassador_rejected',
+            "Demande Ambassadeur de {$consulRequest->user->first_name} {$consulRequest->user->last_name} rejetée" . ($reason ? " : {$reason}" : ''),
+            $validator->id,
+            $consulRequest->user,
+            $reason ? ['reason' => $reason] : [],
+        );
 
         try {
             Notification::storeForUser(
@@ -309,6 +346,13 @@ class ConsulService
                     ->update(['plan_id' => $fallbackPlan->id, 'status' => 'active']);
             }
         });
+
+        ActivityLogger::log(
+            'admin.ambassador_revoked',
+            "Statut Ambassadeur révoqué pour {$user->first_name} {$user->last_name}",
+            auth()->id(),
+            $user,
+        );
     }
 
     /** @deprecated Use nominateConsul() */

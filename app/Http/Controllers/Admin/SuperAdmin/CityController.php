@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\City;
 use App\Models\Country;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -54,11 +55,21 @@ class CityController extends Controller
         return back()->with('success', 'Région mise à jour.');
     }
 
-    public function toggle(City $city): RedirectResponse
+    public function toggle(City $city): JsonResponse|RedirectResponse
     {
         $city->update(['is_active' => !$city->is_active]);
         $status = $city->is_active ? 'activée' : 'désactivée';
-        return back()->with('success', "Région \"{$city->name}\" {$status}.");
+        $message = "Région \"{$city->name}\" {$status}.";
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success'   => true,
+                'is_active' => $city->is_active,
+                'message'   => $message,
+            ]);
+        }
+
+        return back()->with('success', $message);
     }
 
     public function destroy(City $city): RedirectResponse

@@ -190,14 +190,17 @@
                 <div class="flex items-center gap-4 flex-shrink-0">
 
                     {{-- Toggle actif/inactif --}}
-                    <form method="POST" action="{{ route('admin.super.cities.toggle', $city) }}">
-                        @csrf @method('PATCH')
-                        <button type="submit"
-                                title="{{ $city->is_active ? 'Désactiver' : 'Activer' }}"
-                                class="relative inline-flex items-center h-5 w-9 rounded-full transition-colors focus:outline-none {{ $city->is_active ? 'bg-teal-500' : 'bg-gray-200' }}">
-                            <span class="inline-block w-3.5 h-3.5 rounded-full bg-white shadow transform transition-transform {{ $city->is_active ? 'translate-x-4' : 'translate-x-0.5' }}"></span>
-                        </button>
-                    </form>
+                    <button type="button"
+                            id="toggle-btn-{{ $city->id }}"
+                            data-id="{{ $city->id }}"
+                            data-name="{{ addslashes($city->name) }}"
+                            data-active="{{ $city->is_active ? '1' : '0' }}"
+                            data-url="{{ route('admin.super.cities.toggle', $city) }}"
+                            onclick="toggleCity(this)"
+                            title="{{ $city->is_active ? 'Désactiver' : 'Activer' }}"
+                            class="relative inline-flex items-center h-5 w-9 rounded-full transition-colors focus:outline-none {{ $city->is_active ? 'bg-teal-500' : 'bg-gray-200' }}">
+                        <span id="toggle-dot-{{ $city->id }}" class="inline-block w-3.5 h-3.5 rounded-full bg-white shadow transform transition-transform {{ $city->is_active ? 'translate-x-4' : 'translate-x-0.5' }}"></span>
+                    </button>
 
                     <span id="city-country-{{ $city->id }}"
                           class="text-xs text-gray-500 font-medium min-w-[80px]">
@@ -430,6 +433,58 @@ function cancelCityEdit(id) {
 
 function submitCityForm(id) {
     document.getElementById('city-form-' + id).submit();
+}
+
+function toggleCity(btn) {
+    const id      = btn.dataset.id;
+    const name    = btn.dataset.name;
+    const url     = btn.dataset.url;
+    const dot     = document.getElementById('toggle-dot-' + id);
+    const isActive = btn.dataset.active === '1';
+
+    btn.disabled = true;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json',
+            'X-HTTP-Method-Override': 'PATCH',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: '_method=PATCH',
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        if (!data.success) throw new Error();
+
+        btn.dataset.active = data.is_active ? '1' : '0';
+        btn.title = data.is_active ? 'Désactiver' : 'Activer';
+
+        if (data.is_active) {
+            btn.classList.replace('bg-gray-200', 'bg-teal-500');
+            dot.classList.replace('translate-x-0.5', 'translate-x-4');
+        } else {
+            btn.classList.replace('bg-teal-500', 'bg-gray-200');
+            dot.classList.replace('translate-x-4', 'translate-x-0.5');
+        }
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: data.is_active ? 'success' : 'info',
+            title: data.message,
+            showConfirmButton: false,
+            timer: 2500,
+            timerProgressBar: true,
+            customClass: { popup: 'swal-lx-popup' },
+        });
+    })
+    .catch(() => {
+        btn.disabled = false;
+        Swal.fire({ icon: 'error', title: 'Erreur', text: 'Impossible de modifier le statut de la région.' });
+    });
 }
 </script>
 @endpush

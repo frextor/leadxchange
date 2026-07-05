@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Mail\SystemNotificationMail;
 use App\Models\EventPayment;
+use App\Services\ActivityLogger;
 use App\Models\EventInvitation;
 use App\Models\Plan;
 use App\Models\Subscription;
@@ -210,6 +211,14 @@ class StripeWebhookController extends Controller
 
         // Send confirmation email only on first activation (not on renewals)
         if ($localStatus === 'active' && $previousStatus !== 'active') {
+            ActivityLogger::log(
+                'payment.plan_activated',
+                "Plan {$plan->label} activé (mobile/webhook) pour {$user->first_name} {$user->last_name}",
+                $user->id,
+                $user,
+                ['plan_label' => $plan->label, 'stripe_subscription_id' => $stripeSubscription->id],
+            );
+
             try {
                 Mail::to($user->email)->send(new SystemNotificationMail(
                     recipientName: $user->first_name,

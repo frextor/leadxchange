@@ -22,6 +22,21 @@
         <p class="text-gray-500 mt-2" style="font-size:15px;">Rejoignez 1 500+ commerciaux qui échangent des leads qualifiés.</p>
     </div>
 
+    {{-- LinkedIn quick register --}}
+    <a href="{{ route('login.linkedin') }}"
+       class="flex items-center justify-center gap-2 py-3 mb-4 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="#0A66C2">
+            <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14ZM8.34 18.34V10H5.67v8.34h2.67Zm-1.34-9.5a1.55 1.55 0 1 0 0-3.09 1.55 1.55 0 0 0 0 3.09Zm12 9.5v-4.78c0-2.45-1.31-3.59-3.06-3.59-1.41 0-2.04.78-2.4 1.32V10h-2.66v8.34h2.66v-4.65c0-.25.02-.5.09-.68.2-.5.66-1.02 1.42-1.02 1 0 1.4.76 1.4 1.88v4.47H19Z"/>
+        </svg>
+        Continuer avec LinkedIn
+    </a>
+
+    <div style="display:flex;align-items:center;gap:12px;color:#9CA3AF;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:24px;">
+        <span style="flex:1;height:1px;background:#E5E7EB;"></span>
+        ou remplir le formulaire
+        <span style="flex:1;height:1px;background:#E5E7EB;"></span>
+    </div>
+
     {{-- Progress indicator --}}
     <div class="flex items-center justify-center mb-8">
         <div class="flex items-center">

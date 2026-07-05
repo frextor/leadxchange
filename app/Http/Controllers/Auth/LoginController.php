@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\ActivityLogger;
 use App\Services\AuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -66,6 +67,8 @@ class LoginController extends Controller
 
             $request->session()->regenerate();
 
+            ActivityLogger::log('auth.login', "Connexion réussie ({$user->email})", $user->id);
+
             // Create a Sanctum token for SPA API calls — revoke old one first
             $user->tokens()->where('name', 'web-spa')->delete();
             $token = $user->createToken('web-spa')->plainTextToken;
@@ -74,6 +77,8 @@ class LoginController extends Controller
             return redirect()->intended(route('dashboard'))
                 ->with('success', 'Bienvenue ' . $user->first_name . ' !');
         }
+
+        ActivityLogger::log('auth.login_failed', "Tentative de connexion échouée ({$credentials['email']})", null, null, ['email' => $credentials['email']]);
 
         // Failed login
         return back()->withErrors([
@@ -90,6 +95,9 @@ class LoginController extends Controller
         if ($token = $request->session()->get('web_api_token')) {
             Auth::user()?->tokens()->where('name', 'web-spa')->delete();
         }
+
+        $user = Auth::user();
+        ActivityLogger::log('auth.logout', "Déconnexion ({$user?->email})", $user?->id);
 
         Auth::logout();
 

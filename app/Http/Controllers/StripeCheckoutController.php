@@ -6,6 +6,7 @@ use App\Mail\SystemNotificationMail;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -97,6 +98,13 @@ class StripeCheckoutController extends Controller
                     $notifUser = User::find($userId);
                     $notifPlan = Plan::find($planId);
                     if ($notifUser && $notifPlan) {
+                        ActivityLogger::log(
+                            'payment.plan_purchased',
+                            "Plan {$notifPlan->label} acheté (web checkout) par {$notifUser->first_name} {$notifUser->last_name}",
+                            $notifUser->id,
+                            $notifUser,
+                            ['plan_label' => $notifPlan->label, 'stripe_session_id' => $sessionId],
+                        );
                         Mail::to($notifUser->email)->send(new SystemNotificationMail(
                             recipientName: $notifUser->first_name,
                             title:         'Votre plan ' . $notifPlan->label . ' est activé !',

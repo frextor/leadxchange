@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\City;
 use App\Models\Nationality;
 use App\Models\Sector;
+use App\Services\ActivityLogger;
 use App\Services\AuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth as AuthFacade;
@@ -104,6 +105,8 @@ class RegisterController extends Controller
                 'job_title'          => $validated['job_title'],     // §4.1
                 'sector_id'          => $validated['sector_id'],     // §4.1
             ]);
+
+            ActivityLogger::log('auth.register', "Nouveau compte créé ({$user->email})", $user->id);
 
             // Log the user in
             AuthFacade::login($user);

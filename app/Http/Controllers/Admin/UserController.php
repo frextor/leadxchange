@@ -8,6 +8,7 @@ use App\Models\City;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use App\Services\ProfileService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -119,7 +120,18 @@ class UserController extends Controller
             return back()->with('error', 'Impossible de modifier un super administrateur.');
         }
 
+        $oldRole = $user->role;
         $user->update($request->only('role', 'points_balance', 'badge_level'));
+
+        if ($oldRole !== $request->role) {
+            ActivityLogger::log(
+                'admin.role_changed',
+                "Rôle de {$user->first_name} {$user->last_name} changé : {$oldRole} → {$request->role}",
+                auth()->id(),
+                $user,
+                ['old_role' => $oldRole, 'new_role' => $request->role],
+            );
+        }
 
         return back()->with('success', "{$user->first_name} {$user->last_name} mis à jour.");
     }
@@ -145,6 +157,14 @@ class UserController extends Controller
 
         $label = $plan->price > 0 ? $plan->label : 'Basic (gratuit)';
 
+        ActivityLogger::log(
+            'admin.plan_changed',
+            "Plan de {$user->first_name} {$user->last_name} changé en {$label}",
+            auth()->id(),
+            $user,
+            ['plan_label' => $label, 'plan_id' => $plan->id],
+        );
+
         try {
             Mail::to($user->email)->send(new \App\Mail\SystemNotificationMail(
                 recipientName: $user->first_name,
@@ -169,8 +189,17 @@ class UserController extends Controller
             return back()->with('error', 'Vous ne pouvez pas supprimer votre propre compte.');
         }
 
-        $name = "{$user->first_name} {$user->last_name}";
+        $name  = "{$user->first_name} {$user->last_name}";
+        $email = $user->email;
         $user->delete();
+
+        ActivityLogger::log(
+            'admin.user_deleted',
+            "Utilisateur {$name} ({$email}) supprimé",
+            auth()->id(),
+            null,
+            ['deleted_email' => $email, 'deleted_name' => $name],
+        );
 
         return redirect()->route('admin.users.index')
             ->with('success', "Utilisateur {$name} supprimé.");
