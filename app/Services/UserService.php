@@ -37,7 +37,7 @@ class UserService
         $query = User::query()
             ->where('id', '!=', $currentUserId)
             ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'city:id,name', 'consulRequests', 'subscription.plan:id,name'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'phone', 'phone_country_code', 'city_id', 'birthday', 'gender', 'company_id', 'points_balance', 'badge_level', 'ambassador_status']);
+            ->select(['id', 'first_name', 'last_name', 'email', 'phone', 'phone_country_code', 'city_id', 'birthday', 'gender', 'company_id', 'points_balance', 'badge_level', 'ambassador_status', 'consul_status']);
 
         // Search — scoped to requested fields (or all fields if none specified)
         if ($search) {
@@ -294,7 +294,7 @@ class UserService
     public function getUserById(int $userId, int $currentUserId): ?array
     {
         $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'nationality:id,name,flag', 'subscription.plan:id,name,label,max_users', 'consulRequests'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'ambassador_status', 'created_at'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'ambassador_status', 'consul_status', 'created_at'])
             ->find($userId);
 
         if (!$user) return null;
@@ -313,7 +313,7 @@ class UserService
     public function getProfileById(int $userId, int $currentUserId): ?array
     {
         $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'subscription.plan:id,name,label,max_users', 'consulRequests'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'ambassador_status', 'created_at'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'ambassador_status', 'consul_status', 'created_at'])
             ->find($userId);
 
         if (!$user) return null;
@@ -395,13 +395,7 @@ class UserService
 
     private function deriveConsulStatus(User $user): ?string
     {
-        if (!$user->relationLoaded('consulRequests')) {
-            return null;
-        }
-        $requests = $user->consulRequests;
-        if ($requests->where('status', 'approved')->isNotEmpty()) return 'approved';
-        if ($requests->where('status', 'pending')->isNotEmpty())  return 'pending';
-        return $requests->sortByDesc('id')->first()?->status;
+        return $user->consul_status;
     }
 
     private function badgePayload(string $level): array

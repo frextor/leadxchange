@@ -54,7 +54,9 @@ class LinkedInController extends Controller
     public function callback(Request $request): RedirectResponse
     {
         // ── Mobile deep-link pass-through ─────────────────────────────────────
-        if (! session('linkedin_web')) {
+        $isMobileCallback = $request->state === 'leadxchange_linkedin_auth' || ! session('linkedin_web');
+
+        if ($isMobileCallback) {
             $query = http_build_query($request->only(['code', 'state', 'error', 'error_description']));
             return redirect()->away('x-tensia://auth/linkedin/callback' . ($query !== '' ? "?{$query}" : ''));
         }
