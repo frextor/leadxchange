@@ -202,6 +202,24 @@
                     <span>Leads</span>
                 </a>
 
+                {{-- CONSULS (ambassadors only) --}}
+                @if(auth()->user()->isAmbassador())
+                <a href="{{ route('ambassador.consuls.index') }}"
+                   class="lx-nav-item {{ request()->routeIs('ambassador.consuls.*') ? 'active' : '' }}"
+                   style="{{ request()->routeIs('ambassador.consuls.*') ? '' : '' }}">
+                    <div class="relative">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        @php $pendingConsulsCount = \App\Models\User::where('consul_status','pending')->where(function($q){ $u = auth()->user(); $u->region_id ? $q->where('region_id',$u->region_id) : $q->where('city_id',$u->city_id); })->count(); @endphp
+                        @if($pendingConsulsCount > 0)
+                        <span class="lx-nav-badge">{{ $pendingConsulsCount > 9 ? '9+' : $pendingConsulsCount }}</span>
+                        @endif
+                    </div>
+                    <span>Consuls</span>
+                </a>
+                @endif
+
                 {{-- CHAT --}}
                 <a href="{{ route('chat.index') }}"
                    class="lx-nav-item {{ request()->routeIs('chat.*') ? 'active' : '' }}">

@@ -245,6 +245,14 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
     Route::post('/consul/request',         [\App\Http\Controllers\ConsulRequestController::class, 'store'])->name('consul.request');
     Route::post('/consul/request-promote', [\App\Http\Controllers\ConsulRequestController::class, 'requestConsulPromotion'])->name('consul.request-promote');
 
+    // Ambassador consul management (ambassador-only, regional)
+    Route::middleware('ambassador')->prefix('ambassador/consuls')->name('ambassador.consuls.')->group(function () {
+        Route::get('/',             [\App\Http\Controllers\Ambassador\ConsulManagementController::class, 'index'])->name('index');
+        Route::post('/{user}/approve', [\App\Http\Controllers\Ambassador\ConsulManagementController::class, 'approveConsulRequest'])->name('approve');
+        Route::post('/{user}/reject',  [\App\Http\Controllers\Ambassador\ConsulManagementController::class, 'rejectConsulRequest'])->name('reject');
+        Route::post('/{user}/nominate',[\App\Http\Controllers\Ambassador\ConsulManagementController::class, 'nominateConsul'])->name('nominate');
+    });
+
     // Leads (Exchanges)
     Route::get('/leads',                  [LeadController::class, 'index'])->name('leads.index');
     Route::get('/leads/{id}',             [LeadController::class, 'show'])->name('leads.show');
