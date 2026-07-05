@@ -12,7 +12,6 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Services\AnalyticsService;
 use App\Services\StripeAnalyticsService;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AnalyticsController extends Controller
@@ -97,7 +96,7 @@ class AnalyticsController extends Controller
         return view('admin.super_admin.analytics.subscriptions', [
             'growthChart'     => $this->analytics->subscriptionGrowthChart(12),
             'distribution'    => $this->analytics->subscriptionDistribution(),
-            'total'           => Subscription::where('status', 'active')->count(),
+            'total'           => $this->stripeAnalytics->totalActive(),
             'plans'           => Plan::withCount('activeSubscriptions')->orderBy('sort_order')->get(),
             // Stripe-powered metrics
             'mrr'             => $this->stripeAnalytics->mrr(),
