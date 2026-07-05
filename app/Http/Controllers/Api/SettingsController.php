@@ -49,7 +49,19 @@ class SettingsController extends Controller
 
             'plans'         => Plan::where('is_active', true)->where('is_visible', true)
                                    ->orderBy('sort_order')
-                                   ->get(['id', 'name', 'label', 'description', 'price', 'billing_period', 'max_leads', 'max_groups', 'max_users']),
+                                   ->get(['id', 'name', 'label', 'description', 'price', 'billing_period', 'max_leads', 'max_groups', 'max_users', 'features'])
+                                   ->map(fn($plan) => [
+                                       'id'             => $plan->id,
+                                       'name'           => $plan->name,
+                                       'label'          => $plan->label,
+                                       'description'    => $plan->description,
+                                       'price'          => $plan->price,
+                                       'billing_period' => $plan->billing_period,
+                                       'max_leads'      => $plan->max_leads,
+                                       'max_groups'     => $plan->max_groups,
+                                       'max_users'      => $plan->max_users,
+                                       'features'       => $this->planFeaturesToArray($plan->features),
+                                   ]),
 
             'cities'        => City::where('is_active', true)->with('country:id,name,code,flag')
                                    ->orderByRaw("CASE WHEN country_id = (SELECT id FROM countries WHERE code = 'MA') THEN 0 ELSE 1 END")
@@ -64,5 +76,44 @@ class SettingsController extends Controller
                                        'flag'         => $city->country?->flag,
                                    ]),
         ]);
+    }
+
+    private function planFeaturesToArray(mixed $features): array
+    {
+        if (empty($features)) return [];
+
+        // Already a flat string array — return as-is
+        if (array_is_list($features) && isset($features[0]) && is_string($features[0])) {
+            return $features;
+        }
+
+        // Associative object — convert to display strings
+        $result = [];
+        $maxConn = $features['max_connections_per_month'] ?? null;
+        if ($maxConn === null) {
+            $result[] = 'Unlimited connections';
+        } elseif ($maxConn > 0) {
+            $result[] = "{$maxConn} connections/month";
+        }
+
+        $labels = [
+            'public_listing'    => 'Public listing',
+            'basic_profile'     => 'Basic profile',
+            'view_profile_info' => 'Full profile access',
+            'priority_listing'  => 'Priority listing',
+            'analytics'         => 'Analytics',
+            'send_leads'        => 'Send leads',
+            'create_events'     => 'Create events',
+            'featured_profile'  => 'Featured profile',
+            'dedicated_support' => 'Dedicated support',
+        ];
+
+        foreach ($labels as $key => $display) {
+            if (!empty($features[$key]) && $features[$key] === true) {
+                $result[] = $display;
+            }
+        }
+
+        return $result;
     }
 }
