@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ConsulRequest;
 use App\Models\Interest;
 use App\Services\ConsulService;
 use App\Services\ProfileService;
