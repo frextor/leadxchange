@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\ConsulRequest;
 use App\Models\Interest;
 use App\Services\ConsulService;
 use App\Services\ProfileService;
@@ -208,14 +207,40 @@ class ProfileController extends Controller
     {
         $user = $request->user()->loadMissing('subscription.plan');
 
-        try {
-            $this->consulService->request($user);
-        } catch (\RuntimeException $e) {
-            $consulStatus = $user->isConsul() ? 'approved' : ($user->hasPendingConsulRequest() ? 'pending' : null);
+        if ($user->isConsul()) {
             return response()->json([
-                'message'      => $e->getMessage(),
-                'consul_status' => $consulStatus,
+                'message'      => 'Vous êtes déjà Consul.',
+                'consul_status' => 'approved',
             ], 422);
+        }
+
+        if ($user->consul_status === 'pending') {
+            return response()->json([
+                'message'      => 'Vous avez déjà une demande en attente.',
+                'consul_status' => 'pending',
+            ], 422);
+        }
+
+        if (! $this->consulService->hasPremiumAccess($user)) {
+            return response()->json([
+                'message'      => 'Vous devez avoir un abonnement Premium pour demander le statut Consul.',
+                'consul_status' => null,
+            ], 422);
+        }
+
+        $user->update(['consul_status' => 'pending']);
+
+        $admins = \App\Models\User::whereIn('role', ['admin', 'super_admin'])->get();
+        foreach ($admins as $admin) {
+            try {
+                \App\Models\Notification::storeForUser(
+                    $admin,
+                    'consul_request_submitted',
+                    'Nouvelle demande Consul',
+                    "{$user->first_name} {$user->last_name} (Premium) demande le statut Consul.",
+                    ['user_id' => $user->id]
+                );
+            } catch (\Throwable) {}
         }
 
         return response()->json([
