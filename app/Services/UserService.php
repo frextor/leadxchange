@@ -36,7 +36,7 @@ class UserService
 
         $query = User::query()
             ->where('id', '!=', $currentUserId)
-            ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'city:id,name', 'consulRequests', 'subscription.plan:id,name'])
+            ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status,website,linkedin,market_addressed_id,market_target_id', 'city:id,name', 'consulRequests', 'subscription.plan:id,name'])
             ->select(['id', 'first_name', 'last_name', 'email', 'phone', 'phone_country_code', 'city_id', 'birthday', 'gender', 'company_id', 'points_balance', 'badge_level', 'ambassador_status', 'consul_status']);
 
         // Search — scoped to requested fields (or all fields if none specified)
@@ -263,6 +263,10 @@ class UserService
             'sector_ids'       => $theirSectorIds,
             'services_offered' => $user->profile?->services_offered ?? [],
             'looking_for'      => $user->profile?->looking_for ?? [],
+            'website'          => $user->profile?->website,
+            'linkedin'         => $user->profile?->linkedin,
+            'market_addressed_id' => $user->profile?->market_addressed_id,
+            'market_target_id'    => $user->profile?->market_target_id,
             'presentation_video' => [
                 'url' => $user->profile?->presentation_video_status === 'approved'
                     ? $user->profile?->presentation_video_url
@@ -293,7 +297,7 @@ class UserService
 
     public function getUserById(int $userId, int $currentUserId): ?array
     {
-        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'nationality:id,name,flag', 'subscription.plan:id,name,label,max_users', 'consulRequests'])
+        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status,website,linkedin,market_addressed_id,market_target_id', 'nationality:id,name,flag', 'subscription.plan:id,name,label,max_users', 'consulRequests'])
             ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'ambassador_status', 'consul_status', 'created_at'])
             ->find($userId);
 
@@ -312,7 +316,7 @@ class UserService
 
     public function getProfileById(int $userId, int $currentUserId): ?array
     {
-        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'subscription.plan:id,name,label,max_users', 'consulRequests'])
+        $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status,website,linkedin,market_addressed_id,market_target_id', 'subscription.plan:id,name,label,max_users', 'consulRequests'])
             ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'ambassador_status', 'consul_status', 'created_at'])
             ->find($userId);
 

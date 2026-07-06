@@ -45,7 +45,7 @@ class CompanyController extends Controller
      * Create a new company OR join an existing one.
      *
      * Create body:
-     *   { name, siret, sector_id, website? }
+     *   { name, siret, website?, sector_id? }
      *
      * Join body:
      *   { existing_company_id }
@@ -81,7 +81,7 @@ class CompanyController extends Controller
             $validated = $request->validate([
                 'name'      => ['required', 'string', 'max:255'],
                 'siret'     => ['required', 'string', 'size:14', 'unique:companies,siret', 'regex:/^[0-9]{14}$/'],
-                'sector_id' => ['required', 'integer', 'exists:sectors,id'],
+                'sector_id' => ['nullable', 'integer', 'exists:sectors,id'],
                 'website'   => ['nullable', 'url', 'max:255'],
             ]);
 

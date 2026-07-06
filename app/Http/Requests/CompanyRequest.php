@@ -24,7 +24,7 @@ class CompanyRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'siret' => ['required', 'string', 'size:14', 'unique:companies,siret', 'regex:/^[0-9]{14}$/'],
-            'sector' => ['required', 'string', 'max:255'],
+            'sector' => ['nullable', 'string', 'max:255'],
             'website' => ['nullable', 'url', 'max:255'],
         ];
     }

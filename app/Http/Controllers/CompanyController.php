@@ -138,7 +138,7 @@ class CompanyController extends Controller
             $validated = $request->validate([
                 'name'      => ['required', 'string', 'max:255'],
                 'siret'     => ['required', 'string', 'size:14', 'unique:companies,siret', 'regex:/^[0-9]{14}$/'],
-                'sector_id' => ['required', 'exists:sectors,id'],
+                'sector_id' => ['nullable', 'exists:sectors,id'],
                 'website'   => ['nullable', 'url', 'max:255'],
             ], [
                 'name.required'     => "Le nom de l'entreprise est requis.",
@@ -146,8 +146,6 @@ class CompanyController extends Controller
                 'siret.size'        => 'Le SIRET doit contenir exactement 14 chiffres.',
                 'siret.unique'      => 'Ce numéro SIRET est déjà enregistré.',
                 'siret.regex'       => 'Le SIRET doit contenir uniquement des chiffres.',
-                'sector_id.required'=> "Le secteur d'activité est requis.",
-                'sector_id.exists'  => "Le secteur sélectionné est invalide.",
                 'website.url'       => 'Le site web doit être une URL valide.',
             ]);
 
