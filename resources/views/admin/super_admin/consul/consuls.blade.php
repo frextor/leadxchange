@@ -67,81 +67,36 @@
     </div>
 </div>
 
-{{-- ════ Section 1 : Demandes Consul (utilisateur → Consul) ════ --}}
-@if($pendingConsulUsers->isNotEmpty())
+{{-- ════ Demandes Consul ════ --}}
 <div class="mb-6">
     <div class="flex items-center gap-3 mb-3">
-        <h2 class="text-base font-bold text-gray-800">Demandes Consul en attente</h2>
+        <h2 class="text-base font-bold text-gray-800">Demandes Consul</h2>
+        @if($pendingConsulUsers->isNotEmpty())
         <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold text-white" style="background:#D97706;">
-            {{ $pendingConsulUsers->count() }}
-        </span>
-    </div>
-    <div class="bg-white rounded-2xl border border-amber-100 shadow-sm overflow-hidden">
-        @foreach($pendingConsulUsers as $user)
-        <div class="flex items-center gap-4 px-5 py-3.5 border-b border-gray-50 last:border-0 hover:bg-amber-50/30 transition">
-            <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                 style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
-                {{ strtoupper(substr($user->first_name ?? '?', 0, 1)) }}
-            </div>
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
-                    <p class="text-sm font-semibold text-gray-900">{{ $user->first_name }} {{ $user->last_name }}</p>
-                    <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
-                        {{ $user->subscription?->plan?->label ?? 'Sans plan' }}
-                    </span>
-                    @if($user->city)
-                    <span class="text-xs text-gray-400">📍 {{ $user->city->name }}</span>
-                    @endif
-                </div>
-                <p class="text-xs text-gray-400 mt-0.5 truncate">{{ $user->email }}</p>
-            </div>
-            <div class="flex items-center gap-2 flex-shrink-0">
-                <form method="POST" action="{{ route('admin.super.consuls.nominate', $user) }}">
-                    @csrf
-                    <button type="submit"
-                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition"
-                            style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
-                        Approuver
-                    </button>
-                </form>
-                <form method="POST" action="{{ route('admin.super.consuls.reject-request', $user) }}"
-                      onsubmit="return confirm('Refuser la demande Consul de {{ addslashes($user->first_name . ' ' . $user->last_name) }} ?')">
-                    @csrf @method('DELETE')
-                    <button type="submit"
-                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                        Refuser
-                    </button>
-                </form>
-            </div>
-        </div>
-        @endforeach
-    </div>
-</div>
-@endif
-
-{{-- ════ Section 2 : Demandes Ambassadeur (Consul → Ambassadeur) ════ --}}
-@if($consulRequestCounts['pending'] > 0 || $consulRequestCounts['approved'] > 0 || $consulRequestCounts['rejected'] > 0)
-<div class="mb-6">
-    <div class="flex items-center gap-3 mb-3">
-        <h2 class="text-base font-bold text-gray-800">Demandes d'Ambassadeur des Consuls</h2>
-        @if($consulRequestCounts['pending'] > 0)
-        <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold text-white" style="background:#6366F1;">
-            {{ $consulRequestCounts['pending'] }} en attente
+            {{ $pendingConsulUsers->count() }} en attente
         </span>
         @endif
     </div>
 
+    {{-- Tabs --}}
     <div class="flex items-center gap-1 mb-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-1.5 w-fit">
-        @foreach(['pending' => 'En attente', 'approved' => 'Approuvées', 'rejected' => 'Refusées'] as $s => $label)
+        <a href="{{ route('admin.super.consuls.manage', ['req_status' => 'pending']) }}"
+           class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition
+                  {{ $reqStatus === 'pending' ? 'bg-teal-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50' }}">
+            En attente
+            @if($pendingConsulUsers->isNotEmpty())
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full {{ $reqStatus === 'pending' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500' }}">
+                {{ $pendingConsulUsers->count() }}
+            </span>
+            @endif
+        </a>
+        @foreach(['approved' => 'Approuvées', 'rejected' => 'Refusées'] as $s => $label)
         <a href="{{ route('admin.super.consuls.manage', ['req_status' => $s]) }}"
            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition
-                  {{ $reqStatus === $s ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50' }}">
+                  {{ $reqStatus === $s ? 'bg-teal-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50' }}">
             {{ $label }}
             @if($consulRequestCounts[$s] > 0)
-            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full
-                         {{ $reqStatus === $s ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500' }}">
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full {{ $reqStatus === $s ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500' }}">
                 {{ $consulRequestCounts[$s] }}
             </span>
             @endif
@@ -150,72 +105,104 @@
     </div>
 
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        @forelse($consulRequests as $req)
-        <div class="flex items-start gap-4 px-5 py-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition">
-            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-                 style="background:linear-gradient(135deg,#6366F1,#4338CA);">
-                {{ strtoupper(substr($req->user->first_name ?? '?', 0, 1)) }}
-            </div>
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
-                    <p class="font-semibold text-gray-900">{{ $req->user->first_name }} {{ $req->user->last_name }}</p>
-                    <span class="text-xs px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 font-semibold">Consul</span>
-                    <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-semibold">
-                        {{ $req->user->subscription?->plan?->label ?? 'Sans plan' }}
-                    </span>
-                    @if($req->user->city)
-                    <span class="text-xs text-gray-400">📍 {{ $req->user->city->name }}</span>
-                    @endif
+
+        {{-- Onglet En attente : users avec consul_status = pending --}}
+        @if($reqStatus === 'pending')
+            @forelse($pendingConsulUsers as $user)
+            <div class="flex items-center gap-4 px-5 py-3.5 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                     style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
+                    {{ strtoupper(substr($user->first_name ?? '?', 0, 1)) }}
                 </div>
-                <p class="text-xs text-gray-400 mt-0.5">{{ $req->user->email }} · Demande le {{ $req->created_at->format('d/m/Y') }}</p>
-                @if($req->isRejected() && $req->rejection_reason)
-                <p class="text-xs text-red-500 mt-1">Raison : {{ $req->rejection_reason }}</p>
-                @endif
-                @if($req->isApproved())
-                <p class="text-xs text-emerald-600 mt-1">Approuvé par {{ $req->validator?->first_name }} le {{ $req->validated_at?->format('d/m/Y') }}</p>
-                @endif
-            </div>
-            <div class="flex-shrink-0 self-center">
-                @if($req->isPending())
-                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <p class="text-sm font-semibold text-gray-900">{{ $user->first_name }} {{ $user->last_name }}</p>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+                            {{ $user->subscription?->plan?->label ?? 'Sans plan' }}
+                        </span>
+                        @if($user->city)
+                        <span class="text-xs text-gray-400">📍 {{ $user->city->name }}</span>
+                        @endif
+                    </div>
+                    <p class="text-xs text-gray-400 mt-0.5 truncate">{{ $user->email }}</p>
+                </div>
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 flex-shrink-0">
                     <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> En attente
                 </span>
-                @elseif($req->isApproved())
-                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <form method="POST" action="{{ route('admin.super.consuls.nominate', $user) }}">
+                        @csrf
+                        <button type="submit" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition"
+                                style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+                            Approuver
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ route('admin.super.consuls.reject-request', $user) }}"
+                          onsubmit="return confirm('Refuser la demande Consul de {{ addslashes($user->first_name . ' ' . $user->last_name) }} ?')">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                            Refuser
+                        </button>
+                    </form>
+                </div>
+            </div>
+            @empty
+            <div class="px-5 py-10 text-center">
+                <p class="text-sm text-gray-400">Aucune demande en attente.</p>
+            </div>
+            @endforelse
+
+        {{-- Onglets Approuvées / Refusées : historique ConsulRequest --}}
+        @else
+            @forelse($consulRequests as $req)
+            <div class="flex items-start gap-4 px-5 py-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                     style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
+                    {{ strtoupper(substr($req->user->first_name ?? '?', 0, 1)) }}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <p class="font-semibold text-gray-900">{{ $req->user->first_name }} {{ $req->user->last_name }}</p>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+                            {{ $req->user->subscription?->plan?->label ?? 'Sans plan' }}
+                        </span>
+                        @if($req->user->city)
+                        <span class="text-xs text-gray-400">📍 {{ $req->user->city->name }}</span>
+                        @endif
+                    </div>
+                    <p class="text-xs text-gray-400 mt-0.5">{{ $req->user->email }}</p>
+                    @if($req->isApproved())
+                    <p class="text-xs text-emerald-600 mt-1">Approuvé par {{ $req->validator?->first_name }} le {{ $req->validated_at?->format('d/m/Y') }}</p>
+                    @elseif($req->rejection_reason)
+                    <p class="text-xs text-red-500 mt-1">Raison : {{ $req->rejection_reason }}</p>
+                    @endif
+                </div>
+                @if($req->isApproved())
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 flex-shrink-0 self-center">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Approuvée
                 </span>
                 @else
-                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600">
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600 flex-shrink-0 self-center">
                     <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Refusée
                 </span>
                 @endif
             </div>
-            @if($req->isPending())
-            <div class="flex items-center gap-2 flex-shrink-0 self-center">
-                <form method="POST" action="{{ route('admin.super.consul.approve', $req) }}">
-                    @csrf
-                    <button type="submit" class="px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition" style="background:#059669;">✓ Approuver</button>
-                </form>
-                <button type="button" onclick="openRejectModal({{ $req->id }})"
-                        class="px-3 py-1.5 rounded-xl text-xs font-bold border border-red-200 text-red-600 hover:bg-red-50 transition">
-                    ✕ Refuser
-                </button>
+            @empty
+            <div class="px-5 py-10 text-center">
+                <p class="text-sm text-gray-400">Aucune demande {{ $reqStatus === 'approved' ? 'approuvée' : 'refusée' }}.</p>
             </div>
+            @endforelse
+            @if($consulRequests->hasPages())
+            <div class="px-5 py-3 border-t border-gray-100">{{ $consulRequests->links() }}</div>
             @endif
-        </div>
-        @empty
-        <div class="px-5 py-10 text-center">
-            <p class="text-sm text-gray-400">Aucune demande {{ $reqStatus === 'pending' ? 'en attente' : ($reqStatus === 'approved' ? 'approuvée' : 'refusée') }}.</p>
-        </div>
-        @endforelse
-    </div>
-    @if($consulRequests->hasPages())
-    <div class="mt-4">{{ $consulRequests->links() }}</div>
-    @endif
-</div>
-@endif
+        @endif
 
-{{-- Reject modal (consul → ambassador) --}}
+    </div>
+</div>
+
+{{-- Reject modal --}}
 <div id="reject-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
         <h3 class="text-base font-bold text-gray-900 mb-4">Refuser la demande ambassadeur</h3>
