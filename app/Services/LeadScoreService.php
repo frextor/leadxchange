@@ -85,7 +85,7 @@ class LeadScoreService
             ->where('leads.sender_id', $user->id)
             ->whereIn('leads.status', ['accepted', 'converted'])
             ->where('leads.accepted_at', '>=', $since)
-            ->whereColumn('lead_ratings.created_at', '<=', 'leads.rating_due_at')
+            ->whereColumn('lead_ratings.rated_at', '<=', 'leads.rating_due_at')
             ->select('leads.lead_type', DB::raw('count(*) as cnt'))
             ->groupBy('leads.lead_type')
             ->pluck('cnt', 'leads.lead_type');
@@ -104,7 +104,7 @@ class LeadScoreService
             ->where('leads.receiver_id', $user->id)
             ->whereIn('leads.status', ['accepted', 'converted'])
             ->where('leads.accepted_at', '>=', $since)
-            ->whereColumn('lead_ratings.created_at', '<=', 'leads.rating_due_at')
+            ->whereColumn('lead_ratings.rated_at', '<=', 'leads.rating_due_at')
             ->count();
 
         $receivedPoints = $receivedCount * self::RECEIVED_MALUS;
