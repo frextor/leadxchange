@@ -293,6 +293,7 @@ class UserService
             'i_am_receiver'     => $connection ? ($connection->receiver_id === $currentUserId) : false,
             'is_online'         => false,
             'plan'              => $this->planPayload($user),
+            'rank'              => $this->rankPayload($user),
         ];
     }
 
@@ -307,6 +308,7 @@ class UserService
         $base = $this->enrichUserWithConnectionStatus($user, $currentUserId);
         $base['nationality'] = $user->nationality ? ['name' => $user->nationality->name, 'flag' => $user->nationality->flag] : null;
         $base['plan'] = $this->planPayload($user);
+        $base['rank'] = $this->rankPayload($user);
 
         return $base;
     }
@@ -321,6 +323,7 @@ class UserService
 
         $base = $this->enrichUserWithConnectionStatus($user, $currentUserId);
         $base['plan'] = $this->planPayload($user);
+        $base['rank'] = $this->rankPayload($user);
 
         $base['gender']       = $user->gender;
         $base['birthday']     = $user->birthday?->format('Y-m-d');
@@ -343,6 +346,29 @@ class UserService
             'label'               => 'Basic',
             'is_enterprise_owner' => false,
         ];
+    }
+
+    /**
+     * Compute the highest rank for a user.
+     * Hierarchy: basic < premium < consul < ambassador
+     */
+    private function rankPayload(\App\Models\User $user): array
+    {
+        if ($user->ambassador_status === 'approved') {
+            return ['level' => 'ambassador', 'label' => 'Ambassadeur'];
+        }
+
+        $consulStatus = $this->deriveConsulStatus($user);
+        if ($consulStatus === 'approved') {
+            return ['level' => 'consul', 'label' => 'Consul'];
+        }
+
+        $planName = strtolower($user->subscription?->plan?->name ?? '');
+        if ($planName && !str_contains($planName, 'basic')) {
+            return ['level' => 'premium', 'label' => $user->subscription->plan->label ?? ucfirst($planName)];
+        }
+
+        return ['level' => 'basic', 'label' => 'Basic'];
     }
 
     private function isEnterpriseOwnerSubscription(?\App\Models\Subscription $subscription): bool
