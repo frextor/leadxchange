@@ -292,6 +292,7 @@ class UserService
             'i_am_sender'       => $connection ? ($connection->sender_id === $currentUserId) : false,
             'i_am_receiver'     => $connection ? ($connection->receiver_id === $currentUserId) : false,
             'is_online'         => false,
+            'plan'              => $this->planPayload($user),
         ];
     }
 
@@ -305,11 +306,7 @@ class UserService
 
         $base = $this->enrichUserWithConnectionStatus($user, $currentUserId);
         $base['nationality'] = $user->nationality ? ['name' => $user->nationality->name, 'flag' => $user->nationality->flag] : null;
-        $base['plan'] = $user->subscription?->plan ? [
-            'name'  => $user->subscription->plan->name,
-            'label' => $user->subscription->plan->label,
-            'is_enterprise_owner' => $this->isEnterpriseOwnerSubscription($user->subscription),
-        ] : null;
+        $base['plan'] = $this->planPayload($user);
 
         return $base;
     }
@@ -323,16 +320,29 @@ class UserService
         if (!$user) return null;
 
         $base = $this->enrichUserWithConnectionStatus($user, $currentUserId);
-        $base['plan'] = $user->subscription?->plan ? [
-            'name'  => $user->subscription->plan->name,
-            'label' => $user->subscription->plan->label,
-            'is_enterprise_owner' => $this->isEnterpriseOwnerSubscription($user->subscription),
-        ] : null;
+        $base['plan'] = $this->planPayload($user);
 
         $base['gender']       = $user->gender;
         $base['birthday']     = $user->birthday?->format('Y-m-d');
         $base['member_since'] = $user->created_at?->format('F Y');
         return $base;
+    }
+
+    private function planPayload(\App\Models\User $user): array
+    {
+        if ($user->subscription?->plan) {
+            return [
+                'name'                => $user->subscription->plan->name,
+                'label'               => $user->subscription->plan->label,
+                'is_enterprise_owner' => $this->isEnterpriseOwnerSubscription($user->subscription),
+            ];
+        }
+
+        return [
+            'name'                => 'basic',
+            'label'               => 'Basic',
+            'is_enterprise_owner' => false,
+        ];
     }
 
     private function isEnterpriseOwnerSubscription(?\App\Models\Subscription $subscription): bool
