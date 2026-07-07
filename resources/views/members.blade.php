@@ -209,7 +209,7 @@
         const div = document.createElement('div');
         div.className = 'p-6 hover:bg-gray-50 transition';
 
-        const initials = (user.first_name.charAt(0) + user.last_name.charAt(0)).toUpperCase();
+        const initials = ((user.first_name || '?').charAt(0) + (user.last_name || '?').charAt(0)).toUpperCase();
         const isConnected = user.connection_status === 'accepted';
         const isPendingAndISent = user.connection_status === 'pending' && user.i_am_sender;
         const isPendingAndIReceived = user.connection_status === 'pending' && user.i_am_receiver;

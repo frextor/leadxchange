@@ -411,7 +411,7 @@
                 <div class="p-4 border-b border-gray-100 hover:bg-gray-50 transition" id="req-${r.id}">
                     <div class="flex items-center space-x-3">
                         <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style="background:linear-gradient(135deg,#34d4bf,#1E8F88);">
-                            ${r.user.first_name.charAt(0)}${r.user.last_name.charAt(0)}
+                            ${(r.user.first_name||'?').charAt(0)}${(r.user.last_name||'?').charAt(0)}
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-bold text-gray-900 truncate">${r.user.first_name} ${r.user.last_name}</p>

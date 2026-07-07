@@ -485,7 +485,7 @@ function renderVisitorList(containerId, visitors) {
 function memberRowHtml(m, isLast) {
     const hue  = (m.id * 137) % 360;
     const hue2 = (hue + 40) % 360;
-    const initials = (m.first_name.charAt(0) + m.last_name.charAt(0)).toUpperCase();
+    const initials = ((m.first_name || '?').charAt(0) + (m.last_name || '?').charAt(0)).toUpperCase();
 
     const subtitle = m.job_title || m.position || '';
 
@@ -545,7 +545,7 @@ function memberRowHtml(m, isLast) {
 function visitorRowHtml(v, isLast) {
     const hue = (v.id * 137) % 360;
     const hue2 = (hue + 40) % 360;
-    const initials = (v.first_name.charAt(0) + v.last_name.charAt(0)).toUpperCase();
+    const initials = ((v.first_name || '?').charAt(0) + (v.last_name || '?').charAt(0)).toUpperCase();
 
     return `
     <div class="member-row relative grid items-center gap-6 px-6 py-5 transition-colors hover:bg-gray-50/50 ${isLast ? '' : 'border-b border-gray-100'}"
