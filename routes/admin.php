@@ -155,6 +155,7 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
 
     // Ambassador management (nominate directly or revoke)
     Route::post('manage-ambassadors/{user}/nominate',  [ConsulController::class, 'nominateAmbassador'])->name('ambassadors.nominate');
+    Route::post('manage-ambassadors/{user}/reject',    [ConsulController::class, 'rejectAmbassadorRequest'])->name('ambassadors.reject');
     Route::delete('manage-ambassadors/{user}/revoke',  [ConsulController::class, 'revokeAmbassador'])->name('ambassadors.revoke');
 
     // Unified Ambassadeurs page

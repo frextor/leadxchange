@@ -151,6 +151,28 @@ class ConsulController extends Controller
 
     // ── Ambassador management ────────────────────────────────────────────────
 
+    public function rejectAmbassadorRequest(Request $request, User $user): RedirectResponse
+    {
+        $this->authorize('promoteAmbassador', ConsulRequest::class);
+
+        if ($user->ambassador_status !== 'pending') {
+            return back()->with('error', 'Cet utilisateur n\'a pas de demande Ambassadeur en attente.');
+        }
+
+        $request->validate(['reason' => ['nullable', 'string', 'max:500']]);
+
+        $user->update([
+            'ambassador_status'            => 'rejected',
+            'ambassador_reviewed_at'       => now(),
+            'ambassador_reviewed_by'       => auth()->id(),
+            'ambassador_rejection_reason'  => $request->reason,
+        ]);
+
+        ConsulRequest::where('user_id', $user->id)->where('status', 'pending')->update(['status' => 'rejected']);
+
+        return back()->with('success', "Demande Ambassadeur de {$user->first_name} {$user->last_name} refusée.");
+    }
+
     public function nominateAmbassador(User $user): RedirectResponse
     {
         $this->authorize('promoteAmbassador', ConsulRequest::class);

@@ -97,7 +97,7 @@
                 </button>
             </form>
         </div>
-        <form method="POST" action="{{ route('admin.super.ambassadors.revoke', $user) }}" class="flex gap-2">
+        <form method="POST" action="{{ route('admin.super.ambassadors.reject', $user) }}" class="flex gap-2">
             @csrf
             <input type="text" name="reason" placeholder="Motif du refus (obligatoire)" required
                    class="flex-1 h-10 px-3 rounded-xl border border-gray-200 text-sm outline-none focus:border-red-400 transition">
