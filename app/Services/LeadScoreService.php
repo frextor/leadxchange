@@ -115,7 +115,23 @@ class LeadScoreService
 
         $receivedPoints = $receivedCount * self::RECEIVED_MALUS;
 
-        return $sentPoints + $receivedPoints;
+        // Malus type sur les leads reçus et notés → MQL:-1, SQL:-3, SP:-5
+        $ratedReceived = DB::table('leads')
+            ->join('lead_ratings', 'lead_ratings.lead_id', '=', 'leads.id')
+            ->where('leads.receiver_id', $user->id)
+            ->whereIn('leads.status', ['accepted', 'converted'])
+            ->where('leads.accepted_at', '>=', $since)
+            ->whereColumn('lead_ratings.rated_at', '<=', 'leads.rating_due_at')
+            ->select('leads.lead_type', DB::raw('count(*) as cnt'))
+            ->groupBy('leads.lead_type')
+            ->pluck('cnt', 'leads.lead_type');
+
+        $receivedBonusDeduction = 0;
+        foreach (self::TYPE_WEIGHTS as $type => $weight) {
+            $receivedBonusDeduction -= ($ratedReceived[$type] ?? 0) * $weight;
+        }
+
+        return $sentPoints + $receivedPoints + $receivedBonusDeduction;
     }
 
     public function badge(int $score): string
