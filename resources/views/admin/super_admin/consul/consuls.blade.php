@@ -301,9 +301,9 @@
 
 @push('scripts')
 <script>
-const rejectBase = '{{ url("/admin/super/consul") }}';
+const rejectUrlTemplate = '{{ route("admin.super.consul.reject", ":id") }}';
 function openRejectModal(id) {
-    document.getElementById('reject-form').action = rejectBase + '/' + id + '/reject';
+    document.getElementById('reject-form').action = rejectUrlTemplate.replace(':id', id);
     const m = document.getElementById('reject-modal');
     m.classList.remove('hidden'); m.classList.add('flex');
 }
