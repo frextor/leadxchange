@@ -54,7 +54,13 @@ class ConnectionService
                 throw new \Exception('You are already connected with this user');
             }
             if ($existingConnection->isRejected()) {
-                throw new \Exception('This connection was previously rejected');
+                // Allow re-sending after rejection: reset to pending
+                $existingConnection->update([
+                    'status' => Connection::STATUS_PENDING,
+                    'sender_id' => $sender->id,
+                    'receiver_id' => $receiverId,
+                ]);
+                return $existingConnection->fresh();
             }
         }
 
