@@ -101,8 +101,6 @@ class LeadService
         try {
             $lead->update(['status' => Lead::STATUS_ACCEPTED, 'points_deducted' => true]);
             $lead->load('sender', 'receiver');
-            // CGU §6.2.1 + §6.3.1 : sender +2, receiver -1
-            $this->points->onLeadAccepted($lead);
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -215,6 +213,9 @@ class LeadService
 
         DB::beginTransaction();
         try {
+            $lead->update(['lead_type' => $leadType, 'points_deducted' => true]);
+            $lead->load('sender', 'receiver');
+
             $rating = LeadRating::create([
                 'lead_id'    => $lead->id,
                 'rater_id'   => $rater->id,
@@ -222,12 +223,6 @@ class LeadService
                 'relevance'  => $relevance,
                 'reactivity' => $reactivity,
             ]);
-
-            $lead->update(['lead_type' => $leadType, 'points_deducted' => true]);
-            $lead->load('sender', 'receiver');
-
-            // CGU §6.2.2 + §6.3.2 : bonus points based on lead_type
-            $this->points->onLeadRated($lead, $leadType ?? '');
 
             DB::commit();
         } catch (\Exception $e) {
