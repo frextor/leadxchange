@@ -79,8 +79,17 @@ class LeadScoreService
     {
         $since = now()->subDays(self::WINDOW_DAYS);
 
-        // Leads envoyés, acceptés ET notés dans les 15 jours après acceptation
-        $sent = DB::table('leads')
+        // Base : tous les leads acceptés → sender +2, receiver -1
+        $acceptedSentCount = DB::table('leads')
+            ->where('sender_id', $user->id)
+            ->whereIn('status', ['accepted', 'converted'])
+            ->where('accepted_at', '>=', $since)
+            ->count();
+
+        $basePoints = $acceptedSentCount * self::SENT_BONUS;
+
+        // Bonus type : leads notés dans les 15 jours → +MQL/SQL/SP
+        $ratedSent = DB::table('leads')
             ->join('lead_ratings', 'lead_ratings.lead_id', '=', 'leads.id')
             ->where('leads.sender_id', $user->id)
             ->whereIn('leads.status', ['accepted', 'converted'])
@@ -90,21 +99,18 @@ class LeadScoreService
             ->groupBy('leads.lead_type')
             ->pluck('cnt', 'leads.lead_type');
 
-        $totalSent = $sent->sum();
-
-        // Points base envoi + qualification
-        $sentPoints = $totalSent * self::SENT_BONUS;
+        $bonusPoints = 0;
         foreach (self::TYPE_WEIGHTS as $type => $weight) {
-            $sentPoints += ($sent[$type] ?? 0) * $weight;
+            $bonusPoints += ($ratedSent[$type] ?? 0) * $weight;
         }
 
-        // Leads reçus, acceptés ET notés dans les 15 jours
+        $sentPoints = $basePoints + $bonusPoints;
+
+        // Leads reçus et acceptés → -1 chacun
         $receivedCount = DB::table('leads')
-            ->join('lead_ratings', 'lead_ratings.lead_id', '=', 'leads.id')
-            ->where('leads.receiver_id', $user->id)
-            ->whereIn('leads.status', ['accepted', 'converted'])
-            ->where('leads.accepted_at', '>=', $since)
-            ->whereColumn('lead_ratings.rated_at', '<=', 'leads.rating_due_at')
+            ->where('receiver_id', $user->id)
+            ->whereIn('status', ['accepted', 'converted'])
+            ->where('accepted_at', '>=', $since)
             ->count();
 
         $receivedPoints = $receivedCount * self::RECEIVED_MALUS;
