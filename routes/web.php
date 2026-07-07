@@ -247,12 +247,63 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
     Route::post('/consul/request',         [\App\Http\Controllers\ConsulRequestController::class, 'store'])->name('consul.request');
     Route::post('/consul/request-promote', [\App\Http\Controllers\ConsulRequestController::class, 'requestConsulPromotion'])->name('consul.request-promote');
 
-    // Ambassador consul management (ambassador-only, regional)
-    Route::middleware('ambassador')->prefix('ambassador/consuls')->name('ambassador.consuls.')->group(function () {
-        Route::get('/',             [\App\Http\Controllers\Ambassador\ConsulManagementController::class, 'index'])->name('index');
-        Route::post('/{user}/approve', [\App\Http\Controllers\Ambassador\ConsulManagementController::class, 'approveConsulRequest'])->name('approve');
-        Route::post('/{user}/reject',  [\App\Http\Controllers\Ambassador\ConsulManagementController::class, 'rejectConsulRequest'])->name('reject');
-        Route::post('/{user}/nominate',[\App\Http\Controllers\Ambassador\ConsulManagementController::class, 'nominateConsul'])->name('nominate');
+    // ── Ambassador Space (ambassador-only, regional) ──────────────────────────
+    Route::middleware('ambassador')->prefix('ambassador')->name('ambassador.')->group(function () {
+
+        // Dashboard
+        Route::get('/', [\App\Http\Controllers\Ambassador\DashboardController::class, 'index'])->name('dashboard');
+
+        // Members
+        Route::get('/members', [\App\Http\Controllers\Ambassador\MembersController::class, 'index'])->name('members.index');
+        Route::post('/members/{user}/invite', [\App\Http\Controllers\Ambassador\MembersController::class, 'inviteToEvent'])->name('members.invite');
+
+        // Events
+        Route::get('/events',                  [\App\Http\Controllers\Ambassador\EventsController::class, 'index'])->name('events.index');
+        Route::get('/events/create',           [\App\Http\Controllers\Ambassador\EventsController::class, 'create'])->name('events.create');
+        Route::post('/events',                 [\App\Http\Controllers\Ambassador\EventsController::class, 'store'])->name('events.store');
+        Route::get('/events/{event}',          [\App\Http\Controllers\Ambassador\EventsController::class, 'show'])->name('events.show');
+        Route::get('/events/{event}/edit',     [\App\Http\Controllers\Ambassador\EventsController::class, 'edit'])->name('events.edit');
+        Route::put('/events/{event}',          [\App\Http\Controllers\Ambassador\EventsController::class, 'update'])->name('events.update');
+        Route::post('/events/{event}/cancel',  [\App\Http\Controllers\Ambassador\EventsController::class, 'cancel'])->name('events.cancel');
+        Route::get('/events/{event}/export',   [\App\Http\Controllers\Ambassador\EventsController::class, 'exportParticipants'])->name('events.export');
+
+        // Consul management (existing — preserved)
+        Route::prefix('consuls')->name('consuls.')->group(function () {
+            Route::get('/',                [\App\Http\Controllers\Ambassador\ConsulManagementController::class, 'index'])->name('index');
+            Route::post('/{user}/approve', [\App\Http\Controllers\Ambassador\ConsulManagementController::class, 'approveConsulRequest'])->name('approve');
+            Route::post('/{user}/reject',  [\App\Http\Controllers\Ambassador\ConsulManagementController::class, 'rejectConsulRequest'])->name('reject');
+            Route::post('/{user}/nominate',[\App\Http\Controllers\Ambassador\ConsulManagementController::class, 'nominateConsul'])->name('nominate');
+        });
+
+        // Leads analytics
+        Route::get('/leads', [\App\Http\Controllers\Ambassador\LeadsController::class, 'index'])->name('leads.index');
+
+        // Invitations
+        Route::get('/invitations',              [\App\Http\Controllers\Ambassador\InvitationsController::class, 'index'])->name('invitations.index');
+        Route::post('/invitations/{user}/send', [\App\Http\Controllers\Ambassador\InvitationsController::class, 'send'])->name('invitations.send');
+
+        // Performance
+        Route::get('/performance',  [\App\Http\Controllers\Ambassador\PerformanceController::class, 'index'])->name('performance.index');
+        Route::post('/performance', [\App\Http\Controllers\Ambassador\PerformanceController::class, 'updateObjectives'])->name('performance.update');
+
+        // Ranking
+        Route::get('/ranking', [\App\Http\Controllers\Ambassador\RankingController::class, 'index'])->name('ranking.index');
+
+        // Communication
+        Route::get('/communication',  [\App\Http\Controllers\Ambassador\CommunicationController::class, 'index'])->name('communication.index');
+        Route::post('/communication', [\App\Http\Controllers\Ambassador\CommunicationController::class, 'announce'])->name('communication.announce');
+
+
+        // Reports
+        Route::get('/reports',               [\App\Http\Controllers\Ambassador\ReportsController::class, 'index'])->name('reports.index');
+        Route::get('/reports/export/{type}', [\App\Http\Controllers\Ambassador\ReportsController::class, 'export'])->name('reports.export');
+
+        // Profile
+        Route::get('/profile', [\App\Http\Controllers\Ambassador\AmbassadorProfileController::class, 'index'])->name('profile.index');
+        Route::put('/profile', [\App\Http\Controllers\Ambassador\AmbassadorProfileController::class, 'update'])->name('profile.update');
+
+        // Notifications
+        Route::get('/notifications', [\App\Http\Controllers\Ambassador\NotificationsController::class, 'index'])->name('notifications.index');
     });
 
     // Leads (Exchanges)

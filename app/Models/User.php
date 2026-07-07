@@ -188,6 +188,21 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(\App\Models\ConsulRequest::class);
     }
 
+    public function ambassadorProfile()
+    {
+        return $this->hasOne(\App\Models\AmbassadorProfile::class);
+    }
+
+    public function ambassadorObjectives()
+    {
+        return $this->hasMany(\App\Models\AmbassadorObjective::class, 'ambassador_id');
+    }
+
+    public function ambassadorAnnouncements()
+    {
+        return $this->hasMany(\App\Models\AmbassadorAnnouncement::class, 'ambassador_id');
+    }
+
     public function latestConsulRequest(): ?\App\Models\ConsulRequest
     {
         return $this->consulRequests()->latest()->first();

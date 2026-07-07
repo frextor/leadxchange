@@ -426,6 +426,20 @@ class FirebaseService
 
     // ─── Internal Helpers ─────────────────────────────────────────────────────
 
+    public function sendAmbassadorAnnouncement(\Illuminate\Support\Collection $members, string $title, string $body): void
+    {
+        $userIds = $members->pluck('id');
+        $tokens  = DeviceToken::whereIn('user_id', $userIds)->pluck('token');
+
+        if ($tokens->isEmpty()) {
+            return;
+        }
+
+        $this->sendToTokens($tokens, $title, $body, [
+            'type' => 'ambassador_announcement',
+        ]);
+    }
+
     private function sendToTokens($tokens, string $title, string $body, array $data = []): void
     {
         $accessToken = $this->getAccessToken();

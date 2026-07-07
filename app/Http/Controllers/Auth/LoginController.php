@@ -74,7 +74,11 @@ class LoginController extends Controller
             $token = $user->createToken('web-spa')->plainTextToken;
             $request->session()->put('web_api_token', $token);
 
-            return redirect()->intended(route('dashboard'))
+            $destination = $user->isAmbassador()
+                ? route('ambassador.dashboard')
+                : route('dashboard');
+
+            return redirect()->intended($destination)
                 ->with('success', 'Bienvenue ' . $user->first_name . ' !');
         }
 

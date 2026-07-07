@@ -16,6 +16,26 @@
 
 @section('content')
 
+{{-- ── AMBASSADOR BANNER ── --}}
+@if(auth()->user()->isAmbassador())
+<div class="mx-auto max-w-7xl px-6 lg:px-8 pt-5">
+    <a href="{{ route('ambassador.dashboard') }}"
+       class="flex items-center justify-between gap-4 px-5 py-4 rounded-2xl text-white hover:opacity-95 transition"
+       style="background:linear-gradient(135deg,#0F1629,#14B8A6);">
+        <div class="flex items-center gap-3">
+            <span class="text-2xl">🏅</span>
+            <div>
+                <p class="font-bold text-[14px]">Espace Ambassadeur disponible</p>
+                <p class="text-teal-200 text-xs">Accédez à votre tableau de bord régional, membres, événements et performance.</p>
+            </div>
+        </div>
+        <span class="flex-shrink-0 text-sm font-bold px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 transition">
+            Accéder →
+        </span>
+    </a>
+</div>
+@endif
+
 {{-- ── WELCOME MODAL (first login only) ── --}}
 <div id="welcomeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" style="animation:slideUp .3s ease;">

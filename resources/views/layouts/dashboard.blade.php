@@ -215,6 +215,49 @@
                     <span>Chat</span>
                 </a>
 
+                {{-- AMBASSADOR (visible uniquement pour les ambassadeurs) --}}
+                @if(auth()->user()->isAmbassador())
+                <div class="relative lx-nav-item {{ request()->routeIs('ambassador.*') ? 'active' : '' }}"
+                     id="ambNavItem" onclick="toggleAmbMenu()" style="cursor:pointer;">
+                    <div class="relative">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </div>
+                    <span>Ambassadeur</span>
+
+                    {{-- Dropdown ambassador --}}
+                    <div id="ambPanel"
+                         class="hidden absolute top-full right-0 mt-0 w-60 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden dropdown-enter"
+                         style="top:72px;">
+                        <div class="px-4 py-3 border-b border-gray-100" style="background:linear-gradient(135deg,#0F1629,#14B8A6);">
+                            <p class="text-white font-bold text-sm">🏅 Espace Ambassadeur</p>
+                            <p class="text-teal-200 text-[11px]">{{ auth()->user()->region?->name ?? auth()->user()->city?->name ?? 'Votre région' }}</p>
+                        </div>
+                        <div class="py-1.5">
+                            @php $ambLinks = [
+                                ['route' => 'ambassador.dashboard',      'label' => 'Dashboard',       'icon' => 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'],
+                                ['route' => 'ambassador.members.index',  'label' => 'Mes Membres',     'icon' => 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'],
+                                ['route' => 'ambassador.events.index',   'label' => 'Événements',      'icon' => 'M3 4h18v2H3zM3 9h18v2H3zM3 14h18v2H3z'],
+                                ['route' => 'ambassador.leads.index',    'label' => 'Leads Analytics', 'icon' => 'M18 20V10M12 20V4M6 20v-6'],
+                                ['route' => 'ambassador.performance.index','label'=> 'Performance',    'icon' => 'M22 12h-4l-3 9L9 3l-3 9H2'],
+                                ['route' => 'ambassador.consuls.index',  'label' => 'Mes Consuls',     'icon' => 'M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z'],
+                                ['route' => 'ambassador.ranking.index',  'label' => 'Classement',      'icon' => 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'],
+                                ['route' => 'ambassador.communication.index','label'=>'Communication', 'icon' => 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'],
+                                ['route' => 'ambassador.reports.index',  'label' => 'Rapports',        'icon' => 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'],
+                            ]; @endphp
+                            @foreach($ambLinks as $link)
+                            <a href="{{ route($link['route']) }}"
+                               class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition {{ request()->routeIs($link['route']) ? 'bg-teal-50 text-teal-700 font-semibold' : '' }}">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="flex-shrink-0 text-gray-400"><path d="{{ $link['icon'] }}"/></svg>
+                                {{ $link['label'] }}
+                            </a>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+                @endif
+
             </nav>
 
             <!-- Right: avatar + dropdown -->
@@ -250,6 +293,13 @@
                         </div>
                     </div>
                     <div class="py-1.5">
+                        @if(auth()->user()->isAmbassador())
+                        <a href="{{ route('ambassador.dashboard') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-teal-50 transition" style="color:#0F766E;">
+                            <span class="text-base flex-shrink-0">🏅</span>
+                            Espace Ambassadeur
+                        </a>
+                        <div class="h-px bg-gray-100 mx-3 my-1"></div>
+                        @endif
                         <a href="{{ route('profile.me') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 flex-shrink-0"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
                             Profile
