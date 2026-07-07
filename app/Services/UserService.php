@@ -376,12 +376,14 @@ class UserService
 
         $given = Lead::where('sender_id', $userId)
             ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
-            ->where('updated_at', '>=', $since)
+            ->where('accepted_at', '>=', $since)
+            ->whereHas('ratings', fn($q) => $q->whereColumn('rated_at', '<=', 'leads.rating_due_at'))
             ->get(['lead_type']);
 
         $receivedCount = Lead::where('receiver_id', $userId)
             ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
-            ->where('updated_at', '>=', $since)
+            ->where('accepted_at', '>=', $since)
+            ->whereHas('ratings', fn($q) => $q->whereColumn('rated_at', '<=', 'leads.rating_due_at'))
             ->count();
 
         $givenCount = $given->count();
