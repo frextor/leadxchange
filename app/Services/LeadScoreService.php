@@ -79,14 +79,16 @@ class LeadScoreService
     {
         $since = now()->subDays(self::WINDOW_DAYS);
 
-        // Leads envoyés et acceptés dans la fenêtre (par type)
+        // Leads envoyés, acceptés ET notés dans les 15 jours après acceptation
         $sent = DB::table('leads')
-            ->where('sender_id', $user->id)
-            ->whereIn('status', ['accepted', 'converted'])
-            ->where('accepted_at', '>=', $since)
-            ->select('lead_type', DB::raw('count(*) as cnt'))
-            ->groupBy('lead_type')
-            ->pluck('cnt', 'lead_type');
+            ->join('lead_ratings', 'lead_ratings.lead_id', '=', 'leads.id')
+            ->where('leads.sender_id', $user->id)
+            ->whereIn('leads.status', ['accepted', 'converted'])
+            ->where('leads.accepted_at', '>=', $since)
+            ->whereColumn('lead_ratings.created_at', '<=', 'leads.rating_due_at')
+            ->select('leads.lead_type', DB::raw('count(*) as cnt'))
+            ->groupBy('leads.lead_type')
+            ->pluck('cnt', 'leads.lead_type');
 
         $totalSent = $sent->sum();
 
@@ -96,11 +98,13 @@ class LeadScoreService
             $sentPoints += ($sent[$type] ?? 0) * $weight;
         }
 
-        // Leads reçus et acceptés dans la fenêtre
+        // Leads reçus, acceptés ET notés dans les 15 jours
         $receivedCount = DB::table('leads')
-            ->where('receiver_id', $user->id)
-            ->whereIn('status', ['accepted', 'converted'])
-            ->where('accepted_at', '>=', $since)
+            ->join('lead_ratings', 'lead_ratings.lead_id', '=', 'leads.id')
+            ->where('leads.receiver_id', $user->id)
+            ->whereIn('leads.status', ['accepted', 'converted'])
+            ->where('leads.accepted_at', '>=', $since)
+            ->whereColumn('lead_ratings.created_at', '<=', 'leads.rating_due_at')
             ->count();
 
         $receivedPoints = $receivedCount * self::RECEIVED_MALUS;
