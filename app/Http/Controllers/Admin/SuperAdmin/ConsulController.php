@@ -138,7 +138,7 @@ class ConsulController extends Controller
         }
     }
 
-    public function rejectConsulRequest(User $user): RedirectResponse
+    public function rejectConsulRequest(Request $request, User $user): RedirectResponse
     {
         $this->authorize('promoteAmbassador', ConsulRequest::class);
 
@@ -146,7 +146,14 @@ class ConsulController extends Controller
             return back()->with('error', 'Cet utilisateur n\'a pas de demande Consul en attente.');
         }
 
-        $user->update(['consul_status' => null]);
+        $user->update(['consul_status' => 'rejected']);
+
+        try {
+            \App\Models\Notification::storeForUser($user, 'consul_request_rejected', 'Demande Consul refusée',
+                'Votre demande de statut Consul a été refusée.' . ($request->filled('reason') ? ' Motif : ' . $request->reason : ''),
+                []
+            );
+        } catch (\Throwable) {}
 
         return back()->with('success', "Demande Consul de {$user->first_name} {$user->last_name} refusée.");
     }

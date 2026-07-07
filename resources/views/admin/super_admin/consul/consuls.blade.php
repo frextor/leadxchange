@@ -138,14 +138,12 @@
                             Approuver
                         </button>
                     </form>
-                    <form method="POST" action="{{ route('admin.super.consuls.reject-request', $user) }}"
-                          onsubmit="return confirm('Refuser la demande Consul de {{ addslashes($user->first_name . ' ' . $user->last_name) }} ?')">
-                        @csrf @method('DELETE')
-                        <button type="submit" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition">
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                            Refuser
-                        </button>
-                    </form>
+                    <button type="button"
+                            onclick="openConsulRejectModal('{{ route('admin.super.consuls.reject-request', $user) }}')"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        Refuser
+                    </button>
                 </div>
             </div>
             @empty
@@ -217,6 +215,27 @@
             <div class="flex gap-3">
                 <button type="submit" class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition" style="background:#DC2626;">Confirmer le refus</button>
                 <button type="button" onclick="closeRejectModal()" class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition">Annuler</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{-- Consul reject modal (DELETE + reason) --}}
+<div id="consul-reject-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+        <h3 class="text-base font-bold text-gray-900 mb-4">Refuser la demande Consul</h3>
+        <form id="consul-reject-form" method="POST">
+            @csrf
+            @method('DELETE')
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Raison (optionnelle)</label>
+                <textarea name="reason" rows="3"
+                          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-red-300 focus:ring-2 focus:ring-red-50 transition resize-none"
+                          placeholder="Expliquez la raison du refus…"></textarea>
+            </div>
+            <div class="flex gap-3">
+                <button type="submit" class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition" style="background:#DC2626;">Confirmer le refus</button>
+                <button type="button" onclick="closeConsulRejectModal()" class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition">Annuler</button>
             </div>
         </form>
     </div>
@@ -375,5 +394,16 @@ function closeRejectModal() {
     m.classList.add('hidden'); m.classList.remove('flex');
 }
 document.getElementById('reject-modal').addEventListener('click', function(e) { if(e.target===this) closeRejectModal(); });
+
+function openConsulRejectModal(url) {
+    document.getElementById('consul-reject-form').action = url;
+    const m = document.getElementById('consul-reject-modal');
+    m.classList.remove('hidden'); m.classList.add('flex');
+}
+function closeConsulRejectModal() {
+    const m = document.getElementById('consul-reject-modal');
+    m.classList.add('hidden'); m.classList.remove('flex');
+}
+document.getElementById('consul-reject-modal').addEventListener('click', function(e) { if(e.target===this) closeConsulRejectModal(); });
 </script>
 @endpush
