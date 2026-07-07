@@ -147,9 +147,9 @@
 
 @push('scripts')
 <script>
-const rejectUrlTemplate = '{{ route("admin.super.consul.reject", ":id") }}';
+const rejectUrlTemplate = '{{ route("admin.super.consul.reject", ["consulRequest" => "PLACEHOLDER_ID"]) }}';
 function openRejectModal(id) {
-    document.getElementById('reject-form').action = rejectUrlTemplate.replace(':id', id);
+    document.getElementById('reject-form').action = rejectUrlTemplate.replace('PLACEHOLDER_ID', id);
     const m = document.getElementById('reject-modal');
     m.classList.remove('hidden'); m.classList.add('flex');
 }
