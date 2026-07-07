@@ -47,6 +47,8 @@ class Lead extends Model
         'contact_phone', 'contact_position',
         'deadline', 'qualification', 'sector_id', 'description', 'status',
         'lead_type',
+        'sender_points_credited', 'accepted_at', 'rating_due_at', 'rating_extended_at',
+        'bonus_points', 'expiry_processed',
         'points_deducted', 'rated_bonus_at',
         'fraud_reported', 'fraud_reason', 'fraud_reported_at',
         'reminder_15_sent_at', 'reminder_25_sent_at',

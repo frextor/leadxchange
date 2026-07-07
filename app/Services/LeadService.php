@@ -28,16 +28,19 @@ class LeadService
             throw new \Exception('Vous ne pouvez pas vous envoyer un lead à vous-même.');
         }
 
-        $receiver = User::with('subscription.plan')->findOrFail($receiverId);
+        $receiver = User::findOrFail($receiverId);
 
         if (!$sender->isConnectedWith($receiverId)) {
             throw new \Exception("Vous ne pouvez envoyer des leads qu'à vos connexions.");
         }
 
-        $receiverIsPremium = ($receiver->subscription?->status === 'active')
-            && (float) ($receiver->subscription?->plan?->price ?? 0) > 0;
+        // Receiver blocked if their rolling 2-month balance is negative
+        $rollingBalance = DB::table('points_history')
+            ->where('user_id', $receiverId)
+            ->where('created_at', '>=', now()->subMonths(2))
+            ->sum('delta');
 
-        if (!$receiverIsPremium && ($receiver->points_balance ?? 0) < 1) {
+        if ($rollingBalance < 0) {
             throw new \Exception('Ce membre ne peut pas recevoir de leads pour le moment. Son solde est insuffisant.');
         }
 
@@ -96,10 +99,14 @@ class LeadService
 
         DB::beginTransaction();
         try {
-            $lead->update(['status' => Lead::STATUS_ACCEPTED, 'points_deducted' => true]);
+            $lead->update([
+                'status'                 => Lead::STATUS_ACCEPTED,
+                'points_deducted'        => true,
+                'accepted_at'            => now(),
+                'sender_points_credited' => true,
+                'rating_due_at'          => now()->addDays(15),
+            ]);
             $lead->load('sender', 'receiver');
-            // CGU §6.2.1 + §6.3.1 : sender +2, receiver -1
-            $this->points->onLeadAccepted($lead);
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -212,6 +219,9 @@ class LeadService
 
         DB::beginTransaction();
         try {
+            $lead->update(['lead_type' => $leadType, 'points_deducted' => true]);
+            $lead->load('sender', 'receiver');
+
             $rating = LeadRating::create([
                 'lead_id'    => $lead->id,
                 'rater_id'   => $rater->id,
@@ -219,12 +229,6 @@ class LeadService
                 'relevance'  => $relevance,
                 'reactivity' => $reactivity,
             ]);
-
-            $lead->update(['lead_type' => $leadType, 'points_deducted' => true]);
-            $lead->load('sender', 'receiver');
-
-            // CGU §6.2.2 + §6.3.2 : bonus points based on lead_type
-            $this->points->onLeadRated($lead, $leadType ?? '');
 
             DB::commit();
         } catch (\Exception $e) {
@@ -377,16 +381,19 @@ class LeadService
             throw new \Exception('Le nouveau destinataire est identique au destinataire actuel.');
         }
 
-        $newReceiver = User::with('subscription.plan')->findOrFail($newReceiverId);
+        $newReceiver = User::findOrFail($newReceiverId);
 
         if (!$sender->isConnectedWith($newReceiverId)) {
             throw new \Exception("Vous ne pouvez transférer des leads qu'à vos connexions.");
         }
 
-        $newReceiverIsPremium = ($newReceiver->subscription?->status === 'active')
-            && (float) ($newReceiver->subscription?->plan?->price ?? 0) > 0;
+        // Receiver blocked if their rolling 2-month balance is negative
+        $newReceiverRollingBalance = DB::table('points_history')
+            ->where('user_id', $newReceiverId)
+            ->where('created_at', '>=', now()->subMonths(2))
+            ->sum('delta');
 
-        if (!$newReceiverIsPremium && ($newReceiver->points_balance ?? 0) < 1) {
+        if ($newReceiverRollingBalance < 0) {
             throw new \Exception('Ce membre ne peut pas recevoir de leads pour le moment. Son solde est insuffisant.');
         }
 

@@ -184,6 +184,7 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
     Route::delete('/groups/{id}/members/{userId}',              [GroupController::class, 'removeMember'])->name('groups.members.destroy');
     Route::post('/groups/{id}/members/{userId}/promote',        [GroupController::class, 'promoteAdmin'])->name('groups.members.promote');
     Route::post('/groups/{id}/members/{userId}/demote',         [GroupController::class, 'demoteAdmin'])->name('groups.members.demote');
+    Route::post('/groups/{id}/members/{userId}/block',          [GroupController::class, 'blockMember'])->name('groups.members.block');
     Route::post('/groups/{id}/requests/{userId}/approve',       [GroupController::class, 'approveRequest'])->name('groups.requests.approve');
     Route::post('/groups/{id}/requests/{userId}/reject',        [GroupController::class, 'rejectRequest'])->name('groups.requests.reject');
 

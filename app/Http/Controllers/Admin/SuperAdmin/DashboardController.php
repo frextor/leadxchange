@@ -98,7 +98,7 @@ class DashboardController extends Controller
         $eventsQuery = DB::table('events');
         if ($cityId)    $eventsQuery->where('city_id', $cityId);
         if ($countryId) $eventsQuery->join('cities as ec', 'events.city_id', '=', 'ec.id')->where('ec.country_id', $countryId);
-        if ($groupId)   $eventsQuery->whereIn('created_by', DB::table('group_user')->where('group_id', $groupId)->pluck('user_id'));
+        if ($groupId)   $eventsQuery->whereIn('created_by', DB::table('group_user')->where('group_id', $groupId)->whereNull('blocked_at')->pluck('user_id'));
         $totalEvents    = (clone $eventsQuery)->count();
         $upcomingEvents = (clone $eventsQuery)->where('starts_at', '>', $now)->count();
 
@@ -123,7 +123,7 @@ class DashboardController extends Controller
         if ($planId)    $revenueQuery->where('subscriptions.plan_id', $planId);
         if ($cityId)    $revenueQuery->where('users.city_id', $cityId);
         if ($countryId) $revenueQuery->join('cities', 'users.city_id', '=', 'cities.id')->where('cities.country_id', $countryId);
-        if ($groupId)   $revenueQuery->whereExists(fn ($q) => $q->from('group_user')->whereColumn('group_user.user_id', 'users.id')->where('group_user.group_id', $groupId));
+        if ($groupId)   $revenueQuery->whereExists(fn ($q) => $q->from('group_user')->whereColumn('group_user.user_id', 'users.id')->where('group_user.group_id', $groupId)->whereNull('group_user.blocked_at'));
         $monthlyRevenue = $revenueQuery->sum('plans.price');
 
         // ── Charts : 6 derniers mois ──────────────────────────────────────────

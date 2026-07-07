@@ -34,7 +34,7 @@ class GroupController extends Controller
             'total'   => Group::count(),
             'public'  => Group::where('is_public', true)->count(),
             'private' => Group::where('is_public', false)->count(),
-            'members' => DB::table('group_user')->count(),
+            'members' => DB::table('group_user')->whereNull('blocked_at')->count(),
         ];
 
         return view('admin.groups.index', compact('groups', 'sectors', 'counts'));

@@ -223,7 +223,7 @@ class ConnectionService
 
         if ($groupId) {
             $query->whereNotIn('sender_id', function ($sub) use ($groupId) {
-                $sub->select('user_id')->from('group_user')->where('group_id', $groupId);
+                $sub->select('user_id')->from('group_user')->where('group_id', $groupId)->whereNull('blocked_at');
             });
         }
 
@@ -250,7 +250,7 @@ class ConnectionService
 
         if ($groupId) {
             $query->whereNotIn('receiver_id', function ($sub) use ($groupId) {
-                $sub->select('user_id')->from('group_user')->where('group_id', $groupId);
+                $sub->select('user_id')->from('group_user')->where('group_id', $groupId)->whereNull('blocked_at');
             });
         }
 

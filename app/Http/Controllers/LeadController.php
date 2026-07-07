@@ -10,6 +10,7 @@ use App\Models\Sector;
 use App\Models\User;
 use App\Services\LeadService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class LeadController extends Controller
 {
@@ -23,10 +24,22 @@ class LeadController extends Controller
         $leads = $this->leadService->getUserLeads($user);
 
         $connectionIds = $user->connectionIds();
-        $connections   = User::whereIn('id', $connectionIds)
+
+        // Rolling 2-month balance per connection (single query)
+        $rollingBalances = DB::table('points_history')
+            ->whereIn('user_id', $connectionIds)
+            ->where('created_at', '>=', now()->subMonths(2))
+            ->groupBy('user_id')
+            ->selectRaw('user_id, SUM(delta) as rolling_balance')
+            ->pluck('rolling_balance', 'user_id');
+
+        $connections = User::whereIn('id', $connectionIds)
             ->select('id', 'first_name', 'last_name', 'points_balance')
             ->orderBy('first_name')
-            ->get();
+            ->get()
+            ->each(function ($u) use ($rollingBalances) {
+                $u->rolling_balance = (int) ($rollingBalances[$u->id] ?? 0);
+            });
 
         $sectors = Sector::orderBy('name')->get(['id', 'name']);
 

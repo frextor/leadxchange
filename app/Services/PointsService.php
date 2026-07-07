@@ -47,27 +47,21 @@ class PointsService
     const RATING_DAYS         = 15;
     const EXTENSION_DAYS      = 15;
 
-    // ── Core adjustment (respects 30-pt cap) ─────────────────────────────────
+    // ── Core adjustment (respects 30-pt cap, writes points_history, updates badge) ──
     public function adjust(User $user, int $delta, string $reason = ''): void
     {
         if ($delta === 0) return;
 
         DB::transaction(function () use ($user, $delta, $reason) {
             $user->refresh();
-            $current = (int) ($user->points_balance ?? 0);
-            $new = $current + $delta;
-
-            if ($delta > 0) {
-                $new = min($new, self::CAP);     // cap at 30
-            }
-
-            $user->update(['points_balance' => $new]);
+            $from = (int) ($user->points_balance ?? 0);
+            $user->adjustPoints($delta, $reason);
 
             Log::info('Points adjustment', [
                 'user_id' => $user->id,
                 'delta'   => $delta,
-                'from'    => $current,
-                'to'      => $new,
+                'from'    => $from,
+                'to'      => (int) ($user->fresh()->points_balance ?? 0),
                 'reason'  => $reason,
             ]);
         });

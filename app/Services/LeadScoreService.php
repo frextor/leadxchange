@@ -79,26 +79,38 @@ class LeadScoreService
     {
         $since = now()->subDays(self::WINDOW_DAYS);
 
-        // Leads envoyés dans la fenêtre (par type)
-        $sent = DB::table('leads')
+        // Base : tous les leads acceptés → sender +2, receiver -1
+        $acceptedSentCount = DB::table('leads')
             ->where('sender_id', $user->id)
-            ->where('created_at', '>=', $since)
-            ->select('lead_type', DB::raw('count(*) as cnt'))
-            ->groupBy('lead_type')
-            ->pluck('cnt', 'lead_type');
+            ->whereIn('status', ['accepted', 'converted'])
+            ->where('accepted_at', '>=', $since)
+            ->count();
 
-        $totalSent = $sent->sum();
+        $basePoints = $acceptedSentCount * self::SENT_BONUS;
 
-        // Points base envoi + qualification
-        $sentPoints = $totalSent * self::SENT_BONUS;
+        // Bonus type : leads notés dans les 15 jours → +MQL/SQL/SP
+        $ratedSent = DB::table('leads')
+            ->join('lead_ratings', 'lead_ratings.lead_id', '=', 'leads.id')
+            ->where('leads.sender_id', $user->id)
+            ->whereIn('leads.status', ['accepted', 'converted'])
+            ->where('leads.accepted_at', '>=', $since)
+            ->whereColumn('lead_ratings.rated_at', '<=', 'leads.rating_due_at')
+            ->select('leads.lead_type', DB::raw('count(*) as cnt'))
+            ->groupBy('leads.lead_type')
+            ->pluck('cnt', 'leads.lead_type');
+
+        $bonusPoints = 0;
         foreach (self::TYPE_WEIGHTS as $type => $weight) {
-            $sentPoints += ($sent[$type] ?? 0) * $weight;
+            $bonusPoints += ($ratedSent[$type] ?? 0) * $weight;
         }
 
-        // Leads reçus dans la fenêtre
+        $sentPoints = $basePoints + $bonusPoints;
+
+        // Leads reçus et acceptés → -1 chacun
         $receivedCount = DB::table('leads')
             ->where('receiver_id', $user->id)
-            ->where('created_at', '>=', $since)
+            ->whereIn('status', ['accepted', 'converted'])
+            ->where('accepted_at', '>=', $since)
             ->count();
 
         $receivedPoints = $receivedCount * self::RECEIVED_MALUS;
@@ -123,7 +135,7 @@ class LeadScoreService
         $badge = $this->badge($score);
 
         $user->update([
-            'points_balance' => max(0, $score),
+            'points_balance' => $score,
             'badge_level'    => $badge,
         ]);
     }

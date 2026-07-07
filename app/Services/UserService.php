@@ -292,6 +292,8 @@ class UserService
             'i_am_sender'       => $connection ? ($connection->sender_id === $currentUserId) : false,
             'i_am_receiver'     => $connection ? ($connection->receiver_id === $currentUserId) : false,
             'is_online'         => false,
+            'plan'              => $this->planPayload($user),
+            'rank'              => $this->rankPayload($user),
         ];
     }
 
@@ -305,11 +307,8 @@ class UserService
 
         $base = $this->enrichUserWithConnectionStatus($user, $currentUserId);
         $base['nationality'] = $user->nationality ? ['name' => $user->nationality->name, 'flag' => $user->nationality->flag] : null;
-        $base['plan'] = $user->subscription?->plan ? [
-            'name'  => $user->subscription->plan->name,
-            'label' => $user->subscription->plan->label,
-            'is_enterprise_owner' => $this->isEnterpriseOwnerSubscription($user->subscription),
-        ] : null;
+        $base['plan'] = $this->planPayload($user);
+        $base['rank'] = $this->rankPayload($user);
 
         return $base;
     }
@@ -323,16 +322,53 @@ class UserService
         if (!$user) return null;
 
         $base = $this->enrichUserWithConnectionStatus($user, $currentUserId);
-        $base['plan'] = $user->subscription?->plan ? [
-            'name'  => $user->subscription->plan->name,
-            'label' => $user->subscription->plan->label,
-            'is_enterprise_owner' => $this->isEnterpriseOwnerSubscription($user->subscription),
-        ] : null;
+        $base['plan'] = $this->planPayload($user);
+        $base['rank'] = $this->rankPayload($user);
 
         $base['gender']       = $user->gender;
         $base['birthday']     = $user->birthday?->format('Y-m-d');
         $base['member_since'] = $user->created_at?->format('F Y');
         return $base;
+    }
+
+    private function planPayload(\App\Models\User $user): array
+    {
+        if ($user->subscription?->plan) {
+            return [
+                'name'                => $user->subscription->plan->name,
+                'label'               => $user->subscription->plan->label,
+                'is_enterprise_owner' => $this->isEnterpriseOwnerSubscription($user->subscription),
+            ];
+        }
+
+        return [
+            'name'                => 'basic',
+            'label'               => 'Basic',
+            'is_enterprise_owner' => false,
+        ];
+    }
+
+    /**
+     * Compute the highest rank for a user.
+     * Hierarchy: basic < premium < consul < ambassador
+     */
+    private function rankPayload(\App\Models\User $user): array
+    {
+        if ($user->ambassador_status === 'approved') {
+            return ['level' => 'ambassador', 'label' => 'Ambassadeur'];
+        }
+
+        $consulStatus = $this->deriveConsulStatus($user);
+        if ($consulStatus === 'approved') {
+            return ['level' => 'consul', 'label' => 'Consul'];
+        }
+
+        $planName = strtolower($user->subscription?->plan?->name ?? '');
+        if ($planName && !str_contains($planName, 'basic')) {
+            return ['level' => 'premium', 'label' => $user->subscription->plan->label ?? ucfirst($planName)];
+        }
+
+        return ['level' => 'basic', 'label' => 'Basic'];
     }
 
     private function isEnterpriseOwnerSubscription(?\App\Models\Subscription $subscription): bool
@@ -376,12 +412,14 @@ class UserService
 
         $given = Lead::where('sender_id', $userId)
             ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
-            ->where('updated_at', '>=', $since)
+            ->where('accepted_at', '>=', $since)
+            ->whereHas('ratings', fn($q) => $q->whereColumn('rated_at', '<=', 'leads.rating_due_at'))
             ->get(['lead_type']);
 
         $receivedCount = Lead::where('receiver_id', $userId)
             ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
-            ->where('updated_at', '>=', $since)
+            ->where('accepted_at', '>=', $since)
+            ->whereHas('ratings', fn($q) => $q->whereColumn('rated_at', '<=', 'leads.rating_due_at'))
             ->count();
 
         $givenCount = $given->count();

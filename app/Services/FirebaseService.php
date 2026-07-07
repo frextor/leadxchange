@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Connection;
 use App\Models\Conversation;
 use App\Models\DeviceToken;
+use App\Models\Group;
 use App\Models\Message;
 use App\Models\Notification;
 use App\Models\User;
@@ -191,6 +192,27 @@ class FirebaseService
 
         $this->sendToTokens($tokens, $title, $body, [
             'type'            => 'group_invite',
+            'group_id'        => (string) $group->id,
+            'notification_id' => $notificationId,
+        ]);
+    }
+
+    public function sendGroupAdminAssignedNotification(User $member, Group $group, User $actor): void
+    {
+        $title = 'Vous êtes maintenant administrateur';
+        $body  = "{$actor->first_name} {$actor->last_name} vous a nommé administrateur du groupe {$group->name}.";
+
+        $notificationId = (string) Notification::storeForUser($member, 'group_admin_assigned', $title, $body, [
+            'group_id' => (string) $group->id,
+        ])->id;
+
+        $tokens = DeviceToken::where('user_id', $member->id)->pluck('token');
+        if ($tokens->isEmpty()) {
+            return;
+        }
+
+        $this->sendToTokens($tokens, $title, $body, [
+            'type'            => 'group_admin_assigned',
             'group_id'        => (string) $group->id,
             'notification_id' => $notificationId,
         ]);

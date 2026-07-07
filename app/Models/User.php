@@ -218,10 +218,15 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(Interest::class, 'user_interests');
     }
 
-    public function groups()
+    public function groupMemberships()
     {
         return $this->belongsToMany(\App\Models\Group::class, 'group_user')
-            ->withPivot('role', 'joined_at');
+            ->withPivot('role', 'joined_at', 'blocked_at');
+    }
+
+    public function groups()
+    {
+        return $this->groupMemberships()->wherePivotNull('blocked_at');
     }
 
     public function events()
