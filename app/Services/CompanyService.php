@@ -36,7 +36,7 @@ class CompanyService
             $company = Company::create([
                 'name'      => $data['name'],
                 'siret'     => $data['siret'],
-                'sector_id' => $data['sector_id'],
+                'sector_id' => $data['sector_id'] ?? null,
                 'website'   => $data['website'] ?? null,
             ]);
             $company->load('sector');

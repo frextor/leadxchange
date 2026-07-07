@@ -333,7 +333,7 @@ class AuthController extends Controller
             $validated = $request->validate([
                 'name'      => ['required', 'string', 'max:255'],
                 'siret'     => ['required', 'string', 'size:14', 'unique:companies,siret', 'regex:/^[0-9]{14}$/'],
-                'sector_id' => ['required', 'integer', 'exists:sectors,id'],
+                'sector_id' => ['nullable', 'integer', 'exists:sectors,id'],
                 'website'   => ['nullable', 'url', 'max:255'],
             ]);
 

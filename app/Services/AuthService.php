@@ -346,6 +346,8 @@ class AuthService
                 'sector_ids'       => collect($user->profile->sector_ids ?? [])->map(fn($id) => ['id' => $id, 'name' => $sectorMap[$id] ?? null])->values(),
                 'website'          => $user->profile->website,
                 'linkedin'         => $user->profile->linkedin,
+                'market_addressed_id' => $user->profile->market_addressed_id,
+                'market_target_id'    => $user->profile->market_target_id,
                 'presentation_video' => $this->presentationVideoPayload($user->profile, true),
             ] : null,
             'company' => $user->company ? [
