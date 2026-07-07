@@ -41,9 +41,9 @@ class PointsService
         'SP'  => 5,
     ];
 
-    const MALUS_UQ_THRESHOLD  = 3;   // > 3 UQ leads → malus
-    const MALUS_WINDOW_MONTHS = 6;
-    const MALUS_AMOUNT        = -5;
+    const MALUS_UQ_THRESHOLD = 3;   // > 3 UQ leads → malus
+    const MALUS_WINDOW_DAYS  = 60;
+    const MALUS_AMOUNT       = -5;
     const RATING_DAYS         = 15;
     const EXTENSION_DAYS      = 15;
 
@@ -143,7 +143,7 @@ class PointsService
     // ── Malus: >3 UQ leads in 6 months → -5 pts ──────────────────────────────
     private function checkMalus(User $sender): void
     {
-        $since = now()->subMonths(self::MALUS_WINDOW_MONTHS);
+        $since = now()->subDays(self::MALUS_WINDOW_DAYS);
 
         $uqCount = Lead::where('sender_id', $sender->id)
             ->where('expiry_processed', true)
