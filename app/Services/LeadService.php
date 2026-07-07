@@ -99,7 +99,13 @@ class LeadService
 
         DB::beginTransaction();
         try {
-            $lead->update(['status' => Lead::STATUS_ACCEPTED, 'points_deducted' => true]);
+            $lead->update([
+                'status'                 => Lead::STATUS_ACCEPTED,
+                'points_deducted'        => true,
+                'accepted_at'            => now(),
+                'sender_points_credited' => true,
+                'rating_due_at'          => now()->addDays(15),
+            ]);
             $lead->load('sender', 'receiver');
             DB::commit();
         } catch (\Exception $e) {
