@@ -28,16 +28,19 @@ class LeadService
             throw new \Exception('Vous ne pouvez pas vous envoyer un lead à vous-même.');
         }
 
-        $receiver = User::with('subscription.plan')->findOrFail($receiverId);
+        $receiver = User::findOrFail($receiverId);
 
         if (!$sender->isConnectedWith($receiverId)) {
             throw new \Exception("Vous ne pouvez envoyer des leads qu'à vos connexions.");
         }
 
-        $receiverIsPremium = ($receiver->subscription?->status === 'active')
-            && (float) ($receiver->subscription?->plan?->price ?? 0) > 0;
+        // Receiver blocked if their rolling 2-month balance is negative
+        $rollingBalance = DB::table('points_history')
+            ->where('user_id', $receiverId)
+            ->where('created_at', '>=', now()->subMonths(2))
+            ->sum('delta');
 
-        if (!$receiverIsPremium && ($receiver->points_balance ?? 0) < 1) {
+        if ($rollingBalance < 0) {
             throw new \Exception('Ce membre ne peut pas recevoir de leads pour le moment. Son solde est insuffisant.');
         }
 
@@ -377,16 +380,19 @@ class LeadService
             throw new \Exception('Le nouveau destinataire est identique au destinataire actuel.');
         }
 
-        $newReceiver = User::with('subscription.plan')->findOrFail($newReceiverId);
+        $newReceiver = User::findOrFail($newReceiverId);
 
         if (!$sender->isConnectedWith($newReceiverId)) {
             throw new \Exception("Vous ne pouvez transférer des leads qu'à vos connexions.");
         }
 
-        $newReceiverIsPremium = ($newReceiver->subscription?->status === 'active')
-            && (float) ($newReceiver->subscription?->plan?->price ?? 0) > 0;
+        // Receiver blocked if their rolling 2-month balance is negative
+        $newReceiverRollingBalance = DB::table('points_history')
+            ->where('user_id', $newReceiverId)
+            ->where('created_at', '>=', now()->subMonths(2))
+            ->sum('delta');
 
-        if (!$newReceiverIsPremium && ($newReceiver->points_balance ?? 0) < 1) {
+        if ($newReceiverRollingBalance < 0) {
             throw new \Exception('Ce membre ne peut pas recevoir de leads pour le moment. Son solde est insuffisant.');
         }
 
