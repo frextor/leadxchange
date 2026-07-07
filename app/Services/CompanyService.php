@@ -24,11 +24,6 @@ class CompanyService
      */
     public function createCompany(User $user, array $data): Company
     {
-        // Check if user already has a company
-        if ($user->company_id) {
-            throw new \Exception('User already belongs to a company');
-        }
-
         DB::beginTransaction();
 
         try {
@@ -76,10 +71,6 @@ class CompanyService
 
         if (!$company) {
             throw new \Exception('Company not found');
-        }
-
-        if ($user->company_id) {
-            throw new \Exception('User already belongs to a company');
         }
 
         DB::beginTransaction();

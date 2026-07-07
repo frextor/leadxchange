@@ -131,6 +131,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/groups/{id}/members/{userId}',              [GroupController::class, 'removeMember']);
     Route::post('/groups/{id}/members/{userId}/promote',        [GroupController::class, 'promote']);
     Route::post('/groups/{id}/members/{userId}/demote',         [GroupController::class, 'demote']);
+    Route::post('/groups/{id}/members/{userId}/block',          [GroupController::class, 'block']);
     Route::get('/groups/{id}/posts',                            [GroupController::class, 'posts']);
     Route::post('/groups/{id}/posts',                           [GroupController::class, 'storePost']);
     Route::delete('/groups/{id}/posts/{postId}',                [GroupController::class, 'destroyPost']);

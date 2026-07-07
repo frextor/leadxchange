@@ -31,10 +31,15 @@ class Group extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function members(): BelongsToMany
+    public function memberRecords(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'group_user')
-                    ->withPivot('role', 'joined_at');
+                    ->withPivot('role', 'joined_at', 'blocked_at');
+    }
+
+    public function members(): BelongsToMany
+    {
+        return $this->memberRecords()->wherePivotNull('blocked_at');
     }
 
     public function invitations(): HasMany
@@ -55,6 +60,14 @@ class Group extends Model
     public function isMember(int $userId): bool
     {
         return $this->members()->where('group_user.user_id', $userId)->exists();
+    }
+
+    public function isBlocked(int $userId): bool
+    {
+        return $this->memberRecords()
+            ->where('group_user.user_id', $userId)
+            ->whereNotNull('group_user.blocked_at')
+            ->exists();
     }
 
     public function isOwner(int $userId): bool

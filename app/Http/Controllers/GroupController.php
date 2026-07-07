@@ -12,6 +12,7 @@ use App\Models\GroupPost;
 use App\Models\GroupPostComment;
 use App\Models\Sector;
 use App\Models\User;
+use App\Services\FirebaseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -41,6 +42,7 @@ class GroupController extends Controller
             ->where('status', 'pending')
             ->latest()
             ->get();
+        $invitedGroupIds = $pendingInvitations->pluck('group_id')->toArray();
 
         // ── My groups (member of) ─────────────────────────────────
         $myGroupsQuery = Group::with(['sector', 'creator', 'city'])
@@ -58,7 +60,7 @@ class GroupController extends Controller
         $publicQuery = Group::with(['sector', 'creator', 'city'])
             ->withCount('members')
             ->where('is_public', true)
-            ->whereNotIn('id', $memberGroupIds);
+            ->whereNotIn('id', array_values(array_unique(array_merge($memberGroupIds, $invitedGroupIds))));
 
         if ($request->filled('category')) $publicQuery->where('sector_id', $request->category);
         if ($request->filled('search'))   $publicQuery->where('name', 'like', '%' . $request->search . '%');
@@ -241,6 +243,10 @@ class GroupController extends Controller
 
         $targetId = (int) $request->user_id;
 
+        if ($group->isBlocked($targetId)) {
+            return back()->with('error', 'Cet utilisateur est bloqué de ce groupe.');
+        }
+
         if ($group->isMember($targetId)) {
             return back()->with('info', 'Cet utilisateur est déjà membre du groupe.');
         }
@@ -293,6 +299,10 @@ class GroupController extends Controller
 
         $group = $invitation->group;
 
+        if ($group->isBlocked($invitation->user_id)) {
+            return back()->with('error', 'Vous avez été bloqué de ce groupe.');
+        }
+
         if (!$group->isMember($invitation->user_id)) {
             $group->members()->attach($invitation->user_id, ['role' => 'member']);
             $group->increment('members_count');
@@ -324,13 +334,25 @@ class GroupController extends Controller
 
         abort_unless($group->isAdmin($user->id), 403);
 
+        if ($group->isOwner($userId)) {
+            return back()->with('error', 'Le owner ne peut pas être retiré.');
+        }
+
+        if ($group->isBlocked($userId)) {
+            return back()->with('error', 'Ce membre est déjà bloqué de ce groupe.');
+        }
+
+        if (!$group->isMember($userId)) {
+            return back()->with('error', 'Cet utilisateur n\'est pas membre du groupe.');
+        }
+
         $targetRole = $group->userRole($userId);
         // Admins cannot remove owners or other admins
         if (in_array($targetRole, ['owner', 'admin']) && !$group->isOwner($user->id)) {
             return back()->with('error', 'Vous n\'avez pas la permission de retirer un admin ou le owner.');
         }
         // Prevent owner from removing themselves (use leave instead)
-        abort_if($userId === $user->id && $targetRole === 'owner', 403);
+        abort_if($userId === $user->id, 403);
 
         $group->members()->detach($userId);
         $group->decrement('members_count');
@@ -343,7 +365,28 @@ class GroupController extends Controller
         $group = Group::findOrFail($id);
         abort_unless($group->isOwner($request->user()->id), 403, 'Réservé au owner.');
 
+        if ($group->isBlocked($userId)) {
+            return back()->with('error', 'Ce membre est bloqué de ce groupe.');
+        }
+
+        if ($group->isOwner($userId)) {
+            return back()->with('error', 'Le owner ne peut pas être promu.');
+        }
+
+        if (!$group->isMember($userId)) {
+            return back()->with('error', 'Cet utilisateur n\'est pas membre du groupe.');
+        }
+
+        if ($group->userRole($userId) === 'admin') {
+            return back()->with('info', 'Ce membre est déjà administrateur.');
+        }
+
         $group->members()->updateExistingPivot($userId, ['role' => 'admin']);
+
+        $member = User::find($userId);
+        if ($member) {
+            app(FirebaseService::class)->sendGroupAdminAssignedNotification($member, $group, $request->user());
+        }
 
         return back()->with('success', 'Membre promu administrateur.');
     }
@@ -353,9 +396,59 @@ class GroupController extends Controller
         $group = Group::findOrFail($id);
         abort_unless($group->isOwner($request->user()->id), 403, 'Réservé au owner.');
 
+        if ($group->isBlocked($userId)) {
+            return back()->with('error', 'Ce membre est bloqué de ce groupe.');
+        }
+
+        if ($group->isOwner($userId)) {
+            return back()->with('error', 'Le owner ne peut pas être rétrogradé.');
+        }
+
+        if (!$group->isMember($userId)) {
+            return back()->with('error', 'Cet utilisateur n\'est pas membre du groupe.');
+        }
+
         $group->members()->updateExistingPivot($userId, ['role' => 'member']);
 
         return back()->with('success', 'Administrateur rétrogradé en membre.');
+    }
+
+    public function blockMember(Request $request, int $id, int $userId)
+    {
+        $group = Group::findOrFail($id);
+        $user  = $request->user();
+
+        abort_unless($group->isAdmin($user->id), 403);
+
+        if ($group->isOwner($userId)) {
+            return back()->with('error', 'Le owner ne peut pas être bloqué.');
+        }
+
+        if ($userId === $user->id) {
+            return back()->with('error', 'Vous ne pouvez pas vous bloquer vous-même.');
+        }
+
+        if ($group->isBlocked($userId)) {
+            return back()->with('error', 'Ce membre est déjà bloqué de ce groupe.');
+        }
+
+        if (!$group->isMember($userId)) {
+            return back()->with('error', 'Cet utilisateur n\'est pas membre du groupe.');
+        }
+
+        $targetRole = $group->userRole($userId);
+        if (in_array($targetRole, ['owner', 'admin']) && !$group->isOwner($user->id)) {
+            return back()->with('error', 'Vous n\'avez pas la permission de bloquer un admin ou le owner.');
+        }
+
+        $group->members()->updateExistingPivot($userId, ['blocked_at' => now()]);
+        GroupInvitation::where('group_id', $id)
+            ->where('user_id', $userId)
+            ->where('status', 'pending')
+            ->update(['status' => 'declined']);
+        $group->decrement('members_count');
+
+        return back()->with('success', 'Membre bloqué.');
     }
 
     // ── Group CRUD ───────────────────────────────────────────
@@ -426,6 +519,10 @@ class GroupController extends Controller
         $group = Group::with(['creator'])->findOrFail($id);
         $user  = $request->user();
 
+        if ($group->isBlocked($user->id)) {
+            return back()->with('error', 'Vous avez été bloqué de ce groupe.');
+        }
+
         if ($group->isMember($user->id)) {
             return back()->with('info', 'Vous êtes déjà membre de ce groupe.');
         }
@@ -495,6 +592,10 @@ class GroupController extends Controller
             ->where('type', GroupInvitation::TYPE_REQUEST)
             ->where('status', 'pending')
             ->firstOrFail();
+
+        if ($group->isBlocked($userId)) {
+            return back()->with('error', 'Cet utilisateur est bloqué de ce groupe.');
+        }
 
         if (!$group->isMember($userId)) {
             $group->members()->attach($userId, ['role' => 'member']);

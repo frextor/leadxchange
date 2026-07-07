@@ -67,10 +67,12 @@ class GroupController extends Controller
             ->values();
 
         // ── Public groups not yet joined (paginated) ──────────────────────
+        $excludedGroupIds = array_values(array_unique(array_merge($memberGroupIds, $invitedGroupIds)));
+
         $publicQuery = Group::with(['sector:id,name', 'creator' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email')->with('profile'), 'city:id,name'])
             ->withCount('members')
             ->where('is_public', true)
-            ->whereNotIn('id', $memberGroupIds);
+            ->whereNotIn('id', $excludedGroupIds);
 
         $publicQuery->where('city_id', $userCityId);
         if ($request->filled('category')) $publicQuery->where('sector_id', $request->category);
@@ -264,6 +266,10 @@ class GroupController extends Controller
         $group = Group::findOrFail($id);
         $user  = $request->user();
 
+        if ($group->isBlocked($user->id)) {
+            return response()->json(['message' => 'You are blocked from this group.'], 403);
+        }
+
         if ($group->isMember($user->id)) {
             return response()->json(['message' => 'Already a member.'], 422);
         }
@@ -348,6 +354,10 @@ class GroupController extends Controller
         $request->validate(['user_id' => ['required', 'integer', 'exists:users,id']]);
         $targetId = (int) $request->user_id;
 
+        if ($group->isBlocked($targetId)) {
+            return response()->json(['message' => 'User is blocked from this group.'], 422);
+        }
+
         if ($group->isMember($targetId)) {
             return response()->json(['message' => 'User is already a member of this group.'], 422);
         }
@@ -406,6 +416,10 @@ class GroupController extends Controller
 
         $group = $invitation->group;
 
+        if ($group->isBlocked($invitation->user_id)) {
+            return response()->json(['message' => 'You are blocked from this group.'], 403);
+        }
+
         if (!$group->isMember($invitation->user_id)) {
             $group->members()->attach($invitation->user_id, ['role' => 'member']);
             $group->increment('members_count');
@@ -441,11 +455,28 @@ class GroupController extends Controller
             return response()->json(['message' => 'Only the group owner can promote members.'], 403);
         }
 
+        if ($group->isBlocked($userId)) {
+            return response()->json(['message' => 'User is blocked from this group.'], 422);
+        }
+
+        if ($group->isOwner($userId)) {
+            return response()->json(['message' => 'You cannot promote the owner.'], 422);
+        }
+
         if (!$group->isMember($userId)) {
             return response()->json(['message' => 'User is not a member of this group.'], 404);
         }
 
+        if ($group->userRole($userId) === 'admin') {
+            return response()->json(['message' => 'User is already an admin.'], 422);
+        }
+
         $group->members()->updateExistingPivot($userId, ['role' => 'admin']);
+        $member = User::find($userId);
+
+        if ($member) {
+            app(FirebaseService::class)->sendGroupAdminAssignedNotification($member, $group, $request->user());
+        }
 
         return response()->json(['message' => 'Member promoted to admin.', 'user_id' => $userId, 'role' => 'admin']);
     }
@@ -459,6 +490,14 @@ class GroupController extends Controller
 
         if (!$group->isOwner($request->user()->id)) {
             return response()->json(['message' => 'Only the group owner can demote admins.'], 403);
+        }
+
+        if ($group->isBlocked($userId)) {
+            return response()->json(['message' => 'User is blocked from this group.'], 422);
+        }
+
+        if ($group->isOwner($userId)) {
+            return response()->json(['message' => 'You cannot demote the owner.'], 422);
         }
 
         if (!$group->isMember($userId)) {
@@ -482,19 +521,74 @@ class GroupController extends Controller
             return response()->json(['message' => 'Only group admins can remove members.'], 403);
         }
 
+        if ($group->isOwner($userId)) {
+            return response()->json(['message' => 'You cannot remove the owner.'], 422);
+        }
+
+        if ($group->isBlocked($userId)) {
+            return response()->json(['message' => 'User is already blocked from this group.'], 422);
+        }
+
+        if (!$group->isMember($userId)) {
+            return response()->json(['message' => 'User is not a member of this group.'], 404);
+        }
+
         $targetRole = $group->userRole($userId);
         if (in_array($targetRole, ['owner', 'admin']) && !$group->isOwner($caller->id)) {
             return response()->json(['message' => 'You cannot remove an admin or owner.'], 403);
         }
 
-        if ($userId === $caller->id && $targetRole === 'owner') {
-            return response()->json(['message' => 'The owner cannot remove themselves.'], 422);
+        if ($userId === $caller->id) {
+            return response()->json(['message' => 'You cannot remove yourself from this action.'], 422);
         }
 
         $group->members()->detach($userId);
         $group->decrement('members_count');
 
         return response()->json(['message' => 'Member removed from group.']);
+    }
+
+    /**
+     * POST /api/groups/{id}/members/{userId}/block
+     */
+    public function block(int $id, int $userId, Request $request): JsonResponse
+    {
+        $group  = Group::findOrFail($id);
+        $caller = $request->user();
+
+        if (!$group->isAdmin($caller->id)) {
+            return response()->json(['message' => 'Only group admins can block members.'], 403);
+        }
+
+        if ($group->isOwner($userId)) {
+            return response()->json(['message' => 'You cannot block the owner.'], 422);
+        }
+
+        if ($userId === $caller->id) {
+            return response()->json(['message' => 'You cannot block yourself.'], 422);
+        }
+
+        if ($group->isBlocked($userId)) {
+            return response()->json(['message' => 'User is already blocked from this group.'], 422);
+        }
+
+        if (!$group->isMember($userId)) {
+            return response()->json(['message' => 'User is not a member of this group.'], 404);
+        }
+
+        $targetRole = $group->userRole($userId);
+        if (in_array($targetRole, ['owner', 'admin']) && !$group->isOwner($caller->id)) {
+            return response()->json(['message' => 'You cannot block an admin or owner.'], 403);
+        }
+
+        $group->members()->updateExistingPivot($userId, ['blocked_at' => now()]);
+        GroupInvitation::where('group_id', $id)
+            ->where('user_id', $userId)
+            ->where('status', 'pending')
+            ->update(['status' => 'declined']);
+        $group->decrement('members_count');
+
+        return response()->json(['message' => 'Member blocked from group.', 'user_id' => $userId]);
     }
 
     /**
