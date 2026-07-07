@@ -230,6 +230,8 @@ class LeadService
                 'reactivity' => $reactivity,
             ]);
 
+            $this->points->onLeadRated($lead, $leadType);
+
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
