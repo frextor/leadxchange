@@ -28,13 +28,16 @@ class LeadService
             throw new \Exception('Vous ne pouvez pas vous envoyer un lead à vous-même.');
         }
 
-        $receiver = User::findOrFail($receiverId);
+        $receiver = User::with('subscription.plan')->findOrFail($receiverId);
 
         if (!$sender->isConnectedWith($receiverId)) {
             throw new \Exception("Vous ne pouvez envoyer des leads qu'à vos connexions.");
         }
 
-        if (($receiver->points_balance ?? 0) < 1) {
+        $receiverIsPremium = ($receiver->subscription?->status === 'active')
+            && (float) ($receiver->subscription?->plan?->price ?? 0) > 0;
+
+        if (!$receiverIsPremium && ($receiver->points_balance ?? 0) < 1) {
             throw new \Exception('Ce membre ne peut pas recevoir de leads pour le moment. Son solde est insuffisant.');
         }
 
@@ -374,13 +377,16 @@ class LeadService
             throw new \Exception('Le nouveau destinataire est identique au destinataire actuel.');
         }
 
-        $newReceiver = User::findOrFail($newReceiverId);
+        $newReceiver = User::with('subscription.plan')->findOrFail($newReceiverId);
 
         if (!$sender->isConnectedWith($newReceiverId)) {
             throw new \Exception("Vous ne pouvez transférer des leads qu'à vos connexions.");
         }
 
-        if (($newReceiver->points_balance ?? 0) < 1) {
+        $newReceiverIsPremium = ($newReceiver->subscription?->status === 'active')
+            && (float) ($newReceiver->subscription?->plan?->price ?? 0) > 0;
+
+        if (!$newReceiverIsPremium && ($newReceiver->points_balance ?? 0) < 1) {
             throw new \Exception('Ce membre ne peut pas recevoir de leads pour le moment. Son solde est insuffisant.');
         }
 

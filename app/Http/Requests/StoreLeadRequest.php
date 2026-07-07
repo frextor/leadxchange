@@ -31,8 +31,8 @@ class StoreLeadRequest extends FormRequest
             'qualification'    => ['required', 'in:chaud,tiede,froid'],
             'sector_id'        => ['required', 'integer', 'exists:sectors,id'],
             'description'      => ['nullable', 'string', 'max:2000'],
-            'rgpd_consent'     => ['required', 'accepted'],   // CGU §7.3
-            'no_sensitive_data'=> ['required', 'accepted'],   // CGU §7.4
+            'rgpd_consent'     => ['nullable', 'boolean'],   // CGU §7.3 — accepted at registration
+            'no_sensitive_data'=> ['nullable', 'boolean'],   // CGU §7.4 — accepted at registration
         ];
     }
 
