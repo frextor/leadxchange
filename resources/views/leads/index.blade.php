@@ -359,10 +359,10 @@
                         @else
                         @foreach($connections as $u)
                         <button type="button"
-                                class="member-option w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition {{ ($u->points_balance ?? 0) < 1 ? 'opacity-50 cursor-not-allowed' : '' }}"
+                                class="member-option w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition {{ $u->rolling_balance < 0 ? 'opacity-50 cursor-not-allowed' : '' }}"
                                 data-id="{{ $u->id }}"
                                 data-name="{{ $u->first_name }} {{ $u->last_name }}"
-                                data-balance="{{ $u->points_balance ?? 0 }}"
+                                data-balance="{{ $u->rolling_balance }}"
                                 onclick="selectMember(this)">
                             <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
                                  style="background:linear-gradient(135deg,#1E8F88,#34d4bf);">
@@ -370,7 +370,7 @@
                             </div>
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-medium text-gray-900">{{ $u->first_name }} {{ $u->last_name }}</p>
-                                @if(($u->points_balance ?? 0) < 1)
+                                @if($u->rolling_balance < 0)
                                 <p class="text-xs text-red-400">Solde insuffisant</p>
                                 @else
                                 <p class="text-xs text-gray-400">{{ $u->points_balance }} pts</p>
@@ -613,7 +613,7 @@
     }
     function selectMember(btn) {
         const balance = parseInt(btn.dataset.balance, 10);
-        if (balance < 1) { alert('Ce membre ne peut pas recevoir de leads pour le moment.'); return; }
+        if (balance < 0) { alert('Ce membre ne peut pas recevoir de leads pour le moment. Son solde sur les 2 derniers mois est insuffisant.'); return; }
         document.getElementById('receiverId').value     = btn.dataset.id;
         document.getElementById('receiverSearch').value = btn.dataset.name;
         hideMemberDropdown();
