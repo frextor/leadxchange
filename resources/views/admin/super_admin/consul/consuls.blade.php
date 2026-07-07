@@ -67,28 +67,82 @@
     </div>
 </div>
 
-{{-- ════ Demandes des Consuls (→ Ambassadeur) ════ --}}
+{{-- ════ Section 1 : Demandes Consul (utilisateur → Consul) ════ --}}
+@if($pendingConsulUsers->isNotEmpty())
 <div class="mb-6">
-    <div class="flex items-center gap-3 mb-4">
-        <h2 class="text-base font-bold text-gray-800">Demandes d'ambassadeur des Consuls</h2>
-        @if($requestCounts['pending'] > 0)
-        <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold text-white" style="background:#F59E0B;">
-            {{ $requestCounts['pending'] }} en attente
+    <div class="flex items-center gap-3 mb-3">
+        <h2 class="text-base font-bold text-gray-800">Demandes Consul en attente</h2>
+        <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold text-white" style="background:#D97706;">
+            {{ $pendingConsulUsers->count() }}
+        </span>
+    </div>
+    <div class="bg-white rounded-2xl border border-amber-100 shadow-sm overflow-hidden">
+        @foreach($pendingConsulUsers as $user)
+        <div class="flex items-center gap-4 px-5 py-3.5 border-b border-gray-50 last:border-0 hover:bg-amber-50/30 transition">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                 style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
+                {{ strtoupper(substr($user->first_name ?? '?', 0, 1)) }}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <p class="text-sm font-semibold text-gray-900">{{ $user->first_name }} {{ $user->last_name }}</p>
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+                        {{ $user->subscription?->plan?->label ?? 'Sans plan' }}
+                    </span>
+                    @if($user->city)
+                    <span class="text-xs text-gray-400">📍 {{ $user->city->name }}</span>
+                    @endif
+                </div>
+                <p class="text-xs text-gray-400 mt-0.5 truncate">{{ $user->email }}</p>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <form method="POST" action="{{ route('admin.super.consuls.nominate', $user) }}">
+                    @csrf
+                    <button type="submit"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition"
+                            style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+                        Approuver
+                    </button>
+                </form>
+                <form method="POST" action="{{ route('admin.super.consuls.reject-request', $user) }}"
+                      onsubmit="return confirm('Refuser la demande Consul de {{ addslashes($user->first_name . ' ' . $user->last_name) }} ?')">
+                    @csrf @method('DELETE')
+                    <button type="submit"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        Refuser
+                    </button>
+                </form>
+            </div>
+        </div>
+        @endforeach
+    </div>
+</div>
+@endif
+
+{{-- ════ Section 2 : Demandes Ambassadeur (Consul → Ambassadeur) ════ --}}
+@if($consulRequestCounts['pending'] > 0 || $consulRequestCounts['approved'] > 0 || $consulRequestCounts['rejected'] > 0)
+<div class="mb-6">
+    <div class="flex items-center gap-3 mb-3">
+        <h2 class="text-base font-bold text-gray-800">Demandes d'Ambassadeur des Consuls</h2>
+        @if($consulRequestCounts['pending'] > 0)
+        <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold text-white" style="background:#6366F1;">
+            {{ $consulRequestCounts['pending'] }} en attente
         </span>
         @endif
     </div>
 
-    {{-- Sub-tabs --}}
-    <div class="flex items-center gap-1 mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-1.5 w-fit">
+    <div class="flex items-center gap-1 mb-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-1.5 w-fit">
         @foreach(['pending' => 'En attente', 'approved' => 'Approuvées', 'rejected' => 'Refusées'] as $s => $label)
         <a href="{{ route('admin.super.consuls.manage', ['req_status' => $s]) }}"
            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition
                   {{ $reqStatus === $s ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50' }}">
             {{ $label }}
-            @if($requestCounts[$s] > 0)
+            @if($consulRequestCounts[$s] > 0)
             <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full
                          {{ $reqStatus === $s ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500' }}">
-                {{ $requestCounts[$s] }}
+                {{ $consulRequestCounts[$s] }}
             </span>
             @endif
         </a>
@@ -96,14 +150,12 @@
     </div>
 
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        @forelse($requests as $req)
+        @forelse($consulRequests as $req)
         <div class="flex items-start gap-4 px-5 py-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition">
-
             <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
                  style="background:linear-gradient(135deg,#6366F1,#4338CA);">
                 {{ strtoupper(substr($req->user->first_name ?? '?', 0, 1)) }}
             </div>
-
             <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
                     <p class="font-semibold text-gray-900">{{ $req->user->first_name }} {{ $req->user->last_name }}</p>
@@ -117,15 +169,12 @@
                 </div>
                 <p class="text-xs text-gray-400 mt-0.5">{{ $req->user->email }} · Demande le {{ $req->created_at->format('d/m/Y') }}</p>
                 @if($req->isRejected() && $req->rejection_reason)
-                <p class="text-xs text-red-500 mt-1">Raison du refus : {{ $req->rejection_reason }}</p>
+                <p class="text-xs text-red-500 mt-1">Raison : {{ $req->rejection_reason }}</p>
                 @endif
                 @if($req->isApproved())
-                <p class="text-xs text-emerald-600 mt-1">
-                    Approuvé par {{ $req->validator?->first_name }} le {{ $req->validated_at?->format('d/m/Y') }}
-                </p>
+                <p class="text-xs text-emerald-600 mt-1">Approuvé par {{ $req->validator?->first_name }} le {{ $req->validated_at?->format('d/m/Y') }}</p>
                 @endif
             </div>
-
             <div class="flex-shrink-0 self-center">
                 @if($req->isPending())
                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
@@ -141,42 +190,32 @@
                 </span>
                 @endif
             </div>
-
             @if($req->isPending())
             <div class="flex items-center gap-2 flex-shrink-0 self-center">
                 <form method="POST" action="{{ route('admin.super.consul.approve', $req) }}">
                     @csrf
-                    <button type="submit"
-                            class="px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition"
-                            style="background:#059669;">✓ Approuver</button>
+                    <button type="submit" class="px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition" style="background:#059669;">✓ Approuver</button>
                 </form>
-                <button type="button"
-                        onclick="openRejectModal({{ $req->id }})"
+                <button type="button" onclick="openRejectModal({{ $req->id }})"
                         class="px-3 py-1.5 rounded-xl text-xs font-bold border border-red-200 text-red-600 hover:bg-red-50 transition">
                     ✕ Refuser
                 </button>
             </div>
             @endif
-
         </div>
         @empty
-        <div class="px-5 py-12 text-center">
-            <div class="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-3">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            </div>
-            <p class="text-sm text-gray-400 font-medium">
-                Aucune demande {{ $reqStatus === 'pending' ? 'en attente' : ($reqStatus === 'approved' ? 'approuvée' : 'refusée') }}.
-            </p>
+        <div class="px-5 py-10 text-center">
+            <p class="text-sm text-gray-400">Aucune demande {{ $reqStatus === 'pending' ? 'en attente' : ($reqStatus === 'approved' ? 'approuvée' : 'refusée') }}.</p>
         </div>
         @endforelse
     </div>
-
-    @if($requests->hasPages())
-    <div class="mt-4">{{ $requests->links() }}</div>
+    @if($consulRequests->hasPages())
+    <div class="mt-4">{{ $consulRequests->links() }}</div>
     @endif
 </div>
+@endif
 
-{{-- Reject modal --}}
+{{-- Reject modal (consul → ambassador) --}}
 <div id="reject-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
         <h3 class="text-base font-bold text-gray-900 mb-4">Refuser la demande ambassadeur</h3>
@@ -189,11 +228,8 @@
                           placeholder="Expliquez la raison du refus…"></textarea>
             </div>
             <div class="flex gap-3">
-                <button type="submit"
-                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition"
-                        style="background:#DC2626;">Confirmer le refus</button>
-                <button type="button" onclick="closeRejectModal()"
-                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition">Annuler</button>
+                <button type="submit" class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition" style="background:#DC2626;">Confirmer le refus</button>
+                <button type="button" onclick="closeRejectModal()" class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition">Annuler</button>
             </div>
         </form>
     </div>
