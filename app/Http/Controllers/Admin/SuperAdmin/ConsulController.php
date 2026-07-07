@@ -98,10 +98,13 @@ class ConsulController extends Controller
             'eligible'=> User::where('role', 'user')->whereHas('subscription', fn($q) => $q->where('status', 'active')->whereHas('plan', fn($p) => $p->where('price', '>', 0)))->whereNull('consul_status')->count(),
         ];
 
-        $pendingRequests = ConsulRequest::with(['user.subscription.plan', 'user.city'])
-            ->where('status', ConsulRequest::STATUS_PENDING)
+        $reqStatus = $request->get('req_status', 'pending');
+
+        $requests = ConsulRequest::with(['user.subscription.plan', 'user.city', 'validator'])
+            ->where('status', $reqStatus)
             ->latest()
-            ->get();
+            ->paginate(20, ['*'], 'req_page')
+            ->withQueryString();
 
         $requestCounts = [
             'pending'  => ConsulRequest::where('status', 'pending')->count(),
@@ -109,7 +112,7 @@ class ConsulController extends Controller
             'rejected' => ConsulRequest::where('status', 'rejected')->count(),
         ];
 
-        return view('admin.super_admin.consul.consuls', compact('users', 'counts', 'pendingRequests', 'requestCounts'));
+        return view('admin.super_admin.consul.consuls', compact('users', 'counts', 'requests', 'reqStatus', 'requestCounts'));
     }
 
     public function nominateConsul(User $user): RedirectResponse

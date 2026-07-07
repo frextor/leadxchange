@@ -15,12 +15,8 @@ class AmbassadorController extends Controller
     {
         $this->authorize('promoteAmbassador', ConsulRequest::class);
 
-        $tab = $request->get('tab', 'nominate');
-
-        // ── KPI counts ───────────────────────────────────────────────────────
         $counts = [
             'ambassador' => User::where('ambassador_status', 'approved')->count(),
-            'pending'    => ConsulRequest::where('status', 'pending')->count(),
             'eligible'   => User::where('role', 'user')
                 ->whereHas('subscription', fn($q) => $q->where('status', 'active')
                     ->whereHas('plan', fn($p) => $p->where('price', '>', 0)))
@@ -28,7 +24,6 @@ class AmbassadorController extends Controller
                 ->count(),
         ];
 
-        // ── Tab: Nommer — premium users ───────────────────────────────────────
         $nominateQuery = User::with(['subscription.plan', 'city'])
             ->where('role', 'user')
             ->whereHas('subscription', fn($q) => $q->where('status', 'active')
@@ -49,23 +44,6 @@ class AmbassadorController extends Controller
 
         $nominatableUsers = $nominateQuery->orderBy('first_name')->paginate(25)->withQueryString();
 
-        // ── Tab: Demandes — ConsulRequests ────────────────────────────────────
-        $reqStatus = $request->get('req_status', 'pending');
-
-        $requests = ConsulRequest::with(['user.subscription.plan', 'user.city', 'validator'])
-            ->where('status', $reqStatus)
-            ->latest()
-            ->paginate(20, ['*'], 'req_page')
-            ->withQueryString();
-
-        $requestCounts = [
-            'pending'  => ConsulRequest::where('status', 'pending')->count(),
-            'approved' => ConsulRequest::where('status', 'approved')->count(),
-            'rejected' => ConsulRequest::where('status', 'rejected')->count(),
-        ];
-
-        return view('admin.super_admin.ambassadors.index', compact(
-            'tab', 'nominatableUsers', 'requests', 'requestCounts', 'counts', 'reqStatus'
-        ));
+        return view('admin.super_admin.ambassadors.index', compact('nominatableUsers', 'counts'));
     }
 }

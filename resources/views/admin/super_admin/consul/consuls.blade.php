@@ -67,49 +67,88 @@
     </div>
 </div>
 
-{{-- Pending ambassador requests from consuls --}}
-@if($requestCounts['pending'] > 0 || $pendingRequests->isNotEmpty())
+{{-- ════ Demandes des Consuls (→ Ambassadeur) ════ --}}
 <div class="mb-6">
-    <div class="flex items-center gap-2 mb-3">
-        <h2 class="text-sm font-bold text-gray-800">Demandes d'ambassadeur en attente</h2>
+    <div class="flex items-center gap-3 mb-4">
+        <h2 class="text-base font-bold text-gray-800">Demandes d'ambassadeur des Consuls</h2>
         @if($requestCounts['pending'] > 0)
-        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white" style="background:#F59E0B;">
-            {{ $requestCounts['pending'] }}
+        <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold text-white" style="background:#F59E0B;">
+            {{ $requestCounts['pending'] }} en attente
         </span>
         @endif
     </div>
-    <div class="bg-white rounded-2xl border border-amber-100 shadow-sm overflow-hidden">
-        @forelse($pendingRequests as $req)
-        <div class="flex items-center gap-4 px-5 py-3.5 border-b border-gray-50 last:border-0 hover:bg-amber-50/30 transition">
-            <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                 style="background:linear-gradient(135deg,#F59E0B,#D97706);">
+
+    {{-- Sub-tabs --}}
+    <div class="flex items-center gap-1 mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-1.5 w-fit">
+        @foreach(['pending' => 'En attente', 'approved' => 'Approuvées', 'rejected' => 'Refusées'] as $s => $label)
+        <a href="{{ route('admin.super.consuls.manage', ['req_status' => $s]) }}"
+           class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition
+                  {{ $reqStatus === $s ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50' }}">
+            {{ $label }}
+            @if($requestCounts[$s] > 0)
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full
+                         {{ $reqStatus === $s ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500' }}">
+                {{ $requestCounts[$s] }}
+            </span>
+            @endif
+        </a>
+        @endforeach
+    </div>
+
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        @forelse($requests as $req)
+        <div class="flex items-start gap-4 px-5 py-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition">
+
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                 style="background:linear-gradient(135deg,#6366F1,#4338CA);">
                 {{ strtoupper(substr($req->user->first_name ?? '?', 0, 1)) }}
             </div>
+
             <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
-                    <p class="text-sm font-semibold text-gray-900">{{ $req->user->first_name }} {{ $req->user->last_name }}</p>
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-700">
-                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                        Consul
+                    <p class="font-semibold text-gray-900">{{ $req->user->first_name }} {{ $req->user->last_name }}</p>
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 font-semibold">Consul</span>
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-semibold">
+                        {{ $req->user->subscription?->plan?->label ?? 'Sans plan' }}
                     </span>
-                    <span class="text-xs text-gray-400">{{ $req->user->subscription?->plan?->label ?? '—' }}</span>
                     @if($req->user->city)
-                    <span class="text-xs text-gray-400">· {{ $req->user->city->name }}</span>
+                    <span class="text-xs text-gray-400">📍 {{ $req->user->city->name }}</span>
                     @endif
                 </div>
                 <p class="text-xs text-gray-400 mt-0.5">{{ $req->user->email }} · Demande le {{ $req->created_at->format('d/m/Y') }}</p>
+                @if($req->isRejected() && $req->rejection_reason)
+                <p class="text-xs text-red-500 mt-1">Raison du refus : {{ $req->rejection_reason }}</p>
+                @endif
+                @if($req->isApproved())
+                <p class="text-xs text-emerald-600 mt-1">
+                    Approuvé par {{ $req->validator?->first_name }} le {{ $req->validated_at?->format('d/m/Y') }}
+                </p>
+                @endif
             </div>
-            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 flex-shrink-0">
-                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> En attente
-            </span>
-            <div class="flex items-center gap-2 flex-shrink-0">
+
+            <div class="flex-shrink-0 self-center">
+                @if($req->isPending())
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> En attente
+                </span>
+                @elseif($req->isApproved())
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Approuvée
+                </span>
+                @else
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600">
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Refusée
+                </span>
+                @endif
+            </div>
+
+            @if($req->isPending())
+            <div class="flex items-center gap-2 flex-shrink-0 self-center">
                 <form method="POST" action="{{ route('admin.super.consul.approve', $req) }}">
                     @csrf
                     <button type="submit"
                             class="px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition"
-                            style="background:#059669;">
-                        ✓ Approuver
-                    </button>
+                            style="background:#059669;">✓ Approuver</button>
                 </form>
                 <button type="button"
                         onclick="openRejectModal({{ $req->id }})"
@@ -117,29 +156,30 @@
                     ✕ Refuser
                 </button>
             </div>
+            @endif
+
         </div>
         @empty
-        <div class="px-5 py-6 text-center text-sm text-gray-400">Aucune demande en attente.</div>
-        @endforelse
-        @if($requestCounts['approved'] > 0 || $requestCounts['rejected'] > 0)
-        <div class="px-5 py-3 border-t border-gray-50 bg-gray-50/50 flex items-center justify-between">
-            <p class="text-xs text-gray-400">
-                {{ $requestCounts['approved'] }} approuvée{{ $requestCounts['approved'] > 1 ? 's' : '' }} ·
-                {{ $requestCounts['rejected'] }} refusée{{ $requestCounts['rejected'] > 1 ? 's' : '' }}
+        <div class="px-5 py-12 text-center">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-3">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <p class="text-sm text-gray-400 font-medium">
+                Aucune demande {{ $reqStatus === 'pending' ? 'en attente' : ($reqStatus === 'approved' ? 'approuvée' : 'refusée') }}.
             </p>
-            <a href="{{ route('admin.super.consul.index') }}" class="text-xs font-semibold text-indigo-600 hover:underline">
-                Voir tout l'historique →
-            </a>
         </div>
-        @endif
+        @endforelse
     </div>
+
+    @if($requests->hasPages())
+    <div class="mt-4">{{ $requests->links() }}</div>
+    @endif
 </div>
-@endif
 
 {{-- Reject modal --}}
 <div id="reject-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-        <h3 class="text-base font-bold text-gray-900 mb-4">Refuser la demande</h3>
+        <h3 class="text-base font-bold text-gray-900 mb-4">Refuser la demande ambassadeur</h3>
         <form id="reject-form" method="POST">
             @csrf
             <div class="mb-4">
