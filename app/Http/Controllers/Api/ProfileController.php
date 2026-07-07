@@ -228,9 +228,8 @@ class ProfileController extends Controller
 
         $user->update(['consul_status' => 'pending']);
 
-        ConsulRequest::firstOrCreate(
-            ['user_id' => $user->id, 'status' => ConsulRequest::STATUS_PENDING]
-        );
+        // Note: ConsulRequest records are ONLY for consul→ambassador promotions.
+        // Consul requests use consul_status = 'pending' on the user directly.
 
         $admins = \App\Models\User::whereIn('role', ['admin', 'super_admin'])->get();
         foreach ($admins as $admin) {
