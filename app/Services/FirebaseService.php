@@ -462,6 +462,42 @@ class FirebaseService
         ]);
     }
 
+    public function sendConsulRequestNotification(User $requester): void
+    {
+        if (!$requester->city_id) {
+            return;
+        }
+
+        $ambassadors = User::where('ambassador_status', 'approved')
+            ->where('city_id', $requester->city_id)
+            ->where('id', '!=', $requester->id)
+            ->get();
+
+        if ($ambassadors->isEmpty()) {
+            return;
+        }
+
+        $title = 'Nouvelle demande Consul';
+        $body  = "{$requester->first_name} {$requester->last_name} demande le statut Consul dans votre région.";
+
+        foreach ($ambassadors as $ambassador) {
+            $notificationId = (string) Notification::storeForUser($ambassador, 'consul_request_submitted', $title, $body, [
+                'user_id' => (string) $requester->id,
+            ])->id;
+
+            $tokens = DeviceToken::where('user_id', $ambassador->id)->pluck('token');
+            if ($tokens->isEmpty()) {
+                continue;
+            }
+
+            $this->sendToTokens($tokens, $title, $body, [
+                'type'            => 'connection_request',
+                'target_id'       => (string) $requester->id,
+                'notification_id' => $notificationId,
+            ]);
+        }
+    }
+
     private function sendToTokens($tokens, string $title, string $body, array $data = []): void
     {
         $accessToken = $this->getAccessToken();
