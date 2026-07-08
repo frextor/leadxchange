@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\PollController;
 use App\Http\Controllers\Api\LanguageController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\StripeWebhookController;
+use App\Http\Controllers\Api\AmbassadorController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -126,6 +127,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/groups/{id}',                               [GroupController::class, 'destroy']);
     Route::post('/groups/{id}/join',                            [GroupController::class, 'join']);
     Route::delete('/groups/{id}/leave',                         [GroupController::class, 'leave']);
+    Route::delete('/groups/{id}/invitation',                    [GroupController::class, 'declineInvitationByGroup']);
     Route::post('/groups/{id}/invite',                          [GroupController::class, 'invite']);
     Route::get('/groups/{id}/members',                          [GroupController::class, 'members']);
     Route::delete('/groups/{id}/members/{userId}',              [GroupController::class, 'removeMember']);
@@ -201,4 +203,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/chat/{userId}/poll/{lastId}',   [ApiChatController::class, 'poll']);
     Route::post('/chat/{conversationId}/read',   [ApiChatController::class, 'markRead']);
     Route::post('/chat/{conversationId}/typing', [ApiChatController::class, 'typing']);
+
+    // Ambassador Routes
+    Route::middleware('ambassador')->prefix('ambassador')->group(function () {
+        Route::get('/consul-requests',                      [AmbassadorController::class, 'consulRequests']);
+        Route::post('/consul-requests/{user}/approve',     [AmbassadorController::class, 'approveConsulRequest']);
+        Route::post('/consul-requests/{user}/reject',      [AmbassadorController::class, 'rejectConsulRequest']);
+        Route::get('/premium-users',                        [AmbassadorController::class, 'premiumUsers']);
+        Route::post('/nominate/{user}',                    [AmbassadorController::class, 'nominateConsul']);
+    });
 });

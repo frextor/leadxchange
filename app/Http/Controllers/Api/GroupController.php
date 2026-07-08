@@ -445,6 +445,26 @@ class GroupController extends Controller
     }
 
     /**
+     * DELETE /api/groups/{id}/invitation
+     * Decline a pending group invitation by group ID (no inv ID needed).
+     */
+    public function declineInvitationByGroup(int $id, Request $request): JsonResponse
+    {
+        $invitation = GroupInvitation::where('group_id', $id)
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'pending')
+            ->first();
+
+        if (!$invitation) {
+            return response()->json(['message' => 'No pending invitation found.'], 422);
+        }
+
+        $invitation->update(['status' => 'declined']);
+
+        return response()->json(['message' => 'Invitation declined.']);
+    }
+
+    /**
      * POST /api/groups/{id}/members/{userId}/promote
      */
     public function promote(int $id, int $userId, Request $request): JsonResponse

@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Models\Interest;
 use App\Models\Language;
 use App\Models\Nationality;
+use App\Models\PermissionDefinition;
 use App\Models\Plan;
 use App\Models\Market;
 use App\Models\Sector;
@@ -49,7 +50,7 @@ class SettingsController extends Controller
 
             'plans'         => Plan::where('is_active', true)->where('is_visible', true)
                                    ->orderBy('sort_order')
-                                   ->get(['id', 'name', 'label', 'description', 'price', 'billing_period', 'max_leads', 'max_groups', 'max_users', 'features'])
+                                   ->get(['id', 'name', 'label', 'description', 'price', 'billing_period', 'max_leads', 'max_groups', 'max_users', 'features', 'permissions'])
                                    ->map(fn($plan) => [
                                        'id'             => $plan->id,
                                        'name'           => $plan->name,
@@ -61,6 +62,7 @@ class SettingsController extends Controller
                                        'max_groups'     => $plan->max_groups,
                                        'max_users'      => $plan->max_users,
                                        'features'       => $this->planFeaturesToArray($plan->features),
+                                       'permissions'    => $this->planPermissionsToArray($plan->permissions),
                                    ]),
 
             'cities'        => City::where('is_active', true)->with('country:id,name,code,flag')
@@ -111,6 +113,38 @@ class SettingsController extends Controller
         foreach ($labels as $key => $display) {
             if (!empty($features[$key]) && $features[$key] === true) {
                 $result[] = $display;
+            }
+        }
+
+        return $result;
+    }
+
+    private function planPermissionsToArray(mixed $permissions): array
+    {
+        if (empty($permissions)) return [];
+
+        // Already a flat string array — return as-is
+        if (array_is_list($permissions) && isset($permissions[0]) && is_string($permissions[0])) {
+            return $permissions;
+        }
+
+        // Load definitions ordered by sort_order
+        $definitions = PermissionDefinition::orderBy('sort_order')->get()->keyBy('key');
+
+        $result = [];
+        foreach ($definitions as $key => $def) {
+            $value = $permissions[$key] ?? null;
+
+            if ($def->type === 'bool') {
+                if ($value === true) {
+                    $result[] = $def->label;
+                }
+            } elseif ($def->type === 'number') {
+                if ($value === null && $def->null_label) {
+                    $result[] = $def->null_label;
+                } elseif (is_numeric($value) && $value > 0) {
+                    $result[] = "{$value} {$def->label}";
+                }
             }
         }
 

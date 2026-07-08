@@ -19,8 +19,20 @@ class FirebaseService
 
     public function sendConnectionNotification(Connection $connection, User $sender): void
     {
-        $tokens = DeviceToken::where('user_id', $connection->receiver_id)->pluck('token');
+        $receiver = User::find($connection->receiver_id);
+        if (!$receiver) {
+            return;
+        }
 
+        $title = 'Nouvelle demande de connexion';
+        $body  = "{$sender->first_name} {$sender->last_name} vous a envoyé une demande de connexion";
+
+        // Always store DB notification regardless of push tokens
+        $notificationId = (string) Notification::storeForUser($receiver, 'connection_request', $title, $body, [
+            'user_id' => (string) $sender->id,
+        ])->id;
+
+        $tokens = DeviceToken::where('user_id', $connection->receiver_id)->pluck('token');
         if ($tokens->isEmpty()) {
             return;
         }
@@ -28,9 +40,7 @@ class FirebaseService
         $accessToken = $this->getAccessToken();
         $projectId   = config('firebase.project_id');
 
-        $title = 'Nouvelle demande de connexion';
-        $body  = "{$sender->first_name} {$sender->last_name} vous a envoyé une demande de connexion";
-        $data  = [
+        $data = [
             'connection_id'     => (string) $connection->id,
             'sender_id'         => (string) $sender->id,
             'sender_first_name' => $sender->first_name,
@@ -39,20 +49,12 @@ class FirebaseService
             'type'              => 'connection_request',
         ];
 
-        $notificationId = null;
-        $receiver = User::find($connection->receiver_id);
-        if ($receiver) {
-            $notificationId = (string) Notification::storeForUser($receiver, 'connection_request', $title, $body, [
-                'user_id' => (string) $sender->id,
-            ])->id;
-        }
-
         foreach ($tokens as $token) {
             $response = Http::withToken($accessToken)
                 ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
                     'message' => [
                         'token'   => $token,
-                        'data'    => array_merge($data, ['title' => $title, 'body' => $body, 'notification_id' => $notificationId ?? '']),
+                        'data'    => array_merge($data, ['title' => $title, 'body' => $body, 'notification_id' => $notificationId]),
                         'android' => ['priority' => 'high'],
                         'apns'    => ['payload' => ['aps' => ['alert' => ['title' => $title, 'body' => $body], 'sound' => 'default']]],
                     ],
@@ -460,6 +462,42 @@ class FirebaseService
         $this->sendToTokens($tokens, $title, $body, [
             'type' => 'ambassador_announcement',
         ]);
+    }
+
+    public function sendConsulRequestNotification(User $requester): void
+    {
+        if (!$requester->city_id) {
+            return;
+        }
+
+        $ambassadors = User::where('ambassador_status', 'approved')
+            ->where('city_id', $requester->city_id)
+            ->where('id', '!=', $requester->id)
+            ->get();
+
+        if ($ambassadors->isEmpty()) {
+            return;
+        }
+
+        $title = 'Nouvelle demande Consul';
+        $body  = "{$requester->first_name} {$requester->last_name} demande le statut Consul dans votre région.";
+
+        foreach ($ambassadors as $ambassador) {
+            $notificationId = (string) Notification::storeForUser($ambassador, 'consul_request_submitted', $title, $body, [
+                'user_id' => (string) $requester->id,
+            ])->id;
+
+            $tokens = DeviceToken::where('user_id', $ambassador->id)->pluck('token');
+            if ($tokens->isEmpty()) {
+                continue;
+            }
+
+            $this->sendToTokens($tokens, $title, $body, [
+                'type'            => 'connection_request',
+                'target_id'       => (string) $requester->id,
+                'notification_id' => $notificationId,
+            ]);
+        }
     }
 
     private function sendToTokens($tokens, string $title, string $body, array $data = []): void

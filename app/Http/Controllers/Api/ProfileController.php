@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ConsulRequest;
 use App\Models\Interest;
 use App\Services\ConsulService;
+use App\Services\FirebaseService;
 use App\Services\ProfileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,8 +14,9 @@ use Illuminate\Http\Request;
 class ProfileController extends Controller
 {
     public function __construct(
-        private ProfileService $profileService,
-        private ConsulService  $consulService,
+        private ProfileService  $profileService,
+        private ConsulService   $consulService,
+        private FirebaseService $firebase,
     ) {}
 
     public function show(Request $request): JsonResponse
@@ -227,6 +229,8 @@ class ProfileController extends Controller
         }
 
         $user->update(['consul_status' => 'pending']);
+
+        try { $this->firebase->sendConsulRequestNotification($user); } catch (\Throwable) {}
 
         // Note: ConsulRequest records are ONLY for consul→ambassador promotions.
         // Consul requests use consul_status = 'pending' on the user directly.
