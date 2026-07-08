@@ -61,7 +61,7 @@ class SettingsController extends Controller
                                        'max_groups'     => $plan->max_groups,
                                        'max_users'      => $plan->max_users,
                                        'features'       => $this->planFeaturesToArray($plan->features),
-                                       'permissions'    => $this->planFeaturesToArray($plan->permissions),
+                                       'permissions'    => $this->planPermissionsToArray($plan->permissions),
                                    ]),
 
             'cities'        => City::where('is_active', true)->with('country:id,name,code,flag')
@@ -111,6 +111,59 @@ class SettingsController extends Controller
 
         foreach ($labels as $key => $display) {
             if (!empty($features[$key]) && $features[$key] === true) {
+                $result[] = $display;
+            }
+        }
+
+        return $result;
+    }
+
+    private function planPermissionsToArray(mixed $permissions): array
+    {
+        if (empty($permissions)) return [];
+
+        // Already a flat string array — return as-is
+        if (array_is_list($permissions) && isset($permissions[0]) && is_string($permissions[0])) {
+            return $permissions;
+        }
+
+        $result = [];
+
+        // Numeric limits — show as readable strings
+        $maxLeads = $permissions['max_leads_per_month'] ?? null;
+        if ($maxLeads === null) {
+            $result[] = 'Leads illimités/mois';
+        } elseif ($maxLeads > 0) {
+            $result[] = "{$maxLeads} leads/mois";
+        }
+
+        if (($permissions['mail_reply_weekly_limit'] ?? null) === null && !empty($permissions['can_send_mail'])) {
+            $result[] = 'Messages illimités';
+        }
+
+        $maxGroups = $permissions['max_groups_joined'] ?? null;
+        if ($maxGroups === null && !empty($permissions['can_join_pole'])) {
+            $result[] = 'Groupes illimités';
+        }
+
+        // Boolean permissions — only show enabled ones
+        $labels = [
+            'can_view_member_contact'      => 'Voir les contacts membres',
+            'can_view_member_name'         => 'Voir le nom des membres',
+            'can_send_invitations'         => 'Envoyer des invitations',
+            'can_send_mail'                => 'Messagerie directe',
+            'can_send_sql'                 => 'Leads SQL',
+            'can_send_sp'                  => 'Leads SP',
+            'can_join_pole'                => 'Rejoindre des groupes',
+            'can_create_pole'              => 'Créer des groupes',
+            'can_create_events'            => 'Créer des événements',
+            'can_organize_regional_events' => 'Événements régionaux',
+            'can_nominate_consul'          => 'Nommer des consuls',
+            'can_add_member'               => 'Ajouter des membres',
+        ];
+
+        foreach ($labels as $key => $display) {
+            if (!empty($permissions[$key]) && $permissions[$key] === true) {
                 $result[] = $display;
             }
         }
