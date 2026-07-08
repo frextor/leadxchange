@@ -83,12 +83,12 @@ class AmbassadorController extends Controller
     private function formatUser(User $user): array
     {
         return [
-            'id'         => $user->id,
-            'full_name'  => "{$user->first_name} {$user->last_name}",
-            'avatar'     => $user->avatar,
-            'company'    => $user->company_name,
-            'city'       => $user->city?->name,
-            'plan_label' => $user->subscription?->plan?->label,
+            'id'            => $user->id,
+            'full_name'     => "{$user->first_name} {$user->last_name}",
+            'avatar'        => $user->avatar,
+            'job_title'     => $user->job_title,
+            'company'       => $user->company_name,
+            'city'          => $user->city?->name,
             'consul_status' => $user->consul_status,
         ];
     }
