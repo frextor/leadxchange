@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Mail\NewEventMail;
 use App\Models\Event;
 use App\Models\User;
+use App\Services\FirebaseService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -67,10 +68,11 @@ class NotifyUsersNewEventJob implements ShouldQueue
                 }
             });
 
-        $sent = 0;
+        $sent     = 0;
+        $firebase = app(FirebaseService::class);
 
         $query->select(['id', 'first_name', 'last_name', 'email', 'ambassador_status'])
-              ->chunk(50, function ($users) use ($subjectFallback, &$sent) {
+              ->chunk(50, function ($users) use ($subjectFallback, $firebase, &$sent) {
                   foreach ($users as $user) {
                       try {
                           SendQueuedEmailJob::dispatch(
@@ -84,6 +86,7 @@ class NotifyUsersNewEventJob implements ShouldQueue
                                   'user_id'  => $user->id,
                               ],
                           );
+                          $firebase->sendNewRegionalEventNotification($user, $this->event);
                           $sent++;
                       } catch (\Exception $e) {
                           Log::warning('NotifyUsersNewEventJob: échec envoi', [

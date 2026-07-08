@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\NotifyUsersNewEventJob;
 use App\Models\Event;
 use App\Models\EventInvitation;
 use App\Models\User;
@@ -349,6 +350,7 @@ class EventController extends Controller
             'title'         => ['required', 'string', 'max:150'],
             'description'   => ['nullable', 'string', 'max:1000'],
             'type'          => ['required', 'in:virtual,in_person,hybrid'],
+            'scope'         => ['nullable', 'in:regional,private'],
             'category'      => ['nullable', 'in:' . implode(',', array_keys(Event::categoryLabels()))],
             'location'      => ['nullable', 'string', 'max:255'],
             'meeting_link'  => ['nullable', 'url', 'max:500'],
@@ -376,10 +378,14 @@ class EventController extends Controller
             $coverImagePath = $request->file('cover_image')->store('events/covers', 'public');
         }
 
+        $scope    = $validated['scope'] ?? 'regional';
+        $isPublic = $scope !== 'private';
+
         $event = Event::create([
             'title'           => $validated['title'],
             'description'     => $validated['description'] ?? null,
             'type'            => $validated['type'],
+            'scope'           => $scope,
             'category'        => $validated['category'] ?? null,
             'location'        => $validated['location'] ?? null,
             'meeting_link'    => $validated['meeting_link'] ?? null,
@@ -392,11 +398,15 @@ class EventController extends Controller
             'price'           => $validated['price'] ?? null,
             'max_attendees'   => $validated['max_attendees'] ?? null,
             'created_by'      => $user->id,
-            'is_public'       => true,
+            'is_public'       => $isPublic,
             'attendees_count' => 1,
         ]);
 
         $event->attendees()->attach($user->id, ['role' => 'organizer']);
+
+        if ($scope === 'regional') {
+            NotifyUsersNewEventJob::dispatch($event);
+        }
 
         return response()->json([
             'message' => 'Event created successfully.',

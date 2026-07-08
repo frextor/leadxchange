@@ -11,7 +11,7 @@ class Event extends Model
     protected $fillable = [
         'title', 'description', 'type', 'category', 'location', 'meeting_link',
         'starts_at', 'ends_at', 'created_by', 'sector_id', 'city_id', 'region_id',
-        'cover_color', 'cover_image', 'price', 'max_attendees', 'attendees_count', 'is_public',
+        'cover_color', 'cover_image', 'price', 'max_attendees', 'attendees_count', 'is_public', 'scope',
     ];
 
     // Fallback used only when DB is unavailable (e.g. before first migration)
