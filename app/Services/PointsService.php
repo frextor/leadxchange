@@ -44,7 +44,7 @@ class PointsService
     const MALUS_UQ_THRESHOLD  = 3;   // > 3 UQ leads → malus
     const MALUS_WINDOW_MONTHS = 6;
     const MALUS_AMOUNT        = -5;
-    const RATING_DAYS         = 15;
+    const RATING_DAYS         = 15; // TEST: deadline posée à J+15 mais vérification ci-dessous changée à +1h
     const EXTENSION_DAYS      = 15;
 
     // ── Core adjustment (respects 30-pt cap, writes points_history, updates badge) ──

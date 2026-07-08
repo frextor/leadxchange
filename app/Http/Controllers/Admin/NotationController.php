@@ -34,7 +34,7 @@ class NotationController extends Controller
 
         $users = $query->orderByDesc('points_balance')->paginate(30)->withQueryString();
 
-        $since = now()->subDays(60);
+        $since = now()->subHours(1); // TEST (rollback: subDays(60))
 
         $details = DB::table('leads')
             ->whereBetween('leads.created_at', [$since, now()])

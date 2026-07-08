@@ -408,7 +408,7 @@ class UserService
         $sqlWeight    = SystemSetting::get('scoring.sql_weight', 3);
         $spWeight     = SystemSetting::get('scoring.sp_weight', 5);
 
-        $since = now()->subDays($windowDays);
+        $since = now()->subHours(1); // TEST (rollback: subDays($windowDays))
 
         $given = Lead::where('sender_id', $userId)
             ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])

@@ -210,9 +210,8 @@ class LeadService
             throw new \Exception('Vous avez déjà noté ce lead.');
         }
 
-        $ratingDeadline = $lead->deadline
-            ? \Carbon\Carbon::parse($lead->deadline)->addDays(30)
-            : $lead->created_at->addDays(60);
+        // TEST: deadline étendue à now+1h pour tester (rollback: remettre addDays(30) / addDays(60))
+        $ratingDeadline = now()->addHour();
         if (now()->gt($ratingDeadline)) {
             throw new \Exception('Le délai de notation de ce lead est dépassé.');
         }
@@ -261,7 +260,7 @@ class LeadService
         $sqlWeight     = SystemSetting::get('scoring.sql_weight', 3);
         $spWeight      = SystemSetting::get('scoring.sp_weight', 5);
 
-        $since = now()->subDays($windowDays);
+        $since = now()->subHours(1); // TEST (rollback: subDays($windowDays))
 
         $given = Lead::where('sender_id', $userId)
             ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
