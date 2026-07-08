@@ -68,9 +68,10 @@ class NotationController extends Controller
         $ranges     = LeadScoreService::ranges();
 
         $blockNegativeSender = (bool) SystemSetting::get('leads.block_negative_sender', true);
-        $negativeGraceDays   = (int)  SystemSetting::get('leads.negative_sender_grace_days', 0);
+        $negativeGraceValue  = (int)   SystemSetting::get('leads.negative_sender_grace_value', 0);
+        $negativeGraceUnit   =         SystemSetting::get('leads.negative_sender_grace_unit', 'days');
 
-        return view('admin.notation.index', compact('users', 'details', 'received', 'badges', 'thresholds', 'ranges', 'blockNegativeSender', 'negativeGraceDays'));
+        return view('admin.notation.index', compact('users', 'details', 'received', 'badges', 'thresholds', 'ranges', 'blockNegativeSender', 'negativeGraceValue', 'negativeGraceUnit'));
     }
 
     public function update(Request $request, User $user): RedirectResponse
@@ -144,7 +145,8 @@ class NotationController extends Controller
     public function updateSettings(Request $request): RedirectResponse
     {
         $request->validate([
-            'negative_grace_days' => ['nullable', 'integer', 'min:0', 'max:365'],
+            'negative_grace_value' => ['nullable', 'integer', 'min:0', 'max:9999'],
+            'negative_grace_unit'  => ['nullable', 'in:minutes,hours,days'],
         ]);
 
         SystemSetting::updateOrCreate(
@@ -152,14 +154,19 @@ class NotationController extends Controller
             ['value' => $request->boolean('block_negative_sender') ? '1' : '0', 'type' => 'bool']
         );
         SystemSetting::updateOrCreate(
-            ['key' => 'leads.negative_sender_grace_days'],
-            ['value' => (int) $request->input('negative_grace_days', 0), 'type' => 'int']
+            ['key' => 'leads.negative_sender_grace_value'],
+            ['value' => (int) $request->input('negative_grace_value', 0), 'type' => 'int']
+        );
+        SystemSetting::updateOrCreate(
+            ['key' => 'leads.negative_sender_grace_unit'],
+            ['value' => $request->input('negative_grace_unit', 'days'), 'type' => 'string']
         );
         Cache::forget('system_settings');
 
         ActivityLogger::log('admin.notation.settings_updated', 'Paramètres blocage solde négatif mis à jour', null, null, [
-            'block'       => $request->boolean('block_negative_sender'),
-            'grace_days'  => (int) $request->input('negative_grace_days', 0),
+            'block'        => $request->boolean('block_negative_sender'),
+            'grace_value'  => (int) $request->input('negative_grace_value', 0),
+            'grace_unit'   => $request->input('negative_grace_unit', 'days'),
         ]);
         return back()->with('success', 'Paramètres mis à jour.');
     }

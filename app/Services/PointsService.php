@@ -181,9 +181,16 @@ class PointsService
         }
 
         // Balance is negative: apply grace period before blocking
-        $graceDays = (int) SystemSetting::get('leads.negative_sender_grace_days', 0);
-        if ($graceDays > 0 && $user->points_negative_since) {
-            return $user->points_negative_since->addDays($graceDays)->isFuture();
+        $graceValue = (int) SystemSetting::get('leads.negative_sender_grace_value', 0);
+        $graceUnit  = SystemSetting::get('leads.negative_sender_grace_unit', 'days');
+
+        if ($graceValue > 0 && $user->points_negative_since) {
+            $deadline = match ($graceUnit) {
+                'minutes' => $user->points_negative_since->addMinutes($graceValue),
+                'hours'   => $user->points_negative_since->addHours($graceValue),
+                default   => $user->points_negative_since->addDays($graceValue),
+            };
+            return $deadline->isFuture();
         }
 
         return false;

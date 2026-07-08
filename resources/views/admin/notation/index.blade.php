@@ -320,20 +320,23 @@ $colorMap = [
                     </div>
                     <div class="flex-1">
                         <p class="text-sm font-semibold text-orange-900">Délai avant blocage</p>
-                        <p class="text-xs text-orange-700 mt-0.5 mb-3">Nombre de jours après le passage en solde négatif avant que l'envoi soit bloqué. Mettez <strong>0</strong> pour bloquer immédiatement.</p>
-                        <div class="flex items-center gap-3">
-                            <input type="number" name="negative_grace_days"
-                                   value="{{ $negativeGraceDays }}"
-                                   min="0" max="365"
+                        <p class="text-xs text-orange-700 mt-0.5 mb-3">Durée après le passage en solde négatif avant que l'envoi soit bloqué. Mettez <strong>0</strong> pour bloquer immédiatement.</p>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <input type="number" name="negative_grace_value"
+                                   id="grace-value"
+                                   value="{{ $negativeGraceValue }}"
+                                   min="0" max="9999"
+                                   oninput="updateGracePreview()"
                                    class="w-24 border border-orange-200 bg-white rounded-xl px-3 py-2 text-sm font-semibold text-center focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition">
-                            <span class="text-sm text-orange-700">jours</span>
-                            @if($negativeGraceDays > 0)
-                            <span class="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">
-                                ex : solde négatif depuis aujourd'hui → blocage le {{ now()->addDays($negativeGraceDays)->format('d/m/Y') }}
-                            </span>
-                            @else
-                            <span class="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">blocage immédiat</span>
-                            @endif
+                            <select name="negative_grace_unit"
+                                    id="grace-unit"
+                                    onchange="updateGracePreview()"
+                                    class="border border-orange-200 bg-white rounded-xl px-3 py-2 text-sm font-semibold focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition">
+                                <option value="minutes" {{ $negativeGraceUnit === 'minutes' ? 'selected' : '' }}>Minutes</option>
+                                <option value="hours"   {{ $negativeGraceUnit === 'hours'   ? 'selected' : '' }}>Heures</option>
+                                <option value="days"    {{ $negativeGraceUnit === 'days'    ? 'selected' : '' }}>Jours</option>
+                            </select>
+                            <span id="grace-preview" class="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded-full"></span>
                         </div>
                     </div>
                 </div>
@@ -522,12 +525,30 @@ $colorMap = [
 <script>
 function toggleGraceSection(enabled) {
     const section = document.getElementById('grace-section');
-    if (enabled) {
-        section.classList.remove('hidden');
-    } else {
-        section.classList.add('hidden');
-    }
+    section.classList.toggle('hidden', !enabled);
 }
+
+function updateGracePreview() {
+    const value = parseInt(document.getElementById('grace-value').value) || 0;
+    const unit  = document.getElementById('grace-unit').value;
+    const el    = document.getElementById('grace-preview');
+
+    if (value === 0) {
+        el.textContent = 'blocage immédiat';
+        return;
+    }
+
+    const now = new Date();
+    if (unit === 'minutes') now.setMinutes(now.getMinutes() + value);
+    else if (unit === 'hours') now.setHours(now.getHours() + value);
+    else now.setDate(now.getDate() + value);
+
+    const label = { minutes: 'min', hours: 'h', days: 'j' }[unit];
+    const dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    el.textContent = 'ex : solde négatif maintenant → blocage ' + dateStr;
+}
+
+document.addEventListener('DOMContentLoaded', updateGracePreview);
 
 const editRouteBase = '{{ url("/admin/notation") }}';
 
