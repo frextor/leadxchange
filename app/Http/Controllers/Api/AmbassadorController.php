@@ -53,6 +53,7 @@ class AmbassadorController extends Controller
         $query = User::with(['profile', 'city'])
             ->where('role', 'user')
             ->where(fn($q) => $q->whereNull('ambassador_status')->orWhere('ambassador_status', '!=', 'approved'))
+            ->where(fn($q) => $q->whereNull('consul_status')->orWhere('consul_status', '!=', 'approved'))
             ->whereHas('subscription', fn($q) => $q->where('status', 'active')
                 ->whereHas('plan', fn($p) => $p->where('price', '>', 0)));
 
