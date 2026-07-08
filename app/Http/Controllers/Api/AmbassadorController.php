@@ -15,7 +15,7 @@ class AmbassadorController extends Controller
     /** GET /ambassador/consul-requests — Premium users with pending consul status request */
     public function consulRequests(): JsonResponse
     {
-        $users = User::with(['subscription.plan', 'city'])
+        $users = User::with(['profile', 'city'])
             ->where('consul_status', 'pending')
             ->orderBy('updated_at', 'desc')
             ->get()
@@ -50,7 +50,7 @@ class AmbassadorController extends Controller
     /** GET /ambassador/premium-users?search= — Paid-plan users who are not ambassadors */
     public function premiumUsers(Request $request): JsonResponse
     {
-        $query = User::with(['subscription.plan', 'city'])
+        $query = User::with(['profile', 'city'])
             ->where('role', 'user')
             ->where(fn($q) => $q->whereNull('ambassador_status')->orWhere('ambassador_status', '!=', 'approved'))
             ->whereHas('subscription', fn($q) => $q->where('status', 'active')
@@ -85,8 +85,8 @@ class AmbassadorController extends Controller
         return [
             'id'            => $user->id,
             'full_name'     => "{$user->first_name} {$user->last_name}",
-            'avatar'        => $user->avatar,
-            'job_title'     => $user->job_title,
+            'avatar'        => $user->profile?->avatar_url,
+            'job_title'     => $user->profile?->job_title,
             'company'       => $user->company_name,
             'city'          => $user->city?->name,
             'consul_status' => $user->consul_status,
