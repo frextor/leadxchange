@@ -241,6 +241,26 @@ class FirebaseService
         ]);
     }
 
+    public function sendNewRegionalEventNotification(User $recipient, \App\Models\Event $event): void
+    {
+        $title = 'Nouvel événement dans votre région';
+        $body  = $event->title . ($event->city ? ' — ' . $event->city->name : '');
+
+        Notification::storeForUser($recipient, 'new_regional_event', $title, $body, [
+            'event_id' => (string) $event->id,
+        ]);
+
+        $tokens = DeviceToken::where('user_id', $recipient->id)->pluck('token');
+        if ($tokens->isEmpty()) {
+            return;
+        }
+
+        $this->sendToTokens($tokens, $title, $body, [
+            'type'     => 'new_regional_event',
+            'event_id' => (string) $event->id,
+        ]);
+    }
+
     public function sendBadNoteWarning(User $sender, int $badNoteCount): void
     {
         $title = 'Avertissement qualité lead';
