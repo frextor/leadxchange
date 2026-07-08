@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Models\Interest;
 use App\Models\Language;
 use App\Models\Nationality;
+use App\Models\PermissionDefinition;
 use App\Models\Plan;
 use App\Models\Market;
 use App\Models\Sector;
@@ -127,44 +128,23 @@ class SettingsController extends Controller
             return $permissions;
         }
 
+        // Load definitions ordered by sort_order
+        $definitions = PermissionDefinition::orderBy('sort_order')->get()->keyBy('key');
+
         $result = [];
+        foreach ($definitions as $key => $def) {
+            $value = $permissions[$key] ?? null;
 
-        // Numeric limits — show as readable strings
-        $maxLeads = $permissions['max_leads_per_month'] ?? null;
-        if ($maxLeads === null) {
-            $result[] = 'Leads illimités/mois';
-        } elseif ($maxLeads > 0) {
-            $result[] = "{$maxLeads} leads/mois";
-        }
-
-        if (($permissions['mail_reply_weekly_limit'] ?? null) === null && !empty($permissions['can_send_mail'])) {
-            $result[] = 'Messages illimités';
-        }
-
-        $maxGroups = $permissions['max_groups_joined'] ?? null;
-        if ($maxGroups === null && !empty($permissions['can_join_pole'])) {
-            $result[] = 'Groupes illimités';
-        }
-
-        // Boolean permissions — only show enabled ones
-        $labels = [
-            'can_view_member_contact'      => 'Voir les contacts membres',
-            'can_view_member_name'         => 'Voir le nom des membres',
-            'can_send_invitations'         => 'Envoyer des invitations',
-            'can_send_mail'                => 'Messagerie directe',
-            'can_send_sql'                 => 'Leads SQL',
-            'can_send_sp'                  => 'Leads SP',
-            'can_join_pole'                => 'Rejoindre des groupes',
-            'can_create_pole'              => 'Créer des groupes',
-            'can_create_events'            => 'Créer des événements',
-            'can_organize_regional_events' => 'Événements régionaux',
-            'can_nominate_consul'          => 'Nommer des consuls',
-            'can_add_member'               => 'Ajouter des membres',
-        ];
-
-        foreach ($labels as $key => $display) {
-            if (!empty($permissions[$key]) && $permissions[$key] === true) {
-                $result[] = $display;
+            if ($def->type === 'bool') {
+                if ($value === true) {
+                    $result[] = $def->label;
+                }
+            } elseif ($def->type === 'number') {
+                if ($value === null && $def->null_label) {
+                    $result[] = $def->null_label;
+                } elseif (is_numeric($value) && $value > 0) {
+                    $result[] = "{$value} {$def->label}";
+                }
             }
         }
 
