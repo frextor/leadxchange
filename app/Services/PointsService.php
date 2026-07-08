@@ -168,6 +168,12 @@ class PointsService
         return (int)($user->points_balance ?? 0) >= self::MIN_TO_RECEIVE;
     }
 
+    // ── Check if user can send leads (balance ≥ 0) ────────────────────────────
+    public function canSend(User $user): bool
+    {
+        return (int)($user->points_balance ?? 0) >= 0;
+    }
+
     // ── Bonus points for a given lead type ───────────────────────────────────
     public static function bonusFor(?string $leadType): int
     {

@@ -34,6 +34,11 @@ class LeadService
             throw new \Exception("Vous ne pouvez envoyer des leads qu'à vos connexions.");
         }
 
+        // Sender blocked if their balance is negative
+        if (!$this->points->canSend($sender)) {
+            throw new \Exception('Votre solde de points est négatif. Vous ne pouvez pas envoyer de leads tant que votre solde est en dessous de 0.');
+        }
+
         // Receiver blocked if their rolling 2-month balance is negative
         $rollingBalance = DB::table('points_history')
             ->where('user_id', $receiverId)
@@ -384,6 +389,11 @@ class LeadService
 
         if (!$sender->isConnectedWith($newReceiverId)) {
             throw new \Exception("Vous ne pouvez transférer des leads qu'à vos connexions.");
+        }
+
+        // Sender blocked if their balance is negative
+        if (!$this->points->canSend($sender)) {
+            throw new \Exception('Votre solde de points est négatif. Vous ne pouvez pas transférer de leads tant que votre solde est en dessous de 0.');
         }
 
         // Receiver blocked if their rolling 2-month balance is negative
