@@ -359,10 +359,10 @@
                         @else
                         @foreach($connections as $u)
                         <button type="button"
-                                class="member-option w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition {{ $u->rolling_balance < 0 ? 'opacity-50 cursor-not-allowed' : '' }}"
+                                class="member-option w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition {{ $u->points_balance < 1 ? 'opacity-60' : '' }}"
                                 data-id="{{ $u->id }}"
                                 data-name="{{ $u->first_name }} {{ $u->last_name }}"
-                                data-balance="{{ $u->rolling_balance }}"
+                                data-balance="{{ $u->points_balance }}"
                                 onclick="selectMember(this)">
                             <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
                                  style="background:linear-gradient(135deg,#1E8F88,#34d4bf);">
@@ -370,8 +370,11 @@
                             </div>
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-medium text-gray-900">{{ $u->first_name }} {{ $u->last_name }}</p>
-                                @if($u->rolling_balance < 0)
-                                <p class="text-xs text-red-400">Solde insuffisant</p>
+                                @if($u->points_balance < 1)
+                                <p class="text-xs text-red-400 flex items-center gap-1">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                    Solde insuffisant ({{ $u->points_balance }} pt{{ abs($u->points_balance) > 1 ? 's' : '' }})
+                                </p>
                                 @else
                                 <p class="text-xs text-gray-400">{{ $u->points_balance }} pts</p>
                                 @endif
@@ -613,7 +616,21 @@
     }
     function selectMember(btn) {
         const balance = parseInt(btn.dataset.balance, 10);
-        if (balance < 0) { alert('Ce membre ne peut pas recevoir de leads pour le moment. Son solde sur les 2 derniers mois est insuffisant.'); return; }
+        if (balance < 1) {
+            const pts = Math.abs(balance);
+            Swal.fire({
+                icon: 'warning',
+                title: 'Envoi impossible',
+                html: `<p style="color:#374151;font-size:14px;line-height:1.6;">
+                    <strong>${btn.dataset.name}</strong> ne peut pas recevoir de leads pour le moment.<br><br>
+                    Son solde de points est insuffisant (<strong style="color:#EF4444;">${balance} pt${pts > 1 ? 's' : ''}</strong>).
+                    </p>`,
+                confirmButtonText: 'Compris',
+                confirmButtonColor: '#4338CA',
+                customClass: { popup: 'swal-lx-popup', title: 'swal-lx-title' },
+            });
+            return;
+        }
         document.getElementById('receiverId').value     = btn.dataset.id;
         document.getElementById('receiverSearch').value = btn.dataset.name;
         hideMemberDropdown();
