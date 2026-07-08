@@ -40,6 +40,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'role',
         'region_id',
         'points_balance',
+        'points_negative_since',
         'badge_level',
         'ambassador_status',
         'ambassador_requested_at',
@@ -78,6 +79,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'notifications'        => 'boolean',
         'password'                   => 'string',
         'points_balance'             => 'integer',
+        'points_negative_since'      => 'datetime',
         'ambassador_requested_at'    => 'datetime',
         'ambassador_reviewed_at'     => 'datetime',
         'consul_nominated_at'        => 'datetime',
@@ -275,7 +277,17 @@ class User extends Authenticatable implements MustVerifyEmail
         $current = (int) ($this->points_balance ?? 0);
         $newBalance = $current + $delta;
         if ($delta > 0) $newBalance = min($newBalance, 30); // CGU §6.5.3 : plafond 30 pts
-        $this->update(['points_balance' => $newBalance]);
+
+        $updates = ['points_balance' => $newBalance];
+        if ($newBalance < 0 && $current >= 0) {
+            // Balance just crossed into negative: record when it happened
+            $updates['points_negative_since'] = now();
+        } elseif ($newBalance >= 0 && $this->points_negative_since !== null) {
+            // Balance recovered: clear the timestamp
+            $updates['points_negative_since'] = null;
+        }
+
+        $this->update($updates);
         $this->recalculateBadge();
 
         \App\Models\PointsHistory::create([

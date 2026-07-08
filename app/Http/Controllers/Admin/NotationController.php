@@ -68,8 +68,9 @@ class NotationController extends Controller
         $ranges     = LeadScoreService::ranges();
 
         $blockNegativeSender = (bool) SystemSetting::get('leads.block_negative_sender', true);
+        $negativeGraceDays   = (int)  SystemSetting::get('leads.negative_sender_grace_days', 0);
 
-        return view('admin.notation.index', compact('users', 'details', 'received', 'badges', 'thresholds', 'ranges', 'blockNegativeSender'));
+        return view('admin.notation.index', compact('users', 'details', 'received', 'badges', 'thresholds', 'ranges', 'blockNegativeSender', 'negativeGraceDays'));
     }
 
     public function update(Request $request, User $user): RedirectResponse
@@ -142,13 +143,25 @@ class NotationController extends Controller
 
     public function updateSettings(Request $request): RedirectResponse
     {
+        $request->validate([
+            'negative_grace_days' => ['nullable', 'integer', 'min:0', 'max:365'],
+        ]);
+
         SystemSetting::updateOrCreate(
             ['key' => 'leads.block_negative_sender'],
             ['value' => $request->boolean('block_negative_sender') ? '1' : '0', 'type' => 'bool']
         );
+        SystemSetting::updateOrCreate(
+            ['key' => 'leads.negative_sender_grace_days'],
+            ['value' => (int) $request->input('negative_grace_days', 0), 'type' => 'int']
+        );
         Cache::forget('system_settings');
-        ActivityLogger::log('admin.notation.settings_updated', 'Paramètre "Blocage envoi solde négatif" mis à jour', null, null, ['value' => $request->boolean('block_negative_sender')]);
-        return back()->with('success', 'Paramètre mis à jour.');
+
+        ActivityLogger::log('admin.notation.settings_updated', 'Paramètres blocage solde négatif mis à jour', null, null, [
+            'block'       => $request->boolean('block_negative_sender'),
+            'grace_days'  => (int) $request->input('negative_grace_days', 0),
+        ]);
+        return back()->with('success', 'Paramètres mis à jour.');
     }
 
     public function icons(): View

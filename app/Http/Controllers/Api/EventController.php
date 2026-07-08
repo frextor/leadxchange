@@ -365,9 +365,9 @@ class EventController extends Controller
         $user = $request->user();
         $user->loadMissing('subscription.plan');
 
-        if (!$user->isAmbassador() && !$user->getFeature('create_events', false)) {
+        if (!$user->isAmbassador() && !$user->isConsul() && !$user->canFeature('can_create_events')) {
             return response()->json([
-                'message' => 'Only approved ambassadors or eligible plans can create events.',
+                'message' => 'Only approved ambassadors, consuls or eligible plans can create events.',
             ], 403);
         }
 

@@ -289,7 +289,9 @@ $colorMap = [
     <div class="px-5 py-4">
         <form method="POST" action="{{ route('admin.notation.settings') }}" id="settings-form">
             @csrf
-            <div class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition">
+
+            {{-- Toggle blocage --}}
+            <div class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition mb-4">
                 <div>
                     <p class="text-sm font-semibold text-gray-800">Bloquer l'envoi si solde négatif</p>
                     <p class="text-xs text-gray-400 mt-0.5">Empêche un utilisateur dont le solde est &lt; 0 d'envoyer de nouveaux leads</p>
@@ -297,8 +299,9 @@ $colorMap = [
                 <label class="relative inline-flex items-center cursor-pointer ml-4 flex-shrink-0">
                     <input type="hidden" name="block_negative_sender" value="0">
                     <input type="checkbox" name="block_negative_sender" value="1"
+                           id="toggle-block-negative"
                            {{ $blockNegativeSender ? 'checked' : '' }}
-                           onchange="document.getElementById('settings-form').submit()"
+                           onchange="toggleGraceSection(this.checked)"
                            class="sr-only peer">
                     <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer
                                 peer-checked:after:translate-x-full peer-checked:after:border-white
@@ -307,6 +310,42 @@ $colorMap = [
                                 after:h-5 after:w-5 after:transition-all
                                 peer-checked:bg-indigo-600"></div>
                 </label>
+            </div>
+
+            {{-- Délai de grâce --}}
+            <div id="grace-section" class="{{ $blockNegativeSender ? '' : 'hidden' }} p-4 rounded-xl border border-orange-100 bg-orange-50 mb-4">
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#EA580C" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-orange-900">Délai avant blocage</p>
+                        <p class="text-xs text-orange-700 mt-0.5 mb-3">Nombre de jours après le passage en solde négatif avant que l'envoi soit bloqué. Mettez <strong>0</strong> pour bloquer immédiatement.</p>
+                        <div class="flex items-center gap-3">
+                            <input type="number" name="negative_grace_days"
+                                   value="{{ $negativeGraceDays }}"
+                                   min="0" max="365"
+                                   class="w-24 border border-orange-200 bg-white rounded-xl px-3 py-2 text-sm font-semibold text-center focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition">
+                            <span class="text-sm text-orange-700">jours</span>
+                            @if($negativeGraceDays > 0)
+                            <span class="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">
+                                ex : solde négatif depuis aujourd'hui → blocage le {{ now()->addDays($negativeGraceDays)->format('d/m/Y') }}
+                            </span>
+                            @else
+                            <span class="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">blocage immédiat</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end">
+                <button type="submit"
+                        class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
+                        style="background:#4338CA;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 11 3 3L22 4"/></svg>
+                    Enregistrer
+                </button>
             </div>
         </form>
     </div>
@@ -481,6 +520,15 @@ $colorMap = [
 
 @push('scripts')
 <script>
+function toggleGraceSection(enabled) {
+    const section = document.getElementById('grace-section');
+    if (enabled) {
+        section.classList.remove('hidden');
+    } else {
+        section.classList.add('hidden');
+    }
+}
+
 const editRouteBase = '{{ url("/admin/notation") }}';
 
 function openEdit(userId, points, badge) {

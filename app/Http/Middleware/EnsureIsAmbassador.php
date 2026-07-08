@@ -10,8 +10,9 @@ class EnsureIsAmbassador
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! auth()->check() || ! auth()->user()->isAmbassador()) {
-            abort(403, 'Accès réservé aux Ambassadeurs.');
+        $user = auth()->user();
+        if (! $user || (! $user->isAmbassador() && ! $user->isConsul())) {
+            abort(403, 'Accès réservé aux Ambassadeurs et Consuls.');
         }
 
         return $next($request);

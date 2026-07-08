@@ -169,13 +169,24 @@ class PointsService
         return (int)($user->points_balance ?? 0) >= self::MIN_TO_RECEIVE;
     }
 
-    // ── Check if user can send leads (balance ≥ 0) ────────────────────────────
+    // ── Check if user can send leads (negative balance + grace period) ────────
     public function canSend(User $user): bool
     {
         if (!SystemSetting::get('leads.block_negative_sender', true)) {
             return true;
         }
-        return (int)($user->points_balance ?? 0) >= 0;
+
+        if ((int)($user->points_balance ?? 0) >= 0) {
+            return true;
+        }
+
+        // Balance is negative: apply grace period before blocking
+        $graceDays = (int) SystemSetting::get('leads.negative_sender_grace_days', 0);
+        if ($graceDays > 0 && $user->points_negative_since) {
+            return $user->points_negative_since->addDays($graceDays)->isFuture();
+        }
+
+        return false;
     }
 
     // ── Bonus points for a given lead type ───────────────────────────────────
