@@ -146,7 +146,26 @@ class User extends Authenticatable implements MustVerifyEmail
     /** Get a numeric/value permission from the user's active plan. */
     public function planPermission(string $key, mixed $default = null): mixed
     {
-        return $this->subscription?->plan?->permission($key, $default) ?? $default;
+        $plan = $this->effectivePlan();
+        return $plan?->permission($key, $default) ?? $default;
+    }
+
+    // Returns the plan that governs this user's permissions (role overrides subscription)
+    public function effectivePlan(): ?\App\Models\Plan
+    {
+        static $cache = [];
+        $cacheKey = $this->id . ':' . ($this->isAmbassador() ? 'amb' : ($this->isConsul() ? 'con' : 'sub'));
+        if (isset($cache[$cacheKey])) return $cache[$cacheKey];
+
+        if ($this->isAmbassador()) {
+            $plan = \App\Models\Plan::where('name', 'ambassadeur')->first();
+        } elseif ($this->isConsul()) {
+            $plan = \App\Models\Plan::where('name', 'consul')->first();
+        } else {
+            $plan = $this->subscription?->plan ?? \App\Models\Plan::where('name', 'basic')->first();
+        }
+
+        return $cache[$cacheKey] = $plan;
     }
 
     // Hierarchy: Basic → Premium → Consul (admin appoints) → Ambassadeur (consul requests, admin approves)
@@ -461,29 +480,18 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function canFeature(string $key): bool
     {
-        // Resolve effective plan: ambassadeur > consul > subscription plan > basic
-        $effectivePlanName = null;
-        if ($this->isAmbassador())  $effectivePlanName = 'ambassadeur';
-        elseif ($this->isConsul())  $effectivePlanName = 'consul';
-
-        $plan = $effectivePlanName
-            ? \App\Models\Plan::where('name', $effectivePlanName)->first()
-            : ($this->subscription?->plan ?? \App\Models\Plan::where('name', 'basic')->first());
+        $plan = $this->effectivePlan();
 
         if ($plan && is_array($plan->permissions) && array_key_exists($key, $plan->permissions)) {
             $val = $plan->permissions[$key];
-            if ($val === null)      return true;
-            if (is_bool($val))      return $val;
-            if (is_int($val))       return $val > 0;
+            if ($val === null)   return true;   // null = illimité = autorisé
+            if (is_bool($val))   return $val;
+            if (is_int($val))    return $val > 0;
             return (bool) $val;
         }
 
-        // Fallback to old features array
-        $value = $this->getFeature($key);
-        if ($value === null)    return true;
-        if (is_bool($value))   return $value;
-        if (is_int($value))    return $value > 0;
-        return (bool) $value;
+        // Key absent du plan → interdit par défaut (sauf si permission inconnue sur plan legacy)
+        return false;
     }
 
     /**

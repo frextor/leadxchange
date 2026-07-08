@@ -63,8 +63,13 @@ class LeadController extends Controller
 
     public function store(StoreLeadRequest $request)
     {
-        $user     = $request->user();
-        $maxLeads = $user->planPermission('max_leads'); // null = illimité
+        $user = $request->user();
+
+        if ($redirect = $this->requirePermission('can_send_leads')) {
+            return $redirect;
+        }
+
+        $maxLeads = $user->planPermission('max_leads_per_month'); // null = illimité
 
         if ($maxLeads !== null) {
             $sentThisMonth = Lead::where('sender_id', $user->id)

@@ -45,7 +45,8 @@ class Plan extends Model
     /** Get a permission value (useful for numeric limits like mail_reply_weekly_limit). */
     public function permission(string $key, mixed $default = null): mixed
     {
-        return $this->permissions[$key] ?? $default;
+        $perms = is_array($this->permissions) ? $this->permissions : [];
+        return array_key_exists($key, $perms) ? $perms[$key] : $default;
     }
 
     /**
