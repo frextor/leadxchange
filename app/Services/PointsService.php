@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Lead;
+use App\Models\SystemSetting;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -171,6 +172,9 @@ class PointsService
     // ── Check if user can send leads (balance ≥ 0) ────────────────────────────
     public function canSend(User $user): bool
     {
+        if (!SystemSetting::get('leads.block_negative_sender', true)) {
+            return true;
+        }
         return (int)($user->points_balance ?? 0) >= 0;
     }
 

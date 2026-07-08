@@ -280,6 +280,38 @@ $colorMap = [
     </div>
 </div>
 
+{{-- Paramètres d'envoi --}}
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-5 overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-100">
+        <p class="text-sm font-bold text-gray-900">Paramètres d'envoi de leads</p>
+        <p class="text-xs text-gray-400 mt-0.5">Règles appliquées lors de l'envoi d'un lead</p>
+    </div>
+    <div class="px-5 py-4">
+        <form method="POST" action="{{ route('admin.notation.settings') }}" id="settings-form">
+            @csrf
+            <div class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition">
+                <div>
+                    <p class="text-sm font-semibold text-gray-800">Bloquer l'envoi si solde négatif</p>
+                    <p class="text-xs text-gray-400 mt-0.5">Empêche un utilisateur dont le solde est &lt; 0 d'envoyer de nouveaux leads</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer ml-4 flex-shrink-0">
+                    <input type="hidden" name="block_negative_sender" value="0">
+                    <input type="checkbox" name="block_negative_sender" value="1"
+                           {{ $blockNegativeSender ? 'checked' : '' }}
+                           onchange="document.getElementById('settings-form').submit()"
+                           class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer
+                                peer-checked:after:translate-x-full peer-checked:after:border-white
+                                after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                                after:bg-white after:border-gray-300 after:border after:rounded-full
+                                after:h-5 after:w-5 after:transition-all
+                                peer-checked:bg-indigo-600"></div>
+                </label>
+            </div>
+        </form>
+    </div>
+</div>
+
 {{-- Légende formule --}}
 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-5 flex flex-wrap items-center gap-4 text-xs">
     <p class="font-bold text-gray-500 uppercase tracking-widest text-[10px]">Formule (60j)</p>

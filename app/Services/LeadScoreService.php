@@ -20,7 +20,6 @@ class LeadScoreService
     // Malus par lead reçu
     const RECEIVED_MALUS = -1;
 
-    // Fenêtre glissante en jours — TEST: réduit à 1h (rollback: remettre subDays(self::WINDOW_DAYS) dans calculate())
     const WINDOW_DAYS = 60;
 
     // Seuils des badges (fallback si pas en DB)
@@ -77,7 +76,7 @@ class LeadScoreService
 
     public function calculate(User $user): int
     {
-        $since = now()->subHours(1); // TEST (rollback: subDays(self::WINDOW_DAYS))
+        $since = now()->subDays(self::WINDOW_DAYS);
 
         // Base : tous les leads acceptés → sender +2, receiver -1
         $acceptedSentCount = DB::table('leads')

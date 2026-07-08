@@ -349,7 +349,7 @@ class EventController extends Controller
             'title'         => ['required', 'string', 'max:150'],
             'description'   => ['nullable', 'string', 'max:1000'],
             'type'          => ['required', 'in:virtual,in_person,hybrid'],
-            'category'      => ['nullable', 'in:' . implode(',', array_keys(Event::$categoryLabels))],
+            'category'      => ['nullable', 'in:' . implode(',', array_keys(Event::categoryLabels()))],
             'location'      => ['nullable', 'string', 'max:255'],
             'meeting_link'  => ['nullable', 'url', 'max:500'],
             'starts_at'     => ['required', 'date', 'after:now'],

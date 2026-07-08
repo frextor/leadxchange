@@ -14,6 +14,7 @@ class Event extends Model
         'cover_color', 'cover_image', 'price', 'max_attendees', 'attendees_count', 'is_public',
     ];
 
+    // Fallback used only when DB is unavailable (e.g. before first migration)
     public static array $categoryLabels = [
         'networking'  => 'Networking',
         'workshop'    => 'Workshop',
@@ -23,6 +24,16 @@ class Event extends Model
         'webinar'     => 'Online / Webinar',
         'community'   => 'Community',
     ];
+
+    public static function categoryLabels(): array
+    {
+        try {
+            $fromDb = EventCategory::allKeyed();
+            return $fromDb ?: static::$categoryLabels;
+        } catch (\Throwable) {
+            return static::$categoryLabels;
+        }
+    }
 
     public function getCoverUrlAttribute(): ?string
     {

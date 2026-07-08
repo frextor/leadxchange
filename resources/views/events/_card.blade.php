@@ -6,7 +6,7 @@
     $typeColor   = $typeColors[$event->type] ?? $event->cover_color;
     $typeLabel   = $typeLabels[$event->type] ?? $event->type;
     $isPast      = $event->starts_at->isPast();
-    $catLabels   = App\Models\Event::$categoryLabels;
+    $catLabels   = App\Models\Event::categoryLabels();
     $catLabel    = $catLabels[$event->category ?? ''] ?? null;
     $capacity    = $event->max_attendees;
     $pct         = $capacity ? min(100, round($event->attendees_count / $capacity * 100)) : null;

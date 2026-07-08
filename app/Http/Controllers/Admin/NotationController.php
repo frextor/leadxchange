@@ -9,6 +9,7 @@ use App\Services\LeadScoreService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use App\Services\ActivityLogger;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -34,7 +35,7 @@ class NotationController extends Controller
 
         $users = $query->orderByDesc('points_balance')->paginate(30)->withQueryString();
 
-        $since = now()->subHours(1); // TEST (rollback: subDays(60))
+        $since = now()->subDays(LeadScoreService::WINDOW_DAYS);
 
         $details = DB::table('leads')
             ->whereBetween('leads.created_at', [$since, now()])
@@ -66,7 +67,9 @@ class NotationController extends Controller
         $thresholds = LeadScoreService::thresholds();
         $ranges     = LeadScoreService::ranges();
 
-        return view('admin.notation.index', compact('users', 'details', 'received', 'badges', 'thresholds', 'ranges'));
+        $blockNegativeSender = (bool) SystemSetting::get('leads.block_negative_sender', true);
+
+        return view('admin.notation.index', compact('users', 'details', 'received', 'badges', 'thresholds', 'ranges', 'blockNegativeSender'));
     }
 
     public function update(Request $request, User $user): RedirectResponse
@@ -135,6 +138,17 @@ class NotationController extends Controller
         ActivityLogger::log('admin.notation.thresholds_updated', "Seuils de badges mis à jour. {$count} utilisateur(s) recalculés");
 
         return back()->with('success', "Seuils mis à jour. {$count} utilisateur(s) recalculés.");
+    }
+
+    public function updateSettings(Request $request): RedirectResponse
+    {
+        SystemSetting::updateOrCreate(
+            ['key' => 'leads.block_negative_sender'],
+            ['value' => $request->boolean('block_negative_sender') ? '1' : '0', 'type' => 'bool']
+        );
+        Cache::forget('system_settings');
+        ActivityLogger::log('admin.notation.settings_updated', 'Paramètre "Blocage envoi solde négatif" mis à jour', null, null, ['value' => $request->boolean('block_negative_sender')]);
+        return back()->with('success', 'Paramètre mis à jour.');
     }
 
     public function icons(): View

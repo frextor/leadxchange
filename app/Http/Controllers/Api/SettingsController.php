@@ -27,7 +27,7 @@ class SettingsController extends Controller
     {
         return response()->json([
             'version'           => 'v2',
-            'event_categories'  => collect(Event::$categoryLabels)
+            'event_categories'  => collect(Event::categoryLabels())
                                        ->map(fn($label, $key) => ['key' => $key, 'label' => $label])
                                        ->values(),
             'interests'     => Interest::orderBy('name')

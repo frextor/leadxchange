@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\SuperAdmin\UserReportController;
 use App\Http\Controllers\Admin\SuperAdmin\CityController;
 use App\Http\Controllers\Admin\SuperAdmin\CountryController;
 use App\Http\Controllers\Admin\SuperAdmin\DashboardController as SuperDashboardController;
+use App\Http\Controllers\Admin\SuperAdmin\EventCategoryController;
 use App\Http\Controllers\Admin\SuperAdmin\InterestController;
 use App\Http\Controllers\Admin\SuperAdmin\PlanController;
 use App\Http\Controllers\Admin\SuperAdmin\SectorController;
@@ -70,6 +71,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('/notation/{user}/recalculate',     [NotationController::class, 'recalculate'])->name('admin.notation.recalculate');
     Route::post('/notation/recalculate-all',        [NotationController::class, 'recalculateAll'])->name('admin.notation.recalculate-all');
     Route::post('/notation/thresholds',             [NotationController::class, 'updateThresholds'])->name('admin.notation.thresholds');
+    Route::post('/notation/settings',               [NotationController::class, 'updateSettings'])->name('admin.notation.settings');
 
     // Events
     Route::get('/events',              [EventController::class, 'index'])->name('admin.events.index');
@@ -180,6 +182,12 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::post('countries',                 [CountryController::class, 'store'])->name('countries.store');
     Route::put('countries/{country}',        [CountryController::class, 'update'])->name('countries.update');
     Route::delete('countries/{country}',     [CountryController::class, 'destroy'])->name('countries.destroy');
+
+    // Event categories
+    Route::get('event-categories',                          [EventCategoryController::class, 'index'])->name('event-categories.index');
+    Route::post('event-categories',                         [EventCategoryController::class, 'store'])->name('event-categories.store');
+    Route::put('event-categories/{eventCategory}',          [EventCategoryController::class, 'update'])->name('event-categories.update');
+    Route::delete('event-categories/{eventCategory}',       [EventCategoryController::class, 'destroy'])->name('event-categories.destroy');
 
     // Interests
     Route::get('interests',                  [InterestController::class, 'index'])->name('interests.index');
