@@ -78,7 +78,7 @@ class NotifyUsersNewEventJob implements ShouldQueue
                           SendQueuedEmailJob::dispatch(
                               to:       $user->email,
                               subject:  $subjectFallback,
-                              type:     'new_event',
+                              type:     'notification',
                               mailable: new NewEventMail($this->event, $user),
                               toName:   $user->first_name . ' ' . $user->last_name,
                               metadata: [
