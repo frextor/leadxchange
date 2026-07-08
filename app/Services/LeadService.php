@@ -39,14 +39,13 @@ class LeadService
             throw new \Exception('Votre solde de points est négatif. Vous ne pouvez pas envoyer de leads tant que votre solde est en dessous de 0.');
         }
 
-        // Receiver blocked if their rolling 2-month balance is negative
-        $rollingBalance = DB::table('points_history')
-            ->where('user_id', $receiverId)
-            ->where('created_at', '>=', now()->subMonths(2))
-            ->sum('delta');
-
-        if ($rollingBalance < 0) {
-            throw new \Exception('Ce membre ne peut pas recevoir de leads pour le moment. Son solde est insuffisant.');
+        // Receiver blocked if their balance is below the minimum
+        if (!$this->points->canReceive($receiver)) {
+            throw new \Exception(
+                "{$receiver->first_name} {$receiver->last_name} ne peut pas recevoir de leads pour le moment " .
+                "(solde de points insuffisant — actuellement {$receiver->points_balance} pt" .
+                (abs($receiver->points_balance) > 1 ? 's' : '') . ').'
+            );
         }
 
         DB::beginTransaction();
@@ -396,14 +395,13 @@ class LeadService
             throw new \Exception('Votre solde de points est négatif. Vous ne pouvez pas transférer de leads tant que votre solde est en dessous de 0.');
         }
 
-        // Receiver blocked if their rolling 2-month balance is negative
-        $newReceiverRollingBalance = DB::table('points_history')
-            ->where('user_id', $newReceiverId)
-            ->where('created_at', '>=', now()->subMonths(2))
-            ->sum('delta');
-
-        if ($newReceiverRollingBalance < 0) {
-            throw new \Exception('Ce membre ne peut pas recevoir de leads pour le moment. Son solde est insuffisant.');
+        // Receiver blocked if their balance is below the minimum
+        if (!$this->points->canReceive($newReceiver)) {
+            throw new \Exception(
+                "{$newReceiver->first_name} {$newReceiver->last_name} ne peut pas recevoir de leads pour le moment " .
+                "(solde de points insuffisant — actuellement {$newReceiver->points_balance} pt" .
+                (abs($newReceiver->points_balance) > 1 ? 's' : '') . ').'
+            );
         }
 
         $lead->update([
