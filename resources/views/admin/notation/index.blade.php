@@ -526,6 +526,8 @@ $colorMap = [
 function toggleGraceSection(enabled) {
     const section = document.getElementById('grace-section');
     section.classList.toggle('hidden', !enabled);
+    // Auto-save immediately when the toggle changes
+    document.getElementById('settings-form').submit();
 }
 
 function updateGracePreview() {

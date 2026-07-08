@@ -184,11 +184,13 @@ class PointsService
         $graceValue = (int) SystemSetting::get('leads.negative_sender_grace_value', 0);
         $graceUnit  = SystemSetting::get('leads.negative_sender_grace_unit', 'days');
 
-        if ($graceValue > 0 && $user->points_negative_since) {
+        if ($graceValue > 0) {
+            // Fall back to updated_at for users who went negative before migration
+            $negativeSince = $user->points_negative_since ?? $user->updated_at ?? now();
             $deadline = match ($graceUnit) {
-                'minutes' => $user->points_negative_since->addMinutes($graceValue),
-                'hours'   => $user->points_negative_since->addHours($graceValue),
-                default   => $user->points_negative_since->addDays($graceValue),
+                'minutes' => $negativeSince->addMinutes($graceValue),
+                'hours'   => $negativeSince->addHours($graceValue),
+                default   => $negativeSince->addDays($graceValue),
             };
             return $deadline->isFuture();
         }
