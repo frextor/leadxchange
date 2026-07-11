@@ -145,12 +145,11 @@ class EventController extends Controller
                     'job_title' => $u->profile?->job_title,
                 ]);
 
-            // Groups the organizer owns/admins (for bulk invite)
+            // Only groups with the same name as the event
             $organizerGroups = $user->groups()
                 ->wherePivotIn('role', ['owner', 'admin'])
+                ->where('name', $event->title)
                 ->withCount('members')
-                ->orderByRaw('name = ? DESC', [$event->title]) // matching group first
-                ->orderBy('name')
                 ->get(['groups.id', 'groups.name']);
         }
 

@@ -82,6 +82,7 @@ class EventsController extends Controller
 
     public function show(Event $event): View
     {
+        /** @var \App\Models\User $ambassador */
         $ambassador = auth()->user();
         $this->authorizeEvent($ambassador, $event);
 
@@ -93,9 +94,8 @@ class EventsController extends Controller
         if ($event->created_by === $ambassador->id) {
             $organizerGroups = $ambassador->groups()
                 ->wherePivotIn('role', ['owner', 'admin'])
+                ->where('name', $event->title)
                 ->withCount('members')
-                ->orderByRaw('name = ? DESC', [$event->title])
-                ->orderBy('name')
                 ->get(['groups.id', 'groups.name']);
             $matchingGroup = $organizerGroups->firstWhere('name', $event->title);
         }
