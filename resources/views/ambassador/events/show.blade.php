@@ -105,6 +105,14 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     Exporter les participants
                 </a>
+                @if($event->created_by === auth()->id() && $organizerGroups->isNotEmpty())
+                <button type="button" onclick="document.getElementById('ambInviteGroupModal').classList.remove('hidden')"
+                        class="flex items-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition"
+                        style="background:#6366F1;" onmouseover="this.style.background='#4F46E5'" onmouseout="this.style.background='#6366F1'">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Inviter un groupe
+                </button>
+                @endif
             </div>
         </div>
 
@@ -118,5 +126,59 @@
         </div>
     </div>
 </div>
+
+@if($event->created_by === auth()->id() && $organizerGroups->isNotEmpty())
+{{-- ── INVITE GROUP MODAL ── --}}
+<div id="ambInviteGroupModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.45);">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <h2 class="font-semibold text-gray-900">Inviter un groupe</h2>
+            <button type="button" onclick="document.getElementById('ambInviteGroupModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="{{ route('ambassador.events.invite-group', $event) }}" class="px-6 py-5 space-y-4">
+            @csrf
+            <p class="text-xs text-gray-500">Sélectionnez un de vos groupes — tous les membres non encore inscrits seront invités.</p>
+            <div class="space-y-2 max-h-64 overflow-y-auto">
+                @foreach($organizerGroups as $grp)
+                @php $isMatch = $matchingGroup && $grp->id === $matchingGroup->id; @endphp
+                <label class="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition border
+                    {{ $isMatch ? 'border-indigo-300 bg-indigo-50' : 'border-transparent hover:bg-indigo-50' }}
+                    has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50">
+                    <input type="radio" name="group_id" value="{{ $grp->id }}"
+                           class="accent-indigo-600 flex-shrink-0"
+                           {{ $isMatch ? 'checked' : '' }} required>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <p class="text-sm font-semibold text-gray-900 truncate">{{ $grp->name }}</p>
+                            @if($isMatch)
+                            <span class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0" style="background:#EDE9FE;color:#5B21B6;">Groupe de l'événement</span>
+                            @endif
+                        </div>
+                        <p class="text-xs text-gray-400">{{ $grp->members_count }} membre{{ $grp->members_count > 1 ? 's' : '' }}</p>
+                    </div>
+                </label>
+                @endforeach
+            </div>
+            <div class="flex gap-3 pt-1">
+                <button type="button" onclick="document.getElementById('ambInviteGroupModal').classList.add('hidden')"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">Annuler</button>
+                <button type="submit"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition"
+                        style="background:#6366F1;" onmouseover="this.style.background='#4F46E5'" onmouseout="this.style.background='#6366F1'">
+                    Inviter le groupe
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+document.getElementById('ambInviteGroupModal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.add('hidden');
+});
+</script>
+@endif
 
 @endsection

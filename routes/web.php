@@ -268,7 +268,8 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
         Route::get('/events/{event}/edit',     [\App\Http\Controllers\Ambassador\EventsController::class, 'edit'])->name('events.edit');
         Route::put('/events/{event}',          [\App\Http\Controllers\Ambassador\EventsController::class, 'update'])->name('events.update');
         Route::post('/events/{event}/cancel',  [\App\Http\Controllers\Ambassador\EventsController::class, 'cancel'])->name('events.cancel');
-        Route::get('/events/{event}/export',   [\App\Http\Controllers\Ambassador\EventsController::class, 'exportParticipants'])->name('events.export');
+        Route::get('/events/{event}/export',     [\App\Http\Controllers\Ambassador\EventsController::class, 'exportParticipants'])->name('events.export');
+        Route::post('/events/{event}/invite-group', [\App\Http\Controllers\Ambassador\EventsController::class, 'inviteGroup'])->name('events.invite-group');
 
         // Consul management (existing — preserved)
         Route::prefix('consuls')->name('consuls.')->group(function () {

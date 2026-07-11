@@ -37,9 +37,16 @@ class EventController extends Controller
             ->latest()
             ->get();
 
+        // Include private events the user is invited to (even if not yet attending)
+        $invitedPrivateIds = EventInvitation::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->pluck('event_id')
+            ->toArray();
+
         // ── My events (attending, upcoming) ───────────────────────
         $myEventsQuery = Event::with(['sector:id,name', 'city:id,name', 'creator:id,first_name,last_name'])
-            ->whereIn('id', $attendingIds)
+            ->where(fn($q) => $q->whereIn('id', $attendingIds)
+                ->orWhereIn('id', $invitedPrivateIds))
             ->where('starts_at', '>=', now());
         if ($request->filled('search')) {
             $myEventsQuery->where('title', 'like', '%' . $request->search . '%');
@@ -111,11 +118,17 @@ class EventController extends Controller
             ->withCount('attendees')
             ->findOrFail($id);
 
-        abort_if(!$event->is_public, 403);
+        $isOrganizer = $event->created_by === $user->id;
+
+        if (! $event->is_public) {
+            $isInvited = EventInvitation::where('event_id', $event->id)
+                ->where('user_id', $user->id)
+                ->exists();
+            abort_if(! $isOrganizer && ! $isInvited, 403);
+        }
 
         $attendees   = $event->attendees()->with('profile', 'company:id,name')->orderByPivot('role')->get();
         $isAttending = $event->isAttending($user->id);
-        $isOrganizer = $event->created_by === $user->id;
 
         $eventConnections = collect();
         $organizerGroups  = collect();
@@ -132,15 +145,19 @@ class EventController extends Controller
                     'job_title' => $u->profile?->job_title,
                 ]);
 
-            // Groups the organizer admins (for bulk invite)
+            // Groups the organizer owns/admins (for bulk invite)
             $organizerGroups = $user->groups()
                 ->wherePivotIn('role', ['owner', 'admin'])
                 ->withCount('members')
+                ->orderByRaw('name = ? DESC', [$event->title]) // matching group first
                 ->orderBy('name')
                 ->get(['groups.id', 'groups.name']);
         }
 
-        return view('events.show', compact('event', 'attendees', 'isAttending', 'isOrganizer', 'eventConnections', 'organizerGroups'));
+        // Group with exact same name as event (pre-selection hint for private events)
+        $matchingGroup = $organizerGroups->firstWhere('name', $event->title);
+
+        return view('events.show', compact('event', 'attendees', 'isAttending', 'isOrganizer', 'eventConnections', 'organizerGroups', 'matchingGroup'));
     }
 
     public function store(Request $request)
@@ -164,6 +181,7 @@ class EventController extends Controller
             'cover_image'   => ['nullable', 'image', 'max:2048'],
             'price'         => ['nullable', 'numeric', 'min:0'],
             'max_attendees' => ['nullable', 'integer', 'min:1'],
+            'is_private'    => ['nullable', 'boolean'],
         ]);
 
         $coverImagePath = null;
@@ -171,8 +189,9 @@ class EventController extends Controller
             $coverImagePath = $request->file('cover_image')->store('events/covers', 'public');
         }
 
-        $user   = $request->user();
-        $cityId = $user->isConsul() ? $user->city_id : ($validated['city_id'] ?? $user->city_id);
+        $user      = $request->user();
+        $isPrivate = (bool) ($validated['is_private'] ?? false);
+        $cityId    = $user->isConsul() ? $user->city_id : ($validated['city_id'] ?? $user->city_id);
 
         $event = Event::create([
             'title'           => $validated['title'],
@@ -191,15 +210,46 @@ class EventController extends Controller
             'price'           => $validated['price'] ?? null,
             'max_attendees'   => $validated['max_attendees'] ?? null,
             'created_by'      => $user->id,
-            'is_public'       => true,
+            'is_public'       => ! $isPrivate,
+            'scope'           => $isPrivate ? 'private' : 'regional',
             'attendees_count' => 1,
         ]);
 
         $event->attendees()->attach($user->id, ['role' => 'organizer']);
 
-        NotifyUsersNewEventJob::dispatch($event);
+        // Auto-invite members of groups the organizer owns/admins with the same name
+        if ($isPrivate) {
+            $matchingGroups = $user->groups()
+                ->wherePivotIn('role', ['owner', 'admin'])
+                ->where('name', $event->title)
+                ->get();
 
-        ActivityLogger::log('event.created', "Événement « {$event->title} » créé", $user->id, $event);
+            foreach ($matchingGroups as $group) {
+                $members = $group->members()
+                    ->whereNot('users.id', $user->id)
+                    ->get(['users.id', 'users.first_name', 'users.last_name']);
+
+                foreach ($members as $member) {
+                    EventInvitation::updateOrCreate(
+                        ['event_id' => $event->id, 'user_id' => $member->id],
+                        ['invited_by' => $user->id, 'status' => 'pending']
+                    );
+                    try {
+                        \App\Models\Notification::storeForUser(
+                            $member,
+                            'event_invitation',
+                            'Invitation à un événement privé',
+                            "{$user->first_name} {$user->last_name} vous invite à l'événement privé « {$event->title} ».",
+                            ['url' => route('events.show', $event->id), 'event_id' => $event->id]
+                        );
+                    } catch (\Throwable) {}
+                }
+            }
+        } else {
+            NotifyUsersNewEventJob::dispatch($event);
+        }
+
+        ActivityLogger::log('event.created', "Événement « {$event->title} » créé" . ($isPrivate ? ' (privé)' : ''), $user->id, $event);
 
         return redirect()->route('events.show', $event->id)
             ->with('success', 'Événement "' . $event->title . '" créé avec succès !');

@@ -72,13 +72,14 @@ class FirebaseService
 
     public function sendLeadNotification(\App\Models\Lead $lead, User $actor, string $event): void
     {
-        // 'sent'     → notify the receiver
-        // 'accepted' → notify the sender
-        // 'rejected' → notify the sender
+        // 'sent'      → notify the receiver
+        // 'accepted'  → notify the sender
+        // 'rejected'  → notify the sender
+        // 'converted' → notify the sender
         $targetUserId = match ($event) {
-            'sent'              => $lead->receiver_id,
-            'accepted', 'rejected' => $lead->sender_id,
-            default             => null,
+            'sent'                        => $lead->receiver_id,
+            'accepted', 'rejected', 'converted' => $lead->sender_id,
+            default                       => null,
         };
 
         if (!$targetUserId) {
@@ -104,6 +105,10 @@ class FirebaseService
             'rejected' => [
                 'Lead refusé',
                 "{$actor->first_name} {$actor->last_name} a refusé votre lead : {$leadLabel}",
+            ],
+            'converted' => [
+                'Lead converti !',
+                "{$actor->first_name} {$actor->last_name} a converti votre lead : {$leadLabel}",
             ],
             default    => ['Lead update', $leadLabel],
         };

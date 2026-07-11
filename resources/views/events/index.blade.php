@@ -255,6 +255,20 @@
                     </div>
                 </div>
 
+                {{-- Visibility --}}
+                <div class="flex items-center justify-between py-3 px-4 rounded-xl border border-gray-200 bg-gray-50">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-800">Événement privé</p>
+                        <p class="text-xs text-gray-400 mt-0.5">Visible uniquement par les invités — les membres du groupe portant le même nom seront invités automatiquement</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer ml-3 flex-shrink-0">
+                        <input type="checkbox" name="is_private" id="isPrivateToggle" value="1"
+                               {{ old('is_private') ? 'checked' : '' }}
+                               class="sr-only peer">
+                        <div class="w-10 h-6 bg-gray-200 rounded-full peer peer-checked:bg-teal-600 transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-4"></div>
+                    </label>
+                </div>
+
                 <div class="flex gap-3 pt-2">
                     <button type="button" onclick="document.getElementById('createEventModal').classList.add('hidden')"
                             class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">Cancel</button>

@@ -182,11 +182,20 @@ class LeadService
 
         DB::beginTransaction();
         try {
-            $lead->update(['status' => Lead::STATUS_CONVERTED]);
+            $lead->update([
+                'status'       => Lead::STATUS_CONVERTED,
+                'converted_at' => now(),
+            ]);
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
+        }
+
+        try {
+            $this->firebase->sendLeadNotification($lead->fresh(), $user, 'converted');
+        } catch (\Exception $e) {
+            Log::warning('Firebase lead notification failed', ['error' => $e->getMessage()]);
         }
 
         Log::info('Lead converted', ['lead_id' => $lead->id, 'user' => $user->id]);

@@ -85,6 +85,9 @@
                     @if($isOrganizer)
                     <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold" style="background:#FEF3C7;color:#92400E;">Organizer</span>
                     @endif
+                    @if(!$event->is_public)
+                    <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold" style="background:#EDE9FE;color:#5B21B6;">Privé</span>
+                    @endif
                 </div>
                 <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-400">
                     @if($event->creator)
@@ -312,7 +315,14 @@
                 </form>
 
                 @else
-                @if(auth()->user()->canFeature('can_participate_events'))
+                @if(!$event->is_public)
+                <div class="text-center py-4">
+                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full" style="background:#EDE9FE;color:#5B21B6;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Sur invitation uniquement
+                    </span>
+                </div>
+                @elseif(auth()->user()->canFeature('can_participate_events'))
                 <p class="text-xs text-gray-400 mb-3 text-center">Rejoignez cet événement</p>
                 @if($event->is_free)
                 <form method="POST" action="{{ route('events.join', $event->id) }}">
@@ -342,7 +352,7 @@
                         Upgrade pour participer
                     </button>
                 </div>
-                @endif {{-- attend_events --}}
+                @endif {{-- is_public / canFeature / else --}}
                 @endif {{-- isPast / isFull / isAttending / else --}}
             </div>
 
@@ -675,10 +685,20 @@ document.getElementById('inviteModal').addEventListener('click', function(e) {
             <p class="text-xs text-gray-500">Sélectionnez un de vos groupes — tous les membres qui ne participent pas encore seront invités.</p>
             <div class="space-y-2 max-h-64 overflow-y-auto">
                 @foreach($organizerGroups as $grp)
-                <label class="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-indigo-50 transition border border-transparent has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50">
-                    <input type="radio" name="group_id" value="{{ $grp->id }}" class="accent-indigo-600 flex-shrink-0" required>
+                @php $isMatch = $matchingGroup && $grp->id === $matchingGroup->id; @endphp
+                <label class="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition border
+                    {{ $isMatch ? 'border-indigo-300 bg-indigo-50' : 'border-transparent hover:bg-indigo-50' }}
+                    has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50">
+                    <input type="radio" name="group_id" value="{{ $grp->id }}"
+                           class="accent-indigo-600 flex-shrink-0"
+                           {{ $isMatch ? 'checked' : '' }} required>
                     <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-gray-900 truncate">{{ $grp->name }}</p>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <p class="text-sm font-semibold text-gray-900 truncate">{{ $grp->name }}</p>
+                            @if($isMatch)
+                            <span class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0" style="background:#EDE9FE;color:#5B21B6;">Groupe de l'événement</span>
+                            @endif
+                        </div>
                         <p class="text-xs text-gray-400">{{ $grp->members_count }} membre{{ $grp->members_count > 1 ? 's' : '' }}</p>
                     </div>
                 </label>
