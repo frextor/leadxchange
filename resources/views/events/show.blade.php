@@ -113,6 +113,18 @@
                     </svg>
                     Invite
                 </button>
+                @if($organizerGroups->isNotEmpty())
+                <button type="button" onclick="openInviteGroupModal()"
+                        class="px-4 py-2 rounded-xl text-sm font-semibold text-white transition flex items-center gap-1.5"
+                        style="background:#6366F1;" onmouseover="this.style.background='#4F46E5'" onmouseout="this.style.background='#6366F1'">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    Inviter un groupe
+                </button>
+                @endif
                 <form method="POST" action="{{ route('events.destroy', $event->id) }}"
                       onsubmit="return confirm('Delete this event? This action cannot be undone.')">
                     @csrf @method('DELETE')
@@ -646,5 +658,56 @@ document.getElementById('inviteModal').addEventListener('click', function(e) {
 });
 </script>
 @endpush
+
+@if($organizerGroups->isNotEmpty())
+{{-- ── INVITE GROUP MODAL ── --}}
+<div id="inviteGroupModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.45);">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <h2 class="font-semibold text-gray-900">Inviter un groupe</h2>
+            <button type="button" onclick="document.getElementById('inviteGroupModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="{{ route('events.invite-group', $event->id) }}" class="px-6 py-5 space-y-4">
+            @csrf
+            <p class="text-xs text-gray-500">Sélectionnez un de vos groupes — tous les membres qui ne participent pas encore seront invités.</p>
+            <div class="space-y-2 max-h-64 overflow-y-auto">
+                @foreach($organizerGroups as $grp)
+                <label class="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-indigo-50 transition border border-transparent has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50">
+                    <input type="radio" name="group_id" value="{{ $grp->id }}" class="accent-indigo-600 flex-shrink-0" required>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 truncate">{{ $grp->name }}</p>
+                        <p class="text-xs text-gray-400">{{ $grp->members_count }} membre{{ $grp->members_count > 1 ? 's' : '' }}</p>
+                    </div>
+                </label>
+                @endforeach
+            </div>
+            <div class="flex gap-3 pt-1">
+                <button type="button" onclick="document.getElementById('inviteGroupModal').classList.add('hidden')"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">Annuler</button>
+                <button type="submit"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition"
+                        style="background:#6366F1;" onmouseover="this.style.background='#4F46E5'" onmouseout="this.style.background='#6366F1'">
+                    Inviter le groupe
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+function openInviteGroupModal() {
+    document.getElementById('inviteGroupModal').classList.remove('hidden');
+}
+document.getElementById('inviteGroupModal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.add('hidden');
+});
+</script>
+@endpush
+@endif
+
 @endif
 @endsection

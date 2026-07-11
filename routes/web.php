@@ -179,6 +179,7 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
     Route::post('/groups/{id}/activities',                      [GroupController::class, 'storeActivity'])->name('groups.activities.store');
     Route::delete('/groups/{id}',                               [GroupController::class, 'destroy'])->name('groups.destroy');
     Route::post('/groups/{id}/invite',                          [GroupController::class, 'invite'])->name('groups.invite');
+    Route::get('/groups/users/search',                          [GroupController::class, 'searchUsers'])->name('groups.users.search');
     Route::post('/groups/invitations/{invId}/accept',           [GroupController::class, 'acceptInvitation'])->name('groups.invitations.accept');
     Route::post('/groups/invitations/{invId}/decline',          [GroupController::class, 'declineInvitation'])->name('groups.invitations.decline');
     Route::delete('/groups/{id}/members/{userId}',              [GroupController::class, 'removeMember'])->name('groups.members.destroy');
@@ -197,6 +198,7 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
     Route::post('/events/{id}/join',                            [EventController::class, 'join'])->name('events.join');
     Route::delete('/events/{id}/leave',                         [EventController::class, 'leave'])->name('events.leave');
     Route::post('/events/{id}/invite',                          [EventController::class, 'invite'])->name('events.invite');
+    Route::post('/events/{id}/invite-group',                    [EventController::class, 'inviteGroup'])->name('events.invite-group');
     Route::delete('/events/{id}',                               [EventController::class, 'destroy'])->name('events.destroy');
     Route::delete('/events/{id}/attendees/{userId}',            [EventController::class, 'removeAttendee'])->name('events.attendees.destroy');
 

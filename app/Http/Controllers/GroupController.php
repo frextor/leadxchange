@@ -115,10 +115,13 @@ class GroupController extends Controller
             ->latest()
             ->paginate(20);
 
+        $memberIds   = $members->pluck('id')->toArray();
+        $canInviteAll = $isAdmin && ($user->isConsul() || $user->isAmbassador());
+
         $connections = $isAdmin
             ? User::with('profile')
                 ->whereIn('id', $user->connectionIds())
-                ->whereNotIn('id', $members->pluck('id')->toArray())
+                ->whereNotIn('id', $memberIds)
                 ->orderBy('first_name')
                 ->get()
             : collect();
@@ -140,7 +143,7 @@ class GroupController extends Controller
 
         return view('groups.show', compact(
             'group', 'members', 'posts', 'isMember', 'isAdmin', 'isOwner', 'userRole',
-            'connections', 'hasPendingRequest', 'pendingRequests'
+            'connections', 'canInviteAll', 'hasPendingRequest', 'pendingRequests'
         ));
     }
 
@@ -231,6 +234,45 @@ class GroupController extends Controller
     }
 
     // ── Invitations ──────────────────────────────────────────
+
+    public function searchUsers(Request $request)
+    {
+        $user  = $request->user();
+        $q     = trim($request->get('q', ''));
+        $groupId = (int) $request->get('group_id', 0);
+
+        abort_unless($user->isConsul() || $user->isAmbassador(), 403);
+
+        $query = User::where('role', 'user')
+            ->where('id', '!=', $user->id);
+
+        if ($groupId) {
+            $group = Group::findOrFail($groupId);
+            abort_unless($group->isAdmin($user->id), 403);
+            $memberIds = $group->members()->pluck('users.id')->toArray();
+            $query->whereNotIn('id', $memberIds);
+        }
+
+        if ($q !== '') {
+            $query->where(fn($q2) => $q2
+                ->where('first_name', 'like', "%{$q}%")
+                ->orWhere('last_name',  'like', "%{$q}%")
+                ->orWhere('email',      'like', "%{$q}%")
+            );
+        }
+
+        $users = $query->select('id', 'first_name', 'last_name', 'email')
+            ->orderBy('first_name')
+            ->limit(20)
+            ->get()
+            ->map(fn($u) => [
+                'id'   => $u->id,
+                'name' => $u->first_name . ' ' . $u->last_name,
+                'email'=> $u->email,
+            ]);
+
+        return response()->json($users);
+    }
 
     public function invite(Request $request, int $id)
     {

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\ConsulRequest;
 use App\Models\Interest;
 use App\Services\ConsulService;
 use App\Services\FirebaseService;
@@ -168,46 +167,8 @@ class ProfileController extends Controller
 
     public function requestAmbassador(Request $request): JsonResponse
     {
-        $user = $request->user()->loadMissing('subscription.plan');
-        $planName = $user->subscription?->plan?->name;
-
-        if (!in_array($planName, ['vip', 'enterprise'], true)) {
-            return response()->json([
-                'message' => 'An active VIP or Enterprise plan is required to request Ambassador status.',
-                'ambassador_status' => $user->ambassador_status ?? 'none',
-            ], 403);
-        }
-
-        if ($user->ambassador_status === 'approved') {
-            return response()->json([
-                'message' => 'Ambassador status is already approved.',
-                'ambassador_status' => 'approved',
-            ], 422);
-        }
-
-        if ($user->ambassador_status === 'pending') {
-            return response()->json([
-                'message' => 'Ambassador request is already pending.',
-                'ambassador_status' => 'pending',
-            ], 422);
-        }
-
-        $user->update([
-            'ambassador_status' => 'pending',
-            'ambassador_requested_at' => now(),
-            'ambassador_reviewed_at' => null,
-            'ambassador_reviewed_by' => null,
-            'ambassador_rejection_reason' => null,
-        ]);
-
-        ConsulRequest::firstOrCreate(
-            ['user_id' => $user->id, 'status' => ConsulRequest::STATUS_PENDING],
-        );
-
-        return response()->json([
-            'message' => 'Ambassador request submitted.',
-            'ambassador_status' => 'pending',
-        ]);
+        // Redirected to the consul flow: "ambassador" in the old mobile API = consul request in the new system.
+        return $this->requestConsul($request);
     }
 
     public function requestConsul(Request $request): JsonResponse

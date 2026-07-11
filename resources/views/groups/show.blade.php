@@ -401,7 +401,7 @@
         <aside class="space-y-4 lg:sticky lg:top-24">
 
             {{-- Invite button (admin/owner only) --}}
-            @if($isAdmin && $connections->isNotEmpty())
+            @if($isAdmin)
             <button onclick="document.getElementById('inviteModal').classList.remove('hidden')"
                 class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition shadow-sm"
                 style="background:#1E8F88;"
@@ -531,46 +531,64 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
         </div>
-        <form method="POST" action="{{ route('groups.invite', $group->id) }}" class="px-6 py-5">
+        <form method="POST" action="{{ route('groups.invite', $group->id) }}" class="px-6 py-5" id="groupInviteForm">
             @csrf
+            <input type="hidden" name="user_id" id="groupInviteUserId">
+
+            @if($canInviteAll)
+            {{-- Consul/Ambassador: search all subscribers --}}
+            <div class="mb-3">
+                <p class="text-xs text-indigo-600 font-semibold mb-2 flex items-center gap-1">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    Consul · Vous pouvez inviter n'importe quel abonné
+                </p>
+                <div class="relative">
+                    <input type="text" id="consulInviteSearch"
+                        placeholder="Rechercher un abonné…"
+                        autocomplete="off"
+                        oninput="searchAllUsers(this.value)"
+                        class="w-full h-10 px-4 rounded-xl border border-indigo-200 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition">
+                </div>
+                <div id="consulSearchResults" class="mt-1 border border-gray-100 rounded-xl overflow-hidden max-h-48 overflow-y-auto hidden"></div>
+                <div id="consulSelected" class="hidden mt-2 px-3 py-2 rounded-xl text-sm font-medium bg-indigo-50 text-indigo-700 flex items-center justify-between">
+                    <span id="consulSelectedName"></span>
+                    <button type="button" onclick="clearConsulSelection()" class="text-indigo-400 hover:text-indigo-600">×</button>
+                </div>
+            </div>
+            <div class="border-t border-gray-100 pt-3 mb-3">
+                <p class="text-xs text-gray-400 mb-2">— ou parmi vos connexions —</p>
+            </div>
+            @endif
+
             <div class="mb-4">
                 <input type="text" id="inviteSearch" placeholder="Rechercher une connexion…"
                     class="w-full h-10 px-4 rounded-xl border border-gray-200 text-sm focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none transition">
             </div>
-            <div class="space-y-1 max-h-64 overflow-y-auto" id="connectionsList">
+            <div class="space-y-1 max-h-48 overflow-y-auto" id="connectionsList">
                 @foreach($connections as $conn)
                 <label class="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-gray-50 transition connection-item"
-                       data-name="{{ strtolower($conn->first_name . ' ' . $conn->last_name) }}">
-                    <input type="radio" name="user_id" value="{{ $conn->id }}" class="sr-only peer" required>
+                       data-name="{{ strtolower($conn->first_name . ' ' . $conn->last_name) }}"
+                       onclick="selectConnection({{ $conn->id }})">
+                    <input type="radio" name="_conn_radio" value="{{ $conn->id }}" class="sr-only peer">
                     <div class="w-4 h-4 rounded-full border-2 border-gray-200 peer-checked:border-teal-500 peer-checked:bg-teal-500 flex-shrink-0 transition"></div>
-                    @if($conn->profile?->avatar)
-                        <img src="{{ $conn->profile->avatar_url }}" class="w-9 h-9 rounded-full object-cover flex-shrink-0">
-                    @else
-                        <div class="avatar-circle" style="width:36px;height:36px;font-size:12px;">
-                            {{ strtoupper(substr($conn->first_name,0,1).substr($conn->last_name,0,1)) }}
-                        </div>
-                    @endif
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-semibold text-gray-900">{{ $conn->first_name }} {{ $conn->last_name }}</p>
-                        @if($conn->profile?->job_title)
-                        <p class="text-xs text-gray-400 truncate">{{ $conn->profile->job_title }}</p>
-                        @endif
                     </div>
                 </label>
                 @endforeach
             </div>
             @if($connections->isEmpty())
-            <p class="text-sm text-gray-400 text-center py-4">Toutes vos connexions sont déjà membres.</p>
+            <p class="text-sm text-gray-400 text-center py-2">{{ $canInviteAll ? 'Toutes vos connexions sont déjà membres.' : 'Toutes vos connexions sont déjà membres.' }}</p>
             @endif
+
             <div class="flex gap-3 pt-4">
                 <button type="button" onclick="document.getElementById('inviteModal').classList.add('hidden')"
                     class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">
                     Annuler
                 </button>
-                <button type="submit"
-                    class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition"
-                    style="background:#1E8F88;"
-                    onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
+                <button type="submit" id="groupInviteSubmit" disabled
+                    class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition opacity-50 cursor-not-allowed"
+                    style="background:#1E8F88;">
                     Inviter
                 </button>
             </div>
@@ -657,5 +675,89 @@
         const el = document.getElementById(id);
         if (el) el.addEventListener('click', e => { if (e.target === el) el.classList.add('hidden'); });
     });
+
+    // ── Group invite modal JS ──────────────────────────────────────
+    @if($isAdmin)
+    const GROUP_ID = {{ $group->id }};
+    const SEARCH_URL = '{{ route('groups.users.search') }}';
+    const CSRF_TOKEN = document.querySelector('meta[name=csrf-token]').content;
+    let consulSearchTimeout = null;
+
+    function selectConnection(id) {
+        document.getElementById('groupInviteUserId').value = id;
+        @if($canInviteAll)
+        // Clear consul selection when a connection is picked
+        document.getElementById('consulInviteSearch').value = '';
+        document.getElementById('consulSearchResults').classList.add('hidden');
+        document.getElementById('consulSelected').classList.add('hidden');
+        @endif
+        const btn = document.getElementById('groupInviteSubmit');
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+
+    @if($canInviteAll)
+    function searchAllUsers(query) {
+        clearTimeout(consulSearchTimeout);
+        const resultsEl = document.getElementById('consulSearchResults');
+        if (!query || query.length < 2) {
+            resultsEl.classList.add('hidden');
+            resultsEl.innerHTML = '';
+            return;
+        }
+        consulSearchTimeout = setTimeout(async () => {
+            try {
+                const res = await fetch(`${SEARCH_URL}?q=${encodeURIComponent(query)}&group_id=${GROUP_ID}`, {
+                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN },
+                    credentials: 'same-origin',
+                });
+                const users = await res.json();
+                if (!users.length) {
+                    resultsEl.innerHTML = '<p class="text-xs text-gray-400 text-center py-3">Aucun abonné trouvé</p>';
+                } else {
+                    resultsEl.innerHTML = users.map(u => `
+                        <button type="button" onclick="consulSelectUser(${u.id},'${u.name.replace(/'/g,"\\'")}')"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-indigo-50 transition text-left border-b border-gray-50 last:border-0">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                                 style="background:linear-gradient(135deg,#818CF8,#6366F1);">${u.name.charAt(0).toUpperCase()}</div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 truncate">${u.name}</p>
+                                ${u.job_title ? `<p class="text-xs text-gray-400 truncate">${u.job_title}</p>` : ''}
+                            </div>
+                        </button>
+                    `).join('');
+                }
+                resultsEl.classList.remove('hidden');
+            } catch (e) {
+                resultsEl.innerHTML = '<p class="text-xs text-red-400 text-center py-3">Erreur de recherche</p>';
+                resultsEl.classList.remove('hidden');
+            }
+        }, 300);
+    }
+
+    function consulSelectUser(id, name) {
+        document.getElementById('groupInviteUserId').value = id;
+        document.getElementById('consulInviteSearch').value = name;
+        document.getElementById('consulSearchResults').classList.add('hidden');
+        document.getElementById('consulSelectedName').textContent = '✓ ' + name;
+        document.getElementById('consulSelected').classList.remove('hidden');
+        // Deselect connections
+        document.querySelectorAll('input[name="_conn_radio"]').forEach(r => r.checked = false);
+        const btn = document.getElementById('groupInviteSubmit');
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+
+    function clearConsulSelection() {
+        document.getElementById('groupInviteUserId').value = '';
+        document.getElementById('consulInviteSearch').value = '';
+        document.getElementById('consulSelected').classList.add('hidden');
+        document.getElementById('consulSearchResults').classList.add('hidden');
+        const btn = document.getElementById('groupInviteSubmit');
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+    @endif
+    @endif
 </script>
 @endpush

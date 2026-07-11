@@ -118,6 +118,7 @@ class EventController extends Controller
         $isOrganizer = $event->created_by === $user->id;
 
         $eventConnections = collect();
+        $organizerGroups  = collect();
         if ($isOrganizer) {
             $attendeeIds = $attendees->pluck('id')->toArray();
             $eventConnections = User::whereIn('id', $user->connectionIds())
@@ -130,9 +131,16 @@ class EventController extends Controller
                     'name'      => $u->first_name . ' ' . $u->last_name,
                     'job_title' => $u->profile?->job_title,
                 ]);
+
+            // Groups the organizer admins (for bulk invite)
+            $organizerGroups = $user->groups()
+                ->wherePivotIn('role', ['owner', 'admin'])
+                ->withCount('members')
+                ->orderBy('name')
+                ->get(['groups.id', 'groups.name']);
         }
 
-        return view('events.show', compact('event', 'attendees', 'isAttending', 'isOrganizer', 'eventConnections'));
+        return view('events.show', compact('event', 'attendees', 'isAttending', 'isOrganizer', 'eventConnections', 'organizerGroups'));
     }
 
     public function store(Request $request)
@@ -272,6 +280,49 @@ class EventController extends Controller
     }
 
     // ── Invitations ──────────────────────────────────────────────
+
+    public function inviteGroup(Request $request, int $id)
+    {
+        $event = Event::findOrFail($id);
+        $user  = $request->user();
+
+        abort_if($event->created_by !== $user->id, 403);
+
+        $request->validate(['group_id' => ['required', 'integer', 'exists:groups,id']]);
+        $group = \App\Models\Group::findOrFail($request->group_id);
+
+        abort_unless($group->isAdmin($user->id), 403);
+
+        $attendingIds = $event->attendees()->pluck('users.id')->toArray();
+        $members = $group->members()
+            ->whereNotIn('users.id', $attendingIds)
+            ->whereNotIn('users.id', [$user->id])
+            ->get(['users.id', 'users.first_name', 'users.last_name', 'users.email']);
+
+        $sent = 0;
+        foreach ($members as $member) {
+            EventInvitation::updateOrCreate(
+                ['event_id' => $id, 'user_id' => $member->id],
+                ['invited_by' => $user->id, 'status' => 'pending']
+            );
+
+            try {
+                \App\Models\Notification::storeForUser(
+                    $member,
+                    'event_invitation',
+                    'Invitation à un événement',
+                    "{$user->first_name} {$user->last_name} vous invite à l'événement « {$event->title} ».",
+                    ['url' => route('events.show', $id), 'event_id' => $id]
+                );
+            } catch (\Throwable) {}
+
+            $sent++;
+        }
+
+        ActivityLogger::log('event.group_invite', "Groupe « {$group->name} » invité à l'événement « {$event->title} » ({$sent} membres)", $user->id, $event);
+
+        return back()->with('success', "{$sent} membre(s) du groupe « {$group->name} » invité(s).");
+    }
 
     public function invite(Request $request, int $id)
     {
