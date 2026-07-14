@@ -88,6 +88,38 @@ class AmbassadorController extends Controller
         return response()->json(['data' => $users]);
     }
 
+    /** GET /ambassador/consuls — List approved consuls in ambassador's managed city */
+    public function consuls(): JsonResponse
+    {
+        $ambassador = auth()->user();
+
+        $users = User::with(['profile', 'city'])
+            ->where('consul_status', 'approved')
+            ->where($this->regionScope($ambassador))
+            ->orderBy('first_name')
+            ->get()
+            ->map(fn(User $u) => $this->formatUser($u));
+
+        return response()->json(['data' => $users]);
+    }
+
+    /** POST /ambassador/consuls/{user}/revoke — Revoke consul status (must be in same region) */
+    public function revokeConsul(User $user): JsonResponse
+    {
+        $ambassador = auth()->user();
+
+        if (! $this->isSameRegion($ambassador, $user)) {
+            return response()->json(['message' => 'Cet utilisateur n\'est pas dans votre région.'], 403);
+        }
+
+        try {
+            $this->consulService->revokeConsul($user);
+            return response()->json(['message' => "Le statut Consul de {$user->first_name} {$user->last_name} a été révoqué."]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
     /** POST /ambassador/nominate/{user} — Directly nominate a premium user as consul (must be in same region) */
     public function nominateConsul(User $user): JsonResponse
     {
