@@ -64,6 +64,7 @@ class SettingsController extends Controller
                                        'features'       => $this->planFeaturesToArray($plan->features),
                                        'permissions'    => $this->planPermissionsToArray($plan->permissions),
                                        'raw_permissions' => is_array($plan->permissions) ? $plan->permissions : (object)[],
+                                       'is_visible'     => (bool) $plan->is_visible,
                                    ]),
 
             'cities'        => City::where('is_active', true)->with('country:id,name,code,flag')
