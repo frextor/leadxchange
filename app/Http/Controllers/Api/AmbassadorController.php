@@ -15,7 +15,7 @@ class AmbassadorController extends Controller
     /** GET /ambassador/consul-requests — Pending consul requests in ambassador's region/city */
     public function consulRequests(): JsonResponse
     {
-        $ambassador = auth()->user();
+        $ambassador = auth()->user()->load('ambassadorCity', 'city');
 
         $users = User::with(['profile', 'city'])
             ->where('consul_status', 'pending')
@@ -24,7 +24,10 @@ class AmbassadorController extends Controller
             ->get()
             ->map(fn(User $u) => $this->formatUser($u));
 
-        return response()->json(['data' => $users]);
+        return response()->json([
+            'managed_city' => $ambassador->ambassadorCity?->name ?? $ambassador->city?->name,
+            'data'         => $users,
+        ]);
     }
 
     /** POST /ambassador/consul-requests/{user}/approve */
@@ -91,7 +94,7 @@ class AmbassadorController extends Controller
     /** GET /ambassador/consuls — List approved consuls in ambassador's managed city */
     public function consuls(): JsonResponse
     {
-        $ambassador = auth()->user();
+        $ambassador = auth()->user()->load('ambassadorCity', 'city');
 
         $users = User::with(['profile', 'city'])
             ->where('consul_status', 'approved')
@@ -100,7 +103,10 @@ class AmbassadorController extends Controller
             ->get()
             ->map(fn(User $u) => $this->formatUser($u));
 
-        return response()->json(['data' => $users]);
+        return response()->json([
+            'managed_city' => $ambassador->ambassadorCity?->name ?? $ambassador->city?->name,
+            'data'         => $users,
+        ]);
     }
 
     /** POST /ambassador/consuls/{user}/revoke — Revoke consul status (must be in same region) */
