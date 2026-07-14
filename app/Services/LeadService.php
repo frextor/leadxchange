@@ -34,6 +34,26 @@ class LeadService
             throw new \Exception("Vous ne pouvez envoyer des leads qu'à vos connexions.");
         }
 
+        // Receiver plan: can they receive leads at all?
+        if (!$receiver->canFeature('can_receive_leads')) {
+            throw new \Exception(
+                "{$receiver->first_name} {$receiver->last_name} ne peut pas recevoir de leads avec son plan actuel."
+            );
+        }
+
+        // Receiver plan: monthly received lead limit
+        $maxReceived = $receiver->planPermission('max_received_leads_per_month');
+        if ($maxReceived !== null) {
+            $receivedThisMonth = Lead::where('receiver_id', $receiverId)
+                ->where('created_at', '>=', now()->startOfMonth())
+                ->count();
+            if ($receivedThisMonth >= $maxReceived) {
+                throw new \Exception(
+                    "{$receiver->first_name} {$receiver->last_name} a atteint sa limite de {$maxReceived} lead(s) reçus ce mois-ci."
+                );
+            }
+        }
+
         // Sender blocked if their balance is negative
         if (!$this->points->canSend($sender)) {
             throw new \Exception('Votre solde de points est négatif. Vous ne pouvez pas envoyer de leads tant que votre solde est en dessous de 0.');

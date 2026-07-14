@@ -57,7 +57,7 @@ class LeadController extends Controller
     public function store(StoreLeadRequest $request): JsonResponse
     {
         $user     = $request->user();
-        $maxLeads = $user->planPermission('max_leads');
+        $maxLeads = $user->planPermission('max_leads_per_month');
 
         if ($maxLeads !== null) {
             $sent = \App\Models\Lead::where('sender_id', $user->id)

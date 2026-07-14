@@ -130,6 +130,7 @@ class PlanController extends Controller
             'can_receive_leads'             => ['label' => 'Recevoir des leads',           'type' => 'bool'],
             'can_view_leads'                => ['label' => 'Voir la liste des leads',      'type' => 'bool'],
             'max_leads_per_month'           => ['label' => 'Max leads envoyés / mois',     'type' => 'number', 'null_label' => 'Illimité'],
+            'max_received_leads_per_month'  => ['label' => 'Max leads reçus / mois',       'type' => 'number', 'null_label' => 'Illimité'],
             'can_send_mql'                  => ['label' => 'Envoyer leads MQL',            'type' => 'bool'],
             'can_send_sql'                  => ['label' => 'Envoyer leads SQL',            'type' => 'bool'],
             'can_send_sp'                   => ['label' => 'Envoyer leads SP',             'type' => 'bool'],
