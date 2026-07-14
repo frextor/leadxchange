@@ -6,15 +6,21 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Espace Consul') — LeadXchange</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    @if(config('firebase.api_key'))
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+    @endif
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <style>
         * { font-family: 'Inter', -apple-system, sans-serif; }
+
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 4px; }
 
+        /* ── Nav items ── */
         .nav-item {
             display: flex; align-items: center; gap: 10px;
             padding: 8px 12px; border-radius: 10px;
@@ -24,11 +30,13 @@
             position: relative;
         }
         .nav-item svg { flex-shrink: 0; color: #94A3B8; transition: color .12s; }
-        .nav-item:hover { background: #F5F3FF; color: #1E293B; }
-        .nav-item:hover svg { color: #6D28D9; }
+        .nav-item:hover { background: #F1F5F9; color: #1E293B; }
+        .nav-item:hover svg { color: #475569; }
+
         .nav-item.active {
             background: linear-gradient(135deg, #F5F3FF, #EDE9FE);
-            color: #5B21B6; font-weight: 600;
+            color: #5B21B6;
+            font-weight: 600;
         }
         .nav-item.active svg { color: #6D28D9; }
         .nav-item.active::before {
@@ -38,17 +46,56 @@
             width: 3px; height: 60%; border-radius: 0 3px 3px 0;
             background: #7C3AED;
         }
+
+        /* Section labels */
         .nav-section {
             font-size: 10px; font-weight: 700; text-transform: uppercase;
             letter-spacing: .1em; color: #94A3B8;
             padding: 3px 12px; margin-top: 20px; margin-bottom: 4px;
         }
+
+        /* Badge */
+        .nav-badge {
+            margin-left: auto; font-size: 10px; font-weight: 700;
+            padding: 2px 6px; border-radius: 99px; line-height: 1.4;
+            flex-shrink: 0;
+        }
+
+        /* Content area */
         .main-content { background: #F8FAFC; }
+
+        /* KPI cards */
+        .consul-kpi-card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #E2E8F0;
+            padding: 20px 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.04);
+            transition: box-shadow .15s;
+        }
+        .consul-kpi-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+
+        /* Progress bar */
+        .consul-progress-bar {
+            height: 6px;
+            border-radius: 99px;
+            background: #E2E8F0;
+            overflow: hidden;
+        }
+        .consul-progress-fill {
+            height: 100%;
+            border-radius: 99px;
+            background: linear-gradient(90deg, #7C3AED, #A78BFA);
+            transition: width .6s ease;
+        }
+
+        /* Mobile sidebar */
         @media (max-width: 768px) {
             #consul-sidebar { transform: translateX(-100%); }
             #consul-sidebar.open { transform: translateX(0); }
             #consul-content { margin-left: 0 !important; }
         }
+
         @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         .fade-in { animation: fadeIn .25s ease forwards; }
     </style>
@@ -109,7 +156,7 @@
             <a href="{{ route('consul.dashboard') }}"
                class="nav-item {{ request()->routeIs('consul.dashboard') ? 'active' : '' }}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
-                Vue d'ensemble
+                Tableau de bord
             </a>
 
             <p class="nav-section">Mes Groupes</p>
@@ -119,13 +166,13 @@
                class="nav-item {{ request()->is('consul/groupes/'.$__g->id.'*') ? 'active' : '' }}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 <span class="truncate">{{ $__g->name }}</span>
-                <span class="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style="background:#EDE9FE;color:#6D28D9;">{{ $__g->members_count }}</span>
+                <span class="nav-badge text-white" style="background:#7C3AED;">{{ $__g->members_count }}</span>
             </a>
             @endforeach
 
             <p class="nav-section">Compte</p>
 
-            <a href="{{ route('dashboard') }}" class="nav-item">
+            <a href="{{ route('dashboard') }}" class="nav-item" style="margin-top:8px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 Espace Membre
             </a>
@@ -134,7 +181,7 @@
 
         {{-- User footer --}}
         <div class="px-3 py-3" style="border-top:1px solid #F1F5F9;">
-            <div class="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-slate-50 transition">
+            <div class="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-slate-50 transition group">
                 @if($consul->profile?->avatar)
                     <img src="{{ $consul->profile->avatar_url }}" class="w-8 h-8 rounded-full object-cover flex-shrink-0">
                 @else
@@ -144,7 +191,9 @@
                     </div>
                 @endif
                 <div class="min-w-0 flex-1">
-                    <p class="text-[13px] font-semibold text-slate-700 truncate leading-none">{{ $consul->first_name }} {{ $consul->last_name }}</p>
+                    <p class="text-[13px] font-semibold text-slate-700 truncate leading-none">
+                        {{ $consul->first_name }} {{ $consul->last_name }}
+                    </p>
                     <p class="text-[11px] font-medium mt-0.5" style="color:#7C3AED;">Consul</p>
                 </div>
                 <form method="POST" action="{{ route('logout') }}">
@@ -164,6 +213,8 @@
 
         {{-- Topbar --}}
         <header class="bg-white flex items-center justify-between flex-shrink-0 px-6" style="height:52px; border-bottom:1px solid #E2E8F0;">
+
+            {{-- Mobile hamburger + breadcrumb --}}
             <div class="flex items-center gap-3">
                 <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-slate-600">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -172,9 +223,11 @@
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-300"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                     <span>Consul</span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-200"><path d="m9 18 6-6-6-6"/></svg>
-                    <span class="text-slate-700 font-semibold">@yield('page-title', 'Vue d\'ensemble')</span>
+                    <span class="text-slate-700 font-semibold">@yield('page-title', 'Tableau de bord')</span>
                 </div>
             </div>
+
+            {{-- Right side --}}
             <div class="flex items-center gap-3">
                 @if(session('success'))
                 <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
@@ -184,10 +237,17 @@
                 @endif
                 @if(session('error'))
                 <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-600 border border-red-100">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                     {{ session('error') }}
                 </div>
                 @endif
-                <div class="flex items-center gap-2">
+
+                <a href="{{ route('notifications.index') }}"
+                   class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                </a>
+
+                <a href="{{ route('profile.show') }}" class="flex items-center gap-2 hover:opacity-80 transition">
                     @if(auth()->user()->profile?->avatar)
                         <img src="{{ auth()->user()->profile->avatar_url }}" class="w-7 h-7 rounded-full object-cover ring-2 ring-purple-200">
                     @else
@@ -197,7 +257,7 @@
                         </div>
                     @endif
                     <span class="text-[13px] font-semibold text-slate-700 hidden sm:block">{{ auth()->user()->first_name }}</span>
-                </div>
+                </a>
             </div>
         </header>
 
@@ -209,26 +269,99 @@
 
 </div>
 
+{{-- Mobile overlay --}}
 <div id="sidebarOverlay" onclick="toggleSidebar()"
      class="hidden fixed inset-0 bg-black bg-opacity-40 z-30 md:hidden"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 window.CSRF = '{{ csrf_token() }}';
+
+@if(config('firebase.api_key'))
+(function() {
+    try {
+        firebase.initializeApp({
+            apiKey:            '{{ config("firebase.api_key") }}',
+            authDomain:        '{{ config("firebase.auth_domain") }}',
+            projectId:         '{{ config("firebase.project_id") }}',
+            storageBucket:     '{{ config("firebase.storage_bucket") }}',
+            messagingSenderId: '{{ config("firebase.messaging_sender_id") }}',
+            appId:             '{{ config("firebase.app_id") }}',
+        });
+        const messaging = firebase.messaging();
+        const vapidKey  = '{{ config("firebase.vapid_key") }}';
+
+        async function initFcm() {
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') return;
+                const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                const token = await messaging.getToken({ vapidKey, serviceWorkerRegistration: swReg });
+                if (token) {
+                    await fetch('/api/device-token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': window.CSRF },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ token, platform: 'web' }),
+                    });
+                }
+            } catch (e) { console.warn('FCM:', e.message); }
+        }
+
+        messaging.onMessage(payload => {
+            const d = payload.data || {};
+            const title = d.title || 'LeadXchange';
+            const body  = d.body  || '';
+            if (Notification.permission === 'granted') {
+                new Notification(title, { body, icon: '/favicon.ico' });
+            }
+        });
+
+        initFcm();
+    } catch(e) { console.warn('Firebase init:', e.message); }
+})();
+@endif
+
+// Sidebar scroll persistence
 (function () {
     var nav = document.getElementById('consul-sidebar-nav');
     if (!nav) return;
-    var saved = sessionStorage.getItem('consulSidebarScroll');
+    var key = 'consulSidebarScroll';
+    var saved = sessionStorage.getItem(key);
     if (saved) nav.scrollTop = parseInt(saved, 10);
     nav.addEventListener('scroll', function () {
-        sessionStorage.setItem('consulSidebarScroll', nav.scrollTop);
+        sessionStorage.setItem(key, nav.scrollTop);
     }, { passive: true });
 })();
+
 function toggleSidebar() {
     document.getElementById('consul-sidebar').classList.toggle('open');
     document.getElementById('sidebarOverlay').classList.toggle('hidden');
 }
+
+function swalDelete(btn, name) {
+    Swal.fire({
+        title: 'Supprimer ?',
+        html: '<span style="color:#64748B;font-size:14px;">Voulez-vous supprimer <strong style="color:#0F172A;">' + name + '</strong> ?<br>Cette action est <strong>irréversible</strong>.</span>',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Oui, supprimer',
+        cancelButtonText: 'Annuler',
+        confirmButtonColor: '#EF4444',
+        cancelButtonColor: '#F8FAFC',
+        customClass: { popup:'swal-lx-popup', title:'swal-lx-title', cancelButton:'swal-lx-cancel' },
+        reverseButtons: true,
+        focusCancel: true,
+    }).then(function(r) { if (r.isConfirmed) btn.closest('form').submit(); });
+}
 </script>
+<style>
+.swal-lx-popup  { border-radius:20px!important; padding:2rem!important; font-family:'Inter',sans-serif!important; box-shadow:0 20px 60px rgba(0,0,0,.12)!important; }
+.swal-lx-title  { font-size:18px!important; font-weight:700!important; color:#0F172A!important; }
+.swal-lx-cancel { color:#64748B!important; font-weight:600!important; border:1px solid #E2E8F0!important; background:#F8FAFC!important; }
+.swal-lx-cancel:hover { background:#F1F5F9!important; }
+.swal2-icon.swal2-warning { border-color:#FCD34D!important; color:#F59E0B!important; }
+</style>
 @stack('scripts')
 </body>
 </html>
