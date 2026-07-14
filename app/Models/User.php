@@ -47,6 +47,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'ambassador_reviewed_at',
         'ambassador_reviewed_by',
         'ambassador_rejection_reason',
+        'ambassador_city_id',
+        'ambassador_region_id',
         'consul_status',
         'consul_nominated_at',
         'consul_nominated_by',
