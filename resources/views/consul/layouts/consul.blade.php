@@ -242,12 +242,12 @@
                 </div>
                 @endif
 
-                <a href="{{ route('notifications.index') }}"
+                <a href="{{ route('profile.me') }}"
                    class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 </a>
 
-                <a href="{{ route('profile.show') }}" class="flex items-center gap-2 hover:opacity-80 transition">
+                <a href="{{ route('profile.me') }}" class="flex items-center gap-2 hover:opacity-80 transition">
                     @if(auth()->user()->profile?->avatar)
                         <img src="{{ auth()->user()->profile->avatar_url }}" class="w-7 h-7 rounded-full object-cover ring-2 ring-purple-200">
                     @else
