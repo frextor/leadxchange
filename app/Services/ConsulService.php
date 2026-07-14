@@ -39,6 +39,8 @@ class ConsulService
                 'consul_status'      => 'approved',
                 'consul_nominated_at'=> now(),
                 'consul_nominated_by'=> $admin->id,
+                'consul_city_id'     => $user->city_id,
+                'consul_region_id'   => $user->region_id,
             ]);
 
             // Sync any pending consul_requests row

@@ -52,6 +52,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'consul_status',
         'consul_nominated_at',
         'consul_nominated_by',
+        'consul_city_id',
+        'consul_region_id',
         'admin_permissions',
         'stripe_customer_id',
         'cgu_version',
@@ -124,6 +126,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(\App\Models\City::class, 'ambassador_city_id');
     }
 
+    public function consulCity()
+    {
+        return $this->belongsTo(\App\Models\City::class, 'consul_city_id');
+    }
+
     public function region()
     {
         return $this->belongsTo(\App\Models\City::class, 'region_id');
@@ -180,6 +187,22 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isConsul(): bool
     {
         return $this->consul_status === 'approved';
+    }
+
+    /**
+     * True when the user is an approved consul AND their current city still matches
+     * the city they were appointed for. Changing the profile city disables consul features.
+     */
+    public function isConsulForCurrentCity(): bool
+    {
+        if (! $this->isConsul()) {
+            return false;
+        }
+        // If no locked city yet (legacy row before migration), fall back to plain status
+        if (! $this->consul_city_id) {
+            return true;
+        }
+        return (int) $this->city_id === (int) $this->consul_city_id;
     }
 
     public function isAmbassador(): bool
