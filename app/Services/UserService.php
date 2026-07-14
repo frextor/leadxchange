@@ -335,10 +335,12 @@ class UserService
 
     private function planPayload(\App\Models\User $user): array
     {
-        if ($user->subscription?->plan) {
+        $plan = $user->effectivePlan();
+
+        if ($plan) {
             return [
-                'name'                => $user->subscription->plan->name,
-                'label'               => $user->subscription->plan->label,
+                'name'                => $plan->name,
+                'label'               => $plan->label,
                 'is_enterprise_owner' => $this->isEnterpriseOwnerSubscription($user->subscription),
             ];
         }
