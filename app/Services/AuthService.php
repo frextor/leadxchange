@@ -295,7 +295,7 @@ class AuthService
      */
     public function getUserData(User $user): array
     {
-        $user->load(['company.sector', 'subscription.plan', 'profile', 'nationality', 'city', 'consulRequests']);
+        $user->load(['company.sector', 'subscription.plan', 'profile', 'nationality', 'city', 'consulRequests', 'ambassadorCity']);
 
         $sectorIds = array_unique(array_merge(
             $user->profile?->looking_for      ?? [],
@@ -372,6 +372,10 @@ class AuthService
                 'is_enterprise_owner' => $this->isEnterpriseOwnerSubscription($user->subscription),
             ] : null,
             'ambassador_status' => $user->ambassador_status ?? 'none',
+            'ambassador_city'  => $user->ambassador_city_id ? [
+                'id'   => $user->ambassador_city_id,
+                'name' => $user->ambassadorCity?->name,
+            ] : null,
             'consul_status'    => $this->deriveConsulStatus($user),
             'onboarding_completed' => (bool) ($user->onboarding_completed ?? false),
             'profile_completed'    => (bool) $user->hasCompletedProfile(),
