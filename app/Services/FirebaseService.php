@@ -70,6 +70,58 @@ class FirebaseService
         }
     }
 
+    public function sendConnectionAcceptedNotification(Connection $connection, User $acceptor): void
+    {
+        $sender = User::find($connection->sender_id);
+        if (!$sender) {
+            return;
+        }
+
+        $title = 'Demande de connexion acceptée';
+        $body  = "{$acceptor->first_name} {$acceptor->last_name} a accepté votre demande de connexion";
+
+        $notificationId = (string) Notification::storeForUser($sender, 'connection_accepted', $title, $body, [
+            'user_id' => (string) $acceptor->id,
+        ])->id;
+
+        $tokens = DeviceToken::where('user_id', $connection->sender_id)->pluck('token');
+        if ($tokens->isEmpty()) {
+            return;
+        }
+
+        $accessToken = $this->getAccessToken();
+        $projectId   = config('firebase.project_id');
+
+        $data = [
+            'connection_id'       => (string) $connection->id,
+            'acceptor_id'         => (string) $acceptor->id,
+            'acceptor_first_name' => $acceptor->first_name,
+            'acceptor_last_name'  => $acceptor->last_name,
+            'acceptor_email'      => $acceptor->email,
+            'type'                => 'connection_accepted',
+        ];
+
+        foreach ($tokens as $token) {
+            $response = Http::withToken($accessToken)
+                ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
+                    'message' => [
+                        'token'   => $token,
+                        'data'    => array_merge($data, ['title' => $title, 'body' => $body, 'notification_id' => $notificationId]),
+                        'android' => ['priority' => 'high'],
+                        'apns'    => ['payload' => ['aps' => ['alert' => ['title' => $title, 'body' => $body], 'sound' => 'default']]],
+                    ],
+                ]);
+
+            if (!$response->successful()) {
+                $errorCode = $response->json('error.details.0.errorCode') ?? '';
+                Log::warning('FCM send failed (connection accepted)', ['error' => $response->json('error.message')]);
+                if (in_array($errorCode, ['UNREGISTERED', 'INVALID_ARGUMENT'])) {
+                    DeviceToken::where('token', $token)->delete();
+                }
+            }
+        }
+    }
+
     public function sendLeadNotification(\App\Models\Lead $lead, User $actor, string $event): void
     {
         // 'sent'      → notify the receiver

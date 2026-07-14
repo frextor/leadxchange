@@ -13,11 +13,11 @@ class DashboardController extends Controller
     {
         $consul = $request->user();
 
-        $groups = Group::wherePivotIn('role', ['owner', 'admin'])
-            ->whereHas('members', fn($q) => $q->where('users.id', $consul->id)->whereIn('group_user.role', ['owner', 'admin']))
+        $groups = $consul->groups()
+            ->wherePivotIn('role', ['owner', 'admin'])
             ->withCount('members')
             ->orderBy('name')
-            ->get();
+            ->get(['groups.id', 'groups.name']);
 
         // Quick stats
         $totalMembers = $groups->sum('members_count');

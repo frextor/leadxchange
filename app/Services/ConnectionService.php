@@ -144,6 +144,12 @@ class ConnectionService
 
             DB::commit();
 
+            try {
+                app(FirebaseService::class)->sendConnectionAcceptedNotification($connection, $user);
+            } catch (\Exception $e) {
+                Log::warning('Firebase notification failed (connection accepted)', ['error' => $e->getMessage()]);
+            }
+
             Log::info('Connection request accepted', [
                 'connection_id' => $connection->id,
                 'sender_id' => $connection->sender_id,
