@@ -13,13 +13,13 @@
         <h1 class="text-xl font-bold text-gray-900 mt-0.5">{{ $group->name }}</h1>
     </div>
     <div class="flex items-center gap-2">
-        <span class="text-sm font-bold px-3 py-1.5 rounded-xl" style="background:#EDE9FE;color:#6D28D9;">
+        <span class="text-sm font-bold px-3 py-1.5 rounded-xl" style="background:#CCFBF1;color:#0F766E;">
             {{ $members->count() }} abonné{{ $members->count() > 1 ? 's' : '' }}
         </span>
         <a href="{{ route('consul.group.events', $group) }}"
            class="flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-xl border transition"
-           style="border-color:#DDD6FE;color:#6D28D9;"
-           onmouseover="this.style.background='#F5F3FF'" onmouseout="this.style.background='transparent'">
+           style="border-color:#99F6E4;color:#0F766E;"
+           onmouseover="this.style.background='#F0FDFA'" onmouseout="this.style.background='transparent'">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             Événements du groupe
         </a>
@@ -30,8 +30,7 @@
     {{-- Search --}}
     <div class="px-5 py-3 border-b border-gray-100 bg-gray-50">
         <input type="text" id="memberSearch" placeholder="Rechercher un membre…"
-               class="w-full max-w-sm rounded-xl border border-gray-200 px-4 py-2 text-sm focus:outline-none focus:ring-2"
-               style="--tw-ring-color:#7C3AED50;">
+               class="w-full max-w-sm rounded-xl border border-gray-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-300">
     </div>
 
     {{-- Table --}}
@@ -48,14 +47,14 @@
             </thead>
             <tbody class="divide-y divide-gray-50">
                 @forelse($members as $member)
-                <tr class="member-row hover:bg-purple-50 transition">
+                <tr class="member-row hover:bg-teal-50 transition">
                     <td class="px-5 py-3">
                         <div class="flex items-center gap-3">
                             @if($member->profile?->avatar)
-                                <img src="{{ $member->profile->avatar_url }}" class="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-2 ring-purple-100">
+                                <img src="{{ $member->profile->avatar_url }}" class="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-2 ring-teal-100">
                             @else
                                 <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-sm"
-                                     style="background:linear-gradient(135deg,#7C3AED,#5B21B6);">
+                                     style="background:linear-gradient(135deg,#14B8A6,#0D9488);">
                                     {{ strtoupper(substr($member->first_name,0,1)) }}{{ strtoupper(substr($member->last_name,0,1)) }}
                                 </div>
                             @endif
@@ -83,7 +82,7 @@
                         @php $role = $member->pivot->role ?? 'member'; @endphp
                         <span class="text-xs font-semibold px-2 py-0.5 rounded-full
                             {{ $role === 'owner' ? '' : ($role === 'admin' ? '' : 'bg-gray-100 text-gray-500') }}"
-                            style="{{ $role === 'owner' ? 'background:#EDE9FE;color:#5B21B6;' : ($role === 'admin' ? 'background:#DBEAFE;color:#1D4ED8;' : '') }}">
+                            style="{{ $role === 'owner' ? 'background:#CCFBF1;color:#0F766E;' : ($role === 'admin' ? 'background:#DBEAFE;color:#1D4ED8;' : '') }}">
                             {{ $role === 'owner' ? 'Propriétaire' : ($role === 'admin' ? 'Admin' : 'Membre') }}
                         </span>
                     </td>

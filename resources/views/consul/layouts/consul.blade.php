@@ -34,17 +34,17 @@
         .nav-item:hover svg { color: #475569; }
 
         .nav-item.active {
-            background: linear-gradient(135deg, #F5F3FF, #EDE9FE);
-            color: #5B21B6;
+            background: linear-gradient(135deg, #F0FDFA, #CCFBF1);
+            color: #0F766E;
             font-weight: 600;
         }
-        .nav-item.active svg { color: #6D28D9; }
+        .nav-item.active svg { color: #0F766E; }
         .nav-item.active::before {
             content: '';
             position: absolute; left: 0; top: 50%;
             transform: translateY(-50%);
             width: 3px; height: 60%; border-radius: 0 3px 3px 0;
-            background: #7C3AED;
+            background: #14B8A6;
         }
 
         /* Section labels */
@@ -85,7 +85,7 @@
         .consul-progress-fill {
             height: 100%;
             border-radius: 99px;
-            background: linear-gradient(90deg, #7C3AED, #A78BFA);
+            background: linear-gradient(90deg, #14B8A6, #2DD4BF);
             transition: width .6s ease;
         }
 
@@ -113,35 +113,35 @@
         <div class="px-5 pt-5 pb-4" style="border-bottom:1px solid #F1F5F9;">
             <a href="{{ route('consul.dashboard') }}" class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm"
-                     style="background:linear-gradient(135deg,#7C3AED,#5B21B6);">LX</div>
+                     style="background:linear-gradient(135deg,#14B8A6,#0D9488);">LX</div>
                 <div>
                     <p class="text-sm font-bold text-slate-800 leading-none">LeadXchange</p>
-                    <p class="text-[10px] font-semibold tracking-widest uppercase mt-0.5" style="color:#7C3AED;">Consul</p>
+                    <p class="text-[10px] font-semibold tracking-widest uppercase mt-0.5 text-teal-500">Consul</p>
                 </div>
             </a>
         </div>
 
         {{-- Consul card --}}
         @php $consul = auth()->user(); @endphp
-        <div class="mx-3 mt-3 mb-1 px-3 py-2.5 rounded-xl" style="background:linear-gradient(135deg,#F5F3FF,#EDE9FE); border:1px solid #DDD6FE;">
+        <div class="mx-3 mt-3 mb-1 px-3 py-2.5 rounded-xl" style="background:linear-gradient(135deg,#F0FDFA,#CCFBF1); border:1px solid #99F6E4;">
             <div class="flex items-center gap-2.5">
                 @if($consul->profile?->avatar)
-                    <img src="{{ $consul->profile->avatar_url }}" class="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-2 ring-purple-200">
+                    <img src="{{ $consul->profile->avatar_url }}" class="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-2 ring-teal-200">
                 @else
                     <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-sm"
-                         style="background:linear-gradient(135deg,#7C3AED,#5B21B6);">
+                         style="background:linear-gradient(135deg,#14B8A6,#0D9488);">
                         {{ strtoupper(substr($consul->first_name,0,1)) }}{{ strtoupper(substr($consul->last_name,0,1)) }}
                     </div>
                 @endif
                 <div class="min-w-0 flex-1">
                     <p class="text-[12px] font-semibold text-slate-800 truncate leading-none">{{ $consul->first_name }} {{ $consul->last_name }}</p>
-                    <p class="text-[10px] font-semibold mt-0.5 flex items-center gap-1" style="color:#6D28D9;">
+                    <p class="text-[10px] font-semibold text-teal-600 mt-0.5 flex items-center gap-1">
                         <span>🏛</span> Consul
                     </p>
                 </div>
             </div>
             @if($consul->city)
-            <p class="text-[11px] mt-1.5 flex items-center gap-1" style="color:#5B21B6;">
+            <p class="text-[11px] mt-1.5 flex items-center gap-1 text-teal-700">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
                 {{ $consul->city->name }}
             </p>
@@ -166,7 +166,7 @@
                class="nav-item {{ request()->is('consul/groupes/'.$__g->id.'*') ? 'active' : '' }}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 <span class="truncate">{{ $__g->name }}</span>
-                <span class="nav-badge text-white" style="background:#7C3AED;">{{ $__g->members_count }}</span>
+                <span class="nav-badge text-white" style="background:#14B8A6;">{{ $__g->members_count }}</span>
             </a>
             @endforeach
 
@@ -186,7 +186,7 @@
                     <img src="{{ $consul->profile->avatar_url }}" class="w-8 h-8 rounded-full object-cover flex-shrink-0">
                 @else
                     <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-sm"
-                         style="background:linear-gradient(135deg,#7C3AED,#5B21B6);">
+                         style="background:linear-gradient(135deg,#14B8A6,#0D9488);">
                         {{ strtoupper(substr($consul->first_name, 0, 1)) }}
                     </div>
                 @endif
@@ -194,7 +194,7 @@
                     <p class="text-[13px] font-semibold text-slate-700 truncate leading-none">
                         {{ $consul->first_name }} {{ $consul->last_name }}
                     </p>
-                    <p class="text-[11px] font-medium mt-0.5" style="color:#7C3AED;">Consul</p>
+                    <p class="text-[11px] font-medium text-teal-500 mt-0.5">Consul</p>
                 </div>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
@@ -249,10 +249,10 @@
 
                 <a href="{{ route('profile.me') }}" class="flex items-center gap-2 hover:opacity-80 transition">
                     @if(auth()->user()->profile?->avatar)
-                        <img src="{{ auth()->user()->profile->avatar_url }}" class="w-7 h-7 rounded-full object-cover ring-2 ring-purple-200">
+                        <img src="{{ auth()->user()->profile->avatar_url }}" class="w-7 h-7 rounded-full object-cover ring-2 ring-teal-200">
                     @else
                         <div class="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-[10px] flex-shrink-0 shadow-sm"
-                             style="background:linear-gradient(135deg,#7C3AED,#5B21B6);">
+                             style="background:linear-gradient(135deg,#14B8A6,#0D9488);">
                             {{ strtoupper(substr(auth()->user()->first_name,0,1)) }}
                         </div>
                     @endif
