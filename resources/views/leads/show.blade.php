@@ -27,7 +27,7 @@
     $canRate    = !$isSent && ($lead->isAccepted() || $lead->isConverted()) && !$lead->hasRatingBy($user->id);
     $myRating   = !$isSent ? $lead->ratings->firstWhere('rater_id', $user->id) : null;
     $avgRating  = $lead->average_rating;
-    $canConvert = $isSent && $lead->isAccepted();
+    $canConvert = !$isSent && $lead->isAccepted();
     $canAct     = !$isSent && $lead->isNew();
     $canReport  = !$isSent && !$lead->isNew() && !$lead->isRejected() && !$lead->isFraudReported();
 

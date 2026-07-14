@@ -69,5 +69,6 @@ class Kernel extends HttpKernel
         'admin'       => \App\Http\Middleware\EnsureIsAdmin::class,
         'super_admin' => \App\Http\Middleware\EnsureIsSuperAdmin::class,
         'ambassador'  => \App\Http\Middleware\EnsureIsAmbassador::class,
+        'consul'      => \App\Http\Middleware\EnsureIsConsul::class,
     ];
 }

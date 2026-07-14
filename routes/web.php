@@ -250,6 +250,13 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
     Route::post('/consul/request',         [\App\Http\Controllers\ConsulRequestController::class, 'store'])->name('consul.request');
     Route::post('/consul/request-promote', [\App\Http\Controllers\ConsulRequestController::class, 'requestConsulPromotion'])->name('consul.request-promote');
 
+    // ── Consul Space ─────────────────────────────────────────────────────────
+    Route::middleware('consul')->prefix('consul')->name('consul.')->group(function () {
+        Route::get('/',                                [\App\Http\Controllers\Consul\DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/groupes/{group}/membres',         [\App\Http\Controllers\Consul\DashboardController::class, 'groupMembers'])->name('group.members');
+        Route::get('/groupes/{group}/evenements',      [\App\Http\Controllers\Consul\DashboardController::class, 'groupEvents'])->name('group.events');
+    });
+
     // ── Ambassador Space (ambassador-only, regional) ──────────────────────────
     Route::middleware('ambassador')->prefix('ambassador')->name('ambassador.')->group(function () {
 

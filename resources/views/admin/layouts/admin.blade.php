@@ -256,9 +256,18 @@
                         Paiements
                     </a>
                     <a href="{{ route('admin.super.enterprise.index') }}"
-                       class="nav-item sa {{ request()->routeIs('admin.super.enterprise*') ? 'active' : '' }}">
+                       class="nav-item sa {{ request()->routeIs('admin.super.enterprise.index') || request()->routeIs('admin.super.enterprise.create') || request()->routeIs('admin.super.enterprise.edit') ? 'active' : '' }}">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
                         Licences
+                    </a>
+                    <a href="{{ route('admin.super.enterprise.quotes') }}"
+                       class="nav-item sa {{ request()->routeIs('admin.super.enterprise.quotes*') ? 'active' : '' }}">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        Demandes Pack
+                        @php $pendingQuotes = \App\Models\EnterpriseQuoteRequest::where('status','pending')->count(); @endphp
+                        @if($pendingQuotes > 0)
+                        <span class="nav-badge text-white" style="background:#EF4444;">{{ $pendingQuotes }}</span>
+                        @endif
                     </a>
                 </div>
             </div>

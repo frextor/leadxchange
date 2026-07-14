@@ -5,7 +5,7 @@
     $other          = $isSent ? $lead->receiver : $lead->sender;
     $otherName      = $other ? $other->first_name . ' ' . $other->last_name : 'Inconnu';
     $canAct         = !$isSent && $lead->isNew();
-    $canConvert     = $isSent  && $lead->isAccepted();
+    $canConvert     = !$isSent && $lead->isAccepted();
     $canRate        = !$isSent && ($lead->isAccepted() || $lead->isConverted())
                       && !$lead->hasRatingBy($currentUser->id);
     $canReport      = !$isSent && !$lead->isNew() && !$lead->isRejected() && !$lead->isFraudReported();

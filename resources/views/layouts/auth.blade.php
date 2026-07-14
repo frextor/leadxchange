@@ -40,9 +40,8 @@
         <footer class="lx-auth-footer">
             <span>&copy; {{ date('Y') }} LeadXchange</span>
             <span class="lx-auth-footer-links">
-                <a href="#">Privacy</a>
-                <a href="#">Terms</a>
-                <a href="#">Help</a>
+                <a href="{{ route('legal.show', 'cgu') }}" target="_blank">CGU</a>
+                <a href="{{ route('legal.show', 'privacy') }}" target="_blank">Confidentialité</a>
             </span>
         </footer>
     </div>

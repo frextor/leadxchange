@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\SystemNotificationMail;
 use App\Models\EnterpriseInvitation;
 use App\Models\EnterpriseLicense;
+use App\Models\EnterpriseQuoteRequest;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
@@ -13,7 +14,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 
 class EnterpriseController extends Controller
 {
@@ -129,6 +129,17 @@ class EnterpriseController extends Controller
 
         $user = $request->user();
 
+        // Always persist in DB so the admin can see it regardless of email delivery
+        EnterpriseQuoteRequest::create([
+            'user_id'      => $user->id,
+            'company_name' => $data['company_name'],
+            'seats_needed' => $data['seats_needed'],
+            'phone'        => $data['phone'] ?? null,
+            'message'      => $data['message'] ?? null,
+            'status'       => 'pending',
+        ]);
+
+        // Also send email notification (best-effort)
         $body = "<p>Nouvelle demande de devis Pack Entreprise :</p>
 <ul>
 <li><strong>Entreprise :</strong> {$data['company_name']}</li>
@@ -137,7 +148,7 @@ class EnterpriseController extends Controller
 <li><strong>Téléphone :</strong> " . ($data['phone'] ?: '—') . "</li>
 <li><strong>Message :</strong> " . nl2br(htmlspecialchars($data['message'] ?? '')) . "</li>
 </ul>
-<p><a href=\"" . route('admin.users.show', $user) . "\">Voir le profil dans l'administration →</a></p>";
+<p><a href=\"" . route('admin.super.enterprise.quotes') . "\">Voir les demandes dans l'administration →</a></p>";
 
         try {
             $adminEmail = env('ADMIN_EMAIL', config('mail.from.address'));
@@ -145,8 +156,8 @@ class EnterpriseController extends Controller
                 recipientName: 'Équipe LeadXchange',
                 title:         'Demande de devis Pack Entreprise — ' . $data['company_name'],
                 body:          $body,
-                actionLabel:   'Créer la licence',
-                actionUrl:     route('admin.super.enterprise.create'),
+                actionLabel:   'Voir les demandes',
+                actionUrl:     route('admin.super.enterprise.quotes'),
             ));
         } catch (\Exception $e) {
             Log::warning('Enterprise quote request email failed', [
