@@ -7,6 +7,7 @@ use App\Jobs\NotifyUsersNewEventJob;
 use App\Models\Event;
 use App\Models\EventInvitation;
 use App\Models\Group;
+use App\Models\Notification;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\FirebaseService;
@@ -314,6 +315,15 @@ class EventController extends Controller
             $invitee = User::find($member->id);
             if ($invitee) {
                 $firebase->sendEventInviteNotification($invitee, $event, $user);
+                try {
+                    Notification::storeForUser(
+                        $invitee,
+                        'event_invitation',
+                        'Invitation à un événement',
+                        "{$user->first_name} {$user->last_name} vous invite à l'événement « {$event->title} ».",
+                        ['event_id' => $id]
+                    );
+                } catch (\Throwable) {}
             }
 
             $sent++;
