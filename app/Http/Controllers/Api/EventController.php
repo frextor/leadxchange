@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Jobs\NotifyUsersNewEventJob;
 use App\Models\Event;
 use App\Models\EventInvitation;
+use App\Models\Group;
+use App\Models\Notification;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use App\Services\FirebaseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -278,6 +281,70 @@ class EventController extends Controller
         ]);
     }
 
+    public function inviteGroup(int $id, Request $request): JsonResponse
+    {
+        $event = Event::findOrFail($id);
+        $user  = $request->user();
+
+        if ($event->created_by !== $user->id) {
+            return response()->json(['message' => 'Only the organizer can invite groups.'], 403);
+        }
+
+        $request->validate(['group_id' => ['required', 'integer', 'exists:groups,id']]);
+        $group = Group::findOrFail($request->group_id);
+
+        if (! $group->isAdmin($user->id)) {
+            return response()->json(['message' => 'You must be an owner or admin of this group to invite it.'], 403);
+        }
+
+        $attendingIds = $event->attendees()->pluck('users.id')->toArray();
+        $members = $group->members()
+            ->whereNotIn('users.id', $attendingIds)
+            ->whereNotIn('users.id', [$user->id])
+            ->get(['users.id']);
+
+        $firebase = app(FirebaseService::class);
+        $sent = 0;
+
+        foreach ($members as $member) {
+            EventInvitation::updateOrCreate(
+                ['event_id' => $id, 'user_id' => $member->id],
+                ['invited_by' => $user->id, 'status' => 'pending']
+            );
+
+            $invitee = User::find($member->id);
+            if ($invitee) {
+                $firebase->sendEventInviteNotification($invitee, $event, $user);
+                try {
+                    Notification::storeForUser(
+                        $invitee,
+                        'event_invitation',
+                        'Invitation à un événement',
+                        "{$user->first_name} {$user->last_name} vous invite à l'événement « {$event->title} ».",
+                        ['event_id' => $id]
+                    );
+                } catch (\Throwable) {}
+            }
+
+            $sent++;
+        }
+
+        ActivityLogger::log(
+            'event.group_invite',
+            "Groupe « {$group->name} » invité à l'événement « {$event->title} » ({$sent} membres)",
+            $user->id,
+            $event
+        );
+
+        return response()->json([
+            'message' => "{$sent} membre(s) du groupe « {$group->name} » invité(s).",
+            'data'    => [
+                'sent_count'    => $sent,
+                'skipped_count' => count($attendingIds),
+            ],
+        ]);
+    }
+
     public function acceptInvitation(int $invId, Request $request): JsonResponse
     {
         $invitation = EventInvitation::where('user_id', $request->user()->id)
@@ -403,6 +470,32 @@ class EventController extends Controller
         ]);
 
         $event->attendees()->attach($user->id, ['role' => 'organizer']);
+
+        // Auto-invite members of groups owned/admined by organizer whose name matches the event title
+        if ($scope === 'private') {
+            $firebase = app(FirebaseService::class);
+            $matchingGroups = $user->groups()
+                ->wherePivotIn('role', ['owner', 'admin'])
+                ->where('name', $event->title)
+                ->get();
+
+            foreach ($matchingGroups as $group) {
+                $members = $group->members()
+                    ->whereNot('users.id', $user->id)
+                    ->get(['users.id']);
+
+                foreach ($members as $member) {
+                    EventInvitation::updateOrCreate(
+                        ['event_id' => $event->id, 'user_id' => $member->id],
+                        ['invited_by' => $user->id, 'status' => 'pending']
+                    );
+                    $invitee = User::find($member->id);
+                    if ($invitee) {
+                        $firebase->sendEventInviteNotification($invitee, $event, $user);
+                    }
+                }
+            }
+        }
 
         if ($scope === 'regional') {
             NotifyUsersNewEventJob::dispatch($event);

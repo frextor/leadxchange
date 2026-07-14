@@ -163,6 +163,11 @@ class GroupController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $plan = $request->user()->subscription?->plan;
+        if (! ($plan?->can('can_create_pole') ?? false)) {
+            return response()->json(['message' => 'Votre plan ne permet pas de créer un groupe.'], 403);
+        }
+
         $validated = $request->validate([
             'name'        => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:500'],
