@@ -116,7 +116,7 @@ class GroupController extends Controller
             ->paginate(20);
 
         $memberIds   = $members->pluck('id')->toArray();
-        $canInviteAll = $isAdmin && ($user->isConsul() || $user->isAmbassador());
+        $canInviteAll = $isAdmin && ($user->isConsulForCurrentCity() || $user->isAmbassador());
 
         $connections = $isAdmin
             ? User::with('profile')
@@ -241,7 +241,7 @@ class GroupController extends Controller
         $q     = trim($request->get('q', ''));
         $groupId = (int) $request->get('group_id', 0);
 
-        abort_unless($user->isConsul() || $user->isAmbassador(), 403);
+        abort_unless($user->isConsulForCurrentCity() || $user->isAmbassador(), 403);
 
         $query = User::where('role', 'user')
             ->where('id', '!=', $user->id);
@@ -516,7 +516,10 @@ class GroupController extends Controller
             $photoPath = $request->file('cover_photo')->store('groups', 'public');
         }
 
-        $cityId = $user->isConsul() ? $user->city_id : ($validated['city_id'] ?? $user->city_id);
+        // Use the consul's locked city (not current profile city) for group creation
+        $cityId = $user->isConsulForCurrentCity()
+            ? ($user->consul_city_id ?? $user->city_id)
+            : ($validated['city_id'] ?? $user->city_id);
 
         $group = Group::create([
             'name'          => $validated['name'],

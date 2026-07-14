@@ -19,8 +19,9 @@ class ConsulManagementController extends Controller
     {
         $ambassador = auth()->user()->load('subscription.plan', 'city', 'region');
 
-        $regionId = $ambassador->region_id;
-        $cityId   = $ambassador->city_id;
+        // Use the city/region locked at appointment time, not the current profile location
+        $regionId = $ambassador->ambassador_region_id ?? $ambassador->region_id;
+        $cityId   = $ambassador->ambassador_city_id   ?? $ambassador->city_id;
 
         // Build the base scope: users in the same region (or city as fallback)
         $regionScope = function ($q) use ($regionId, $cityId) {
@@ -152,9 +153,12 @@ class ConsulManagementController extends Controller
 
     private function isSameRegion(User $ambassador, User $target): bool
     {
-        if ($ambassador->region_id) {
-            return $target->region_id === $ambassador->region_id;
+        $regionId = $ambassador->ambassador_region_id ?? $ambassador->region_id;
+        $cityId   = $ambassador->ambassador_city_id   ?? $ambassador->city_id;
+
+        if ($regionId) {
+            return $target->region_id === $regionId;
         }
-        return $target->city_id === $ambassador->city_id;
+        return $target->city_id === $cityId;
     }
 }

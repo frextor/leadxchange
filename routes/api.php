@@ -211,5 +211,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/consul-requests/{user}/reject',      [AmbassadorController::class, 'rejectConsulRequest']);
         Route::get('/premium-users',                        [AmbassadorController::class, 'premiumUsers']);
         Route::post('/nominate/{user}',                    [AmbassadorController::class, 'nominateConsul']);
+        Route::get('/consuls',                             [AmbassadorController::class, 'consuls']);
+        Route::post('/consuls/{user}/revoke',              [AmbassadorController::class, 'revokeConsul']);
     });
 });

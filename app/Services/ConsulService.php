@@ -39,6 +39,8 @@ class ConsulService
                 'consul_status'      => 'approved',
                 'consul_nominated_at'=> now(),
                 'consul_nominated_by'=> $admin->id,
+                'consul_city_id'     => $user->city_id,
+                'consul_region_id'   => $user->region_id,
             ]);
 
             // Sync any pending consul_requests row
@@ -144,6 +146,8 @@ class ConsulService
                 'ambassador_status'      => 'approved',
                 'ambassador_reviewed_at' => now(),
                 'ambassador_reviewed_by' => $admin->id,
+                'ambassador_city_id'     => $user->city_id,
+                'ambassador_region_id'   => $user->region_id,
             ]);
 
             if ($ambassadeurPlan) {
@@ -240,6 +244,8 @@ class ConsulService
                 'ambassador_status'      => 'approved',
                 'ambassador_reviewed_at' => now(),
                 'ambassador_reviewed_by' => $validator->id,
+                'ambassador_city_id'     => $consulRequest->user->city_id,
+                'ambassador_region_id'   => $consulRequest->user->region_id,
             ]);
 
             if ($ambassadeurPlan) {
