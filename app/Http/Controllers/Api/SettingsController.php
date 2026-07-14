@@ -63,6 +63,7 @@ class SettingsController extends Controller
                                        'max_users'      => $plan->max_users,
                                        'features'       => $this->planFeaturesToArray($plan->features),
                                        'permissions'    => $this->planPermissionsToArray($plan->permissions),
+                                       'raw_permissions' => is_array($plan->permissions) ? $plan->permissions : (object)[],
                                    ]),
 
             'cities'        => City::where('is_active', true)->with('country:id,name,code,flag')
