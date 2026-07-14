@@ -60,7 +60,13 @@ class ConnectionService
                     'sender_id' => $sender->id,
                     'receiver_id' => $receiverId,
                 ]);
-                return $existingConnection->fresh();
+                $refreshed = $existingConnection->fresh();
+                try {
+                    app(FirebaseService::class)->sendConnectionNotification($refreshed, $sender);
+                } catch (\Exception $e) {
+                    Log::warning('Firebase notification failed (re-send after rejection)', ['error' => $e->getMessage()]);
+                }
+                return $refreshed;
             }
         }
 
