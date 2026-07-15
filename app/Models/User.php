@@ -141,6 +141,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(User::class, 'ambassador_reviewed_by');
     }
 
+    public function scopeRegular($query)
+    {
+        return $query->whereNotIn('role', ['admin', 'super_admin']);
+    }
+
     public function isAdmin(): bool
     {
         return in_array($this->role, ['admin', 'super_admin']);

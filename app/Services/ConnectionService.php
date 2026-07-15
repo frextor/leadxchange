@@ -231,6 +231,7 @@ class ConnectionService
     public function getReceivedRequests(User $user, ?string $status = null, ?int $groupId = null): Collection
     {
         $query = Connection::where('receiver_id', $user->id)
+            ->whereHas('sender', fn($q) => $q->regular())
             ->with(['sender' => function ($query) {
                 $query->select('id', 'first_name', 'last_name', 'email', 'company_id');
             }, 'sender.profile:user_id,avatar']);
@@ -258,6 +259,7 @@ class ConnectionService
     public function getSentRequests(User $user, ?string $status = null, ?int $groupId = null): Collection
     {
         $query = Connection::where('sender_id', $user->id)
+            ->whereHas('receiver', fn($q) => $q->regular())
             ->with(['receiver' => function ($query) {
                 $query->select('id', 'first_name', 'last_name', 'email', 'company_id');
             }, 'receiver.profile:user_id,avatar']);
@@ -286,6 +288,7 @@ class ConnectionService
         // Get connections where user is either sender or receiver and status is accepted
         $asSender = Connection::where('sender_id', $user->id)
             ->where('status', Connection::STATUS_ACCEPTED)
+            ->whereHas('receiver', fn($q) => $q->regular())
             ->with(['receiver' => function ($query) {
                 $query->select('id', 'first_name', 'last_name', 'email', 'company_id');
             }, 'receiver.profile:user_id,avatar'])
@@ -293,6 +296,7 @@ class ConnectionService
 
         $asReceiver = Connection::where('receiver_id', $user->id)
             ->where('status', Connection::STATUS_ACCEPTED)
+            ->whereHas('sender', fn($q) => $q->regular())
             ->with(['sender' => function ($query) {
                 $query->select('id', 'first_name', 'last_name', 'email', 'company_id');
             }, 'sender.profile:user_id,avatar'])

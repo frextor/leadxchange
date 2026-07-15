@@ -29,6 +29,7 @@ class ProfileVisitorController extends Controller
                 'visitor.profile:id,user_id,job_title,avatar,open_to_network',
                 'visitor.city:id,name',
             ])
+            ->whereHas('visitor', fn($q) => $q->regular())
             ->where('profile_user_id', $me->id)
             ->orderByDesc('last_visited_at');
 
