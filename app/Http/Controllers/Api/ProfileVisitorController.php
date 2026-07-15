@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Connection;
 use App\Models\ProfileVisitor;
+use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProfileVisitorController extends Controller
 {
+    public function __construct(private UserService $userService) {}
+
     /**
      * GET /api/profile/visitors
      *
@@ -23,11 +26,12 @@ class ProfileVisitorController extends Controller
         $page   = (int) $request->get('page', 1);
 
         $query = ProfileVisitor::with([
-                'visitor:id,first_name,last_name,email,city_id,company_id',
+                'visitor:id,first_name,last_name,email,city_id,company_id,badge_level,ambassador_status,consul_status,points_balance',
                 'visitor.company:id,name,sector_id',
                 'visitor.company.sector:id,name',
                 'visitor.profile:id,user_id,job_title,avatar,open_to_network',
                 'visitor.city:id,name',
+                'visitor.subscription.plan:id,name,label',
             ])
             ->whereHas('visitor', fn($q) => $q->regular())
             ->where('profile_user_id', $me->id)
@@ -66,6 +70,10 @@ class ProfileVisitorController extends Controller
                 'avatar'           => $u->profile?->avatar_url,
                 'job_title'        => $u->profile?->job_title,
                 'company'          => $u->company ? ['id' => $u->company->id, 'name' => $u->company->name, 'sector' => $u->company->sector ? ['id' => $u->company->sector->id, 'name' => $u->company->sector->name] : null] : null,
+                'badge'             => $this->userService->badgePayload($u->badge_level ?? 'neutre'),
+                'rating'            => $this->userService->ratingPayload($u),
+                'rank'              => $this->userService->rankPayload($u),
+                'plan'              => $this->userService->planPayload($u),
                 'connection_status' => $conn?->status,
                 'connection_id'     => $conn?->id,
                 'i_am_sender'       => $conn ? ($conn->sender_id === $myId) : false,

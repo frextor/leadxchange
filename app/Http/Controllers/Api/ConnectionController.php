@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\ConnectionService;
+use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,10 +16,12 @@ use Illuminate\Http\Request;
 class ConnectionController extends Controller
 {
     protected ConnectionService $connectionService;
+    protected UserService $userService;
 
-    public function __construct(ConnectionService $connectionService)
+    public function __construct(ConnectionService $connectionService, UserService $userService)
     {
         $this->connectionService = $connectionService;
+        $this->userService = $userService;
     }
 
     /**
@@ -251,17 +254,22 @@ class ConnectionController extends Controller
             return [
                 'id' => $connection->id,
                 'user' => $otherUser ? [
-                    'id' => $otherUser->id,
+                    'id'         => $otherUser->id,
                     'first_name' => $otherUser->first_name,
-                    'last_name' => $otherUser->last_name,
-                    'email' => $otherUser->email,
-                    'avatar' => $otherUser->profile?->avatar_url,
-                    'avatar_url' => $otherUser->profile?->avatar_url,
+                    'last_name'  => $otherUser->last_name,
+                    'email'      => $otherUser->email,
+                    'avatar'     => $otherUser->profile?->avatar_url,
+                    'job_title'  => $otherUser->profile?->job_title,
+                    'city'       => $otherUser->city ? ['id' => $otherUser->city->id, 'name' => $otherUser->city->name] : null,
+                    'company'    => $otherUser->company ? ['id' => $otherUser->company->id, 'name' => $otherUser->company->name] : null,
+                    'badge'      => $this->userService->badgePayload($otherUser->badge_level ?? 'neutre'),
+                    'rating'     => $this->userService->ratingPayload($otherUser),
+                    'rank'       => $this->userService->rankPayload($otherUser),
+                    'plan'       => $this->userService->planPayload($otherUser),
                 ] : null,
-                'status' => $connection->status,
-                'type' => $connection->sender_id === auth()->id() ? 'sent' : 'received',
+                'status'     => $connection->status,
+                'type'       => $connection->sender_id === auth()->id() ? 'sent' : 'received',
                 'created_at' => $connection->created_at,
-                'updated_at' => $connection->updated_at,
             ];
         })->values()->toArray();
     }

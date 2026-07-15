@@ -335,7 +335,7 @@ class UserService
         return $base;
     }
 
-    private function planPayload(\App\Models\User $user): array
+    public function planPayload(\App\Models\User $user): array
     {
         $plan = $user->effectivePlan();
 
@@ -358,7 +358,7 @@ class UserService
      * Compute the highest rank for a user.
      * Hierarchy: basic < premium < consul < ambassador
      */
-    private function rankPayload(\App\Models\User $user): array
+    public function rankPayload(\App\Models\User $user): array
     {
         if ($user->ambassador_status === 'approved') {
             return ['level' => 'ambassador', 'label' => 'Ambassadeur'];
@@ -389,7 +389,7 @@ class UserService
         return User::where('id', '!=', $currentUserId)->count();
     }
 
-    private function ratingPayload(User $user): array
+    public function ratingPayload(User $user): array
     {
         $stats = LeadRating::whereHas('lead', fn ($q) => $q->where('sender_id', $user->id))
             ->selectRaw('ROUND(AVG(average_note), 2) as average_rating, COUNT(*) as rating_count')
@@ -446,7 +446,7 @@ class UserService
         return $user->consul_status;
     }
 
-    private function badgePayload(string $level): array
+    public function badgePayload(string $level): array
     {
         return match ($level) {
             'platinium' => [

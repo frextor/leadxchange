@@ -286,20 +286,29 @@ class ConnectionService
     public function getConnections(User $user): Collection
     {
         // Get connections where user is either sender or receiver and status is accepted
+        $userRelations = [
+            'profile:user_id,avatar,job_title',
+            'company:id,name',
+            'city:id,name',
+            'subscription.plan:id,name,label',
+        ];
+
         $asSender = Connection::where('sender_id', $user->id)
             ->where('status', Connection::STATUS_ACCEPTED)
             ->whereHas('receiver', fn($q) => $q->regular())
-            ->with(['receiver' => function ($query) {
-                $query->select('id', 'first_name', 'last_name', 'email', 'company_id');
-            }, 'receiver.profile:user_id,avatar'])
+            ->with(array_merge(
+                ['receiver' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email', 'company_id', 'city_id', 'badge_level', 'ambassador_status', 'consul_status', 'points_balance')],
+                array_map(fn($r) => 'receiver.' . $r, $userRelations)
+            ))
             ->get();
 
         $asReceiver = Connection::where('receiver_id', $user->id)
             ->where('status', Connection::STATUS_ACCEPTED)
             ->whereHas('sender', fn($q) => $q->regular())
-            ->with(['sender' => function ($query) {
-                $query->select('id', 'first_name', 'last_name', 'email', 'company_id');
-            }, 'sender.profile:user_id,avatar'])
+            ->with(array_merge(
+                ['sender' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email', 'company_id', 'city_id', 'badge_level', 'ambassador_status', 'consul_status', 'points_balance')],
+                array_map(fn($r) => 'sender.' . $r, $userRelations)
+            ))
             ->get();
 
         return $asSender->merge($asReceiver)->sortByDesc('created_at');
