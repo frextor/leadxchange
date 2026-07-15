@@ -56,6 +56,10 @@ class SettingsController extends Controller
             'welcome_popup_criteria'  => ['required', 'in:none,same_city,same_interest,both'],
             'welcome_popup_count'     => ['required', 'integer', 'in:2,3,4'],
             'welcome_popup_frequency' => ['required', 'in:once,session,always'],
+            'welcome_popup_title'     => ['nullable', 'string', 'max:120'],
+            'welcome_popup_subtitle'  => ['nullable', 'string', 'max:200'],
+            'welcome_popup_btn_later' => ['nullable', 'string', 'max:60'],
+            'welcome_popup_btn_cta'   => ['nullable', 'string', 'max:60'],
         ]);
 
         $fields = [
@@ -63,6 +67,10 @@ class SettingsController extends Controller
             'welcome_popup_criteria'  => $request->welcome_popup_criteria,
             'welcome_popup_count'     => $request->welcome_popup_count,
             'welcome_popup_frequency' => $request->welcome_popup_frequency,
+            'welcome_popup_title'     => $request->welcome_popup_title     ?? '',
+            'welcome_popup_subtitle'  => $request->welcome_popup_subtitle  ?? '',
+            'welcome_popup_btn_later' => $request->welcome_popup_btn_later ?? '',
+            'welcome_popup_btn_cta'   => $request->welcome_popup_btn_cta   ?? '',
         ];
 
         foreach ($fields as $key => $value) {

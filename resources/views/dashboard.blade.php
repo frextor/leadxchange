@@ -48,8 +48,15 @@
                 <div class="w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center" style="background:rgba(255,255,255,0.15);">
                     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 </div>
-                <h2 class="text-xl font-bold text-white">Welcome to LeadXchange, {{ auth()->user()->first_name }}!</h2>
-                <p class="text-white/60 text-sm mt-1">Here are a few people you might want to connect with</p>
+                @php
+                    $firstName    = auth()->user()->first_name;
+                    $displayTitle = $popupTitle
+                        ? str_replace(':prenom', $firstName, $popupTitle)
+                        : "Welcome to LeadXchange, {$firstName}!";
+                    $displaySub   = $popupSubtitle ?: 'Here are a few people you might want to connect with';
+                @endphp
+                <h2 class="text-xl font-bold text-white">{{ $displayTitle }}</h2>
+                <p class="text-white/60 text-sm mt-1">{{ $displaySub }}</p>
             </div>
         </div>
 
@@ -103,13 +110,13 @@
         <div class="px-7 pb-7 flex gap-3">
             <button onclick="closeWelcomeModal()"
                 class="flex-1 py-3 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
-                Maybe later
+                {{ $popupBtnLater ?: 'Maybe later' }}
             </button>
             <a href="{{ route('connections.index') }}"
                onclick="closeWelcomeModal()"
                class="flex-1 py-3 rounded-xl text-sm font-bold text-white text-center transition"
                style="background:#1E8F88;" onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
-                Explore network
+                {{ $popupBtnCta ?: 'Explore network' }}
             </a>
         </div>
     </div>
@@ -603,7 +610,7 @@
                 <h2 class="text-xl font-bold text-gray-900 tracking-tight">Nos offres d'abonnement</h2>
                 <p class="text-sm text-gray-500 mt-1">
                     Vous êtes sur le plan
-                    <strong class="text-gray-800">{{ $planLabel ?? 'Basic (gratuit)' }}</strong>.
+                    <strong class="text-gray-800">{{ $planLabel ?? 'Basic' }}</strong>.
                     Passez à l'offre suivante pour débloquer plus de fonctionnalités.
                 </p>
             </div>
@@ -673,7 +680,7 @@
                         <span class="text-2xl font-extrabold text-gray-900 tracking-tight">Sur devis</span>
                         <span class="text-xs text-gray-400">multi-licences</span>
                         @elseif(is_null($plan->price) || (float)$plan->price === 0.0)
-                        <span class="text-3xl font-extrabold text-gray-900 tracking-tight">Gratuit</span>
+                        <span class="text-3xl font-extrabold text-gray-900 tracking-tight">Basic</span>
                         <span class="text-xs text-gray-400">pour toujours</span>
                         @else
                         <span class="text-3xl font-extrabold text-gray-900 tracking-tight">{{ currency_format($plan->price) }}</span>

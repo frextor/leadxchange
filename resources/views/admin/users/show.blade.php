@@ -104,12 +104,12 @@
                     {{ strtoupper(substr($user->subscription?->plan?->name ?? 'B', 0, 1)) }}
                 </div>
                 <div>
-                    <p class="font-semibold text-gray-900 text-sm">{{ $user->subscription?->plan?->label ?? 'Basic (gratuit)' }}</p>
+                    <p class="font-semibold text-gray-900 text-sm">{{ $user->subscription?->plan?->label ?? 'Basic' }}</p>
                     <p class="text-xs text-gray-400">
                         @if($user->subscription?->plan?->price > 0)
                             {{ currency_format($user->subscription->plan->price) }} / mois
                         @else
-                            Gratuit
+                            Basic
                         @endif
                     </p>
                 </div>
@@ -123,7 +123,7 @@
                 @csrf
                 <select name="plan_id"
                         class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 bg-white text-gray-700">
-                    <option value="">— Basic (gratuit) —</option>
+                    <option value="">— Basic —</option>
                     @foreach($plans->where('price', '>', 0) as $plan)
                     <option value="{{ $plan->id }}"
                             {{ $user->subscription?->plan_id == $plan->id ? 'selected' : '' }}>

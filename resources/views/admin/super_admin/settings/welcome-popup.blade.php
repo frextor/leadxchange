@@ -120,6 +120,49 @@
                 </div>
             </div>
 
+            {{-- Textes du popup --}}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Textes affichés</p>
+                <p class="text-xs text-gray-400 mb-5">Laissez vide pour utiliser le texte par défaut. <code class="bg-gray-100 px-1 rounded">:prenom</code> sera remplacé par le prénom de l'utilisateur.</p>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Titre</label>
+                        <input type="text" name="welcome_popup_title"
+                               value="{{ $s('welcome_popup_title', '') }}"
+                               placeholder="Welcome to LeadXchange, :prenom !"
+                               maxlength="120"
+                               class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Sous-titre</label>
+                        <input type="text" name="welcome_popup_subtitle"
+                               value="{{ $s('welcome_popup_subtitle', '') }}"
+                               placeholder="Here are a few people you might want to connect with"
+                               maxlength="200"
+                               class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1.5">Bouton "Plus tard"</label>
+                            <input type="text" name="welcome_popup_btn_later"
+                                   value="{{ $s('welcome_popup_btn_later', '') }}"
+                                   placeholder="Maybe later"
+                                   maxlength="60"
+                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1.5">Bouton principal (CTA)</label>
+                            <input type="text" name="welcome_popup_btn_cta"
+                                   value="{{ $s('welcome_popup_btn_cta', '') }}"
+                                   placeholder="Explore network"
+                                   maxlength="60"
+                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="flex justify-end">
                 <button type="submit"
                         class="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90 active:scale-[.98]"

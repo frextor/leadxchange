@@ -104,7 +104,7 @@
                                 {{ $user->subscription->plan->label }}
                             </span>
                             @else
-                            <span class="text-xs text-gray-400">Gratuit</span>
+                            <span class="text-xs text-gray-400">Basic</span>
                             @endif
                         </td>
                         <td class="px-4 py-3 text-gray-400 text-xs">{{ $user->created_at->format('d/m/Y') }}</td>

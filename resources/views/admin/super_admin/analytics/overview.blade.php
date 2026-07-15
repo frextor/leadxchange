@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <span class="text-xs font-bold text-violet-600">{{ $kpis['premiumSubs'] }}</span>
             </div>
             <div class="flex items-center justify-between">
-                <span class="flex items-center gap-1.5 text-xs text-slate-600"><span class="w-2 h-2 rounded-full bg-slate-300"></span>Gratuits</span>
+                <span class="flex items-center gap-1.5 text-xs text-slate-600"><span class="w-2 h-2 rounded-full bg-slate-300"></span>Basic</span>
                 <span class="text-xs font-semibold text-slate-500">{{ $kpis['freeSubs'] }}</span>
             </div>
         </div>

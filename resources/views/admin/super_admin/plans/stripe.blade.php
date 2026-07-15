@@ -81,7 +81,7 @@ STRIPE_CURRENCY=eur</pre>
             <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-1">
                     <p class="font-bold text-gray-900">{{ $plan->label }}</p>
-                    <span class="text-sm font-semibold text-gray-500">{{ $plan->price > 0 ? currency_format($plan->price).'/mois' : 'Gratuit' }}</span>
+                    <span class="text-sm font-semibold text-gray-500">{{ $plan->price > 0 ? currency_format($plan->price).'/mois' : 'Basic' }}</span>
                     @if($isFree)
                     <span class="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-semibold">Pas de paiement</span>
                     @elseif($hasStripe)

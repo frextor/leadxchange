@@ -60,7 +60,7 @@ $planThemes = [
                 style="background:{{ $t['light'] }};">
                 <span class="block text-sm font-extrabold" style="color:{{ $t['color'] }};">{{ $plan->label }}</span>
                 <span class="block text-[11px] font-medium text-gray-400 mt-0.5">
-                    {{ $plan->price > 0 ? currency_format($plan->price).'/mois' : 'Gratuit' }}
+                    {{ $plan->price > 0 ? currency_format($plan->price).'/mois' : 'Basic' }}
                 </span>
             </th>
             @endforeach

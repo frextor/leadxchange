@@ -25,9 +25,17 @@ class AmbassadorController extends Controller
         ];
 
         $nominateQuery = User::with(['subscription.plan', 'city'])
-            ->where('role', 'user')
-            ->whereHas('subscription', fn($q) => $q->where('status', 'active')
-                ->whereHas('plan', fn($p) => $p->where('price', '>', 0)));
+            ->where('role', 'user');
+
+        match ($request->get('filter')) {
+            'ambassador' => $nominateQuery->where('ambassador_status', 'approved'),
+            'eligible'   => $nominateQuery
+                ->whereHas('subscription', fn($q) => $q->where('status', 'active')
+                    ->whereHas('plan', fn($p) => $p->where('price', '>', 0)))
+                ->where('ambassador_status', 'none'),
+            default => $nominateQuery->whereHas('subscription', fn($q) => $q->where('status', 'active')
+                ->whereHas('plan', fn($p) => $p->where('price', '>', 0))),
+        };
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -35,12 +43,6 @@ class AmbassadorController extends Controller
                 ->orWhere('last_name', 'like', "%{$s}%")
                 ->orWhere('email', 'like', "%{$s}%"));
         }
-
-        match ($request->get('filter')) {
-            'ambassador' => $nominateQuery->where('ambassador_status', 'approved'),
-            'eligible'   => $nominateQuery->where('ambassador_status', 'none'),
-            default      => null,
-        };
 
         $nominatableUsers = $nominateQuery->orderBy('first_name')->paginate(25)->withQueryString();
 

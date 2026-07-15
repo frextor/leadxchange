@@ -42,6 +42,10 @@ class DashboardController extends Controller
         $popupCriteria  = SystemSetting::get('welcome_popup_criteria', 'none');
         $popupCount     = (int) SystemSetting::get('welcome_popup_count', 3);
         $popupFrequency = SystemSetting::get('welcome_popup_frequency', 'once');
+        $popupTitle     = SystemSetting::get('welcome_popup_title', '');
+        $popupSubtitle  = SystemSetting::get('welcome_popup_subtitle', '');
+        $popupBtnLater  = SystemSetting::get('welcome_popup_btn_later', '');
+        $popupBtnCta    = SystemSetting::get('welcome_popup_btn_cta', '');
 
         $baseQuery = fn() => User::with(['profile', 'company', 'city'])
             ->where('role', 'user')
@@ -145,7 +149,8 @@ class DashboardController extends Controller
             'featuredGroups', 'memberGroupIds',
             'upcomingEvents', 'attendingEventIds',
             'leadStats', 'pendingLeads',
-            'popupEnabled', 'popupFrequency'
+            'popupEnabled', 'popupFrequency',
+            'popupTitle', 'popupSubtitle', 'popupBtnLater', 'popupBtnCta'
         ));
     }
 }

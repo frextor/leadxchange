@@ -52,7 +52,7 @@
             @if($upgradePlan->price > 0)
             · {{ currency_format($upgradePlan->price) }}/mois
             @else
-            · Gratuit
+            · Basic
             @endif
         </span>
     </p>

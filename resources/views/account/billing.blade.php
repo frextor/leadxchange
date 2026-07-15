@@ -38,7 +38,7 @@
                         @if($subscription && (float)($subscription->plan?->price ?? 0) > 0)
                             {{ currency_format($subscription->plan->price) }}/mois · Paiement mensuel
                         @else
-                            Gratuit — sans engagement
+                            Basic — sans engagement
                         @endif
                     </p>
                 </div>
@@ -114,7 +114,7 @@
             <div class="rounded-xl border p-4 {{ $isCurrent ? 'border-teal-300 bg-teal-50' : 'border-gray-200' }}">
                 <p class="text-sm font-bold text-gray-900">{{ $plan->label }}</p>
                 <p class="text-lg font-extrabold mt-1 {{ $isCurrent ? 'text-teal-600' : 'text-gray-900' }}">
-                    {{ $plan->price > 0 ? currency_format($plan->price).'/mois' : 'Gratuit' }}
+                    {{ $plan->price > 0 ? currency_format($plan->price).'/mois' : 'Basic' }}
                 </p>
                 @if($isCurrent)
                 <span class="inline-block mt-2 text-[10px] font-bold text-teal-600 bg-teal-100 px-2 py-0.5 rounded-full">Plan actuel</span>

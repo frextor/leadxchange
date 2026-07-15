@@ -47,7 +47,7 @@
         @if($currentPlan->is_enterprise)
         <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">Entreprise</span>
         @elseif(!$currentPlan->price)
-        <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">Gratuit</span>
+        <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">Basic</span>
         @else
         <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-600">{{ currency_format($currentPlan->price) }}/mois</span>
         @endif
@@ -91,8 +91,8 @@
                 <p class="text-xs text-gray-400 mt-1">{{ $plan->contact_cta ?? 'Pack multi-licences personnalisé' }}</p>
                 @elseif(!$plan->price)
                 <div class="flex items-baseline gap-2">
-                    <span class="text-3xl font-extrabold text-gray-900">Gratuit</span>
-                    <span class="text-xs text-gray-400">pour toujours</span>
+                    <span class="text-3xl font-extrabold text-gray-900">Basic</span>
+                    <span class="text-xs text-gray-400">gratuit pour toujours</span>
                 </div>
                 @else
                 <div class="flex items-baseline gap-1">

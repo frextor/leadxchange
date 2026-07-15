@@ -119,7 +119,7 @@ $permGroups = [
     {{-- Prix --}}
     <div class="px-5 py-3.5 border-y border-gray-100" style="background:{{ $t['light'] }};">
         @if((float)$plan->price === 0.0)
-        <span class="text-2xl font-extrabold text-gray-900">Gratuit</span>
+        <span class="text-2xl font-extrabold text-gray-900">Basic</span>
         <span class="text-xs text-gray-400 ml-1">pour toujours</span>
         @else
         <div class="flex items-baseline gap-1.5">

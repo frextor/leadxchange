@@ -799,7 +799,7 @@
             $lxPermsMap[$pKey] = [
                 'label'      => $label,
                 'plan_label' => $upgradePlan?->label ?? null,
-                'plan_price' => $upgradePlan ? ($upgradePlan->price > 0 ? number_format($upgradePlan->price, 2, ',', ' ') . ' €/mois' : 'Gratuit') : null,
+                'plan_price' => $upgradePlan ? ($upgradePlan->price > 0 ? number_format($upgradePlan->price, 2, ',', ' ') . ' €/mois' : 'Basic') : null,
             ];
         }
     @endphp
