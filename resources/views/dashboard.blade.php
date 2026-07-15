@@ -36,7 +36,8 @@
 </div>
 @endif
 
-{{-- ── WELCOME MODAL (first login only) ── --}}
+{{-- ── WELCOME MODAL ── --}}
+@if($popupEnabled && $prospects->isNotEmpty())
 <div id="welcomeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" style="animation:slideUp .3s ease;">
 
@@ -113,6 +114,7 @@
         </div>
     </div>
 </div>
+@endif
 
 <div class="max-w-7xl mx-auto px-6 lg:px-8 py-7 space-y-6">
 
@@ -761,12 +763,34 @@
 @push('scripts')
 <script>
     // ── Welcome modal ──
-    const WELCOME_KEY = 'lx_welcome_shown_{{ auth()->id() }}';
+    @if($popupEnabled && $prospects->isNotEmpty())
+    (function () {
+        const uid       = '{{ auth()->id() }}';
+        const frequency = '{{ $popupFrequency }}';
+        const LS_KEY    = 'lx_welcome_shown_' + uid;
+        const SS_KEY    = 'lx_welcome_session_' + uid;
 
-    if (!localStorage.getItem(WELCOME_KEY)) {
-        document.getElementById('welcomeModal').classList.remove('hidden');
-        localStorage.setItem(WELCOME_KEY, '1');
-    }
+        let shouldShow = false;
+        if (frequency === 'always') {
+            shouldShow = true;
+        } else if (frequency === 'session') {
+            if (!sessionStorage.getItem(SS_KEY)) {
+                shouldShow = true;
+                sessionStorage.setItem(SS_KEY, '1');
+            }
+        } else {
+            // once (default)
+            if (!localStorage.getItem(LS_KEY)) {
+                shouldShow = true;
+                localStorage.setItem(LS_KEY, '1');
+            }
+        }
+
+        if (shouldShow) {
+            document.getElementById('welcomeModal').classList.remove('hidden');
+        }
+    })();
+    @endif
 
     function closeWelcomeModal() {
         const modal = document.getElementById('welcomeModal');

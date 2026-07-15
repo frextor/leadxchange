@@ -7,6 +7,7 @@ use App\Models\Event;
 use App\Models\Group;
 use App\Models\Lead;
 use App\Models\Plan;
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\LeadService;
 use App\Services\ProfileService;
@@ -36,13 +37,81 @@ class DashboardController extends Controller
         $completion = $this->profileService->getCompletionPercentage($user);
         $missing    = $this->profileService->getMissingFields($user);
 
-        $prospects = User::with(['profile', 'company', 'city'])
+        // ── Popup de bienvenue : critères paramétrables ──────────────────────
+        $popupEnabled   = SystemSetting::get('welcome_popup_enabled', true);
+        $popupCriteria  = SystemSetting::get('welcome_popup_criteria', 'none');
+        $popupCount     = (int) SystemSetting::get('welcome_popup_count', 3);
+        $popupFrequency = SystemSetting::get('welcome_popup_frequency', 'once');
+
+        $baseQuery = fn() => User::with(['profile', 'company', 'city'])
             ->where('role', 'user')
             ->where('id', '!=', $user->id)
-            ->whereNotIn('id', $connectedIds->toArray())
-            ->latest()
-            ->limit(4)
-            ->get();
+            ->whereNotIn('id', $connectedIds->toArray());
+
+        $prospects = collect();
+
+        if ($popupEnabled) {
+            $userInterestIds = $user->interests->pluck('id')->toArray();
+
+            if ($popupCriteria === 'same_city' && $user->city_id) {
+                $prospects = $baseQuery()
+                    ->where('city_id', $user->city_id)
+                    ->inRandomOrder()
+                    ->limit($popupCount)
+                    ->get();
+
+            } elseif ($popupCriteria === 'same_interest' && !empty($userInterestIds)) {
+                $prospects = $baseQuery()
+                    ->whereHas('interests', fn($q) => $q->whereIn('interests.id', $userInterestIds))
+                    ->inRandomOrder()
+                    ->limit($popupCount)
+                    ->get();
+
+            } elseif ($popupCriteria === 'both') {
+                // Priorité : ville + intérêt commun
+                if ($user->city_id && !empty($userInterestIds)) {
+                    $prospects = $baseQuery()
+                        ->where('city_id', $user->city_id)
+                        ->whereHas('interests', fn($q) => $q->whereIn('interests.id', $userInterestIds))
+                        ->inRandomOrder()
+                        ->limit($popupCount)
+                        ->get();
+                }
+                // Complète si pas assez de résultats
+                if ($prospects->count() < $popupCount && $user->city_id) {
+                    $already = $prospects->pluck('id')->toArray();
+                    $extra = $baseQuery()
+                        ->where('city_id', $user->city_id)
+                        ->whereNotIn('id', $already)
+                        ->inRandomOrder()
+                        ->limit($popupCount - $prospects->count())
+                        ->get();
+                    $prospects = $prospects->merge($extra);
+                }
+                // Dernier recours : aléatoire
+                if ($prospects->count() < $popupCount) {
+                    $already = $prospects->pluck('id')->toArray();
+                    $extra = $baseQuery()
+                        ->whereNotIn('id', $already)
+                        ->inRandomOrder()
+                        ->limit($popupCount - $prospects->count())
+                        ->get();
+                    $prospects = $prospects->merge($extra);
+                }
+
+            } else {
+                // none ou fallback
+                $prospects = $baseQuery()
+                    ->inRandomOrder()
+                    ->limit($popupCount)
+                    ->get();
+            }
+
+            // Si critère filtré mais aucun résultat, fallback aléatoire
+            if ($prospects->isEmpty() && $popupCriteria !== 'none') {
+                $prospects = $baseQuery()->inRandomOrder()->limit($popupCount)->get();
+            }
+        }
 
         $plans = Plan::orderBy('price')->get();
 
@@ -75,7 +144,8 @@ class DashboardController extends Controller
             'completion', 'missing', 'prospects', 'plans',
             'featuredGroups', 'memberGroupIds',
             'upcomingEvents', 'attendingEventIds',
-            'leadStats', 'pendingLeads'
+            'leadStats', 'pendingLeads',
+            'popupEnabled', 'popupFrequency'
         ));
     }
 }

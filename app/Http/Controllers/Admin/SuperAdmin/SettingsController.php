@@ -39,6 +39,46 @@ class SettingsController extends Controller
         return back()->with('success', 'Paramètres de devise enregistrés.');
     }
 
+    // ── §5.2 Welcome popup ───────────────────────────────────────────────
+
+    public function welcomePopup(): View
+    {
+        $settings  = SystemSetting::where('group', 'welcome_popup')->get()->keyBy('key');
+        $interests = \App\Models\Interest::orderBy('name')->get();
+
+        return view('admin.super_admin.settings.welcome-popup', compact('settings', 'interests'));
+    }
+
+    public function updateWelcomePopup(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'welcome_popup_enabled'   => ['boolean'],
+            'welcome_popup_criteria'  => ['required', 'in:none,same_city,same_interest,both'],
+            'welcome_popup_count'     => ['required', 'integer', 'in:2,3,4'],
+            'welcome_popup_frequency' => ['required', 'in:once,session,always'],
+        ]);
+
+        $fields = [
+            'welcome_popup_enabled'   => $request->boolean('welcome_popup_enabled') ? '1' : '0',
+            'welcome_popup_criteria'  => $request->welcome_popup_criteria,
+            'welcome_popup_count'     => $request->welcome_popup_count,
+            'welcome_popup_frequency' => $request->welcome_popup_frequency,
+        ];
+
+        foreach ($fields as $key => $value) {
+            SystemSetting::updateOrCreate(['key' => $key], [
+                'value' => $value,
+                'group' => 'welcome_popup',
+                'type'  => $key === 'welcome_popup_enabled' ? 'bool' : ($key === 'welcome_popup_count' ? 'int' : 'string'),
+            ]);
+        }
+
+        Cache::forget('system_settings');
+        ActivityLogger::log('admin.settings.updated', "Paramètres popup de bienvenue mis à jour (critère : {$request->welcome_popup_criteria})");
+
+        return back()->with('success', 'Paramètres du popup enregistrés.');
+    }
+
     // ── §5.3 Maintenance ──────────────────────────────────────────────────
 
     public function maintenance(): View

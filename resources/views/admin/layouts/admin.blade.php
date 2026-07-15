@@ -317,6 +317,12 @@
                 Paramètres
             </a>
 
+            <a href="{{ route('admin.super.settings.welcome-popup') }}"
+               class="nav-item sa {{ request()->routeIs('admin.super.settings.welcome-popup*') ? 'active' : '' }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                Popup bienvenue
+            </a>
+
             <a href="{{ route('admin.super.settings.maintenance') }}"
                class="nav-item sa {{ request()->routeIs('admin.super.settings.maintenance*') ? 'active' : '' }}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
