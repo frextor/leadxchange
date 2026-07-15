@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ConsulRequest;
 use App\Models\Notification;
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\ConsulService;
 use Illuminate\Http\RedirectResponse;
@@ -41,6 +42,14 @@ class ConsulRequestController extends Controller
 
         if ($user->hasPendingConsulPromotion()) {
             return back()->with('error', 'Vous avez déjà une demande Consul en attente.');
+        }
+
+        if ($user->consul_status === 'rejected' && $user->consul_rejected_at) {
+            $cooldown = (int) SystemSetting::get('consul_rejection_cooldown_days', 30);
+            $retryDate = $user->consul_rejected_at->addDays($cooldown);
+            if (now()->lt($retryDate)) {
+                return back()->with('error', 'Votre demande a été refusée. Vous pourrez re-soumettre à partir du ' . $retryDate->format('d/m/Y') . '.');
+            }
         }
 
         $user->update(['consul_status' => 'pending']);

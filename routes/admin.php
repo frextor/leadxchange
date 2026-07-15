@@ -154,6 +154,8 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::post('manage-consuls/{user}/nominate',              [ConsulController::class, 'nominateConsul'])->name('consuls.nominate');
     Route::delete('manage-consuls/{user}/revoke',              [ConsulController::class, 'revokeConsul'])->name('consuls.revoke');
     Route::delete('manage-consuls/{user}/reject-request',      [ConsulController::class, 'rejectConsulRequest'])->name('consuls.reject-request');
+    Route::get('manage-consuls/settings',  [ConsulController::class, 'settings'])->name('consuls.settings');
+    Route::put('manage-consuls/settings',  [ConsulController::class, 'updateSettings'])->name('consuls.settings.update');
 
     // Ambassador management (nominate directly or revoke)
     Route::post('manage-ambassadors/{user}/nominate',  [ConsulController::class, 'nominateAmbassador'])->name('ambassadors.nominate');

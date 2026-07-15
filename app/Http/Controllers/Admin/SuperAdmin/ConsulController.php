@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConsulRequest;
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\ConsulService;
 use Illuminate\Http\RedirectResponse;
@@ -146,11 +147,16 @@ class ConsulController extends Controller
             return back()->with('error', 'Cet utilisateur n\'a pas de demande Consul en attente.');
         }
 
-        $user->update(['consul_status' => 'rejected']);
+        $user->update([
+            'consul_status'      => 'rejected',
+            'consul_rejected_at' => now(),
+        ]);
 
         try {
+            $cooldown = (int) SystemSetting::get('consul_rejection_cooldown_days', 30);
+            $retryDate = now()->addDays($cooldown)->format('d/m/Y');
             \App\Models\Notification::storeForUser($user, 'consul_request_rejected', 'Demande Consul refusée',
-                'Votre demande de statut Consul a été refusée.' . ($request->filled('reason') ? ' Motif : ' . $request->reason : ''),
+                'Votre demande de statut Consul a été refusée.' . ($request->filled('reason') ? ' Motif : ' . $request->reason : '') . " Vous pourrez re-soumettre une demande à partir du {$retryDate}.",
                 []
             );
         } catch (\Throwable) {}
@@ -216,6 +222,34 @@ class ConsulController extends Controller
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    // ── Consul settings ──────────────────────────────────────────────────────
+
+    public function settings(): View
+    {
+        $this->authorize('promoteAmbassador', ConsulRequest::class);
+
+        $cooldownDays = (int) SystemSetting::get('consul_rejection_cooldown_days', 30);
+
+        return view('admin.super_admin.consul.settings', compact('cooldownDays'));
+    }
+
+    public function updateSettings(Request $request): RedirectResponse
+    {
+        $this->authorize('promoteAmbassador', ConsulRequest::class);
+
+        $request->validate([
+            'consul_rejection_cooldown_days' => ['required', 'integer', 'min:1', 'max:365'],
+        ]);
+
+        SystemSetting::updateOrCreate(
+            ['key' => 'consul_rejection_cooldown_days'],
+            ['value' => $request->consul_rejection_cooldown_days, 'type' => 'int', 'group' => 'consul']
+        );
+        \Illuminate\Support\Facades\Cache::forget('system_settings');
+
+        return back()->with('success', 'Paramètres Consul mis à jour.');
     }
 
     /** @deprecated Kept for route compatibility */

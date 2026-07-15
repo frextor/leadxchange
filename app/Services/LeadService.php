@@ -13,7 +13,6 @@ class LeadService
 {
     public function __construct(
         private FirebaseService $firebase,
-        private PointsService   $points,
     ) {}
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -52,20 +51,6 @@ class LeadService
                     "{$receiver->first_name} {$receiver->last_name} a atteint sa limite de {$maxReceived} lead(s) reçus ce mois-ci."
                 );
             }
-        }
-
-        // Sender blocked if their balance is negative
-        if (!$this->points->canSend($sender)) {
-            throw new \Exception('Votre solde de points est négatif. Vous ne pouvez pas envoyer de leads tant que votre solde est en dessous de 0.');
-        }
-
-        // Receiver blocked if their balance is below the minimum
-        if (!$this->points->canReceive($receiver)) {
-            throw new \Exception(
-                "{$receiver->first_name} {$receiver->last_name} ne peut pas recevoir de leads pour le moment " .
-                "(solde de points insuffisant — actuellement {$receiver->points_balance} pt" .
-                (abs($receiver->points_balance) > 1 ? 's' : '') . ').'
-            );
         }
 
         DB::beginTransaction();
@@ -417,20 +402,6 @@ class LeadService
 
         if (!$sender->isConnectedWith($newReceiverId)) {
             throw new \Exception("Vous ne pouvez transférer des leads qu'à vos connexions.");
-        }
-
-        // Sender blocked if their balance is negative
-        if (!$this->points->canSend($sender)) {
-            throw new \Exception('Votre solde de points est négatif. Vous ne pouvez pas transférer de leads tant que votre solde est en dessous de 0.');
-        }
-
-        // Receiver blocked if their balance is below the minimum
-        if (!$this->points->canReceive($newReceiver)) {
-            throw new \Exception(
-                "{$newReceiver->first_name} {$newReceiver->last_name} ne peut pas recevoir de leads pour le moment " .
-                "(solde de points insuffisant — actuellement {$newReceiver->points_balance} pt" .
-                (abs($newReceiver->points_balance) > 1 ? 's' : '') . ').'
-            );
         }
 
         $lead->update([

@@ -51,6 +51,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'ambassador_region_id',
         'consul_status',
         'consul_nominated_at',
+        'consul_rejected_at',
         'consul_nominated_by',
         'consul_city_id',
         'consul_region_id',
@@ -87,6 +88,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'ambassador_requested_at'    => 'datetime',
         'ambassador_reviewed_at'     => 'datetime',
         'consul_nominated_at'        => 'datetime',
+        'consul_rejected_at'         => 'datetime',
         'admin_permissions'          => 'array',
     ];
 
