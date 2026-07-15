@@ -48,7 +48,7 @@ class SettingsController extends Controller
             'countries'     => Country::orderBy('name')
                                    ->get(['id', 'name', 'code', 'flag']),
 
-            'plans'         => Plan::where('is_active', true)->where('is_visible', true)
+            'plans'         => Plan::where('is_active', true)
                                    ->orderBy('sort_order')
                                    ->get(['id', 'name', 'label', 'description', 'price', 'billing_period', 'max_leads', 'max_groups', 'max_users', 'features', 'permissions'])
                                    ->map(fn($plan) => [
@@ -64,6 +64,7 @@ class SettingsController extends Controller
                                        'features'       => $this->planFeaturesToArray($plan->features),
                                        'permissions'    => $this->planPermissionsToArray($plan->permissions),
                                        'raw_permissions' => is_array($plan->permissions) ? $plan->permissions : (object)[],
+                                       'is_visible'     => (bool) $plan->is_visible,
                                    ]),
 
             'cities'        => City::where('is_active', true)->with('country:id,name,code,flag')

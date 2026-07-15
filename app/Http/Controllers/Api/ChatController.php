@@ -117,11 +117,23 @@ class ChatController extends Controller
         abort_if($sender->id === $userId, 422, 'Cannot send a message to yourself.');
         abort_unless($sender->isConnectedWith($userId), 403, 'Not connected.');
 
-        if (! $sender->canFeature('can_send_mail')) {
-            return response()->json([
-                'message' => 'Votre plan ne permet pas d\'envoyer des messages. Passez à un plan supérieur.',
-                'upgrade' => true,
-            ], 403);
+        [$u1, $u2] = $sender->id < $userId ? [$sender->id, $userId] : [$userId, $sender->id];
+        $conversationExists = Conversation::where('user1_id', $u1)->where('user2_id', $u2)->exists();
+
+        if ($conversationExists) {
+            if (! $sender->canFeature('can_reply_mail')) {
+                return response()->json([
+                    'message' => 'Votre plan ne permet pas de répondre aux messages. Passez à un plan supérieur.',
+                    'upgrade' => true,
+                ], 403);
+            }
+        } else {
+            if (! $sender->canFeature('can_send_mail')) {
+                return response()->json([
+                    'message' => 'Votre plan ne permet pas d\'envoyer des messages. Passez à un plan supérieur.',
+                    'upgrade' => true,
+                ], 403);
+            }
         }
 
         $type = $request->input('type', 'text');

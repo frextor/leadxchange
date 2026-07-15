@@ -35,6 +35,7 @@ class UserService
         $mySectorIds = User::with('profile:user_id,sector_ids')->find($currentUserId)?->profile?->sector_ids ?? [];
 
         $query = User::query()
+            ->regular()
             ->where('id', '!=', $currentUserId)
             ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status,website,linkedin,market_addressed_id,market_target_id', 'city:id,name', 'consulRequests', 'subscription.plan:id,name,label'])
             ->select(['id', 'first_name', 'last_name', 'email', 'phone', 'phone_country_code', 'city_id', 'birthday', 'gender', 'company_id', 'points_balance', 'badge_level', 'ambassador_status', 'consul_status']);
@@ -163,7 +164,8 @@ class UserService
 
         // Closure applied to both count and data queries
         $applyWhere = function ($q) use ($currentUser, $search, $excludeConnectionStatuses, $myCityId) {
-            $q->where('users.id', '!=', $currentUser->id)
+            $q->whereNotIn('users.role', ['admin', 'super_admin'])
+              ->where('users.id', '!=', $currentUser->id)
               ->whereNotExists(function ($sub) use ($currentUser, $excludeConnectionStatuses) {
                   $sub->from('connections')
                       ->whereIn('status', $excludeConnectionStatuses)
@@ -333,12 +335,14 @@ class UserService
         return $base;
     }
 
-    private function planPayload(\App\Models\User $user): array
+    public function planPayload(\App\Models\User $user): array
     {
-        if ($user->subscription?->plan) {
+        $plan = $user->effectivePlan();
+
+        if ($plan) {
             return [
-                'name'                => $user->subscription->plan->name,
-                'label'               => $user->subscription->plan->label,
+                'name'                => $plan->name,
+                'label'               => $plan->label,
                 'is_enterprise_owner' => $this->isEnterpriseOwnerSubscription($user->subscription),
             ];
         }
@@ -354,7 +358,7 @@ class UserService
      * Compute the highest rank for a user.
      * Hierarchy: basic < premium < consul < ambassador
      */
-    private function rankPayload(\App\Models\User $user): array
+    public function rankPayload(\App\Models\User $user): array
     {
         if ($user->ambassador_status === 'approved') {
             return ['level' => 'ambassador', 'label' => 'Ambassadeur'];
@@ -385,7 +389,7 @@ class UserService
         return User::where('id', '!=', $currentUserId)->count();
     }
 
-    private function ratingPayload(User $user): array
+    public function ratingPayload(User $user): array
     {
         $stats = LeadRating::whereHas('lead', fn ($q) => $q->where('sender_id', $user->id))
             ->selectRaw('ROUND(AVG(average_note), 2) as average_rating, COUNT(*) as rating_count')
@@ -442,7 +446,7 @@ class UserService
         return $user->consul_status;
     }
 
-    private function badgePayload(string $level): array
+    public function badgePayload(string $level): array
     {
         return match ($level) {
             'platinium' => [

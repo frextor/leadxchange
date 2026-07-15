@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ProfileVisitor;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -109,6 +110,47 @@ class UserController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to load recommendations', ['error' => $e->getMessage()]);
             return response()->json(['success' => false, 'message' => 'Failed to load recommendations'], 500);
+        }
+    }
+
+    /**
+     * Record a profile visit.
+     *
+     * POST /api/users/{id}/visit
+     */
+    public function recordVisit(int $id, Request $request): JsonResponse
+    {
+        $me = $request->user();
+
+        // Don't record self-visits
+        if ($me->id === $id) {
+            return response()->json(['success' => true]);
+        }
+
+        try {
+            $record = ProfileVisitor::where('profile_user_id', $id)
+                ->where('visitor_id', $me->id)
+                ->first();
+
+            if ($record) {
+                $record->visit_count    += 1;
+                $record->last_visited_at = now();
+                $record->is_new          = true;
+                $record->save();
+            } else {
+                ProfileVisitor::create([
+                    'profile_user_id' => $id,
+                    'visitor_id'      => $me->id,
+                    'visit_count'     => 1,
+                    'last_visited_at' => now(),
+                    'is_new'          => true,
+                ]);
+            }
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            Log::error('Failed to record profile visit', ['target_id' => $id, 'error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Failed to record visit'], 500);
         }
     }
 
