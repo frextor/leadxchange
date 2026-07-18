@@ -168,7 +168,13 @@ class PaymentController extends Controller
             return response()->json(['message' => 'You already have a higher plan.'], 422);
         }
 
-        $stripePriceId = $plan->stripe_price_id ?: config('services.stripe.premium_price_id');
+        $billing = $request->input('billing', 'monthly');
+        $isAnnual = $billing === 'annual' && $plan->stripe_annual_price_id;
+
+        $stripePriceId = $isAnnual
+            ? $plan->stripe_annual_price_id
+            : ($plan->stripe_price_id ?: config('services.stripe.premium_price_id'));
+
         if (!$stripePriceId) {
             return response()->json(['message' => 'Stripe price is not configured for this plan.'], 422);
         }
@@ -216,6 +222,34 @@ class PaymentController extends Controller
             'client_secret' => $paymentIntent->client_secret,
             'customer_id' => $customerId,
         ]));
+    }
+
+    public function cancelSubscription(Request $request): JsonResponse
+    {
+        $this->configureStripe();
+
+        $user = $request->user()->loadMissing('subscription');
+        $subscription = $user->subscription;
+
+        if (!$subscription || !$subscription->stripe_subscription_id) {
+            return response()->json(['message' => 'No active subscription found.'], 422);
+        }
+
+        if ($subscription->status !== 'active') {
+            return response()->json(['message' => 'Subscription is not active.'], 422);
+        }
+
+        try {
+            $stripeSubscription = StripeSubscription::retrieve($subscription->stripe_subscription_id);
+            $stripeSubscription->cancel_at_period_end = true;
+            $stripeSubscription->save();
+
+            $subscription->update(['cancel_at_period_end' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to cancel subscription.'], 500);
+        }
+
+        return response()->json(['message' => 'Subscription will be cancelled at the end of the billing period.']);
     }
 
     public function status(Request $request): JsonResponse

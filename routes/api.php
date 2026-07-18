@@ -167,6 +167,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/payments/balance',                       [PaymentController::class, 'balanceIntent']);
     Route::post('/payments/events/{event}/intent',         [PaymentController::class, 'eventIntent']);
     Route::post('/payments/plans/{plan}/subscription',     [PaymentController::class, 'planSubscription']);
+    Route::delete('/payments/subscription',                [PaymentController::class, 'cancelSubscription']);
     Route::get('/payments/status',                         [PaymentController::class, 'status']);
 
     // Enterprise invitation Routes
