@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Mail\SystemNotificationMail;
+use App\Models\BalancePurchase;
 use App\Models\EventPayment;
 use App\Services\ActivityLogger;
+use App\Services\PointsService;
 use App\Models\EventInvitation;
 use App\Models\Plan;
 use App\Models\Subscription;
@@ -55,7 +57,14 @@ class StripeWebhookController extends Controller
 
     private function handlePaymentIntentSucceeded(object $paymentIntent): void
     {
-        if (($paymentIntent->metadata?->type ?? null) !== 'event_registration') {
+        $type = $paymentIntent->metadata?->type ?? null;
+
+        if ($type === 'balance_purchase') {
+            $this->handleBalancePurchaseSucceeded($paymentIntent);
+            return;
+        }
+
+        if ($type !== 'event_registration') {
             return;
         }
 
@@ -89,6 +98,26 @@ class StripeWebhookController extends Controller
                 ->where('user_id', $payment->user_id)
                 ->where('status', 'pending')
                 ->update(['status' => 'accepted']);
+        });
+    }
+
+    private function handleBalancePurchaseSucceeded(object $paymentIntent): void
+    {
+        DB::transaction(function () use ($paymentIntent) {
+            $purchase = BalancePurchase::where('stripe_payment_intent_id', $paymentIntent->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$purchase || $purchase->status === 'succeeded') {
+                return;
+            }
+
+            $purchase->update(['status' => 'succeeded']);
+
+            $user = User::find($purchase->user_id);
+            if (!$user) return;
+
+            app(PointsService::class)->adjust($user, $purchase->points, 'balance_purchase');
         });
     }
 

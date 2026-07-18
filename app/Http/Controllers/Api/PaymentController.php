@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\BalancePurchase;
 use App\Models\Event;
 use App\Models\EventPayment;
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Models\SystemSetting;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -25,7 +27,52 @@ class PaymentController extends Controller
         return response()->json([
             'publishable_key'       => config('services.stripe.publishable'),
             'merchant_display_name' => config('app.name', 'LeadXchange'),
+            'point_price_cents'     => (int) SystemSetting::get('payments.point_price_cents', 100),
         ]);
+    }
+
+    public function balanceIntent(Request $request): JsonResponse
+    {
+        $this->configureStripe();
+
+        $request->validate([
+            'points' => ['required', 'integer', 'min:1', 'max:500'],
+        ]);
+
+        $user = $request->user();
+        $points = (int) $request->input('points');
+        $priceCents = (int) SystemSetting::get('payments.point_price_cents', 100);
+        $amount = $points * $priceCents;
+        $currency = config('services.stripe.currency', 'eur');
+
+        $customerId = $this->ensureStripeCustomer($user);
+
+        $paymentIntent = PaymentIntent::create([
+            'amount'   => $amount,
+            'currency' => $currency,
+            'customer' => $customerId,
+            'automatic_payment_methods' => ['enabled' => true],
+            'metadata' => [
+                'type'    => 'balance_purchase',
+                'user_id' => (string) $user->id,
+                'points'  => (string) $points,
+            ],
+        ]);
+
+        BalancePurchase::create([
+            'user_id'                   => $user->id,
+            'stripe_payment_intent_id'  => $paymentIntent->id,
+            'points'                    => $points,
+            'amount_cents'              => $amount,
+            'currency'                  => $currency,
+            'status'                    => $paymentIntent->status,
+        ]);
+
+        return response()->json($this->paymentSheetPayload([
+            'payment_intent_id' => $paymentIntent->id,
+            'client_secret'     => $paymentIntent->client_secret,
+            'customer_id'       => $customerId,
+        ]));
     }
 
     public function eventIntent(int $eventId, Request $request): JsonResponse

@@ -164,6 +164,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Payment Routes
     Route::get('/payments/config',                         [PaymentController::class, 'config']);
+    Route::post('/payments/balance',                       [PaymentController::class, 'balanceIntent']);
     Route::post('/payments/events/{event}/intent',         [PaymentController::class, 'eventIntent']);
     Route::post('/payments/plans/{plan}/subscription',     [PaymentController::class, 'planSubscription']);
     Route::get('/payments/status',                         [PaymentController::class, 'status']);
