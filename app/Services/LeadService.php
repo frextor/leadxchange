@@ -13,6 +13,7 @@ class LeadService
 {
     public function __construct(
         private FirebaseService $firebase,
+        private PointsService   $points,
     ) {}
 
     // ─────────────────────────────────────────────────────────────────────────
