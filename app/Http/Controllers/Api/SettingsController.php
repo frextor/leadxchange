@@ -49,7 +49,6 @@ class SettingsController extends Controller
                                    ->get(['id', 'name', 'code', 'flag']),
 
             'plans'         => Plan::where('is_active', true)
-                                   ->where('is_visible', true)
                                    ->orderBy('sort_order')
                                    ->get(['id', 'name', 'label', 'description', 'price', 'annual_price', 'billing_period', 'max_leads', 'max_groups', 'max_users', 'features', 'permissions', 'is_visible'])
                                    ->map(fn($plan) => [
