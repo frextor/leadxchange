@@ -69,11 +69,6 @@ class LeadService
             }
         }
 
-        // Sender blocked if their balance is negative
-        if (!$this->points->canSend($sender)) {
-            throw new \Exception('Votre solde de points est négatif. Vous ne pouvez pas envoyer de leads tant que votre solde est en dessous de 0.');
-        }
-
         // Receiver blocked if their balance is below the minimum
         if (!$this->points->canReceive($receiver)) {
             try {
