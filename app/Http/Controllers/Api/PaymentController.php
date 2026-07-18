@@ -18,6 +18,7 @@ use Stripe\Customer;
 use Stripe\EphemeralKey;
 use Stripe\PaymentIntent;
 use Stripe\Stripe;
+use Stripe\Invoice as StripeInvoice;
 use Stripe\Subscription as StripeSubscription;
 
 class PaymentController extends Controller
@@ -208,6 +209,7 @@ class PaymentController extends Controller
             [
                 'user_id' => $user->id,
                 'plan_id' => $plan->id,
+                'billing_period' => $isAnnual ? 'annual' : 'monthly',
                 'status' => $this->localSubscriptionStatus($stripeSubscription->status),
                 'stripe_status' => $stripeSubscription->status,
                 'current_period_end' => $stripeSubscription->current_period_end
@@ -250,6 +252,55 @@ class PaymentController extends Controller
         }
 
         return response()->json(['message' => 'Subscription will be cancelled at the end of the billing period.']);
+    }
+
+    public function subscriptionDetails(Request $request): JsonResponse
+    {
+        $user = $request->user()->loadMissing('subscription.plan');
+        $subscription = $user->subscription;
+
+        if (!$subscription) {
+            return response()->json(['subscription' => null, 'invoices' => []]);
+        }
+
+        $invoices = [];
+        if ($subscription->stripe_subscription_id && $user->stripe_customer_id) {
+            $this->configureStripe();
+            try {
+                $stripeInvoices = StripeInvoice::all([
+                    'customer'     => $user->stripe_customer_id,
+                    'subscription' => $subscription->stripe_subscription_id,
+                    'limit'        => 24,
+                ]);
+                $invoices = collect($stripeInvoices->data)
+                    ->map(fn($inv) => [
+                        'id'          => $inv->id,
+                        'number'      => $inv->number,
+                        'amount_paid' => $inv->amount_paid,
+                        'currency'    => $inv->currency,
+                        'status'      => $inv->status,
+                        'date'        => $inv->created,
+                        'pdf_url'     => $inv->invoice_pdf,
+                    ])
+                    ->values()
+                    ->all();
+            } catch (\Exception) {}
+        }
+
+        return response()->json([
+            'subscription' => [
+                'plan_name'            => $subscription->plan?->name,
+                'plan_label'           => $subscription->plan?->label,
+                'price'                => $subscription->plan?->price,
+                'annual_price'         => $subscription->plan?->annual_price,
+                'billing_period'       => $subscription->billing_period ?? 'monthly',
+                'status'               => $subscription->status,
+                'cancel_at_period_end' => $subscription->cancel_at_period_end,
+                'current_period_end'   => $subscription->current_period_end?->toIso8601String(),
+                'starts_at'            => $subscription->created_at?->toIso8601String(),
+            ],
+            'invoices' => $invoices,
+        ]);
     }
 
     public function status(Request $request): JsonResponse
