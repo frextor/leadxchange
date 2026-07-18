@@ -163,10 +163,28 @@ class PointsService
         }
     }
 
-    // ── Check if user can receive leads (balance ≥ 1) ─────────────────────────
+    // ── Check if user can receive leads (balance ≥ 1, with grace period) ────────
     public function canReceive(User $user): bool
     {
-        return (int)($user->points_balance ?? 0) >= self::MIN_TO_RECEIVE;
+        if ((int)($user->points_balance ?? 0) >= self::MIN_TO_RECEIVE) {
+            return true;
+        }
+
+        // Balance below minimum: apply grace period before blocking
+        $graceValue = (int) SystemSetting::get('leads.negative_sender_grace_value', 0);
+        $graceUnit  = SystemSetting::get('leads.negative_sender_grace_unit', 'days');
+
+        if ($graceValue > 0) {
+            $negativeSince = $user->points_negative_since ?? $user->updated_at ?? now();
+            $deadline = match ($graceUnit) {
+                'minutes' => $negativeSince->addMinutes($graceValue),
+                'hours'   => $negativeSince->addHours($graceValue),
+                default   => $negativeSince->addDays($graceValue),
+            };
+            return $deadline->isFuture();
+        }
+
+        return false;
     }
 
     // ── Check if user can send leads (negative balance + grace period) ────────
