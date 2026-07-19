@@ -156,7 +156,7 @@ class StripeWebhookController extends Controller
 
         try {
             $subscription = \Stripe\Subscription::retrieve($invoice->subscription);
-            $this->syncSubscription($subscription);
+            $this->syncSubscription($subscription, isRenewal: true);
         } catch (\Throwable) {
             // Subscription may not exist (test trigger with fake ID) — notifications still proceed
         }
@@ -198,7 +198,7 @@ class StripeWebhookController extends Controller
         } catch (\Exception) {}
     }
 
-    private function syncSubscription(object $stripeSubscription): void
+    private function syncSubscription(object $stripeSubscription, bool $isRenewal = false): void
     {
         $userId = $stripeSubscription->metadata?->user_id ?? null;
         $planId = $stripeSubscription->metadata?->plan_id ?? null;
@@ -304,6 +304,28 @@ class StripeWebhookController extends Controller
                     actionUrl:     route('dashboard'),
                     templateKey:   'plan_purchased',
                     extraVars:     ['plan_label' => $plan->label],
+                ));
+            } catch (\Throwable) {}
+        }
+
+        // Renewal notification (invoice paid, subscription was already active)
+        if ($isRenewal && $localStatus === 'active' && $previousStatus === 'active') {
+            try {
+                app(\App\Services\FirebaseService::class)->sendLeadBlockedNotification(
+                    $user,
+                    'subscription_renewed',
+                    'Abonnement renouvelé',
+                    'Votre abonnement ' . $plan->label . ' a été renouvelé avec succès.',
+                );
+            } catch (\Throwable) {}
+
+            try {
+                Mail::to($user->email)->send(new SystemNotificationMail(
+                    recipientName: $user->first_name,
+                    title:         'Abonnement renouvelé',
+                    body:          'Votre abonnement <strong>' . $plan->label . '</strong> a été renouvelé avec succès. Merci pour votre fidélité !',
+                    actionLabel:   'Accéder à mon dashboard',
+                    actionUrl:     route('dashboard'),
                 ));
             } catch (\Throwable) {}
         }
