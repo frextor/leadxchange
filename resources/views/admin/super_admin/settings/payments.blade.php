@@ -22,7 +22,10 @@
 @endif
 
 @php
-    $priceCents = (int) ($settings->get('payments.point_price_cents')?->value ?? 100);
+    $priceCents        = (int) ($settings->get('payments.point_price_cents')?->value ?? 100);
+    $testMode          = ($settings->get('payments.subscription_test_mode')?->value ?? '0') === '1';
+    $testMonthMinutes  = (int) ($settings->get('payments.subscription_test_monthly_minutes')?->value ?? 5);
+    $testAnnualMinutes = (int) ($settings->get('payments.subscription_test_annual_minutes')?->value ?? 10);
 @endphp
 
 <div class="grid grid-cols-3 gap-6">
@@ -57,6 +60,47 @@
                     @enderror
                     <p class="mt-2 text-xs text-gray-400">Valeur actuelle : <strong>{{ $priceCents }} centimes</strong> = {{ number_format($priceCents / 100, 2) }} € par point.</p>
                 </div>
+            </div>
+
+            {{-- Subscription test mode --}}
+            <div class="border-t border-gray-100 pt-5 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Mode test abonnements</p>
+                        <p class="text-xs text-gray-400 mt-0.5">Remplace la durée réelle par de courtes fenêtres pour tester le cycle de vie des abonnements.</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="subscription_test_mode" value="1" class="sr-only peer" {{ $testMode ? 'checked' : '' }} id="test-mode-toggle">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                        <span class="ml-2 text-sm font-semibold {{ $testMode ? 'text-amber-600' : 'text-gray-400' }}" id="test-mode-label">{{ $testMode ? 'Actif' : 'Inactif' }}</span>
+                    </label>
+                </div>
+
+                <div id="test-mode-fields" class="{{ $testMode ? '' : 'opacity-40 pointer-events-none' }} grid grid-cols-2 gap-4 transition-opacity duration-200">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Durée mensuelle <span class="text-gray-400 font-normal">(minutes)</span></label>
+                        <input type="number" name="subscription_test_monthly_minutes"
+                               value="{{ old('subscription_test_monthly_minutes', $testMonthMinutes) }}"
+                               min="1" max="10080"
+                               class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200 focus:border-amber-400 transition">
+                        <p class="mt-1 text-xs text-gray-400">Ex : 5 = l'abonnement mensuel dure 5 min</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Durée annuelle <span class="text-gray-400 font-normal">(minutes)</span></label>
+                        <input type="number" name="subscription_test_annual_minutes"
+                               value="{{ old('subscription_test_annual_minutes', $testAnnualMinutes) }}"
+                               min="1" max="10080"
+                               class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200 focus:border-amber-400 transition">
+                        <p class="mt-1 text-xs text-gray-400">Ex : 10 = l'abonnement annuel dure 10 min</p>
+                    </div>
+                </div>
+
+                @if($testMode)
+                <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    Mode test actif — les abonnements expirent en {{ $testMonthMinutes }} min (mensuel) / {{ $testAnnualMinutes }} min (annuel). Désactivez après les tests.
+                </div>
+                @endif
             </div>
 
             <div class="flex justify-end mt-4">
@@ -103,5 +147,20 @@ function update() {
 }
 
 input.addEventListener('input', update);
+
+// Test mode toggle
+const toggle = document.getElementById('test-mode-toggle');
+const label  = document.getElementById('test-mode-label');
+const fields = document.getElementById('test-mode-fields');
+
+toggle.addEventListener('change', function () {
+    const active = this.checked;
+    fields.classList.toggle('opacity-40', !active);
+    fields.classList.toggle('pointer-events-none', !active);
+    label.textContent = active ? 'Actif' : 'Inactif';
+    label.className = active
+        ? 'ml-2 text-sm font-semibold text-amber-600'
+        : 'ml-2 text-sm font-semibold text-gray-400';
+});
 </script>
 @endpush

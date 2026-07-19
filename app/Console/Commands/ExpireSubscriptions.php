@@ -14,11 +14,20 @@ class ExpireSubscriptions extends Command
 
     public function handle(): void
     {
-        $count = Subscription::where('status', 'active')
-            ->where('cancel_at_period_end', true)
-            ->where('current_period_end', '<', Carbon::now())
-            ->update(['status' => 'canceled']);
+        $testMode = \App\Models\SystemSetting::get('payments.subscription_test_mode') === '1';
 
-        $this->info("Expired {$count} subscription(s).");
+        $query = Subscription::where('status', 'active')
+            ->whereNotNull('current_period_end')
+            ->where('current_period_end', '<', Carbon::now());
+
+        if (!$testMode) {
+            // Production: only expire subscriptions the user explicitly cancelled
+            $query->where('cancel_at_period_end', true);
+        }
+        // Test mode: expire all active subscriptions past their (short) period end
+
+        $count = $query->update(['status' => 'canceled']);
+
+        $this->info("Expired {$count} subscription(s)." . ($testMode ? ' [TEST MODE]' : ''));
     }
 }

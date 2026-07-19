@@ -212,9 +212,7 @@ class PaymentController extends Controller
                 'billing_period' => $isAnnual ? 'annual' : 'monthly',
                 'status' => $this->localSubscriptionStatus($stripeSubscription->status),
                 'stripe_status' => $stripeSubscription->status,
-                'current_period_end' => $stripeSubscription->current_period_end
-                    ? Carbon::createFromTimestamp($stripeSubscription->current_period_end)
-                    : null,
+                'current_period_end'   => $this->resolveTestPeriodEnd($stripeSubscription->current_period_end, $isAnnual ? 'annual' : 'monthly'),
                 'cancel_at_period_end' => (bool) $stripeSubscription->cancel_at_period_end,
             ],
         );
@@ -248,9 +246,10 @@ class PaymentController extends Controller
 
             $subscription->update([
                 'cancel_at_period_end' => true,
-                'current_period_end'   => $stripeSubscription->current_period_end
-                    ? Carbon::createFromTimestamp($stripeSubscription->current_period_end)
-                    : null,
+                'current_period_end'   => $this->resolveTestPeriodEnd(
+                    $stripeSubscription->current_period_end,
+                    $subscription->billing_period ?? 'monthly'
+                ),
             ]);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Failed to cancel subscription.'], 500);
@@ -414,6 +413,22 @@ class PaymentController extends Controller
     private function localSubscriptionStatus(string $stripeStatus): string
     {
         return in_array($stripeStatus, ['active', 'trialing'], true) ? 'active' : 'canceled';
+    }
+
+    /**
+     * Returns a test period end (from admin settings) when subscription test mode is active,
+     * otherwise returns the real Stripe timestamp as a Carbon instance.
+     */
+    private function resolveTestPeriodEnd(?int $stripeTimestamp, string $billingPeriod = 'monthly'): ?Carbon
+    {
+        if (\App\Models\SystemSetting::get('payments.subscription_test_mode') === '1') {
+            $key = $billingPeriod === 'annual'
+                ? 'payments.subscription_test_annual_minutes'
+                : 'payments.subscription_test_monthly_minutes';
+            $minutes = (int) (\App\Models\SystemSetting::get($key) ?: 5);
+            return Carbon::now()->addMinutes($minutes);
+        }
+        return $stripeTimestamp ? Carbon::createFromTimestamp($stripeTimestamp) : null;
     }
 
     private function planPriority(Plan $plan): float

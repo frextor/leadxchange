@@ -31,7 +31,9 @@ class Kernel extends ConsoleKernel
         $schedule->command('leads:process-expired-ratings')->dailyAt('04:00');
 
         // Downgrade subscriptions whose cancel_at_period_end date has passed
-        $schedule->command('subscriptions:expire')->hourly();
+        // Run every minute in test mode so short test periods expire promptly
+        $testMode = \App\Models\SystemSetting::get('payments.subscription_test_mode') === '1';
+        $schedule->command('subscriptions:expire')->when(fn() => true)->{$testMode ? 'everyMinute' : 'hourly'}();
     }
 
     /**
