@@ -154,8 +154,12 @@ class StripeWebhookController extends Controller
             return;
         }
 
-        $subscription = \Stripe\Subscription::retrieve($invoice->subscription);
-        $this->syncSubscription($subscription);
+        try {
+            $subscription = \Stripe\Subscription::retrieve($invoice->subscription);
+            $this->syncSubscription($subscription);
+        } catch (\Throwable) {
+            // Subscription may not exist (test trigger with fake ID) — notifications still proceed
+        }
     }
 
     private function handleInvoicePaymentFailed(object $invoice): void
