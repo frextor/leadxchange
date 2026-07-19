@@ -212,9 +212,7 @@ class PaymentController extends Controller
                 'billing_period' => $isAnnual ? 'annual' : 'monthly',
                 'status' => $this->localSubscriptionStatus($stripeSubscription->status),
                 'stripe_status' => $stripeSubscription->status,
-                'current_period_end' => $stripeSubscription->current_period_end
-                    ? Carbon::createFromTimestamp($stripeSubscription->current_period_end)
-                    : null,
+                'current_period_end' => Carbon::now()->addMinutes(5), // TEST: revert to Stripe value after testing
                 'cancel_at_period_end' => (bool) $stripeSubscription->cancel_at_period_end,
             ],
         );
@@ -248,9 +246,7 @@ class PaymentController extends Controller
 
             $subscription->update([
                 'cancel_at_period_end' => true,
-                'current_period_end'   => $stripeSubscription->current_period_end
-                    ? Carbon::createFromTimestamp($stripeSubscription->current_period_end)
-                    : null,
+                'current_period_end'   => Carbon::now()->addMinutes(5), // TEST: revert to Stripe value after testing
             ]);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Failed to cancel subscription.'], 500);
