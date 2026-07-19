@@ -287,6 +287,15 @@ class StripeWebhookController extends Controller
             );
 
             try {
+                app(\App\Services\FirebaseService::class)->sendLeadBlockedNotification(
+                    $user,
+                    'plan_activated',
+                    'Abonnement activé !',
+                    'Votre abonnement ' . $plan->label . ' est maintenant actif. Profitez de toutes les fonctionnalités LeadXchange !',
+                );
+            } catch (\Throwable) {}
+
+            try {
                 Mail::to($user->email)->send(new SystemNotificationMail(
                     recipientName: $user->first_name,
                     title:         'Votre plan ' . $plan->label . ' est activé !',
