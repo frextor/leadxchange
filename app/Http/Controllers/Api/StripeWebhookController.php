@@ -47,8 +47,8 @@ class StripeWebhookController extends Controller
             'customer.subscription.created',
             'customer.subscription.updated',
             'customer.subscription.deleted' => $this->syncSubscription($object),
-            'invoice.payment_succeeded',
-            'invoice.payment_failed' => $this->syncInvoiceSubscription($object),
+            'invoice.payment_succeeded' => $this->syncInvoiceSubscription($object),
+            'invoice.payment_failed'   => $this->handleInvoicePaymentFailed($object),
             default => null,
         };
 
@@ -158,6 +158,42 @@ class StripeWebhookController extends Controller
         $this->syncSubscription($subscription);
     }
 
+    private function handleInvoicePaymentFailed(object $invoice): void
+    {
+        // Keep subscription state in sync with Stripe
+        $this->syncInvoiceSubscription($invoice);
+
+        if (!$invoice->subscription || !$invoice->customer) {
+            return;
+        }
+
+        $user = User::where('stripe_customer_id', $invoice->customer)->first();
+        if (!$user) {
+            return;
+        }
+
+        // Push notification
+        try {
+            app(\App\Services\FirebaseService::class)->sendLeadBlockedNotification(
+                $user,
+                'payment_failed',
+                'Paiement échoué',
+                'Votre paiement n\'a pas pu être traité. Votre abonnement sera annulé si le problème persiste.',
+            );
+        } catch (\Exception) {}
+
+        // Email
+        try {
+            Mail::to($user->email)->send(new \App\Mail\SystemNotificationMail(
+                recipientName: $user->first_name,
+                title:         'Paiement échoué',
+                body:          'Votre paiement pour l\'abonnement LeadXchange n\'a pas pu être traité. Veuillez mettre à jour votre moyen de paiement pour conserver votre accès Premium.',
+                actionLabel:   'Gérer mon abonnement',
+                actionUrl:     config('app.url'),
+            ));
+        } catch (\Exception) {}
+    }
+
     private function syncSubscription(object $stripeSubscription): void
     {
         $userId = $stripeSubscription->metadata?->user_id ?? null;
@@ -227,7 +263,9 @@ class StripeWebhookController extends Controller
                     'plan_id' => $plan->id,
                     'status' => $localStatus,
                     'stripe_status' => $stripeSubscription->status,
-                    'current_period_end' => $this->resolveTestPeriodEnd($stripeSubscription->current_period_end),
+                    'current_period_end' => $stripeSubscription->current_period_end
+                        ? Carbon::createFromTimestamp($stripeSubscription->current_period_end)
+                        : null,
                     'cancel_at_period_end' => (bool) $stripeSubscription->cancel_at_period_end,
                     'ends_at' => $stripeSubscription->ended_at
                         ? Carbon::createFromTimestamp($stripeSubscription->ended_at)
@@ -265,13 +303,4 @@ class StripeWebhookController extends Controller
         return in_array($stripeStatus, ['active', 'trialing'], true) ? 'active' : 'canceled';
     }
 
-    /** TEST: if SUBSCRIPTION_TEST_MINUTES is set, override period end with a short window. Revert after testing. */
-    private function resolveTestPeriodEnd(?int $stripeTimestamp): ?Carbon
-    {
-        $testMinutes = (int) config('services.stripe.test_subscription_minutes', 0);
-        if ($testMinutes > 0) {
-            return Carbon::now()->addMinutes($testMinutes);
-        }
-        return $stripeTimestamp ? Carbon::createFromTimestamp($stripeTimestamp) : null;
-    }
 }

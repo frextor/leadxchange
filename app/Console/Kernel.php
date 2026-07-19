@@ -31,7 +31,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('leads:process-expired-ratings')->dailyAt('04:00');
 
         // Downgrade subscriptions whose cancel_at_period_end date has passed
-        $schedule->command('subscriptions:expire')->everyMinute(); // TEST: revert to ->hourly() after testing
+        $schedule->command('subscriptions:expire')->hourly();
     }
 
     /**
