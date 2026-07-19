@@ -421,7 +421,7 @@ class PaymentController extends Controller
      */
     private function resolveTestPeriodEnd(?int $stripeTimestamp, string $billingPeriod = 'monthly'): ?Carbon
     {
-        if (\App\Models\SystemSetting::get('payments.subscription_test_mode') === '1') {
+        if ((bool) \App\Models\SystemSetting::get('payments.subscription_test_mode')) {
             $key = $billingPeriod === 'annual'
                 ? 'payments.subscription_test_annual_minutes'
                 : 'payments.subscription_test_monthly_minutes';

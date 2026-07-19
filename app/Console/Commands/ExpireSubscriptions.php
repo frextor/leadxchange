@@ -14,7 +14,7 @@ class ExpireSubscriptions extends Command
 
     public function handle(): void
     {
-        $testMode = \App\Models\SystemSetting::get('payments.subscription_test_mode') === '1';
+        $testMode = (bool) \App\Models\SystemSetting::get('payments.subscription_test_mode');
 
         $query = Subscription::where('status', 'active')
             ->whereNotNull('current_period_end')

@@ -303,7 +303,7 @@ class StripeWebhookController extends Controller
 
     private function resolveTestPeriodEnd(object $stripeSubscription): ?Carbon
     {
-        if (\App\Models\SystemSetting::get('payments.subscription_test_mode') === '1') {
+        if ((bool) \App\Models\SystemSetting::get('payments.subscription_test_mode')) {
             $interval = $stripeSubscription->items?->data[0]?->price?->recurring?->interval ?? 'month';
             $key      = $interval === 'year'
                 ? 'payments.subscription_test_annual_minutes'

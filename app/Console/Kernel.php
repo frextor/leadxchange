@@ -32,7 +32,7 @@ class Kernel extends ConsoleKernel
 
         // Downgrade subscriptions whose cancel_at_period_end date has passed
         // Run every minute in test mode so short test periods expire promptly
-        $testMode = \App\Models\SystemSetting::get('payments.subscription_test_mode') === '1';
+        $testMode = (bool) \App\Models\SystemSetting::get('payments.subscription_test_mode');
         $schedule->command('subscriptions:expire')->when(fn() => true)->{$testMode ? 'everyMinute' : 'hourly'}();
     }
 
