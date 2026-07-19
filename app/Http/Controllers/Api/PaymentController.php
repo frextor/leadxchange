@@ -212,7 +212,7 @@ class PaymentController extends Controller
                 'billing_period' => $isAnnual ? 'annual' : 'monthly',
                 'status' => $this->localSubscriptionStatus($stripeSubscription->status),
                 'stripe_status' => $stripeSubscription->status,
-                'current_period_end' => Carbon::now()->addMinutes(5), // TEST: revert to Stripe value after testing
+                'current_period_end' => $this->resolveTestPeriodEnd($stripeSubscription->current_period_end),
                 'cancel_at_period_end' => (bool) $stripeSubscription->cancel_at_period_end,
             ],
         );
@@ -246,7 +246,7 @@ class PaymentController extends Controller
 
             $subscription->update([
                 'cancel_at_period_end' => true,
-                'current_period_end'   => Carbon::now()->addMinutes(5), // TEST: revert to Stripe value after testing
+                'current_period_end'   => $this->resolveTestPeriodEnd($stripeSubscription->current_period_end),
             ]);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Failed to cancel subscription.'], 500);
@@ -410,6 +410,16 @@ class PaymentController extends Controller
     private function localSubscriptionStatus(string $stripeStatus): string
     {
         return in_array($stripeStatus, ['active', 'trialing'], true) ? 'active' : 'canceled';
+    }
+
+    /** TEST: if SUBSCRIPTION_TEST_MINUTES is set, override period end with a short window. Revert after testing. */
+    private function resolveTestPeriodEnd(?int $stripeTimestamp): ?Carbon
+    {
+        $testMinutes = (int) config('services.stripe.test_subscription_minutes', 0);
+        if ($testMinutes > 0) {
+            return Carbon::now()->addMinutes($testMinutes);
+        }
+        return $stripeTimestamp ? Carbon::createFromTimestamp($stripeTimestamp) : null;
     }
 
     private function planPriority(Plan $plan): float

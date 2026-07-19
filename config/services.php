@@ -47,7 +47,8 @@ return [
         'publishable'      => env('STRIPE_PUBLISHABLE_KEY'),
         'webhook_secret'   => env('STRIPE_WEBHOOK_SECRET'),
         'currency'         => env('STRIPE_CURRENCY', 'eur'),
-        'premium_price_id' => env('STRIPE_PREMIUM_PRICE_ID'),
+        'premium_price_id'            => env('STRIPE_PREMIUM_PRICE_ID'),
+        'test_subscription_minutes'   => env('STRIPE_TEST_SUBSCRIPTION_MINUTES', 0),
     ],
 
 ];

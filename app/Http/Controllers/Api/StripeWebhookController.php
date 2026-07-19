@@ -227,9 +227,7 @@ class StripeWebhookController extends Controller
                     'plan_id' => $plan->id,
                     'status' => $localStatus,
                     'stripe_status' => $stripeSubscription->status,
-                    'current_period_end' => $stripeSubscription->current_period_end
-                        ? Carbon::createFromTimestamp($stripeSubscription->current_period_end)
-                        : null,
+                    'current_period_end' => $this->resolveTestPeriodEnd($stripeSubscription->current_period_end),
                     'cancel_at_period_end' => (bool) $stripeSubscription->cancel_at_period_end,
                     'ends_at' => $stripeSubscription->ended_at
                         ? Carbon::createFromTimestamp($stripeSubscription->ended_at)
@@ -265,5 +263,15 @@ class StripeWebhookController extends Controller
     private function localSubscriptionStatus(string $stripeStatus): string
     {
         return in_array($stripeStatus, ['active', 'trialing'], true) ? 'active' : 'canceled';
+    }
+
+    /** TEST: if SUBSCRIPTION_TEST_MINUTES is set, override period end with a short window. Revert after testing. */
+    private function resolveTestPeriodEnd(?int $stripeTimestamp): ?Carbon
+    {
+        $testMinutes = (int) config('services.stripe.test_subscription_minutes', 0);
+        if ($testMinutes > 0) {
+            return Carbon::now()->addMinutes($testMinutes);
+        }
+        return $stripeTimestamp ? Carbon::createFromTimestamp($stripeTimestamp) : null;
     }
 }
