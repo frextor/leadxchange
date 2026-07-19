@@ -246,7 +246,12 @@ class PaymentController extends Controller
             $stripeSubscription->cancel_at_period_end = true;
             $stripeSubscription->save();
 
-            $subscription->update(['cancel_at_period_end' => true]);
+            $subscription->update([
+                'cancel_at_period_end' => true,
+                'current_period_end'   => $stripeSubscription->current_period_end
+                    ? Carbon::createFromTimestamp($stripeSubscription->current_period_end)
+                    : null,
+            ]);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Failed to cancel subscription.'], 500);
         }
