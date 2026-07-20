@@ -16,11 +16,6 @@ class ReferralController extends Controller
     {
         $user = $request->user();
 
-        // Only active paid subscribers can refer
-        if (($user->currentPlanName ?? 'basic') === 'basic') {
-            return response()->json(['message' => 'Un abonnement actif est requis pour parrainer.'], 403);
-        }
-
         $validated = $request->validate([
             'email' => ['required', 'email', 'max:255'],
         ]);
