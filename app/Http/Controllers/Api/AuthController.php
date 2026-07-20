@@ -72,7 +72,7 @@ class AuthController extends Controller
                 $user = $user->fresh();
             }
 
-            // Create token
+            // Mark referral as registered if token provided\n            $referralToken = $validated['referral_token'] ?? null;\n            if ($referralToken) {\n                \\App\\Models\\Referral::where('token', $referralToken)\n                    ->where('status', 'pending')\n                    ->update(['status' => 'registered']);\n            }\n\n            // Create token
             $token = $this->authService->createToken($user);
 
             // Return JSON response

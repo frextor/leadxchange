@@ -21,7 +21,7 @@ use App\Http\Controllers\Api\LanguageController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\AmbassadorController;
-use App\Http\Controllers\Api\UserController;
+use App\\Http\\Controllers\\Api\\UserController;\nuse App\\Http\\Controllers\\Api\\ReferralController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -219,3 +219,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/consuls/{user}/revoke',              [AmbassadorController::class, 'revokeConsul']);
     });
 });
+
+// Referrals
+Route::middleware('auth:sanctum')->post('/referrals', [ReferralController::class, 'send']);
