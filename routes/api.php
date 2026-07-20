@@ -21,7 +21,8 @@ use App\Http\Controllers\Api\LanguageController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\AmbassadorController;
-use App\\Http\\Controllers\\Api\\UserController;\nuse App\\Http\\Controllers\\Api\\ReferralController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\ReferralController;
 use Illuminate\Support\Facades\Route;
 
 /*
