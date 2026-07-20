@@ -41,6 +41,7 @@ class ReferralController extends Controller
         try {
             Mail::to($email)->send(new ReferralInvitationMail($user, $referral->token));
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('ReferralMail failed', ['error' => $e->getMessage()]);
             return response()->json(['message' => 'Impossible d\'envoyer l\'email. Réessayez.'], 500);
         }
 
