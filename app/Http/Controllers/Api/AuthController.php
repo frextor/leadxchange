@@ -132,7 +132,8 @@ class AuthController extends Controller
     public function linkedin(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'code' => ['required', 'string'],
+            'code'           => ['required', 'string'],
+            'referral_token' => ['nullable', 'string', 'max:255'],
         ]);
 
         $clientId = config('services.linkedin.client_id');
@@ -194,7 +195,7 @@ class AuthController extends Controller
                 ], 422);
             }
 
-            $user = $this->authService->loginWithLinkedIn($userInfoResponse->json());
+            $user = $this->authService->loginWithLinkedIn($userInfoResponse->json(), $validated['referral_token'] ?? null);
             $this->authService->revokeAllTokens($user);
             $token = $this->authService->createToken($user);
 

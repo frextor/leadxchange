@@ -93,7 +93,7 @@ class AuthService
      * Find or create a user from LinkedIn OpenID profile data.
      * New LinkedIn users receive a token but remain onboarding-incomplete.
      */
-    public function loginWithLinkedIn(array $linkedinUser): User
+    public function loginWithLinkedIn(array $linkedinUser, ?string $referralToken = null): User
     {
         $email = strtolower((string) ($linkedinUser['email'] ?? ''));
         if ($email === '') {
@@ -113,7 +113,7 @@ class AuthService
         $firstName = $firstName !== '' ? $firstName : 'LinkedIn';
         $lastName = $lastName !== '' ? $lastName : 'User';
 
-        return DB::transaction(function () use ($email, $firstName, $lastName, $linkedinUser) {
+        return DB::transaction(function () use ($email, $firstName, $lastName, $linkedinUser, $referralToken) {
             $user = User::where('email', $email)->first();
 
             if (!$user) {
@@ -131,6 +131,12 @@ class AuthService
                 $user->forceFill(['email_verified_at' => now()])->save();
 
                 $this->assignBasicPlan($user);
+
+                if ($referralToken) {
+                    \App\Models\Referral::where('token', $referralToken)
+                        ->where('status', 'pending')
+                        ->update(['status' => 'registered']);
+                }
             } elseif (!$user->email_verified_at) {
                 $user->forceFill(['email_verified_at' => now()])->save();
             }
