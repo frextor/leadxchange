@@ -330,6 +330,28 @@ class StripeWebhookController extends Controller
             } catch (\Throwable) {}
         }
 
+        // Cancellation notification (was active, now canceled)
+        if ($localStatus !== 'active' && $previousStatus === 'active') {
+            try {
+                app(\App\Services\FirebaseService::class)->sendLeadBlockedNotification(
+                    $user,
+                    'subscription_canceled',
+                    'Abonnement résilié',
+                    'Votre abonnement ' . $plan->label . ' a été résilié. Vous continuez à bénéficier de vos avantages jusqu\'à la fin de la période en cours.',
+                );
+            } catch (\Throwable) {}
+
+            try {
+                Mail::to($user->email)->send(new SystemNotificationMail(
+                    recipientName: $user->first_name,
+                    title:         'Votre abonnement ' . $plan->label . ' a été résilié',
+                    body:          'Votre abonnement <strong>' . $plan->label . '</strong> a bien été résilié. Vous conservez l\'accès à vos avantages jusqu\'à la fin de votre période de facturation en cours.',
+                    actionLabel:   'Accéder à LeadXchange',
+                    actionUrl:     route('dashboard'),
+                ));
+            } catch (\Throwable) {}
+        }
+
         // Revoke consul/ambassador if user no longer has a paid plan after this sync
         if ($localStatus !== 'active') {
             $user->revokePrivilegedRolesIfBasic();
