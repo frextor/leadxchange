@@ -257,6 +257,29 @@ class PaymentController extends Controller
             return response()->json(['message' => 'Failed to cancel subscription.'], 500);
         }
 
+        $plan = $subscription->plan;
+
+        // Push notification
+        try {
+            app(\App\Services\FirebaseService::class)->sendLeadBlockedNotification(
+                $user,
+                'subscription_canceled',
+                'Abonnement résilié',
+                'Votre abonnement ' . ($plan?->label ?? '') . ' a été résilié. Vous continuez à bénéficier de vos avantages jusqu\'à la fin de la période en cours.',
+            );
+        } catch (\Throwable) {}
+
+        // Email
+        try {
+            \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\SystemNotificationMail(
+                recipientName: $user->first_name,
+                title:         'Votre abonnement ' . ($plan?->label ?? '') . ' a été résilié',
+                body:          'Votre abonnement <strong>' . ($plan?->label ?? '') . '</strong> a bien été résilié. Vous conservez l\'accès à vos avantages jusqu\'à la fin de votre période de facturation en cours.',
+                actionLabel:   'Accéder à LeadXchange',
+                actionUrl:     route('dashboard'),
+            ));
+        } catch (\Throwable) {}
+
         return response()->json(['message' => 'Subscription will be cancelled at the end of the billing period.']);
     }
 
