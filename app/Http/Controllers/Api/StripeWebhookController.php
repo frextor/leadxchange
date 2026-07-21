@@ -329,6 +329,11 @@ class StripeWebhookController extends Controller
                 ));
             } catch (\Throwable) {}
         }
+
+        // Revoke consul/ambassador if user no longer has a paid plan after this sync
+        if ($localStatus !== 'active') {
+            $user->revokePrivilegedRolesIfBasic();
+        }
     }
 
     private function localSubscriptionStatus(string $stripeStatus): string

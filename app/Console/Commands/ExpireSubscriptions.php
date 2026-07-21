@@ -39,6 +39,7 @@ class ExpireSubscriptions extends Command
             }
 
             $subscription->update(['status' => 'canceled']);
+            $subscription->user->revokePrivilegedRolesIfBasic();
         }
 
         $count = $subscriptions->count();
