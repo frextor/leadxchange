@@ -123,6 +123,64 @@
 </div>
 @endif
 
+{{-- ── POPUP SOLDE NÉGATIF ── --}}
+@if($negativeBalancePopup)
+@php
+    $totalToPay = number_format($pointsNeeded * $pointsPricePerUnit, 2, ',', ' ');
+@endphp
+<div id="negativeBalanceModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" style="animation:slideUp .3s ease;">
+
+        {{-- Header --}}
+        <div class="px-7 pt-7 pb-5 text-center" style="background:linear-gradient(135deg,#7F1D1D,#B91C1C);">
+            <div class="w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center" style="background:rgba(255,255,255,0.15);">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            </div>
+            <h2 class="text-lg font-bold text-white">Compte en solde négatif</h2>
+            <p class="text-red-200 text-xs mt-1">Depuis plus de 2 mois</p>
+        </div>
+
+        {{-- Body --}}
+        <div class="px-7 py-6 text-center">
+            <p class="text-sm text-gray-700 leading-relaxed mb-4">
+                Ton compte est négatif depuis plus de deux mois. Tu ne pourras plus recevoir de leads.
+            </p>
+            <p class="text-sm text-gray-600 leading-relaxed mb-4">
+                Pour obtenir des points, tu dois fournir des leads à la communauté.
+            </p>
+            <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5 text-left">
+                <p class="text-xs text-amber-800 leading-relaxed">
+                    De manière exceptionnelle, tu peux acheter
+                    <span class="font-bold">{{ $pointsNeeded }} point{{ $pointsNeeded > 1 ? 's' : '' }}</span>
+                    pour remettre ton solde à zéro.
+                    @if($pointsPricePerUnit > 0)
+                    <br><span class="text-amber-600 font-semibold">Montant : {{ $totalToPay }} €</span>
+                    @endif
+                </p>
+            </div>
+            <p class="text-sm font-semibold text-gray-800 mb-5">Souhaites-tu acheter des points ?</p>
+
+            <div class="flex flex-col gap-2.5">
+                <form method="POST" action="{{ route('points.buy') }}">
+                    @csrf
+                    <button type="submit"
+                            class="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
+                            style="background:linear-gradient(135deg,#B91C1C,#7F1D1D);">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        Oui, acheter {{ $pointsNeeded }} point{{ $pointsNeeded > 1 ? 's' : '' }}
+                    </button>
+                </form>
+                <button onclick="document.getElementById('negativeBalanceModal').style.display='none'"
+                        class="w-full py-3 rounded-xl text-sm font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
+                    Plus tard
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+@endif
+
 <div class="max-w-7xl mx-auto px-6 lg:px-8 py-7 space-y-6">
 
     {{-- ── HERO BANNER ── --}}

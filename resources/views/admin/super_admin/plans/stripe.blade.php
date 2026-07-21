@@ -108,7 +108,7 @@ STRIPE_CURRENCY=eur</pre>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Stripe Price ID</label>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Price ID — Mensuel</label>
                         <div class="flex items-center gap-2">
                             <code class="text-xs font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 truncate flex-1">
                                 {{ $plan->stripe_price_id ?? '—' }}
@@ -120,6 +120,26 @@ STRIPE_CURRENCY=eur</pre>
                             @endif
                         </div>
                     </div>
+                    @if($plan->annual_price)
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">
+                            Price ID — Annuel
+                            @if($plan->annual_price)
+                            <span class="normal-case font-normal text-gray-300 ml-1">({{ currency_format($plan->annual_price) }}/an)</span>
+                            @endif
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <code class="text-xs font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 truncate flex-1">
+                                {{ $plan->stripe_annual_price_id ?? '— non synchronisé' }}
+                            </code>
+                            @if($plan->stripe_annual_price_id)
+                            <a href="https://dashboard.stripe.com/prices/{{ $plan->stripe_annual_price_id }}"
+                               target="_blank"
+                               class="text-[10px] text-indigo-500 hover:text-indigo-700 flex-shrink-0">↗</a>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
                 </div>
 
                 {{-- Price details from Stripe --}}

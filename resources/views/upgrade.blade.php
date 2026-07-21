@@ -37,6 +37,23 @@
         <p class="text-sm text-gray-500 max-w-md mx-auto">
             Débloquez toutes les fonctionnalités de LeadXchange et développez votre réseau professionnel.
         </p>
+
+        {{-- Billing period toggle --}}
+        @php $hasAnnualPlans = $plans->filter(fn($p) => $p->annual_price > 0)->isNotEmpty(); @endphp
+        @if($hasAnnualPlans)
+        <div class="mt-6 inline-flex items-center gap-1 p-1 rounded-2xl border border-gray-200 bg-gray-50">
+            <button id="btn-monthly" onclick="setBilling('monthly')"
+                    class="px-5 py-2 rounded-xl text-sm font-semibold transition billing-btn billing-btn--active">
+                Mensuel
+            </button>
+            <button id="btn-annual" onclick="setBilling('annual')"
+                    class="px-5 py-2 rounded-xl text-sm font-semibold transition billing-btn relative">
+                Annuel
+                <span class="absolute -top-2 -right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500 text-white leading-none">-2 mois</span>
+            </button>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">Économisez jusqu'à 2 mois avec la facturation annuelle</p>
+        @endif
     </div>
 
     {{-- Current plan banner --}}
@@ -95,12 +112,36 @@
                     <span class="text-xs text-gray-400">gratuit pour toujours</span>
                 </div>
                 @else
-                <div class="flex items-baseline gap-1">
-                    <span class="text-3xl font-extrabold text-gray-900">{{ currency_format($plan->price) }}</span>
-                    <span class="text-xs text-gray-400">/ mois</span>
+                @php
+                    $monthlyPrice  = (float) $plan->price;
+                    $annualTotal   = $plan->annual_price ? (float) $plan->annual_price : null;
+                    $annualMonthly = $annualTotal ? round($annualTotal / 12, 2) : null;
+                    $savingsPct    = ($annualMonthly && $monthlyPrice > 0)
+                        ? round((1 - $annualMonthly / $monthlyPrice) * 100)
+                        : null;
+                @endphp
+                {{-- Monthly price (shown by default) --}}
+                <div class="price-monthly-block">
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-3xl font-extrabold text-gray-900">{{ currency_format($monthlyPrice) }}</span>
+                        <span class="text-xs text-gray-400">/ mois</span>
+                    </div>
+                    @if($annualTotal)
+                    <p class="text-xs text-gray-400 mt-1">ou {{ currency_format($annualTotal) }}/an</p>
+                    @endif
                 </div>
-                @if($plan->annual_price)
-                <p class="text-xs text-gray-400 mt-1">ou {{ currency_format($plan->annual_price) }}/an</p>
+                {{-- Annual price (hidden by default) --}}
+                @if($annualTotal)
+                <div class="price-annual-block" style="display:none;">
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-3xl font-extrabold text-gray-900">{{ currency_format($annualMonthly) }}</span>
+                        <span class="text-xs text-gray-400">/ mois</span>
+                        @if($savingsPct && $savingsPct > 0)
+                        <span class="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-700">-{{ $savingsPct }}%</span>
+                        @endif
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">{{ currency_format($annualTotal) }} facturé annuellement</p>
+                </div>
                 @endif
                 @endif
             </div>
@@ -145,13 +186,14 @@
                     Plan gratuit
                 </div>
                 @elseif($plan->stripe_price_id)
-                <form method="POST" action="{{ route('checkout', $plan) }}">
+                <form method="POST" action="{{ route('checkout', $plan) }}" class="checkout-form" data-plan-id="{{ $plan->id }}" data-has-annual="{{ $plan->stripe_annual_price_id ? '1' : '0' }}">
                     @csrf
+                    <input type="hidden" name="billing_period" value="monthly" class="billing-period-input">
                     <button type="submit"
                             class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-white transition hover:opacity-90 active:scale-[.98]"
                             style="background:linear-gradient(135deg,{{ $t['top'] }},{{ $t['accent'] }});">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                        Passer au plan {{ $plan->label }}
+                        <span class="cta-label">Passer au plan {{ $plan->label }}</span>
                     </button>
                 </form>
                 <p class="text-center text-[10px] text-gray-400 mt-2 flex items-center justify-center gap-1">
@@ -276,7 +318,35 @@
 </div>
 
 @push('scripts')
+<style>
+.billing-btn { color:#6B7280; }
+.billing-btn--active { background:#fff; color:#1E293B; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+</style>
 <script>
+var currentBilling = 'monthly';
+
+function setBilling(period) {
+    currentBilling = period;
+
+    document.getElementById('btn-monthly').classList.toggle('billing-btn--active', period === 'monthly');
+    document.getElementById('btn-annual').classList.toggle('billing-btn--active', period === 'annual');
+
+    // Toggle price blocks
+    document.querySelectorAll('.price-monthly-block').forEach(function(el) {
+        el.style.display = period === 'monthly' ? '' : 'none';
+    });
+    document.querySelectorAll('.price-annual-block').forEach(function(el) {
+        el.style.display = period === 'annual' ? '' : 'none';
+    });
+
+    // Update hidden billing_period inputs
+    document.querySelectorAll('.billing-period-input').forEach(function(input) {
+        var form = input.closest('.checkout-form');
+        var hasAnnual = form.dataset.hasAnnual === '1';
+        input.value = (period === 'annual' && hasAnnual) ? 'annual' : 'monthly';
+    });
+}
+
 function showUpgradeContact(planName) {
     document.getElementById('contactTitle').textContent = 'Passer au plan ' + planName;
     setTimeout(function() {

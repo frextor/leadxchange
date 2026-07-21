@@ -33,6 +33,16 @@ class StripeCheckoutController extends Controller
             return redirect()->route('upgrade')->with('error', 'Ce plan n\'est pas encore disponible au paiement en ligne. Contactez-nous.');
         }
 
+        $billingPeriod = $request->input('billing_period', 'monthly');
+
+        // Use annual Stripe price if requested and configured
+        if ($billingPeriod === 'annual' && $plan->stripe_annual_price_id) {
+            $stripePriceId = $plan->stripe_annual_price_id;
+        } else {
+            $stripePriceId  = $plan->stripe_price_id;
+            $billingPeriod  = 'monthly';
+        }
+
         $user   = $request->user();
         $stripe = $this->stripe();
 
@@ -47,15 +57,23 @@ class StripeCheckoutController extends Controller
         }
 
         $session = $stripe->checkout->sessions->create([
-            'customer'            => $user->stripe_customer_id,
-            'mode'                => 'subscription',
-            'line_items'          => [['price' => $plan->stripe_price_id, 'quantity' => 1]],
-            'success_url'         => route('checkout.success') . '?session_id={CHECKOUT_SESSION_ID}',
-            'cancel_url'          => route('upgrade') . '?canceled=1',
+            'customer'              => $user->stripe_customer_id,
+            'mode'                  => 'subscription',
+            'line_items'            => [['price' => $stripePriceId, 'quantity' => 1]],
+            'success_url'           => route('checkout.success') . '?session_id={CHECKOUT_SESSION_ID}',
+            'cancel_url'            => route('upgrade') . '?canceled=1',
             'allow_promotion_codes' => true,
-            'metadata'            => ['user_id' => (string) $user->id, 'plan_id' => (string) $plan->id],
-            'subscription_data'   => [
-                'metadata' => ['user_id' => (string) $user->id, 'plan_id' => (string) $plan->id],
+            'metadata'              => [
+                'user_id'        => (string) $user->id,
+                'plan_id'        => (string) $plan->id,
+                'billing_period' => $billingPeriod,
+            ],
+            'subscription_data' => [
+                'metadata' => [
+                    'user_id'        => (string) $user->id,
+                    'plan_id'        => (string) $plan->id,
+                    'billing_period' => $billingPeriod,
+                ],
             ],
         ]);
 
@@ -78,19 +96,21 @@ class StripeCheckoutController extends Controller
             $planId = $session->metadata->plan_id ?? null;
 
             if ($userId && $planId) {
-                $sub = $session->subscription;
+                $sub           = $session->subscription;
+                $billingPeriod = $session->metadata->billing_period ?? 'monthly';
 
                 Subscription::updateOrCreate(
                     ['user_id' => $userId],
                     [
-                        'plan_id'               => $planId,
-                        'status'                => 'active',
+                        'plan_id'                => $planId,
+                        'status'                 => 'active',
+                        'billing_period'         => $billingPeriod,
                         'stripe_subscription_id' => $sub?->id,
-                        'stripe_status'         => $sub?->status ?? 'active',
-                        'current_period_end'    => $sub?->current_period_end
+                        'stripe_status'          => $sub?->status ?? 'active',
+                        'current_period_end'     => $sub?->current_period_end
                             ? \Carbon\Carbon::createFromTimestamp($sub->current_period_end)
                             : null,
-                        'cancel_at_period_end'  => (bool) ($sub?->cancel_at_period_end ?? false),
+                        'cancel_at_period_end'   => (bool) ($sub?->cancel_at_period_end ?? false),
                     ]
                 );
 

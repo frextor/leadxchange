@@ -39,6 +39,32 @@ class SettingsController extends Controller
         return back()->with('success', 'Paramètres de devise enregistrés.');
     }
 
+    // ── Prix du point ────────────────────────────────────────────────────
+
+    public function pointsSettings(): View
+    {
+        $pricePerUnit = (float) SystemSetting::get('points.price_per_unit', 5.00);
+
+        return view('admin.super_admin.settings.points', compact('pricePerUnit'));
+    }
+
+    public function updatePointsPrice(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'points_price_per_unit' => ['required', 'numeric', 'min:0.01', 'max:9999'],
+        ]);
+
+        SystemSetting::updateOrCreate(
+            ['key' => 'points.price_per_unit'],
+            ['value' => $request->points_price_per_unit, 'type' => 'float', 'group' => 'points']
+        );
+        Cache::forget('system_settings');
+
+        ActivityLogger::log('admin.settings.updated', "Prix du point mis à jour : {$request->points_price_per_unit}");
+
+        return back()->with('success', 'Prix du point enregistré.');
+    }
+
     // ── §5.2 Welcome popup ───────────────────────────────────────────────
 
     public function welcomePopup(): View

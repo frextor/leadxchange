@@ -319,33 +319,52 @@ class PlanController extends Controller
                 ]);
             }
 
-            // Create new Price (Stripe prices are immutable — always create new)
+            // Create new monthly Price (Stripe prices are immutable — always create new)
             $amountInCents = (int) round((float) $plan->price * 100);
             $price = $stripe->prices->create([
                 'product'     => $product->id,
                 'unit_amount' => $amountInCents,
                 'currency'    => $currency,
                 'recurring'   => ['interval' => 'month'],
-                'metadata'    => ['plan_id' => (string) $plan->id],
+                'metadata'    => ['plan_id' => (string) $plan->id, 'billing' => 'monthly'],
             ]);
 
-            // Archive old price if it existed
+            // Archive old monthly price if it changed
             if ($plan->stripe_price_id && $plan->stripe_price_id !== $price->id) {
-                try {
-                    $stripe->prices->update($plan->stripe_price_id, ['active' => false]);
-                } catch (\Exception) {}
+                try { $stripe->prices->update($plan->stripe_price_id, ['active' => false]); } catch (\Exception) {}
             }
 
-            $plan->update([
+            $updateData = [
                 'stripe_product_id' => $product->id,
                 'stripe_price_id'   => $price->id,
-            ]);
+            ];
+
+            // Create annual price if annual_price is set
+            $annualPriceId = null;
+            if ($plan->annual_price && (float) $plan->annual_price > 0) {
+                $annualAmountInCents = (int) round((float) $plan->annual_price * 100);
+                $annualPrice = $stripe->prices->create([
+                    'product'     => $product->id,
+                    'unit_amount' => $annualAmountInCents,
+                    'currency'    => $currency,
+                    'recurring'   => ['interval' => 'year'],
+                    'metadata'    => ['plan_id' => (string) $plan->id, 'billing' => 'annual'],
+                ]);
+                if ($plan->stripe_annual_price_id && $plan->stripe_annual_price_id !== $annualPrice->id) {
+                    try { $stripe->prices->update($plan->stripe_annual_price_id, ['active' => false]); } catch (\Exception) {}
+                }
+                $annualPriceId = $annualPrice->id;
+                $updateData['stripe_annual_price_id'] = $annualPriceId;
+            }
+
+            $plan->update($updateData);
 
             return response()->json([
-                'success'           => true,
-                'stripe_product_id' => $product->id,
-                'stripe_price_id'   => $price->id,
-                'amount'            => number_format($plan->price, 2) . ' ' . strtoupper($currency),
+                'success'                => true,
+                'stripe_product_id'      => $product->id,
+                'stripe_price_id'        => $price->id,
+                'stripe_annual_price_id' => $annualPriceId,
+                'amount'                 => number_format($plan->price, 2) . ' ' . strtoupper($currency),
             ]);
 
         } catch (\Stripe\Exception\ApiErrorException $e) {

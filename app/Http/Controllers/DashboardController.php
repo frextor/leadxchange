@@ -143,6 +143,20 @@ class DashboardController extends Controller
             ->limit(3)
             ->get();
 
+        // ── Popup solde négatif depuis > 2 mois ─────────────────────────────
+        $negativeBalancePopup = false;
+        $pointsNeeded         = 0;
+        $pointsPricePerUnit   = (float) SystemSetting::get('points.price_per_unit', 5.00);
+
+        if (
+            ($user->points_balance ?? 0) < 0 &&
+            $user->points_negative_since &&
+            $user->points_negative_since->lt(now()->subMonths(2))
+        ) {
+            $negativeBalancePopup = true;
+            $pointsNeeded         = abs((int) $user->points_balance);
+        }
+
         return view('dashboard', compact(
             'user', 'connectionCount', 'pendingCount', 'groupCount',
             'completion', 'missing', 'prospects', 'plans',
@@ -150,7 +164,8 @@ class DashboardController extends Controller
             'upcomingEvents', 'attendingEventIds',
             'leadStats', 'pendingLeads',
             'popupEnabled', 'popupFrequency',
-            'popupTitle', 'popupSubtitle', 'popupBtnLater', 'popupBtnCta'
+            'popupTitle', 'popupSubtitle', 'popupBtnLater', 'popupBtnCta',
+            'negativeBalancePopup', 'pointsNeeded', 'pointsPricePerUnit'
         ));
     }
 }

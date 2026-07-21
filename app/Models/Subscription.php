@@ -19,6 +19,7 @@ class Subscription extends Model
         'plan_id',
         'stripe_subscription_id',
         'status',
+        'billing_period',
         'stripe_status',
         'trial_ends_at',
         'ends_at',

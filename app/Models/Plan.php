@@ -15,8 +15,8 @@ class Plan extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'name', 'label', 'description', 'price', 'billing_period',
-        'stripe_product_id', 'stripe_price_id',
+        'name', 'label', 'description', 'price', 'annual_price', 'billing_period',
+        'stripe_product_id', 'stripe_price_id', 'stripe_annual_price_id',
         'max_leads', 'max_groups', 'max_users',
         'features', 'permissions',
         'is_active', 'is_visible', 'is_enterprise',
@@ -27,6 +27,7 @@ class Plan extends Model
         'features'      => 'array',
         'permissions'   => 'array',
         'price'         => 'decimal:2',
+        'annual_price'  => 'decimal:2',
         'max_leads'     => 'integer',
         'max_groups'    => 'integer',
         'max_users'     => 'integer',

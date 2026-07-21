@@ -255,6 +255,11 @@
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                         Paiements
                     </a>
+                    <a href="{{ route('admin.super.settings.points') }}"
+                       class="nav-item sa {{ request()->routeIs('admin.super.settings.points*') ? 'active' : '' }}">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                        Achat de points
+                    </a>
                     <a href="{{ route('admin.super.enterprise.index') }}"
                        class="nav-item sa {{ request()->routeIs('admin.super.enterprise.index') || request()->routeIs('admin.super.enterprise.create') || request()->routeIs('admin.super.enterprise.edit') ? 'active' : '' }}">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>

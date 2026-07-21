@@ -157,6 +157,8 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
     // Stripe Checkout (auth required)
     Route::post('/checkout/{plan}', [\App\Http\Controllers\StripeCheckoutController::class, 'checkout'])->name('checkout');
     Route::get('/checkout/success',  [\App\Http\Controllers\StripeCheckoutController::class, 'success'])->name('checkout.success');
+    Route::post('/points/buy',     [\App\Http\Controllers\PointsPurchaseController::class, 'checkout'])->name('points.buy');
+    Route::get('/points/success',  [\App\Http\Controllers\PointsPurchaseController::class, 'success'])->name('points.success');
 
     // Company Routes
     Route::get('/company/create', [CompanyController::class, 'create'])->name('company.create');
