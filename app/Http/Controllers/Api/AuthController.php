@@ -72,7 +72,7 @@ class AuthController extends Controller
                 $user = $user->fresh();
             }
 
-            // Create token
+            // Mark referral as registered if token provided\n            $referralToken = $validated['referral_token'] ?? null;\n            if ($referralToken) {\n                \\App\\Models\\Referral::where('token', $referralToken)\n                    ->where('status', 'pending')\n                    ->update(['status' => 'registered']);\n            }\n\n            // Create token
             $token = $this->authService->createToken($user);
 
             // Return JSON response
@@ -132,7 +132,8 @@ class AuthController extends Controller
     public function linkedin(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'code' => ['required', 'string'],
+            'code'           => ['required', 'string'],
+            'referral_token' => ['nullable', 'string', 'max:255'],
         ]);
 
         $clientId = config('services.linkedin.client_id');
@@ -194,7 +195,7 @@ class AuthController extends Controller
                 ], 422);
             }
 
-            $user = $this->authService->loginWithLinkedIn($userInfoResponse->json());
+            $user = $this->authService->loginWithLinkedIn($userInfoResponse->json(), $validated['referral_token'] ?? null);
             $this->authService->revokeAllTokens($user);
             $token = $this->authService->createToken($user);
 

@@ -50,13 +50,14 @@ class SettingsController extends Controller
 
             'plans'         => Plan::where('is_active', true)
                                    ->orderBy('sort_order')
-                                   ->get(['id', 'name', 'label', 'description', 'price', 'billing_period', 'max_leads', 'max_groups', 'max_users', 'features', 'permissions'])
+                                   ->get(['id', 'name', 'label', 'description', 'price', 'annual_price', 'billing_period', 'max_leads', 'max_groups', 'max_users', 'features', 'permissions', 'is_visible'])
                                    ->map(fn($plan) => [
                                        'id'             => $plan->id,
                                        'name'           => $plan->name,
                                        'label'          => $plan->label,
                                        'description'    => $plan->description,
                                        'price'          => $plan->price,
+                                       'annual_price'   => $plan->annual_price,
                                        'billing_period' => $plan->billing_period,
                                        'max_leads'      => $plan->max_leads,
                                        'max_groups'     => $plan->max_groups,

@@ -70,8 +70,8 @@ class ConnectionService
             }
         }
 
-        // Rule 3: Monthly connection quota from plan
-        $quota = $sender->getFeature('max_connections_per_month');
+        // Rule 3: Monthly connection quota from plan (admin-configurable via permissions)
+        $quota = $sender->planPermission('max_connections_per_month');
         if (is_int($quota) && $quota > 0) {
             $sentThisMonth = Connection::where('sender_id', $sender->id)
                 ->where('created_at', '>=', now()->startOfMonth())

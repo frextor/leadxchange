@@ -230,6 +230,31 @@ class User extends Authenticatable implements MustVerifyEmail
             && (float) ($this->subscription->plan?->price ?? 0) > 0;
     }
 
+    /**
+     * Revoke consul/ambassador status when the user no longer has an active paid plan.
+     * Called whenever a subscription expires or is canceled.
+     */
+    public function revokePrivilegedRolesIfBasic(): void
+    {
+        $this->load("subscription");
+
+        if ($this->hasPaidPlan()) {
+            return;
+        }
+
+        $updates = [];
+        if ($this->consul_status === "approved") {
+            $updates["consul_status"] = "none";
+        }
+        if ($this->ambassador_status === "approved") {
+            $updates["ambassador_status"] = "none";
+        }
+
+        if (! empty($updates)) {
+            $this->update($updates);
+        }
+    }
+
     public function hasPendingAmbassadorRequest(): bool
     {
         return $this->consulRequests()->where('status', 'pending')->exists();

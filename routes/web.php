@@ -356,3 +356,18 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
     // Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 });
+
+
+// Referral deep link — redirects to app, falls back to web registration
+Route::get('/referral/{token}', function (string $token) {
+    $deepLink = 'x-tensia://register?referralToken=' . $token;
+    // Meta-refresh fallback for devices without the app
+    return response("
+        <html><head>
+        <meta http-equiv='refresh' content='0;url={$deepLink}'>
+        </head><body>
+        <script>window.location='{$deepLink}';</script>
+        <p>Redirection... <a href='{$deepLink}'>Cliquez ici</a> si rien ne se passe.</p>
+        </body></html>
+    ");
+})->name('referral.redirect');

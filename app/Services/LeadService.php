@@ -13,6 +13,7 @@ class LeadService
 {
     public function __construct(
         private FirebaseService $firebase,
+        private PointsService   $points,
     ) {}
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -47,10 +48,44 @@ class LeadService
                 ->where('created_at', '>=', now()->startOfMonth())
                 ->count();
             if ($receivedThisMonth >= $maxReceived) {
+                try {
+                    $suggestedPlan = \App\Models\Plan::where('sort_order', '>', $receiver->effectivePlan()?->sort_order ?? 0)
+                        ->where('is_active', true)
+                        ->orderBy('sort_order')
+                        ->first();
+                    $this->firebase->sendLeadBlockedNotification(
+                        $receiver,
+                        'lead_limit_reached',
+                        'Lead non reçu — limite atteinte',
+                        "Vous avez atteint votre limite de {$maxReceived} lead(s) ce mois-ci. Passez à un plan supérieur pour en recevoir davantage.",
+                        $suggestedPlan ? ['plan_id' => (string) $suggestedPlan->id] : [],
+                    );
+                } catch (\Exception $e) {
+                    Log::warning('Lead blocked notification failed', ['error' => $e->getMessage()]);
+                }
                 throw new \Exception(
                     "{$receiver->first_name} {$receiver->last_name} a atteint sa limite de {$maxReceived} lead(s) reçus ce mois-ci."
                 );
             }
+        }
+
+        // Receiver blocked if their balance is below the minimum
+        if (!$this->points->canReceive($receiver)) {
+            try {
+                $this->firebase->sendLeadBlockedNotification(
+                    $receiver,
+                    'lead_blocked_balance',
+                    'Lead non reçu — solde insuffisant',
+                    "Votre solde est de {$receiver->points_balance} pt. Rechargez pour continuer à recevoir des leads.",
+                );
+            } catch (\Exception $e) {
+                Log::warning('Lead blocked notification failed', ['error' => $e->getMessage()]);
+            }
+            throw new \Exception(
+                "{$receiver->first_name} {$receiver->last_name} ne peut pas recevoir de leads pour le moment " .
+                "(solde de points insuffisant — actuellement {$receiver->points_balance} pt" .
+                (abs($receiver->points_balance) > 1 ? 's' : '') . ').'
+            );
         }
 
         DB::beginTransaction();

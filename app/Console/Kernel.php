@@ -29,6 +29,11 @@ class Kernel extends ConsoleKernel
 
         // CGU §6.2.3 — Revert points for unrated expired leads
         $schedule->command('leads:process-expired-ratings')->dailyAt('04:00');
+
+        // Downgrade subscriptions whose cancel_at_period_end date has passed
+        // Run every minute in test mode so short test periods expire promptly
+        $testMode = (bool) \App\Models\SystemSetting::get('payments.subscription_test_mode');
+        $schedule->command('subscriptions:expire')->when(fn() => true)->{$testMode ? 'everyMinute' : 'hourly'}();
     }
 
     /**

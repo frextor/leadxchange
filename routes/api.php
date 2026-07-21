@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\AmbassadorController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\ReferralController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -164,8 +165,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Payment Routes
     Route::get('/payments/config',                         [PaymentController::class, 'config']);
+    Route::post('/payments/balance',                       [PaymentController::class, 'balanceIntent']);
     Route::post('/payments/events/{event}/intent',         [PaymentController::class, 'eventIntent']);
     Route::post('/payments/plans/{plan}/subscription',     [PaymentController::class, 'planSubscription']);
+    Route::get('/payments/subscription',                   [PaymentController::class, 'subscriptionDetails']);
+    Route::delete('/payments/subscription',                [PaymentController::class, 'cancelSubscription']);
     Route::get('/payments/status',                         [PaymentController::class, 'status']);
 
     // Enterprise invitation Routes
@@ -216,3 +220,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/consuls/{user}/revoke',              [AmbassadorController::class, 'revokeConsul']);
     });
 });
+
+// Referrals
+Route::middleware('auth:sanctum')->post('/referrals', [ReferralController::class, 'send']);

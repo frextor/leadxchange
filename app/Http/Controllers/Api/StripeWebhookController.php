@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Mail\SystemNotificationMail;
+use App\Models\BalancePurchase;
 use App\Models\EventPayment;
 use App\Services\ActivityLogger;
+use App\Services\PointsService;
 use App\Models\EventInvitation;
 use App\Models\Plan;
 use App\Models\Subscription;
@@ -45,8 +47,8 @@ class StripeWebhookController extends Controller
             'customer.subscription.created',
             'customer.subscription.updated',
             'customer.subscription.deleted' => $this->syncSubscription($object),
-            'invoice.payment_succeeded',
-            'invoice.payment_failed' => $this->syncInvoiceSubscription($object),
+            'invoice.payment_succeeded' => $this->syncInvoiceSubscription($object),
+            'invoice.payment_failed'   => $this->handleInvoicePaymentFailed($object),
             default => null,
         };
 
@@ -55,7 +57,14 @@ class StripeWebhookController extends Controller
 
     private function handlePaymentIntentSucceeded(object $paymentIntent): void
     {
-        if (($paymentIntent->metadata?->type ?? null) !== 'event_registration') {
+        $type = $paymentIntent->metadata?->type ?? null;
+
+        if ($type === 'balance_purchase') {
+            $this->handleBalancePurchaseSucceeded($paymentIntent);
+            return;
+        }
+
+        if ($type !== 'event_registration') {
             return;
         }
 
@@ -92,6 +101,26 @@ class StripeWebhookController extends Controller
         });
     }
 
+    private function handleBalancePurchaseSucceeded(object $paymentIntent): void
+    {
+        DB::transaction(function () use ($paymentIntent) {
+            $purchase = BalancePurchase::where('stripe_payment_intent_id', $paymentIntent->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$purchase || $purchase->status === 'succeeded') {
+                return;
+            }
+
+            $purchase->update(['status' => 'succeeded']);
+
+            $user = User::find($purchase->user_id);
+            if (!$user) return;
+
+            app(PointsService::class)->adjust($user, $purchase->points, 'balance_purchase');
+        });
+    }
+
     private function handlePaymentIntentFailed(object $paymentIntent): void
     {
         $this->markEventPaymentFailed(
@@ -125,11 +154,51 @@ class StripeWebhookController extends Controller
             return;
         }
 
-        $subscription = \Stripe\Subscription::retrieve($invoice->subscription);
-        $this->syncSubscription($subscription);
+        try {
+            $subscription = \Stripe\Subscription::retrieve($invoice->subscription);
+            $this->syncSubscription($subscription, isRenewal: true);
+        } catch (\Throwable) {
+            // Subscription may not exist (test trigger with fake ID) — notifications still proceed
+        }
     }
 
-    private function syncSubscription(object $stripeSubscription): void
+    private function handleInvoicePaymentFailed(object $invoice): void
+    {
+        // Keep subscription state in sync with Stripe
+        $this->syncInvoiceSubscription($invoice);
+
+        if (!$invoice->subscription || !$invoice->customer) {
+            return;
+        }
+
+        $user = User::where('stripe_customer_id', $invoice->customer)->first();
+        if (!$user) {
+            return;
+        }
+
+        // Push notification
+        try {
+            app(\App\Services\FirebaseService::class)->sendLeadBlockedNotification(
+                $user,
+                'payment_failed',
+                'Paiement échoué',
+                'Votre paiement n\'a pas pu être traité. Votre abonnement sera annulé si le problème persiste.',
+            );
+        } catch (\Exception) {}
+
+        // Email
+        try {
+            Mail::to($user->email)->send(new \App\Mail\SystemNotificationMail(
+                recipientName: $user->first_name,
+                title:         'Paiement échoué',
+                body:          'Votre paiement pour l\'abonnement LeadXchange n\'a pas pu être traité. Veuillez mettre à jour votre moyen de paiement pour conserver votre accès Premium.',
+                actionLabel:   'Gérer mon abonnement',
+                actionUrl:     config('app.url'),
+            ));
+        } catch (\Exception) {}
+    }
+
+    private function syncSubscription(object $stripeSubscription, bool $isRenewal = false): void
     {
         $userId = $stripeSubscription->metadata?->user_id ?? null;
         $planId = $stripeSubscription->metadata?->plan_id ?? null;
@@ -198,9 +267,7 @@ class StripeWebhookController extends Controller
                     'plan_id' => $plan->id,
                     'status' => $localStatus,
                     'stripe_status' => $stripeSubscription->status,
-                    'current_period_end' => $stripeSubscription->current_period_end
-                        ? Carbon::createFromTimestamp($stripeSubscription->current_period_end)
-                        : null,
+                    'current_period_end' => $this->resolveTestPeriodEnd($stripeSubscription),
                     'cancel_at_period_end' => (bool) $stripeSubscription->cancel_at_period_end,
                     'ends_at' => $stripeSubscription->ended_at
                         ? Carbon::createFromTimestamp($stripeSubscription->ended_at)
@@ -220,6 +287,15 @@ class StripeWebhookController extends Controller
             );
 
             try {
+                app(\App\Services\FirebaseService::class)->sendLeadBlockedNotification(
+                    $user,
+                    'plan_activated',
+                    'Abonnement activé !',
+                    'Votre abonnement ' . $plan->label . ' est maintenant actif. Profitez de toutes les fonctionnalités LeadXchange !',
+                );
+            } catch (\Throwable) {}
+
+            try {
                 Mail::to($user->email)->send(new SystemNotificationMail(
                     recipientName: $user->first_name,
                     title:         'Votre plan ' . $plan->label . ' est activé !',
@@ -231,10 +307,52 @@ class StripeWebhookController extends Controller
                 ));
             } catch (\Throwable) {}
         }
+
+        // Renewal notification (invoice paid, subscription was already active)
+        if ($isRenewal && $localStatus === 'active' && $previousStatus === 'active') {
+            try {
+                app(\App\Services\FirebaseService::class)->sendLeadBlockedNotification(
+                    $user,
+                    'subscription_renewed',
+                    'Abonnement renouvelé',
+                    'Votre abonnement ' . $plan->label . ' a été renouvelé avec succès.',
+                );
+            } catch (\Throwable) {}
+
+            try {
+                Mail::to($user->email)->send(new SystemNotificationMail(
+                    recipientName: $user->first_name,
+                    title:         'Abonnement renouvelé',
+                    body:          'Votre abonnement <strong>' . $plan->label . '</strong> a été renouvelé avec succès. Merci pour votre fidélité !',
+                    actionLabel:   'Accéder à mon dashboard',
+                    actionUrl:     route('dashboard'),
+                ));
+            } catch (\Throwable) {}
+        }
+
+        // Revoke consul/ambassador if user no longer has a paid plan after this sync
+        if ($localStatus !== 'active') {
+            $user->revokePrivilegedRolesIfBasic();
+        }
     }
 
     private function localSubscriptionStatus(string $stripeStatus): string
     {
         return in_array($stripeStatus, ['active', 'trialing'], true) ? 'active' : 'canceled';
+    }
+
+    private function resolveTestPeriodEnd(object $stripeSubscription): ?Carbon
+    {
+        if ((bool) \App\Models\SystemSetting::get('payments.subscription_test_mode')) {
+            $interval = $stripeSubscription->items?->data[0]?->price?->recurring?->interval ?? 'month';
+            $key      = $interval === 'year'
+                ? 'payments.subscription_test_annual_minutes'
+                : 'payments.subscription_test_monthly_minutes';
+            $minutes  = (int) (\App\Models\SystemSetting::get($key) ?: 5);
+            return Carbon::now()->addMinutes($minutes);
+        }
+        return $stripeSubscription->current_period_end
+            ? Carbon::createFromTimestamp($stripeSubscription->current_period_end)
+            : null;
     }
 }

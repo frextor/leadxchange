@@ -118,6 +118,7 @@ class PlanController extends Controller
         'Connexions' => [
             'can_send_invitations'          => ['label' => 'Envoyer des invitations',      'type' => 'bool'],
             'can_receive_invitations'       => ['label' => 'Recevoir des invitations',     'type' => 'bool'],
+            'max_connections_per_month'     => ['label' => 'Invitations connexion / mois', 'type' => 'number', 'null_label' => 'Illimité'],
         ],
         'Chat / Messages' => [
             'can_send_mail'                 => ['label' => 'Envoyer des messages',         'type' => 'bool'],

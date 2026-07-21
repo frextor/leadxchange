@@ -113,6 +113,49 @@ class SettingsController extends Controller
         return back()->with('success', 'Paramètres du popup enregistrés.');
     }
 
+    // ── §5.x Payments ─────────────────────────────────────────────────────
+
+    public function payments(): View
+    {
+        $settings = SystemSetting::where('group', 'payments')->get()->keyBy('key');
+
+        return view('admin.super_admin.settings.payments', compact('settings'));
+    }
+
+    public function updatePayments(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'point_price_cents'                  => ['required', 'integer', 'min:1', 'max:100000'],
+            'subscription_test_mode'             => ['nullable', 'boolean'],
+            'subscription_test_monthly_minutes'  => ['nullable', 'integer', 'min:1', 'max:10080'],
+            'subscription_test_annual_minutes'   => ['nullable', 'integer', 'min:1', 'max:10080'],
+        ]);
+
+        SystemSetting::updateOrCreate(
+            ['key' => 'payments.point_price_cents'],
+            ['value' => (string) $data['point_price_cents'], 'group' => 'payments', 'type' => 'int']
+        );
+
+        $testMode = !empty($data['subscription_test_mode']);
+        SystemSetting::updateOrCreate(
+            ['key' => 'payments.subscription_test_mode'],
+            ['value' => $testMode ? '1' : '0', 'group' => 'payments', 'type' => 'bool']
+        );
+        SystemSetting::updateOrCreate(
+            ['key' => 'payments.subscription_test_monthly_minutes'],
+            ['value' => (string) ($data['subscription_test_monthly_minutes'] ?? 5), 'group' => 'payments', 'type' => 'int']
+        );
+        SystemSetting::updateOrCreate(
+            ['key' => 'payments.subscription_test_annual_minutes'],
+            ['value' => (string) ($data['subscription_test_annual_minutes'] ?? 10), 'group' => 'payments', 'type' => 'int']
+        );
+
+        Cache::forget('system_settings');
+        ActivityLogger::log('admin.settings.updated', "Paramètres de paiement mis à jour (test_mode=" . ($testMode ? 'on' : 'off') . ")");
+
+        return back()->with('success', 'Paramètres enregistrés.');
+    }
+
     // ── §5.3 Maintenance ──────────────────────────────────────────────────
 
     public function maintenance(): View

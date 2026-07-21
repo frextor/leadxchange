@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\BalancePurchase;
 use App\Models\Event;
 use App\Models\EventPayment;
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Models\SystemSetting;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +18,7 @@ use Stripe\Customer;
 use Stripe\EphemeralKey;
 use Stripe\PaymentIntent;
 use Stripe\Stripe;
+use Stripe\Invoice as StripeInvoice;
 use Stripe\Subscription as StripeSubscription;
 
 class PaymentController extends Controller
@@ -25,7 +28,52 @@ class PaymentController extends Controller
         return response()->json([
             'publishable_key'       => config('services.stripe.publishable'),
             'merchant_display_name' => config('app.name', 'LeadXchange'),
+            'point_price_cents'     => (int) SystemSetting::get('payments.point_price_cents', 100),
         ]);
+    }
+
+    public function balanceIntent(Request $request): JsonResponse
+    {
+        $this->configureStripe();
+
+        $request->validate([
+            'points' => ['required', 'integer', 'min:1', 'max:500'],
+        ]);
+
+        $user = $request->user();
+        $points = (int) $request->input('points');
+        $priceCents = (int) SystemSetting::get('payments.point_price_cents', 100);
+        $amount = $points * $priceCents;
+        $currency = config('services.stripe.currency', 'eur');
+
+        $customerId = $this->ensureStripeCustomer($user);
+
+        $paymentIntent = PaymentIntent::create([
+            'amount'   => $amount,
+            'currency' => $currency,
+            'customer' => $customerId,
+            'automatic_payment_methods' => ['enabled' => true],
+            'metadata' => [
+                'type'    => 'balance_purchase',
+                'user_id' => (string) $user->id,
+                'points'  => (string) $points,
+            ],
+        ]);
+
+        BalancePurchase::create([
+            'user_id'                   => $user->id,
+            'stripe_payment_intent_id'  => $paymentIntent->id,
+            'points'                    => $points,
+            'amount_cents'              => $amount,
+            'currency'                  => $currency,
+            'status'                    => $paymentIntent->status,
+        ]);
+
+        return response()->json($this->paymentSheetPayload([
+            'payment_intent_id' => $paymentIntent->id,
+            'client_secret'     => $paymentIntent->client_secret,
+            'customer_id'       => $customerId,
+        ]));
     }
 
     public function eventIntent(int $eventId, Request $request): JsonResponse
@@ -121,7 +169,13 @@ class PaymentController extends Controller
             return response()->json(['message' => 'You already have a higher plan.'], 422);
         }
 
-        $stripePriceId = $plan->stripe_price_id ?: config('services.stripe.premium_price_id');
+        $billing = $request->input('billing', 'monthly');
+        $isAnnual = $billing === 'annual' && $plan->stripe_annual_price_id;
+
+        $stripePriceId = $isAnnual
+            ? $plan->stripe_annual_price_id
+            : ($plan->stripe_price_id ?: config('services.stripe.premium_price_id'));
+
         if (!$stripePriceId) {
             return response()->json(['message' => 'Stripe price is not configured for this plan.'], 422);
         }
@@ -155,11 +209,10 @@ class PaymentController extends Controller
             [
                 'user_id' => $user->id,
                 'plan_id' => $plan->id,
+                'billing_period' => $isAnnual ? 'annual' : 'monthly',
                 'status' => $this->localSubscriptionStatus($stripeSubscription->status),
                 'stripe_status' => $stripeSubscription->status,
-                'current_period_end' => $stripeSubscription->current_period_end
-                    ? Carbon::createFromTimestamp($stripeSubscription->current_period_end)
-                    : null,
+                'current_period_end'   => $this->resolveTestPeriodEnd($stripeSubscription->current_period_end, $isAnnual ? 'annual' : 'monthly'),
                 'cancel_at_period_end' => (bool) $stripeSubscription->cancel_at_period_end,
             ],
         );
@@ -169,6 +222,89 @@ class PaymentController extends Controller
             'client_secret' => $paymentIntent->client_secret,
             'customer_id' => $customerId,
         ]));
+    }
+
+    public function cancelSubscription(Request $request): JsonResponse
+    {
+        $this->configureStripe();
+
+        $user = $request->user()->loadMissing('subscription');
+        $subscription = $user->subscription;
+
+        if (!$subscription || !$subscription->stripe_subscription_id) {
+            return response()->json(['message' => 'No active subscription found.'], 422);
+        }
+
+        if ($subscription->status !== 'active') {
+            return response()->json(['message' => 'Subscription is not active.'], 422);
+        }
+
+        try {
+            $stripeSubscription = StripeSubscription::retrieve($subscription->stripe_subscription_id);
+            $stripeSubscription->cancel_at_period_end = true;
+            $stripeSubscription->save();
+
+            $subscription->update([
+                'cancel_at_period_end' => true,
+                'current_period_end'   => $this->resolveTestPeriodEnd(
+                    $stripeSubscription->current_period_end,
+                    $subscription->billing_period ?? 'monthly'
+                ),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to cancel subscription.'], 500);
+        }
+
+        return response()->json(['message' => 'Subscription will be cancelled at the end of the billing period.']);
+    }
+
+    public function subscriptionDetails(Request $request): JsonResponse
+    {
+        $user = $request->user()->loadMissing('subscription.plan');
+        $subscription = $user->subscription;
+
+        if (!$subscription) {
+            return response()->json(['subscription' => null, 'invoices' => []]);
+        }
+
+        $invoices = [];
+        if ($subscription->stripe_subscription_id && $user->stripe_customer_id) {
+            $this->configureStripe();
+            try {
+                $stripeInvoices = StripeInvoice::all([
+                    'customer'     => $user->stripe_customer_id,
+                    'subscription' => $subscription->stripe_subscription_id,
+                    'limit'        => 24,
+                ]);
+                $invoices = collect($stripeInvoices->data)
+                    ->map(fn($inv) => [
+                        'id'          => $inv->id,
+                        'number'      => $inv->number,
+                        'amount_paid' => $inv->amount_paid,
+                        'currency'    => $inv->currency,
+                        'status'      => $inv->status,
+                        'date'        => $inv->created,
+                        'pdf_url'     => $inv->invoice_pdf,
+                    ])
+                    ->values()
+                    ->all();
+            } catch (\Exception) {}
+        }
+
+        return response()->json([
+            'subscription' => [
+                'plan_name'            => $subscription->plan?->name,
+                'plan_label'           => $subscription->plan?->label,
+                'price'                => $subscription->plan?->price,
+                'annual_price'         => $subscription->plan?->annual_price,
+                'billing_period'       => $subscription->billing_period ?? 'monthly',
+                'status'               => $subscription->status,
+                'cancel_at_period_end' => $subscription->cancel_at_period_end,
+                'current_period_end'   => $subscription->current_period_end?->toIso8601String(),
+                'starts_at'            => $subscription->created_at?->toIso8601String(),
+            ],
+            'invoices' => $invoices,
+        ]);
     }
 
     public function status(Request $request): JsonResponse
@@ -277,6 +413,22 @@ class PaymentController extends Controller
     private function localSubscriptionStatus(string $stripeStatus): string
     {
         return in_array($stripeStatus, ['active', 'trialing'], true) ? 'active' : 'canceled';
+    }
+
+    /**
+     * Returns a test period end (from admin settings) when subscription test mode is active,
+     * otherwise returns the real Stripe timestamp as a Carbon instance.
+     */
+    private function resolveTestPeriodEnd(?int $stripeTimestamp, string $billingPeriod = 'monthly'): ?Carbon
+    {
+        if ((bool) \App\Models\SystemSetting::get('payments.subscription_test_mode')) {
+            $key = $billingPeriod === 'annual'
+                ? 'payments.subscription_test_annual_minutes'
+                : 'payments.subscription_test_monthly_minutes';
+            $minutes = (int) (\App\Models\SystemSetting::get($key) ?: 5);
+            return Carbon::now()->addMinutes($minutes);
+        }
+        return $stripeTimestamp ? Carbon::createFromTimestamp($stripeTimestamp) : null;
     }
 
     private function planPriority(Plan $plan): float

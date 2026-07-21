@@ -541,6 +541,18 @@ class FirebaseService
         ]);
     }
 
+    public function sendLeadBlockedNotification(User $receiver, string $type, string $title, string $body, array $data = []): void
+    {
+        Notification::storeForUser($receiver, $type, $title, $body, $data ?: null);
+
+        $tokens = DeviceToken::where('user_id', $receiver->id)->pluck('token');
+        if ($tokens->isEmpty()) {
+            return;
+        }
+
+        $this->sendToTokens($tokens, $title, $body, array_merge(['type' => $type], $data));
+    }
+
     public function sendConsulRequestNotification(User $requester): void
     {
         if (!$requester->city_id) {
