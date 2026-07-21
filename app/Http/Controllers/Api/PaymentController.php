@@ -36,12 +36,14 @@ class PaymentController extends Controller
     {
         $this->configureStripe();
 
-        $request->validate([
-            'points' => ['required', 'integer', 'min:1', 'max:500'],
-        ]);
-
         $user = $request->user();
-        $points = (int) $request->input('points');
+        $currentBalance = (int) ($user->points_balance ?? 0);
+
+        if ($currentBalance >= 0) {
+            return response()->json(['message' => 'Your balance is not negative. No purchase needed.'], 422);
+        }
+
+        $points = abs($currentBalance);
         $priceCents = (int) SystemSetting::get('payments.point_price_cents', 100);
         $amount = $points * $priceCents;
         $currency = config('services.stripe.currency', 'eur');
