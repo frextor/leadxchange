@@ -12,6 +12,20 @@ use Illuminate\Support\Facades\Log;
 
 class UserService
 {
+    /** Cache per-request so list endpoints don't repeat the same query N times. */
+    private array $viewerPermissionCache = [];
+
+    private function viewerCanViewMemberName(int $currentUserId): bool
+    {
+        if (!isset($this->viewerPermissionCache[$currentUserId])) {
+            $viewer = User::with('subscription.plan')->find($currentUserId);
+            $this->viewerPermissionCache[$currentUserId] =
+                (bool) ($viewer?->subscription?->plan?->permissions['can_view_member_name'] ?? false);
+        }
+        return $this->viewerPermissionCache[$currentUserId];
+    }
+
+
     /**
      * Get paginated users with connection status and optional filters.
      *
@@ -248,14 +262,13 @@ class UserService
 
         $theirSectorIds  = $user->profile?->sector_ids ?? [];
 
-        $planName   = $user->subscription?->plan?->name;
-        $isBasic    = $planName === null || str_contains(strtolower($planName), 'basic');
-        $isSelf     = $user->id === $currentUserId;
+        $isSelf          = $user->id === $currentUserId;
+        $canViewName     = $isSelf || $this->viewerCanViewMemberName($currentUserId);
 
         return [
             'id'               => $user->id,
             'first_name'       => $user->first_name,
-            'last_name'        => ($isBasic && !$isSelf) ? null : $user->last_name,
+            'last_name'        => $canViewName ? $user->last_name : null,
             'email'            => $user->email,
             'phone'            => ['number' => $user->phone, 'code' => $user->phone_country_code],
             'city'             => $user->relationLoaded('city') ? ['id' => $user->city_id, 'name' => $user->city?->name] : null,
