@@ -350,7 +350,7 @@ $canViewFull = $isOwnProfile || auth()->user()->canFeature('can_view_member_name
         <div class="space-y-5">
 
             {{-- À propos --}}
-            <x-profile-section title="À propos" :editModal="$isOwnProfile ? 'modal-bio' : null">
+            <x-profile-section title="A propos de moi" :editModal="$isOwnProfile ? 'modal-bio' : null">
                 @if ($profile?->bio || $profile?->motto)
                     @if ($profile?->motto)
                     <x-profile-block label="Motto">
@@ -385,14 +385,29 @@ $canViewFull = $isOwnProfile || auth()->user()->canFeature('can_view_member_name
                         <x-profile-kv label="Poste">{{ $profile->job_title }}</x-profile-kv>
                         @endif
                         @if ($profile?->sector)
-                        <x-profile-kv label="Secteur">{{ $profile->sector }}</x-profile-kv>
+                        <x-profile-kv label="Mon secteur d'activité">{{ $profile->sector }}</x-profile-kv>
                         @endif
                         @if ($profile?->experience_level)
                         <x-profile-kv label="Expérience">{{ $expLabels[$profile->experience_level] ?? $profile->experience_level }}</x-profile-kv>
                         @endif
                     </div>
+                    @php
+                        $marketAddressed = $profile?->market_addressed_id ? $markets->firstWhere('id', $profile->market_addressed_id) : null;
+                        $marketTarget    = $profile?->market_target_id    ? $markets->firstWhere('id', $profile->market_target_id)    : null;
+                    @endphp
+                    @if ($marketAddressed || $marketTarget)
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        @if ($marketAddressed)
+                        <x-profile-kv label="Marché que j'adresse actuellement">{{ $marketAddressed->name }}</x-profile-kv>
+                        @endif
+                        @if ($marketTarget)
+                        <x-profile-kv label="Marché que je souhaite développer">{{ $marketTarget->name }}</x-profile-kv>
+                        @endif
+                    </div>
+                    @endif
+
                     @if (!empty($currentLookingFor))
-                    <x-profile-block label="Recherche">
+                    <x-profile-block label="Les contacts que je recherche">
                         <div class="flex flex-wrap gap-2 mt-1">
                             @foreach ($currentLookingFor as $sectorId)
                             @php $s = $sectors->firstWhere('id', $sectorId); @endphp
@@ -407,7 +422,7 @@ $canViewFull = $isOwnProfile || auth()->user()->canFeature('can_view_member_name
                     </x-profile-block>
                     @endif
                     @if (!empty($currentServicesOffered))
-                    <x-profile-block label="Services proposés">
+                    <x-profile-block label="Les contacts que je peux proposer">
                         <div class="flex flex-wrap gap-2 mt-1">
                             @foreach ($currentServicesOffered as $sectorId)
                             @php $s = $sectors->firstWhere('id', $sectorId); @endphp
@@ -797,7 +812,25 @@ $canViewFull = $isOwnProfile || auth()->user()->canFeature('can_view_member_name
                 </select>
             </div>
             <div>
-                <label class="lbl">Recherche <span class="text-gray-400 font-normal normal-case">(secteurs recherchés — multi-choix)</span></label>
+                <label class="lbl">Marché que j'adresse actuellement</label>
+                <select id="pro_market_addressed" class="inp">
+                    <option value="">— Sélectionner —</option>
+                    @foreach ($markets as $market)
+                    <option value="{{ $market->id }}" {{ $profile?->market_addressed_id == $market->id ? 'selected' : '' }}>{{ $market->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="lbl">Marché que je souhaite développer</label>
+                <select id="pro_market_target" class="inp">
+                    <option value="">— Sélectionner —</option>
+                    @foreach ($markets as $market)
+                    <option value="{{ $market->id }}" {{ $profile?->market_target_id == $market->id ? 'selected' : '' }}>{{ $market->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="lbl">Les contacts que je recherche <span class="text-gray-400 font-normal normal-case">(secteurs — multi-choix)</span></label>
                 <div class="flex flex-wrap gap-2 pt-1">
                     @foreach ($sectors as $sector)
                     <button type="button" data-value="{{ $sector->id }}"
@@ -809,7 +842,7 @@ $canViewFull = $isOwnProfile || auth()->user()->canFeature('can_view_member_name
                 </div>
             </div>
             <div>
-                <label class="lbl">Services proposés <span class="text-gray-400 font-normal normal-case">(secteurs d'activité — multi-choix)</span></label>
+                <label class="lbl">Les contacts que je peux proposer <span class="text-gray-400 font-normal normal-case">(secteurs d'activité — multi-choix)</span></label>
                 <div class="flex flex-wrap gap-2 pt-1">
                     @foreach ($sectors as $sector)
                     <button type="button" data-value="{{ $sector->id }}"
@@ -1040,11 +1073,13 @@ $canViewFull = $isOwnProfile || auth()->user()->canFeature('can_view_member_name
         const services   = [...document.querySelectorAll('.so-chip.selected')].map(b => parseInt(b.dataset.value));
         try {
             await apiFetch('/api/profile/professional', 'PUT', {
-                job_title:        document.getElementById('pro_job_title').value || null,
-                sector:           document.getElementById('pro_sector').value || null,
-                experience_level: document.getElementById('pro_experience').value || null,
-                looking_for:      lookingFor,
-                services_offered: services,
+                job_title:           document.getElementById('pro_job_title').value || null,
+                sector:              document.getElementById('pro_sector').value || null,
+                experience_level:    document.getElementById('pro_experience').value || null,
+                market_addressed_id: document.getElementById('pro_market_addressed').value || null,
+                market_target_id:    document.getElementById('pro_market_target').value || null,
+                looking_for:         lookingFor,
+                services_offered:    services,
             });
             closeModal('modal-professional');
             toast('Profil mis à jour !', 'success');

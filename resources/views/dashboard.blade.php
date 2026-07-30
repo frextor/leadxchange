@@ -245,49 +245,7 @@
                     <span class="text-xs font-semibold text-white/90">{{ $planLabel }}</span>
                 </span>
 
-                {{-- Role badges & consul request --}}
-                @php $authUser = auth()->user(); @endphp
-
-                {{-- Hiérarchie : Basic → Premium → Consul (nommé admin) → Ambassadeur (consul demande) --}}
-
-                {{-- Badge Ambassadeur --}}
-                @if($authUser->isAmbassador())
-                <span class="flex items-center gap-2 px-2 py-1 rounded-xl border border-white/20" style="background:rgba(255,255,255,0.12);">
-                    <img src="{{ asset('images/plans/ambassadeur.jpg') }}"
-                         alt="Ambassadeur"
-                         onerror="this.style.display='none'"
-                         class="h-6 w-auto object-contain">
-                    <span class="text-xs font-semibold text-white/90">Ambassadeur ✓</span>
-                </span>
-                @endif
-
-                {{-- Badge Consul + bouton demande Ambassadeur --}}
-                @if($authUser->isConsul())
-                <span class="flex items-center gap-2 px-2 py-1 rounded-xl border border-white/20" style="background:rgba(255,255,255,0.12);">
-                    <img src="{{ asset('images/plans/consul.jpg') }}"
-                         alt="Consul"
-                         onerror="this.style.display='none'"
-                         class="h-6 w-auto object-contain">
-                    <span class="text-xs font-semibold text-white/90">Consul ✓</span>
-                </span>
-                @if(!$authUser->isAmbassador())
-                    @if($authUser->hasPendingAmbassadorRequest())
-                    <span class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-amber-300 border border-amber-300/30" style="background:rgba(245,158,11,0.15);">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-                        Demande Ambassadeur en attente…
-                    </span>
-                    @else
-                    <form method="POST" action="{{ route('consul.request') }}">
-                        @csrf
-                        <button type="submit"
-                                class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-white border border-white/20 hover:bg-white/10 transition backdrop-blur-sm">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                            Demander le rôle Ambassadeur
-                        </button>
-                    </form>
-                    @endif
-                @endif
-                @endif
+                {{-- Badge Ambassadeur (doublon retiré — le badge plan $planLabel suffit) --}}
             </div>
         </div>
     </div>
@@ -465,9 +423,7 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             @foreach($featuredGroups as $group)
-            <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden transition"
-                 onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,0.08)';this.style.transform='translateY(-2px)'"
-                 onmouseout="this.style.boxShadow='';this.style.transform=''">
+            <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 {{-- Cover --}}
                 <div class="h-20 relative" style="background: linear-gradient(135deg, {{ $group->cover_color }}, {{ $group->cover_color }}cc);">
                     <div class="absolute inset-0 flex items-center px-5">
@@ -496,14 +452,11 @@
                         <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border"
                               style="border-color:#1E8F88;color:#1E8F88;">Joined</span>
                         @else
-                        <form method="POST" action="{{ route('groups.join', $group->id) }}">
-                            @csrf
-                            <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition"
-                                    style="background:#1E8F88;"
-                                    onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
-                                Join
-                            </button>
-                        </form>
+                        <a href="{{ route('groups.show', $group->id) }}"
+                           class="px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                           style="border:1px solid #E5E7EB;color:#6B7280;">
+                            Voir →
+                        </a>
                         @endif
                     </div>
                 </div>
@@ -658,7 +611,10 @@
             'can_organize_regional_events' => 'Événements régionaux',
         ];
 
-        $sortedPlans = $plans->sortBy('sort_order')->values();
+        $sortedPlans       = $plans->sortBy('sort_order')->values();
+        $currentSortOrder  = $currentPlan?->sort_order ?? 0;
+        // Ne montrer que le plan actuel + les plans supérieurs (pas de downgrade)
+        $visiblePlans = $sortedPlans->filter(fn($p) => $p->sort_order >= $currentSortOrder)->values();
     @endphp
 
     <div>
@@ -679,9 +635,10 @@
             </a>
         </div>
 
-        {{-- Plans grid --}}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-{{ min($sortedPlans->count(), 3) }} gap-4">
-            @foreach($sortedPlans as $planIdx => $plan)
+        {{-- Plans — scroll horizontal sur mobile, grille sur desktop --}}
+        <div class="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 lg:grid-cols-{{ min($visiblePlans->count(), 3) }} sm:overflow-visible"
+             style="-webkit-overflow-scrolling:touch;scrollbar-width:none;">
+            @foreach($visiblePlans as $planIdx => $plan)
             @php
                 $t         = $planThemes[$plan->name] ?? $planThemes['basic'];
                 $isCurrent = $plan->id === $currentPlanId;
@@ -690,7 +647,7 @@
                 $isHighlighted = !$isCurrent && $planIdx === 1;
             @endphp
 
-            <div class="relative flex flex-col rounded-2xl border-2 overflow-hidden transition hover:shadow-lg"
+            <div class="relative flex flex-col rounded-2xl border-2 overflow-hidden transition hover:shadow-lg flex-shrink-0 w-72 sm:w-auto"
                  style="border-color: {{ $isCurrent ? $t['color'] : ($isHighlighted ? $t['border'] : '#E5E7EB') }};
                         box-shadow: {{ $isHighlighted ? '0 8px 30px rgba(0,0,0,.10)' : 'none' }};">
 

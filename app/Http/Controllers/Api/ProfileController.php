@@ -68,6 +68,8 @@ class ProfileController extends Controller
             'job_title'          => 'nullable|string|max:150',
             'sector'             => 'nullable|string|max:100',
             'experience_level'   => 'nullable|in:junior,mid,senior,expert',
+            'market_addressed_id'=> 'nullable|integer|exists:markets,id',
+            'market_target_id'   => 'nullable|integer|exists:markets,id',
             'looking_for'        => 'nullable|array',
             'looking_for.*'      => 'integer|exists:sectors,id',
             'services_offered'   => 'nullable|array',

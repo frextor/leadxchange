@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\City;
 use App\Models\Interest;
+use App\Models\Market;
 use App\Models\Profile;
 use App\Models\ProfileVisitor;
 use App\Models\Sector;
@@ -55,12 +56,15 @@ class ProfileController extends Controller
 
         $videoFlash = session('video_status');
 
+        $markets = Market::orderBy('name')->get();
+
         return view('profile', [
             'user'          => $user,
             'profile'       => $targetUser->profile,
             'userInterests' => $targetUser->interests,
             'allInterests'  => Interest::orderBy('name')->get(),
             'sectors'       => Sector::orderBy('name')->get(),
+            'markets'       => $markets,
             'cities'        => City::with('country:id,name')->orderBy('name')->get(),
             'completion'    => $this->profileService->getCompletionPercentage($targetUser),
             'missing'       => $id === $currentUserId ? $this->profileService->getMissingFields($targetUser) : [],
