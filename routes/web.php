@@ -368,7 +368,7 @@ Route::get('/referral/{token}', function (string $token) {
 })->name('referral.register');
 
 // Parrainage (espace connecté)
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('/parrainage',        [\App\Http\Controllers\ReferralWebController::class, 'index'])->name('referral.index');
     Route::post('/parrainage/send',  [\App\Http\Controllers\ReferralWebController::class, 'send'])->name('referral.send');
 });

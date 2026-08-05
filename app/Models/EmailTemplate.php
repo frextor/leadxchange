@@ -130,6 +130,15 @@ class EmailTemplate extends Model
                 'profile_url'    => '#',
             ],
         ],
+        'referral_invitation' => [
+            'name'            => 'Invitation parrainage',
+            'default_subject' => '{{referrer_name}} vous invite à rejoindre LeadXchange',
+            'variables'       => ['referrer_name', 'register_url'],
+            'sample'          => [
+                'referrer_name' => 'Jean Dupont',
+                'register_url'  => '#',
+            ],
+        ],
     ];
 
     // ── Core rendering ────────────────────────────────────────────────────────

@@ -61,8 +61,14 @@ class ReferralWebController extends Controller
 
         try {
             Mail::to($email)->send(new ReferralInvitationMail($user, $referral->token));
-        } catch (\Exception $e) {
-            return back()->with('error', 'Impossible d\'envoyer l\'email. Réessayez plus tard.');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('ReferralWebMail failed', [
+                'to'    => $email,
+                'error' => $e->getMessage(),
+            ]);
+            return back()
+                ->withInput()
+                ->with('error', 'Impossible d\'envoyer l\'email : ' . $e->getMessage());
         }
 
         return back()->with('success', "Invitation envoyée à {$email}.");
