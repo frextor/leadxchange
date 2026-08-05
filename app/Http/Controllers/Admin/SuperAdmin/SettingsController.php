@@ -43,9 +43,34 @@ class SettingsController extends Controller
 
     public function pointsSettings(): View
     {
-        $pricePerUnit = (float) SystemSetting::get('points.price_per_unit', 5.00);
+        $pricePerUnit    = (float) SystemSetting::get('points.price_per_unit', 5.00);
+        $annualEnabled   = (bool)  SystemSetting::get('billing.annual_enabled', true);
+        $annualDiscount  = (int)   SystemSetting::get('billing.annual_discount_pct', 0);
 
-        return view('admin.super_admin.settings.points', compact('pricePerUnit'));
+        return view('admin.super_admin.settings.points', compact('pricePerUnit', 'annualEnabled', 'annualDiscount'));
+    }
+
+    public function updateBillingAnnual(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'billing_annual_discount_pct' => ['required', 'integer', 'min:0', 'max:80'],
+        ]);
+
+        $enabled = $request->boolean('billing_annual_enabled');
+
+        SystemSetting::updateOrCreate(
+            ['key' => 'billing.annual_enabled'],
+            ['value' => $enabled ? '1' : '0', 'type' => 'bool', 'group' => 'billing']
+        );
+        SystemSetting::updateOrCreate(
+            ['key' => 'billing.annual_discount_pct'],
+            ['value' => $request->billing_annual_discount_pct, 'type' => 'int', 'group' => 'billing']
+        );
+        Cache::forget('system_settings');
+
+        ActivityLogger::log('admin.settings.updated', "Facturation annuelle : " . ($enabled ? 'activée' : 'désactivée') . ", remise {$request->billing_annual_discount_pct}%");
+
+        return back()->with('success', 'Paramètres de facturation annuelle enregistrés.');
     }
 
     public function updatePointsPrice(Request $request): RedirectResponse

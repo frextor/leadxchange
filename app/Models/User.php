@@ -42,6 +42,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'points_balance',
         'points_negative_since',
         'badge_level',
+        'referred_by',
         'ambassador_status',
         'ambassador_requested_at',
         'ambassador_reviewed_at',

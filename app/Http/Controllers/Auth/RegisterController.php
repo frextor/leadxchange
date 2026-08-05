@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\City;
 use App\Models\Nationality;
+use App\Models\Referral;
 use App\Models\Sector;
 use App\Services\ActivityLogger;
 use App\Services\AuthService;
@@ -53,6 +54,9 @@ class RegisterController extends Controller
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'confirmed', 'min:8'],
+
+            // Parrainage
+            'referral_token' => ['nullable', 'string', 'max:64'],
 
             // Step 2: Profile Information
             'phone'          => ['nullable', 'string', 'max:30', 'unique:users,phone'],
@@ -107,6 +111,29 @@ class RegisterController extends Controller
                 'job_title'          => $validated['job_title'],     // §4.1
                 'sector_id'          => $validated['sector_id'],     // §4.1
             ]);
+
+            // Traitement du parrainage
+            $referralToken = $validated['referral_token'] ?? $request->session()->get('referral_token');
+            if ($referralToken) {
+                $referral = Referral::where('token', $referralToken)
+                    ->where('status', 'pending')
+                    ->whereNotNull('referrer_id')
+                    ->first();
+
+                if ($referral) {
+                    // Marquer comme inscrit et lier le parrain
+                    $referral->update(['status' => 'registered']);
+                    $user->update(['referred_by' => $referral->referrer_id]);
+
+                    // Récompense : +5 points au parrain
+                    $referrer = $referral->referrer;
+                    if ($referrer) {
+                        $referrer->adjustPoints(5, 'referral_reward');
+                    }
+                }
+
+                $request->session()->forget('referral_token');
+            }
 
             ActivityLogger::log('auth.register', "Nouveau compte créé ({$user->email})", $user->id);
 

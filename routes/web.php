@@ -358,16 +358,17 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
 });
 
 
-// Referral deep link — redirects to app, falls back to web registration
+// Referral — lien d'invitation : stocke le token en session et redirige vers l'inscription web
 Route::get('/referral/{token}', function (string $token) {
-    $deepLink = 'x-tensia://register?referralToken=' . $token;
-    // Meta-refresh fallback for devices without the app
-    return response("
-        <html><head>
-        <meta http-equiv='refresh' content='0;url={$deepLink}'>
-        </head><body>
-        <script>window.location='{$deepLink}';</script>
-        <p>Redirection... <a href='{$deepLink}'>Cliquez ici</a> si rien ne se passe.</p>
-        </body></html>
-    ");
-})->name('referral.redirect');
+    $referral = \App\Models\Referral::where('token', $token)->where('status', 'pending')->first();
+    if ($referral) {
+        session(['referral_token' => $token]);
+    }
+    return redirect()->route('register');
+})->name('referral.register');
+
+// Parrainage (espace connecté)
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/parrainage',        [\App\Http\Controllers\ReferralWebController::class, 'index'])->name('referral.index');
+    Route::post('/parrainage/send',  [\App\Http\Controllers\ReferralWebController::class, 'send'])->name('referral.send');
+});

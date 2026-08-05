@@ -39,8 +39,12 @@
         </p>
 
         {{-- Billing period toggle --}}
-        @php $hasAnnualPlans = $plans->filter(fn($p) => $p->annual_price > 0)->isNotEmpty(); @endphp
-        @if($hasAnnualPlans)
+        @php
+            $annualBillingEnabled = (bool) \App\Models\SystemSetting::get('billing.annual_enabled', true);
+            $annualDiscountPct    = (int)  \App\Models\SystemSetting::get('billing.annual_discount_pct', 0);
+            $hasAnnualPlans       = $plans->filter(fn($p) => $p->annual_price > 0)->isNotEmpty();
+        @endphp
+        @if($annualBillingEnabled && $hasAnnualPlans)
         <div class="mt-6 inline-flex items-center gap-1 p-1 rounded-2xl border border-gray-200 bg-gray-50">
             <button id="btn-monthly" onclick="setBilling('monthly')"
                     class="px-5 py-2 rounded-xl text-sm font-semibold transition billing-btn billing-btn--active">
@@ -49,10 +53,14 @@
             <button id="btn-annual" onclick="setBilling('annual')"
                     class="px-5 py-2 rounded-xl text-sm font-semibold transition billing-btn relative">
                 Annuel
-                <span class="absolute -top-2 -right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500 text-white leading-none">-2 mois</span>
+                @if($annualDiscountPct > 0)
+                <span class="absolute -top-2 -right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500 text-white leading-none">-{{ $annualDiscountPct }}%</span>
+                @endif
             </button>
         </div>
-        <p class="text-xs text-gray-400 mt-2">Économisez jusqu'à 2 mois avec la facturation annuelle</p>
+        @if($annualDiscountPct > 0)
+        <p class="text-xs text-gray-400 mt-2">Économisez {{ $annualDiscountPct }}% avec la facturation annuelle</p>
+        @endif
         @endif
     </div>
 

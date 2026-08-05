@@ -54,6 +54,7 @@
 
     <form id="registrationForm" action="{{ route('register') }}" method="POST">
         @csrf
+        <input type="hidden" name="referral_token" value="{{ session('referral_token', old('referral_token')) }}">
 
         {{-- ─────────── STEP 1 ─────────── --}}
         <div id="step1" class="space-y-4 lx-fade-in">
