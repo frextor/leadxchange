@@ -23,26 +23,23 @@ class ConsulManagementController extends Controller
         $regionId = $ambassador->ambassador_region_id ?? $ambassador->region_id;
         $cityId   = $ambassador->ambassador_city_id   ?? $ambassador->city_id;
 
-        // Build the base scope: users in the same region (or city as fallback)
-        $regionScope = function ($q) use ($regionId, $cityId) {
+        // Scope: match ambassador's locked region (by region_id, or city_id as fallback)
+        $inAmbassadorTerritory = function ($q) use ($regionId, $cityId) {
             if ($regionId) {
                 $q->where('region_id', $regionId);
-            } else {
+            } elseif ($cityId) {
                 $q->where('city_id', $cityId);
+            } else {
+                // No territory defined — show nothing to prevent leaking other regions
+                $q->whereRaw('1 = 0');
             }
         };
 
-        // Premium users with pending consul request in this region
+        // Premium users with pending consul request in this region (by current location)
         $pendingRequests = User::with(['subscription.plan', 'city'])
             ->where('role', 'user')
             ->where('consul_status', 'pending')
-            ->where(function ($q) use ($regionId, $cityId) {
-                if ($regionId) {
-                    $q->where('region_id', $regionId);
-                } else {
-                    $q->where('city_id', $cityId);
-                }
-            })
+            ->where($inAmbassadorTerritory)
             ->get();
 
         // Premium users in this region without consul status (eligible to nominate)
@@ -51,31 +48,29 @@ class ConsulManagementController extends Controller
             ->whereNull('consul_status')
             ->whereHas('subscription', fn($q) => $q->where('status', 'active')
                 ->whereHas('plan', fn($p) => $p->where('price', '>', 0)))
-            ->where(function ($q) use ($regionId, $cityId) {
-                if ($regionId) {
-                    $q->where('region_id', $regionId);
-                } else {
-                    $q->where('city_id', $cityId);
-                }
-            })
+            ->where($inAmbassadorTerritory)
             ->orderBy('first_name')
             ->get();
 
-        // Already consul in this region (for context)
+        // Consuls in this region — use consul_region_id/consul_city_id (locked at nomination)
+        // so a consul who moved city still belongs to the right ambassador
         $consuls = User::with(['subscription.plan', 'city'])
             ->where('role', 'user')
             ->where('consul_status', 'approved')
             ->where(function ($q) use ($regionId, $cityId) {
                 if ($regionId) {
-                    $q->where('region_id', $regionId);
+                    $q->where('consul_region_id', $regionId);
+                } elseif ($cityId) {
+                    $q->where('consul_city_id', $cityId);
                 } else {
-                    $q->where('city_id', $cityId);
+                    $q->whereRaw('1 = 0');
                 }
             })
             ->orderBy('first_name')
             ->get();
 
-        $regionName = $ambassador->region?->name ?? $ambassador->city?->name ?? 'votre région';
+        // Region name from locked ambassador territory (not current profile location)
+        $regionName = $this->resolveAmbassadorRegionName($ambassador);
 
         $counts = [
             'pending'  => $pendingRequests->count(),
@@ -151,14 +146,49 @@ class ConsulManagementController extends Controller
         }
     }
 
+    /**
+     * Check that a target user belongs to the ambassador's locked territory.
+     * For pending/eligible users: compare current location.
+     * For already-consul users: compare their locked consul_region_id / consul_city_id.
+     */
     private function isSameRegion(User $ambassador, User $target): bool
     {
         $regionId = $ambassador->ambassador_region_id ?? $ambassador->region_id;
         $cityId   = $ambassador->ambassador_city_id   ?? $ambassador->city_id;
 
-        if ($regionId) {
-            return $target->region_id === $regionId;
+        if (! $regionId && ! $cityId) {
+            return false; // ambassador has no territory defined — block all actions
         }
-        return $target->city_id === $cityId;
+
+        // If the target is already a consul, compare their locked nomination location
+        if ($target->consul_status === 'approved') {
+            if ($regionId) {
+                return (int) $target->consul_region_id === (int) $regionId;
+            }
+            return (int) $target->consul_city_id === (int) $cityId;
+        }
+
+        // Pending / eligible: compare current profile location
+        if ($regionId) {
+            return (int) $target->region_id === (int) $regionId;
+        }
+        return (int) $target->city_id === (int) $cityId;
+    }
+
+    /** Resolve the region/city name from the ambassador's locked territory. */
+    private function resolveAmbassadorRegionName(User $ambassador): string
+    {
+        if ($ambassador->ambassador_region_id) {
+            $region = \App\Models\Region::find($ambassador->ambassador_region_id);
+            if ($region) return $region->name;
+        }
+
+        if ($ambassador->ambassador_city_id) {
+            $city = \App\Models\City::find($ambassador->ambassador_city_id);
+            if ($city) return $city->name;
+        }
+
+        // Fallback: current profile location
+        return $ambassador->region?->name ?? $ambassador->city?->name ?? 'votre région';
     }
 }
