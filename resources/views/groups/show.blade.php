@@ -409,6 +409,21 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
                 Inviter un membre
             </button>
+
+            @if(auth()->user()->isAmbassador())
+            {{-- Bouton réservé ambassadeur : invite toute la région --}}
+            <form method="POST" action="{{ route('groups.invite-region', $group->id) }}"
+                  onsubmit="return confirm('Inviter tous les membres de votre région dans ce groupe ?')">
+                @csrf
+                <button type="submit"
+                    class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition shadow-sm"
+                    style="background:#D97706;"
+                    onmouseover="this.style.background='#B45309'" onmouseout="this.style.background='#D97706'">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Inviter toute ma région
+                </button>
+            </form>
+            @endif
             @endif
 
             {{-- Group info --}}

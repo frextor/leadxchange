@@ -103,6 +103,49 @@ class EventsController extends Controller
         return view('ambassador.events.show', compact('event', 'registrations', 'invitations', 'ambassador', 'organizerGroups', 'matchingGroup'));
     }
 
+    /**
+     * Invite tous les membres de la région de l'ambassadeur à cet événement.
+     */
+    public function inviteRegion(Event $event): RedirectResponse
+    {
+        /** @var \App\Models\User $ambassador */
+        $ambassador = auth()->user();
+        abort_unless($event->created_by === $ambassador->id, 403);
+
+        $alreadyInvitedOrAttending = $event->attendees()->pluck('users.id')
+            ->merge($event->invitations()->pluck('user_id'))
+            ->unique()
+            ->push($ambassador->id)
+            ->toArray();
+
+        $members = $this->applyRegionScope(
+            \App\Models\User::where('role', 'user')->whereNotIn('id', $alreadyInvitedOrAttending),
+            $ambassador
+        )->get(['id', 'first_name', 'last_name']);
+
+        $sent = 0;
+        foreach ($members as $member) {
+            \App\Models\EventInvitation::updateOrCreate(
+                ['event_id' => $event->id, 'user_id' => $member->id],
+                ['invited_by' => $ambassador->id, 'status' => 'pending']
+            );
+            try {
+                \App\Models\Notification::storeForUser(
+                    $member,
+                    'event_invitation',
+                    'Invitation à un événement',
+                    "{$ambassador->first_name} {$ambassador->last_name} vous invite à l'événement « {$event->title} ».",
+                    ['url' => route('events.show', $event->id), 'event_id' => $event->id]
+                );
+            } catch (\Throwable) {}
+            $sent++;
+        }
+
+        ActivityLogger::log('event.region_invite', "Région entière invitée à « {$event->title} » ({$sent} membres)", $ambassador->id, $event);
+
+        return back()->with('success', "{$sent} membre(s) de votre région invité(s) à cet événement.");
+    }
+
     public function inviteGroup(Request $request, Event $event): RedirectResponse
     {
         $ambassador = $request->user();

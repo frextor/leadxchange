@@ -180,7 +180,11 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
     Route::post('/groups/{id}/posts/{postId}/comments',         [GroupController::class, 'storeComment'])->name('groups.comments.store');
     Route::post('/groups/{id}/activities',                      [GroupController::class, 'storeActivity'])->name('groups.activities.store');
     Route::delete('/groups/{id}',                               [GroupController::class, 'destroy'])->name('groups.destroy');
-    Route::post('/groups/{id}/invite',                          [GroupController::class, 'invite'])->name('groups.invite');
+    // Region selector — stocke la ville active en session
+    Route::post('/region/select', [\App\Http\Controllers\RegionSelectorController::class, 'select'])->name('region.select');
+
+    Route::post('/groups/{id}/invite',               [GroupController::class, 'invite'])->name('groups.invite');
+    Route::post('/groups/{id}/invite-region',        [GroupController::class, 'inviteRegion'])->name('groups.invite-region');
     Route::get('/groups/users/search',                          [GroupController::class, 'searchUsers'])->name('groups.users.search');
     Route::post('/groups/invitations/{invId}/accept',           [GroupController::class, 'acceptInvitation'])->name('groups.invitations.accept');
     Route::post('/groups/invitations/{invId}/decline',          [GroupController::class, 'declineInvitation'])->name('groups.invitations.decline');
@@ -278,7 +282,8 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
         Route::put('/events/{event}',          [\App\Http\Controllers\Ambassador\EventsController::class, 'update'])->name('events.update');
         Route::post('/events/{event}/cancel',  [\App\Http\Controllers\Ambassador\EventsController::class, 'cancel'])->name('events.cancel');
         Route::get('/events/{event}/export',     [\App\Http\Controllers\Ambassador\EventsController::class, 'exportParticipants'])->name('events.export');
-        Route::post('/events/{event}/invite-group', [\App\Http\Controllers\Ambassador\EventsController::class, 'inviteGroup'])->name('events.invite-group');
+        Route::post('/events/{event}/invite-group',  [\App\Http\Controllers\Ambassador\EventsController::class, 'inviteGroup'])->name('events.invite-group');
+        Route::post('/events/{event}/invite-region', [\App\Http\Controllers\Ambassador\EventsController::class, 'inviteRegion'])->name('events.invite-region');
 
         // Consul management (existing — preserved)
         Route::prefix('consuls')->name('consuls.')->group(function () {
@@ -346,6 +351,7 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
     Route::get('/profile/{id}',     [ProfileController::class, 'show'])->name('profile.show');
 
     // Enterprise team management (holder only)
+    Route::get('/enterprise/expired',                 [EnterpriseController::class, 'expired'])->name('enterprise.expired');
     Route::get('/enterprise/team',                    [EnterpriseController::class, 'team'])->name('enterprise.team');
     Route::post('/enterprise/team/invite',            [EnterpriseController::class, 'invite'])->name('enterprise.invite');
     Route::post('/enterprise/team/{inv}/revoke',      [EnterpriseController::class, 'revoke'])->name('enterprise.revoke');

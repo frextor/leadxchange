@@ -228,6 +228,122 @@
                     </div>
                     <span class="text-white/60 text-sm">{{ $completion }}% profile completed</span>
                 </div>
+
+                {{-- ── Sélecteur de ville ── --}}
+                <div class="mt-3" id="city-picker-wrap">
+
+                    {{-- Texte cliquable --}}
+                    <button type="button" id="city-picker-btn"
+                            class="flex items-center gap-1.5 group focus:outline-none">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2">
+                            <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.35 11.76a1 1 0 0 0 1.3 0C12.95 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
+                        </svg>
+                        <span class="text-sm text-white/70 group-hover:text-white underline underline-offset-2 decoration-white/30 transition">
+                            {{ $selectedCity?->name ?? 'Toutes les villes' }}
+                        </span>
+                        <svg id="city-picker-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none"
+                             stroke="rgba(255,255,255,0.4)" stroke-width="2.5"
+                             style="transition:transform .2s;">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </button>
+                </div>
+
+                {{-- Dropdown rendu dans le body pour éviter le clipping du overflow-hidden --}}
+                @push('scripts')
+                <div id="city-picker-dropdown"
+                     style="display:none; position:fixed; z-index:9999; background:#1a2e3b;
+                            border:1px solid rgba(255,255,255,0.12); border-radius:14px;
+                            box-shadow:0 20px 60px rgba(0,0,0,0.5); min-width:200px; overflow:hidden;">
+
+                    <form method="POST" action="{{ route('region.select') }}">
+                        @csrf
+                        <input type="hidden" name="redirect" value="dashboard">
+                        <input type="hidden" name="city_id" id="city-hidden-input" value="">
+
+                        {{-- Toutes les villes --}}
+                        <button type="submit"
+                                onclick="document.getElementById('city-hidden-input').value=''"
+                                style="width:100%; display:flex; align-items:center; gap:10px; padding:11px 16px;
+                                       font-size:13px; border:none; cursor:pointer; text-align:left; transition:background .15s;
+                                       background:{{ !$selectedCityId ? 'rgba(255,255,255,0.1)' : 'transparent' }};
+                                       color:{{ !$selectedCityId ? '#2DD4BF' : 'rgba(255,255,255,0.65)' }};
+                                       font-weight:{{ !$selectedCityId ? '600' : '400' }};"
+                                onmouseover="if(!this.dataset.active)this.style.background='rgba(255,255,255,0.07)'"
+                                onmouseout="if(!this.dataset.active)this.style.background='transparent'"
+                                {{ !$selectedCityId ? 'data-active=1' : '' }}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10A15.3 15.3 0 0 1 8 12a15.3 15.3 0 0 1 4-10z"/>
+                            </svg>
+                            Toutes les villes
+                        </button>
+
+                        <div style="border-top:1px solid rgba(255,255,255,0.08); margin:0 12px;"></div>
+
+                        <div style="max-height:240px; overflow-y:auto;">
+                            @foreach($cities as $city)
+                            <button type="submit"
+                                    onclick="document.getElementById('city-hidden-input').value='{{ $city->id }}'"
+                                    style="width:100%; display:flex; align-items:center; gap:10px; padding:11px 16px;
+                                           font-size:13px; border:none; cursor:pointer; text-align:left; transition:background .15s;
+                                           background:{{ $selectedCityId == $city->id ? 'rgba(255,255,255,0.1)' : 'transparent' }};
+                                           color:{{ $selectedCityId == $city->id ? '#2DD4BF' : 'rgba(255,255,255,0.65)' }};
+                                           font-weight:{{ $selectedCityId == $city->id ? '600' : '400' }};"
+                                    onmouseover="if(!this.dataset.active)this.style.background='rgba(255,255,255,0.07)'"
+                                    onmouseout="if(!this.dataset.active)this.style.background='transparent'"
+                                    {{ $selectedCityId == $city->id ? 'data-active=1' : '' }}>
+                                @if($selectedCityId == $city->id)
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                @else
+                                    <span style="width:13px; display:inline-block; flex-shrink:0;"></span>
+                                @endif
+                                {{ $city->name }}
+                            </button>
+                            @endforeach
+                        </div>
+                    </form>
+                </div>
+
+                <script>
+                (function() {
+                    const btn = document.getElementById('city-picker-btn');
+                    const dd  = document.getElementById('city-picker-dropdown');
+                    const ch  = document.getElementById('city-picker-chevron');
+
+                    function openDropdown() {
+                        const rect = btn.getBoundingClientRect();
+                        dd.style.top  = (rect.bottom + 8) + 'px';
+                        dd.style.left = rect.left + 'px';
+                        dd.style.display = 'block';
+                        ch.style.transform = 'rotate(180deg)';
+                    }
+
+                    function closeDropdown() {
+                        dd.style.display = 'none';
+                        ch.style.transform = '';
+                    }
+
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        dd.style.display === 'none' ? openDropdown() : closeDropdown();
+                    });
+
+                    document.addEventListener('click', function(e) {
+                        if (!dd.contains(e.target) && e.target !== btn) closeDropdown();
+                    });
+
+                    // Repositionner si scroll
+                    window.addEventListener('scroll', function() {
+                        if (dd.style.display !== 'none') {
+                            const rect = btn.getBoundingClientRect();
+                            dd.style.top  = (rect.bottom + 8) + 'px';
+                            dd.style.left = rect.left + 'px';
+                        }
+                    }, { passive: true });
+                })();
+                </script>
+                @endpush
             </div>
 
             {{-- Action buttons --}}
@@ -415,10 +531,15 @@
     <div>
         <div class="flex items-center justify-between mb-4">
             <div>
-                <h2 class="text-base font-semibold text-gray-900">Popular groups</h2>
-                <p class="text-xs text-gray-400 mt-0.5">Communities matching your interests</p>
+                <h2 class="text-base font-semibold text-gray-900">
+                    Groupes populaires
+                    @if($selectedCity)
+                    <span class="text-xs font-normal text-gray-400 ml-1">· {{ $selectedCity->name }}</span>
+                    @endif
+                </h2>
+                <p class="text-xs text-gray-400 mt-0.5">Communautés correspondant à vos intérêts</p>
             </div>
-            <a href="{{ route('groups.index') }}" class="text-sm font-semibold transition-colors" style="color:#1E8F88;">See all</a>
+            <a href="{{ route('groups.index') }}" class="text-sm font-semibold transition-colors" style="color:#1E8F88;">Voir tout</a>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -471,10 +592,15 @@
     <div>
         <div class="flex items-center justify-between mb-4">
             <div>
-                <h2 class="text-base font-semibold text-gray-900">Events for you</h2>
-                <p class="text-xs text-gray-400 mt-0.5">Upcoming events on LeadXchange</p>
+                <h2 class="text-base font-semibold text-gray-900">
+                    Événements à venir
+                    @if($selectedCity)
+                    <span class="text-xs font-normal text-gray-400 ml-1">· {{ $selectedCity->name }}</span>
+                    @endif
+                </h2>
+                <p class="text-xs text-gray-400 mt-0.5">Prochains événements sur LeadXchange</p>
             </div>
-            <a href="{{ route('events.index') }}" class="text-sm font-semibold transition-colors" style="color:#1E8F88;">Browse all</a>
+            <a href="{{ route('events.index') }}" class="text-sm font-semibold transition-colors" style="color:#1E8F88;">Voir tout</a>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -585,8 +711,10 @@
     @endif
     @endif
 
-    {{-- ── PLANS & FONCTIONNALITÉS ── --}}
-    @if($plans->isNotEmpty())
+    {{-- ── PLANS & FONCTIONNALITÉS ──
+         Consul et Ambassadeur ont un rôle nommé — ils n'achètent pas de plan.
+         On masque la section pour eux. --}}
+    @if($plans->isNotEmpty() && !$user->isConsul() && !$user->isAmbassador())
     @php
         $currentPlanId = $user->subscription?->plan_id;
         $currentPlan   = $user->subscription?->plan;
@@ -611,10 +739,17 @@
             'can_organize_regional_events' => 'Événements régionaux',
         ];
 
-        $sortedPlans       = $plans->sortBy('sort_order')->values();
-        $currentSortOrder  = $currentPlan?->sort_order ?? 0;
-        // Ne montrer que le plan actuel + les plans supérieurs (pas de downgrade)
-        $visiblePlans = $sortedPlans->filter(fn($p) => $p->sort_order >= $currentSortOrder)->values();
+        // Consul et Ambassadeur sont des rôles nommés par l'admin, pas des plans achetables.
+        // On n'affiche que les plans "achetables" : basic, premium, enterprise.
+        $purchasablePlans = ['basic', 'premium', 'enterprise'];
+
+        $sortedPlans      = $plans->sortBy('sort_order')->values();
+        $currentSortOrder = $currentPlan?->sort_order ?? 0;
+
+        // Plans visibles : achetables seulement, et >= plan actuel (pas de downgrade)
+        $visiblePlans = $sortedPlans->filter(
+            fn($p) => in_array($p->name, $purchasablePlans) && $p->sort_order >= $currentSortOrder
+        )->values();
     @endphp
 
     <div>

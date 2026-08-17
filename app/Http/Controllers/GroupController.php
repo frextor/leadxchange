@@ -67,11 +67,14 @@ class GroupController extends Controller
 
         $publicGroups = $publicQuery->orderBy('members_count', 'desc')->get();
 
-        $nearby      = $publicGroups->filter(fn($g) => $user->city_id && $g->city_id === $user->city_id)->values();
+        // Ville active : session en priorité (sélecteur de région), sinon ville du profil
+        $activeCityId = session('selected_city_id', $user->city_id);
+
+        $nearby      = $publicGroups->filter(fn($g) => $activeCityId && $g->city_id === $activeCityId)->values();
         $recommended = $publicGroups->filter(fn($g) => in_array($g->sector_id, $userSectorIds)
-            && (!$user->city_id || $g->city_id !== $user->city_id))->values();
+            && (!$activeCityId || $g->city_id !== $activeCityId))->values();
         $others      = $publicGroups->filter(fn($g) => !in_array($g->sector_id, $userSectorIds)
-            && (!$user->city_id || $g->city_id !== $user->city_id))->values();
+            && (!$activeCityId || $g->city_id !== $activeCityId))->values();
 
         // Used only for sidebar sector counts
         $groups = $publicGroups->merge($myGroups);
@@ -327,6 +330,71 @@ class GroupController extends Controller
         ActivityLogger::log('group.invitation_sent', "Invitation envoyée à {$target?->first_name} {$target?->last_name} pour le groupe « {$group->name} »", $user->id, $group, ['invited_user_id' => $targetId]);
 
         return back()->with('success', 'Invitation envoyée.');
+    }
+
+    /**
+     * Invite tous les membres de la région de l'ambassadeur dans un groupe.
+     * Réservé aux ambassadeurs admin/owner du groupe.
+     */
+    public function inviteRegion(Request $request, int $id)
+    {
+        $group = Group::findOrFail($id);
+        $user  = $request->user();
+
+        abort_unless($group->isAdmin($user->id), 403);
+        abort_unless($user->isAmbassador(), 403);
+
+        // Utilise les champs verrouillés à la nomination de l'ambassadeur
+        $regionId = $user->ambassador_region_id ?? $user->region_id;
+        $cityId   = $user->ambassador_city_id   ?? $user->city_id;
+
+        $existingIds = $group->members()->pluck('users.id')
+            ->merge(
+                GroupInvitation::where('group_id', $id)
+                    ->whereIn('status', ['pending', 'accepted'])
+                    ->pluck('user_id')
+            )
+            ->unique()
+            ->push($user->id)
+            ->toArray();
+
+        $query = User::where('role', 'user')->whereNotIn('id', $existingIds);
+
+        if ($regionId) {
+            $query->where('region_id', $regionId);
+        } elseif ($cityId) {
+            $query->where('city_id', $cityId);
+        } else {
+            return back()->with('error', 'Votre région n\'est pas définie.');
+        }
+
+        $members = $query->get(['id', 'first_name', 'last_name', 'email']);
+
+        $sent = 0;
+        foreach ($members as $member) {
+            if ($group->isBlocked($member->id)) continue;
+
+            GroupInvitation::updateOrCreate(
+                ['group_id' => $id, 'user_id' => $member->id],
+                ['invited_by' => $user->id, 'status' => 'pending', 'type' => GroupInvitation::TYPE_INVITATION]
+            );
+
+            try {
+                \App\Models\Notification::storeForUser(
+                    $member,
+                    'group_invitation',
+                    'Invitation à rejoindre un groupe',
+                    "{$user->first_name} {$user->last_name} vous invite à rejoindre le groupe « {$group->name} ».",
+                    ['url' => route('groups.index'), 'group_id' => $id]
+                );
+            } catch (\Throwable) {}
+
+            $sent++;
+        }
+
+        ActivityLogger::log('group.region_invite', "Région entière invitée dans « {$group->name} » ({$sent} membres)", $user->id, $group);
+
+        return back()->with('success', "{$sent} membre(s) de votre région invité(s) dans ce groupe.");
     }
 
     public function acceptInvitation(Request $request, int $invId)

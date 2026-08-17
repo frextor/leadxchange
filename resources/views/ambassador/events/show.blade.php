@@ -105,6 +105,19 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     Exporter les participants
                 </a>
+                @if($event->created_by === auth()->id())
+                {{-- Inviter toute la région --}}
+                <form method="POST" action="{{ route('ambassador.events.invite-region', $event) }}"
+                      onsubmit="return confirm('Inviter tous les membres de votre région à cet événement ?')">
+                    @csrf
+                    <button type="submit"
+                            class="flex items-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition"
+                            style="background:#D97706;" onmouseover="this.style.background='#B45309'" onmouseout="this.style.background='#D97706'">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        Inviter toute ma région
+                    </button>
+                </form>
+                @endif
                 @if($event->created_by === auth()->id() && $organizerGroups->isNotEmpty())
                 <button type="button" onclick="document.getElementById('ambInviteGroupModal').classList.remove('hidden')"
                         class="flex items-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition"

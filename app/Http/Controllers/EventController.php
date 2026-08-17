@@ -79,11 +79,14 @@ class EventController extends Controller
 
         $publicEvents = $publicQuery->orderBy('starts_at')->get();
 
-        $nearby      = $publicEvents->filter(fn($e) => $user->city_id && $e->city_id === $user->city_id)->values();
+        // Ville active : session en priorité (sélecteur de région), sinon ville du profil
+        $activeCityId = session('selected_city_id', $user->city_id);
+
+        $nearby      = $publicEvents->filter(fn($e) => $activeCityId && $e->city_id === $activeCityId)->values();
         $recommended = $publicEvents->filter(fn($e) => in_array($e->sector_id, $userSectorIds)
-            && (!$user->city_id || $e->city_id !== $user->city_id))->values();
+            && (!$activeCityId || $e->city_id !== $activeCityId))->values();
         $others      = $publicEvents->filter(fn($e) => !in_array($e->sector_id, $userSectorIds)
-            && (!$user->city_id || $e->city_id !== $user->city_id))->values();
+            && (!$activeCityId || $e->city_id !== $activeCityId))->values();
 
         // ── Past events (attending) ───────────────────────────────
         $pastEvents = Event::with(['sector:id,name', 'city:id,name'])

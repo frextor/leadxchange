@@ -448,14 +448,45 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function isEnterpriseHolder(): bool
     {
-        return $this->enterpriseLicense()->exists();
+        return $this->enterpriseLicense()
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->exists();
+    }
+
+    /**
+     * True si l'utilisateur possède une licence enterprise expirée
+     * (existe mais expires_at est dans le passé).
+     */
+    public function hasExpiredEnterpriseLicense(): bool
+    {
+        return $this->enterpriseLicense()
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<=', now())
+            ->exists();
+    }
+
+    /**
+     * Retourne la licence expirée si elle l'est depuis moins de 3 jours,
+     * null sinon. Utilisé pour afficher le banner d'expiration.
+     */
+    public function recentlyExpiredEnterpriseLicense(): ?EnterpriseLicense
+    {
+        return $this->enterpriseLicense()
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<=', now())
+            ->where('expires_at', '>=', now()->subDays(3))
+            ->first();
     }
 
     /** Returns "Premium — CompanyName" for enterprise members, otherwise the plan label. */
     public function planDisplayLabel(): string
     {
         if ($this->isEnterpriseHolder()) {
-            $name = $this->enterpriseLicense?->company_name ?? $this->enterpriseLicense()->value('company_name');
+            // Utilise la licence active (non expirée) pour le nom
+            $activeLicense = $this->enterpriseLicense()
+                ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+                ->first();
+            $name = $activeLicense?->company_name;
             return 'Premium' . ($name ? ' — ' . $name : '');
         }
         $inv = $this->relationLoaded('enterpriseInvitation')

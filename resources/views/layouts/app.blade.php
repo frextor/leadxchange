@@ -146,16 +146,6 @@
                     </div>
                 </div>
 
-                {{-- MARKETPLACE (future) --}}
-                <a href="#"
-                   class="lx-nav-item opacity-50 cursor-not-allowed">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
-                        <path d="M16 10a4 4 0 0 1-8 0"/>
-                    </svg>
-                    <span>Marketplace</span>
-                </a>
-
 
                 {{-- NETWORK --}}
                 <a href="{{ route('connections.index') }}"
@@ -303,6 +293,18 @@
                         <div class="min-w-0">
                             <p class="text-sm font-semibold text-gray-900 truncate">{{ auth()->user()->first_name }} {{ auth()->user()->last_name }}</p>
                             <p class="text-xs text-gray-400 truncate mt-0.5">{{ auth()->user()->email }}</p>
+                            @php
+                                $navSelectedCityId = session('selected_city_id', auth()->user()->city_id);
+                                $navCityName = $navSelectedCityId
+                                    ? optional(\App\Models\City::find($navSelectedCityId))->name
+                                    : null;
+                            @endphp
+                            @if($navCityName)
+                            <p class="text-[10px] font-semibold mt-0.5 flex items-center gap-1" style="color:#1E8F88;">
+                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.35 11.76a1 1 0 0 0 1.3 0C12.95 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/></svg>
+                                {{ $navCityName }}
+                            </p>
+                            @endif
                         </div>
                     </div>
                     <div class="py-1.5">
@@ -346,7 +348,7 @@
                         </a>
                     </div>
                     <div class="border-t border-gray-100 py-1">
-                        @if(auth()->user()->isConsul())
+                        @if(auth()->user()->isConsul() && !auth()->user()->isAmbassador())
                         <a href="{{ route('consul.dashboard') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2" class="flex-shrink-0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                             <span class="font-semibold" style="color:#7C3AED;">Espace Consul</span>
@@ -401,6 +403,32 @@
         </a>
     </div>
     @endif
+
+    <!-- §5.4 — Bannière licence Enterprise expirée (affichée 3 jours après expiration) -->
+    @auth
+    @php $expiredLicense = auth()->user()->recentlyExpiredEnterpriseLicense(); @endphp
+    @if($expiredLicense)
+    <div class="flex items-center justify-between gap-4 px-4 py-2.5 text-sm flex-wrap"
+         style="background:#7F1D1D; color:#FEE2E2;">
+        <div class="flex items-center gap-2.5 flex-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FCA5A5" stroke-width="2" class="flex-shrink-0">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span style="color:#FCA5A5; font-weight:700;">Licence Enterprise expirée</span>
+            <span style="color:#FECACA;">
+                Votre licence <strong>{{ $expiredLicense->company_name }}</strong>
+                a expiré le {{ \Carbon\Carbon::parse($expiredLicense->expires_at)->format('d/m/Y') }}.
+                Les fonctionnalités Enterprise ne sont plus disponibles.
+            </span>
+        </div>
+        <a href="mailto:contact@leadxchange.com"
+           class="text-xs font-semibold whitespace-nowrap px-3 py-1.5 rounded-lg transition"
+           style="background:#991B1B; color:#FEE2E2; hover:background:#7F1D1D;">
+            Renouveler →
+        </a>
+    </div>
+    @endif
+    @endauth
 
     <!-- §3.3 CGU — Bannière mise à jour si utilisateur n'a pas accepté la version courante -->
     @auth

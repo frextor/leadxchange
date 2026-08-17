@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\City;
 use App\Models\Connection;
 use App\Models\Event;
 use App\Models\Group;
@@ -119,17 +120,24 @@ class DashboardController extends Controller
 
         $plans = Plan::orderBy('price')->get();
 
+        // ── Sélecteur de région ──────────────────────────────────────────────
+        $cities          = City::active()->orderBy('name')->get();
+        $selectedCityId  = session('selected_city_id', $user->city_id);
+        $selectedCity    = $selectedCityId ? $cities->firstWhere('id', $selectedCityId) : null;
+
         $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
         $featuredGroups = Group::with(['sector:id,name'])
             ->withCount('members')
             ->where('is_public', true)
+            ->when($selectedCityId, fn($q) => $q->where('city_id', $selectedCityId))
             ->orderBy('members_count', 'desc')
             ->limit(3)
             ->get();
 
-        $upcomingEvents    = Event::with(['sector:id,name'])
+        $upcomingEvents = Event::with(['sector:id,name', 'city:id,name'])
             ->where('is_public', true)
             ->where('starts_at', '>=', now())
+            ->when($selectedCityId, fn($q) => $q->where('city_id', $selectedCityId))
             ->orderBy('starts_at')
             ->limit(3)
             ->get();
@@ -165,7 +173,8 @@ class DashboardController extends Controller
             'leadStats', 'pendingLeads',
             'popupEnabled', 'popupFrequency',
             'popupTitle', 'popupSubtitle', 'popupBtnLater', 'popupBtnCta',
-            'negativeBalancePopup', 'pointsNeeded', 'pointsPricePerUnit'
+            'negativeBalancePopup', 'pointsNeeded', 'pointsPricePerUnit',
+            'cities', 'selectedCityId', 'selectedCity'
         ));
     }
 }

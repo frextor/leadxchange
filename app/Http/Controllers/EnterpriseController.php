@@ -19,13 +19,32 @@ class EnterpriseController extends Controller
 {
     // ── Team management (holder only) ─────────────────────────────────────────
 
+    public function expired(Request $request)
+    {
+        $user    = $request->user();
+        $license = $user->enterpriseLicense()->with('plan')->first();
+
+        abort_unless($license, 403, 'Vous n\'avez pas de licence entreprise.');
+
+        // If licence is still active, redirect to team page
+        if (! $license->isExpired()) {
+            return redirect()->route('enterprise.team');
+        }
+
+        return view('enterprise.expired', compact('license'));
+    }
+
     public function team(Request $request)
     {
         $user    = $request->user();
         $license = $user->enterpriseLicense()->with('invitations.user')->first();
 
         abort_unless($license, 403, 'Vous n\'avez pas de licence entreprise.');
-        abort_if($license->isExpired(), 403, 'Votre licence entreprise a expiré.');
+
+        // Redirect to dedicated expired page instead of aborting
+        if ($license->isExpired()) {
+            return redirect()->route('enterprise.expired');
+        }
 
         $invitations = $license->invitations()
             ->with('user')
@@ -42,7 +61,10 @@ class EnterpriseController extends Controller
         $license = $user->enterpriseLicense()->first();
 
         abort_unless($license, 403);
-        abort_if($license->isExpired(), 403, 'Votre licence entreprise a expiré.');
+
+        if ($license->isExpired()) {
+            return redirect()->route('enterprise.expired');
+        }
 
         $request->validate(['email' => ['required', 'email', 'max:255']]);
         $email = strtolower(trim($request->email));
