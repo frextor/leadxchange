@@ -18,9 +18,9 @@ class UserService
     private function viewerCanViewMemberName(int $currentUserId): bool
     {
         if (!isset($this->viewerPermissionCache[$currentUserId])) {
-            $viewer = User::with('subscription.plan')->find($currentUserId);
+            $viewer = User::find($currentUserId);
             $this->viewerPermissionCache[$currentUserId] =
-                (bool) ($viewer?->subscription?->plan?->permissions['can_view_member_name'] ?? false);
+                (bool) ($viewer?->effectivePlan()?->permissions['can_view_member_name'] ?? false);
         }
         return $this->viewerPermissionCache[$currentUserId];
     }
