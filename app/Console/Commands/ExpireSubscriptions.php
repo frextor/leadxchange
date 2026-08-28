@@ -32,10 +32,18 @@ class ExpireSubscriptions extends Command
         $subscriptions = $query->get();
 
         foreach ($subscriptions as $subscription) {
-            // In test mode, simulate Stripe's "payment failed → cancelled" notifications
-            // for auto-renewing subscriptions (cancel_at_period_end = false)
+            // In test mode, simulate a successful renewal for auto-renewing subscriptions
             if ($testMode && !$subscription->cancel_at_period_end) {
-                $this->notifyPaymentFailedAndCancelled($subscription);
+                $key = $subscription->billing_period === 'annual'
+                    ? 'payments.subscription_test_annual_minutes'
+                    : 'payments.subscription_test_monthly_minutes';
+                $minutes = (int) (\App\Models\SystemSetting::get($key) ?: 5);
+
+                $subscription->update([
+                    'current_period_end' => Carbon::now()->addMinutes($minutes),
+                ]);
+                $this->notifyRenewal($subscription);
+                continue;
             }
 
             $subscription->update(['status' => 'canceled']);
@@ -44,6 +52,25 @@ class ExpireSubscriptions extends Command
 
         $count = $subscriptions->count();
         $this->info("Expired {$count} subscription(s)." . ($testMode ? ' [TEST MODE]' : ''));
+    }
+
+    private function notifyRenewal(Subscription $subscription): void
+    {
+        $user = $subscription->user;
+        $plan = $subscription->plan;
+
+        if (!$user || !$plan) {
+            return;
+        }
+
+        try {
+            app(\App\Services\FirebaseService::class)->sendLeadBlockedNotification(
+                $user,
+                'plan_activated',
+                'Abonnement renouvelé',
+                'Votre abonnement ' . $plan->label . ' a été renouvelé automatiquement.',
+            );
+        } catch (\Exception) {}
     }
 
     private function notifyPaymentFailedAndCancelled(Subscription $subscription): void
