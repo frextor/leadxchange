@@ -86,6 +86,16 @@
             <option value="active"   {{ request('status') === 'active'   ? 'selected' : '' }}>Actif</option>
             <option value="canceled" {{ request('status') === 'canceled' ? 'selected' : '' }}>Annulé</option>
         </select>
+        <select name="billing_period" class="h-9 pl-3 pr-8 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-300 text-gray-600 bg-white">
+            <option value="">Mensuel & Annuel</option>
+            <option value="monthly" {{ request('billing_period') === 'monthly' ? 'selected' : '' }}>Mensuel</option>
+            <option value="annual"  {{ request('billing_period') === 'annual'  ? 'selected' : '' }}>Annuel</option>
+        </select>
+        <label class="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer whitespace-nowrap">
+            <input type="checkbox" name="renewing_soon" value="1" {{ request('renewing_soon') ? 'checked' : '' }}
+                   class="rounded border-gray-300 text-indigo-600">
+            Renouvellement ≤ 7j
+        </label>
         <button type="submit" class="h-9 px-4 rounded-xl text-xs font-semibold text-white transition hover:opacity-90" style="background:#6366F1;">Filtrer</button>
         @if(request()->hasAny(['search','plan_id','status']))
         <a href="{{ route('admin.super.payments.index', ['tab' => 'subscriptions']) }}"
@@ -96,18 +106,19 @@
     </form>
 
     {{-- Table header --}}
-    <div class="grid grid-cols-[1fr_140px_110px_110px_130px_48px] px-5 py-2 border-b border-gray-50 bg-gray-50/60">
+    <div class="grid grid-cols-[1fr_130px_110px_110px_120px_140px_48px] px-5 py-2 border-b border-gray-50 bg-gray-50/60">
         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Membre</p>
         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Plan</p>
         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Montant</p>
         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Statut</p>
-        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Date</p>
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Début</p>
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Renouvellement</p>
         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"></p>
     </div>
 
     {{-- Rows --}}
     @forelse($subscriptions as $sub)
-    <div class="grid grid-cols-[1fr_140px_110px_110px_130px_48px] items-center px-5 py-3 border-b border-gray-50 last:border-b-0 hover:bg-slate-50/50 transition-colors">
+    <div class="grid grid-cols-[1fr_130px_110px_110px_120px_140px_48px] items-center px-5 py-3 border-b border-gray-50 last:border-b-0 hover:bg-slate-50/50 transition-colors">
 
         {{-- User --}}
         <div class="flex items-center gap-2.5 min-w-0">
@@ -151,10 +162,37 @@
             @endif
         </div>
 
-        {{-- Date --}}
+        {{-- Début --}}
         <div>
             <p class="text-sm text-gray-700">{{ $sub->created_at->format('d/m/Y') }}</p>
-            <p class="text-[11px] text-gray-400">{{ $sub->created_at->format('H:i') }}</p>
+            <p class="text-[11px] text-gray-400">
+                {{ $sub->billing_period === 'annual' ? 'Annuel' : 'Mensuel' }}
+            </p>
+        </div>
+
+        {{-- Renouvellement --}}
+        <div>
+            @if($sub->current_period_end)
+                @php
+                    $isExpired   = $sub->current_period_end->isPast();
+                    $isSoon      = !$isExpired && $sub->current_period_end->diffInDays(now()) <= 7;
+                    $willCancel  = $sub->cancel_at_period_end;
+                @endphp
+                <p class="text-sm font-medium
+                    {{ $isExpired  ? 'text-red-600' : ($isSoon ? 'text-amber-600' : 'text-gray-700') }}">
+                    {{ $sub->current_period_end->format('d/m/Y') }}
+                </p>
+                <p class="text-[10px] font-semibold mt-0.5
+                    {{ $willCancel ? 'text-amber-500' : ($isExpired ? 'text-red-400' : 'text-gray-400') }}">
+                    @if($willCancel)   ⚠ Annulation prévue
+                    @elseif($isExpired) Expiré
+                    @elseif($isSoon)   Dans {{ $sub->current_period_end->diffInDays(now()) }}j
+                    @else              Auto-renouvellement
+                    @endif
+                </p>
+            @else
+                <span class="text-gray-400 text-sm">—</span>
+            @endif
         </div>
 
         {{-- Stripe link --}}

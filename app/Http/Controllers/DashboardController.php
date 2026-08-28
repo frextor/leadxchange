@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\City;
 use App\Models\Connection;
+use App\Models\EnterpriseQuoteRequest;
 use App\Models\Event;
 use App\Models\Group;
 use App\Models\Lead;
@@ -157,6 +158,13 @@ class DashboardController extends Controller
             $pointsNeeded         = abs((int) $user->points_balance);
         }
 
+        // ── Proposition Enterprise en attente ────────────────────────────────
+        $pendingEnterpriseProposal = EnterpriseQuoteRequest::where('user_id', $user->id)
+            ->where('status', 'proposed')
+            ->whereNull('proposal_accepted_at')
+            ->latest('proposal_sent_at')
+            ->first();
+
         return view('dashboard', compact(
             'user', 'connectionCount', 'pendingCount', 'groupCount',
             'completion', 'missing', 'prospects', 'plans',
@@ -166,7 +174,8 @@ class DashboardController extends Controller
             'popupEnabled', 'popupFrequency',
             'popupTitle', 'popupSubtitle', 'popupBtnLater', 'popupBtnCta',
             'negativeBalancePopup', 'pointsNeeded', 'pointsPricePerUnit',
-            'cities', 'selectedCityId', 'selectedCity'
+            'cities', 'selectedCityId', 'selectedCity',
+            'pendingEnterpriseProposal'
         ));
     }
 }

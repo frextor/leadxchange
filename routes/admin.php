@@ -212,8 +212,9 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::delete('enterprise/{license}',  [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseLicenseController::class, 'destroy'])->name('enterprise.destroy');
     Route::get('enterprise-quotes',                    [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'index'])->name('enterprise.quotes');
     Route::patch('enterprise-quotes/{quote}',          [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'update'])->name('enterprise.quotes.update');
-    Route::get('enterprise-quotes/{quote}/proposal',   [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'proposalForm'])->name('enterprise.quotes.proposal.form');
-    Route::post('enterprise-quotes/{quote}/proposal',  [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'sendProposal'])->name('enterprise.quotes.proposal.send');
+    Route::get('enterprise-quotes/{quote}/proposal',        [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'proposalForm'])->name('enterprise.quotes.proposal.form');
+    Route::post('enterprise-quotes/{quote}/proposal',       [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'sendProposal'])->name('enterprise.quotes.proposal.send');
+    Route::post('enterprise-quotes/{quote}/regenerate-link',[\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'regeneratePaymentLink'])->name('enterprise.quotes.proposal.regenerate');
 
     // Pages légales (CGU, Confidentialité)
     Route::get('pages',              [\App\Http\Controllers\Admin\SuperAdmin\PageController::class, 'index'])->name('pages.index');

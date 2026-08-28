@@ -106,6 +106,16 @@
                     </span>
                     @if($quote->isAccepted())
                     <span class="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700">✓ Acceptée</span>
+                    @elseif(!$quote->stripe_payment_link)
+                    {{-- Proposition envoyée mais sans lien Stripe → bouton régénérer --}}
+                    <form method="POST" action="{{ route('admin.super.enterprise.quotes.proposal.regenerate', $quote) }}" class="inline">
+                        @csrf
+                        <button type="submit"
+                                class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                            Régénérer le lien Stripe
+                        </button>
+                    </form>
                     @endif
                     @endif
                     <button type="button" onclick="toggleEdit({{ $quote->id }})"

@@ -374,6 +374,34 @@
         </div>
     </div>
 
+    {{-- ── PROPOSITION ENTERPRISE EN ATTENTE ── --}}
+    @if(isset($pendingEnterpriseProposal) && $pendingEnterpriseProposal)
+    @php $prop = $pendingEnterpriseProposal; @endphp
+    <a href="{{ route('enterprise.proposal.view', $prop->proposal_token) }}"
+       class="flex items-center justify-between gap-4 px-5 py-4 rounded-2xl text-white transition hover:opacity-95 flex-wrap"
+       style="background:linear-gradient(135deg,#4338CA,#6366F1);">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(255,255,255,0.15);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                </svg>
+            </div>
+            <div>
+                <p class="font-bold text-[14px]">Vous avez une proposition Pack Entreprise en attente</p>
+                <p class="text-indigo-200 text-xs mt-0.5">
+                    {{ $prop->company_name }} —
+                    {{ $prop->proposed_seats }} licences,
+                    {{ number_format((float)$prop->proposed_price, 2, ',', ' ') }} € —
+                    reçue le {{ $prop->proposal_sent_at->format('d/m/Y') }}
+                </p>
+            </div>
+        </div>
+        <span class="flex-shrink-0 text-sm font-bold px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 transition whitespace-nowrap">
+            Voir la proposition →
+        </span>
+    </a>
+    @endif
+
     {{-- ── STATS ── --}}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="stat-card">

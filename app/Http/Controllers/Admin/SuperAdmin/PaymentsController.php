@@ -24,6 +24,13 @@ class PaymentsController extends Controller
         if ($request->filled('status')) {
             $subQuery->where('status', $request->status);
         }
+        if ($request->filled('renewing_soon')) {
+            $subQuery->where('status', 'active')
+                     ->whereBetween('current_period_end', [now(), now()->addDays(7)]);
+        }
+        if ($request->filled('billing_period')) {
+            $subQuery->where('billing_period', $request->billing_period);
+        }
         if ($request->filled('search')) {
             $s = $request->search;
             $subQuery->whereHas('user', fn($q) => $q

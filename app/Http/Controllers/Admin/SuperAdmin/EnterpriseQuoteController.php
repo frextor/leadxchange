@@ -154,6 +154,54 @@ de <strong>Pack Entreprise</strong> pour <strong>« {$quote->company_name} »</s
             ->with('success', "Proposition envoyée à {$user->email}.");
     }
 
+    /** Régénère le Payment Link Stripe pour une proposition déjà envoyée sans lien */
+    public function regeneratePaymentLink(EnterpriseQuoteRequest $quote)
+    {
+        abort_unless($quote->status === 'proposed' && !$quote->proposal_accepted_at, 403);
+
+        $stripePaymentLink = null;
+        $stripePriceId     = null;
+
+        try {
+            $stripe = new StripeClient(config('services.stripe.secret'));
+
+            $price = $stripe->prices->create([
+                'currency'     => 'eur',
+                'unit_amount'  => (int) round((float) $quote->proposed_price * 100),
+                'product_data' => [
+                    'name' => "Pack Entreprise — {$quote->company_name} ({$quote->proposed_seats} licences, {$quote->proposed_duration_months} mois)",
+                ],
+            ]);
+
+            $link = $stripe->paymentLinks->create([
+                'line_items' => [['price' => $price->id, 'quantity' => 1]],
+                'metadata'   => [
+                    'quote_id' => (string) $quote->id,
+                    'user_id'  => (string) $quote->user_id,
+                    'token'    => $quote->proposal_token,
+                ],
+                'after_completion' => [
+                    'type'     => 'redirect',
+                    'redirect' => ['url' => route('enterprise.proposal.paid', $quote->proposal_token)],
+                ],
+            ]);
+
+            $stripePaymentLink = $link->url;
+            $stripePriceId     = $price->id;
+
+        } catch (\Exception $e) {
+            Log::error('Stripe link regeneration failed', ['quote_id' => $quote->id, 'error' => $e->getMessage()]);
+            return back()->with('error', 'Erreur Stripe : ' . $e->getMessage());
+        }
+
+        $quote->update([
+            'stripe_payment_link' => $stripePaymentLink,
+            'stripe_price_id'     => $stripePriceId,
+        ]);
+
+        return back()->with('success', 'Lien de paiement Stripe régénéré. Le client peut maintenant payer.');
+    }
+
     public function update(Request $request, EnterpriseQuoteRequest $quote)
     {
         $request->validate([
