@@ -162,7 +162,7 @@ class User extends Authenticatable implements MustVerifyEmail
     /** Check if the user's active plan grants a given permission. */
     public function planCan(string $permission): bool
     {
-        return $this->subscription?->plan?->can($permission) ?? false;
+        return (bool) ($this->effectivePlan()?->can($permission) ?? false);
     }
 
     /** Get a numeric/value permission from the user's active plan. */

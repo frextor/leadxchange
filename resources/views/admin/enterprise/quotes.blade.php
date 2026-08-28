@@ -87,16 +87,27 @@
                 </div>
 
                 {{-- Actions --}}
-                <div class="flex items-center gap-2 flex-shrink-0">
+                <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
                     <a href="{{ route('admin.users.show', $quote->user) }}"
                        class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
                         Voir profil
                     </a>
-                    <a href="{{ route('admin.super.enterprise.create') }}"
-                       class="text-xs font-semibold px-3 py-1.5 rounded-lg text-white transition"
-                       style="background:#6366F1;" onmouseover="this.style.background='#4338CA'" onmouseout="this.style.background='#6366F1'">
-                        Créer licence
+                    @if(!$quote->hasProposal() && !in_array($quote->status, ['closed', 'converted']))
+                    <a href="{{ route('admin.super.enterprise.quotes.proposal.form', $quote) }}"
+                       class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg text-white transition"
+                       style="background:linear-gradient(135deg,#059669,#047857);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        Générer une proposition
                     </a>
+                    @else
+                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-violet-100 text-violet-700">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 11 3 3L22 4"/></svg>
+                        Proposition envoyée {{ $quote->proposal_sent_at?->format('d/m') }}
+                    </span>
+                    @if($quote->isAccepted())
+                    <span class="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700">✓ Acceptée</span>
+                    @endif
+                    @endif
                     <button type="button" onclick="toggleEdit({{ $quote->id }})"
                             class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
                         Modifier

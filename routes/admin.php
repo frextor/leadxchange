@@ -210,8 +210,10 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::get('enterprise/{license}/edit',[\App\Http\Controllers\Admin\SuperAdmin\EnterpriseLicenseController::class, 'edit'])->name('enterprise.edit');
     Route::put('enterprise/{license}',     [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseLicenseController::class, 'update'])->name('enterprise.update');
     Route::delete('enterprise/{license}',  [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseLicenseController::class, 'destroy'])->name('enterprise.destroy');
-    Route::get('enterprise-quotes',        [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'index'])->name('enterprise.quotes');
-    Route::patch('enterprise-quotes/{quote}', [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'update'])->name('enterprise.quotes.update');
+    Route::get('enterprise-quotes',                    [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'index'])->name('enterprise.quotes');
+    Route::patch('enterprise-quotes/{quote}',          [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'update'])->name('enterprise.quotes.update');
+    Route::get('enterprise-quotes/{quote}/proposal',   [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'proposalForm'])->name('enterprise.quotes.proposal.form');
+    Route::post('enterprise-quotes/{quote}/proposal',  [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'sendProposal'])->name('enterprise.quotes.proposal.send');
 
     // Pages légales (CGU, Confidentialité)
     Route::get('pages',              [\App\Http\Controllers\Admin\SuperAdmin\PageController::class, 'index'])->name('pages.index');

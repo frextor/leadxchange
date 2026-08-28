@@ -278,7 +278,7 @@
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">Téléphone</label>
                     <input type="tel" name="phone" maxlength="30"
-                           value="{{ old('phone') }}"
+                           value="{{ old('phone', auth()->user()->phone) }}"
                            placeholder="+33 6 00 00 00 00"
                            class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>

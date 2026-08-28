@@ -48,19 +48,22 @@ class DashboardController extends Controller
         $popupBtnLater  = SystemSetting::get('welcome_popup_btn_later', '');
         $popupBtnCta    = SystemSetting::get('welcome_popup_btn_cta', '');
 
+        // La ville active (sélecteur hero) est lue dès maintenant pour filtrer aussi les prospects
+        $selectedCityId = session('selected_city_id', $user->city_id);
+
         $baseQuery = fn() => User::with(['profile', 'company', 'city'])
             ->where('role', 'user')
             ->where('id', '!=', $user->id)
-            ->whereNotIn('id', $connectedIds->toArray());
+            ->whereNotIn('id', $connectedIds->toArray())
+            ->when($selectedCityId, fn($q) => $q->where('city_id', $selectedCityId));
 
         $prospects = collect();
 
         if ($popupEnabled) {
             $userInterestIds = $user->interests->pluck('id')->toArray();
 
-            if ($popupCriteria === 'same_city' && $user->city_id) {
+            if ($popupCriteria === 'same_city') {
                 $prospects = $baseQuery()
-                    ->where('city_id', $user->city_id)
                     ->inRandomOrder()
                     ->limit($popupCount)
                     ->get();
@@ -73,35 +76,21 @@ class DashboardController extends Controller
                     ->get();
 
             } elseif ($popupCriteria === 'both') {
-                // Priorité : ville + intérêt commun
-                if ($user->city_id && !empty($userInterestIds)) {
+                // Priorité : intérêt commun (la ville est déjà dans baseQuery)
+                if (!empty($userInterestIds)) {
                     $prospects = $baseQuery()
-                        ->where('city_id', $user->city_id)
                         ->whereHas('interests', fn($q) => $q->whereIn('interests.id', $userInterestIds))
                         ->inRandomOrder()
                         ->limit($popupCount)
                         ->get();
                 }
-                // Complète si pas assez de résultats
-                if ($prospects->count() < $popupCount && $user->city_id) {
-                    $already = $prospects->pluck('id')->toArray();
-                    $extra = $baseQuery()
-                        ->where('city_id', $user->city_id)
-                        ->whereNotIn('id', $already)
-                        ->inRandomOrder()
-                        ->limit($popupCount - $prospects->count())
-                        ->get();
-                    $prospects = $prospects->merge($extra);
-                }
-                // Dernier recours : aléatoire
+                // Complète si pas assez
                 if ($prospects->count() < $popupCount) {
                     $already = $prospects->pluck('id')->toArray();
-                    $extra = $baseQuery()
-                        ->whereNotIn('id', $already)
-                        ->inRandomOrder()
-                        ->limit($popupCount - $prospects->count())
-                        ->get();
-                    $prospects = $prospects->merge($extra);
+                    $prospects = $prospects->merge(
+                        $baseQuery()->whereNotIn('id', $already)->inRandomOrder()
+                            ->limit($popupCount - $prospects->count())->get()
+                    );
                 }
 
             } else {
@@ -112,18 +101,21 @@ class DashboardController extends Controller
                     ->get();
             }
 
-            // Si critère filtré mais aucun résultat, fallback aléatoire
+            // Fallback sans filtre ville si aucun résultat
             if ($prospects->isEmpty() && $popupCriteria !== 'none') {
-                $prospects = $baseQuery()->inRandomOrder()->limit($popupCount)->get();
+                $prospects = User::with(['profile', 'company', 'city'])
+                    ->where('role', 'user')
+                    ->where('id', '!=', $user->id)
+                    ->whereNotIn('id', $connectedIds->toArray())
+                    ->inRandomOrder()->limit($popupCount)->get();
             }
         }
 
         $plans = Plan::orderBy('price')->get();
 
         // ── Sélecteur de région ──────────────────────────────────────────────
-        $cities          = City::active()->orderBy('name')->get();
-        $selectedCityId  = session('selected_city_id', $user->city_id);
-        $selectedCity    = $selectedCityId ? $cities->firstWhere('id', $selectedCityId) : null;
+        $cities       = City::active()->orderBy('name')->get();
+        $selectedCity = $selectedCityId ? $cities->firstWhere('id', $selectedCityId) : null;
 
         $memberGroupIds = $user->groups()->pluck('groups.id')->toArray();
         $featuredGroups = Group::with(['sector:id,name'])

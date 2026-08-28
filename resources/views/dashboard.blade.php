@@ -348,11 +348,19 @@
 
             {{-- Action buttons --}}
             <div class="flex flex-wrap gap-2">
+                @if($completion < 100)
                 <a href="{{ route('profile.me') }}"
                    class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white border border-white/20 hover:bg-white/10 transition backdrop-blur-sm">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
                     Complete Profile
                 </a>
+                @else
+                <a href="{{ route('profile.me') }}"
+                   class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white border border-white/20 hover:bg-white/10 transition backdrop-blur-sm">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Mon profil
+                </a>
+                @endif
                 <span class="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/20" style="background:rgba(255,255,255,0.12);">
                     <img src="{{ asset('images/plans/' . $dashPlanKey . '.jpg') }}"
                          alt="{{ $dashPlanKey }}"

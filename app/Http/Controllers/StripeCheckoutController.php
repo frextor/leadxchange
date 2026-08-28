@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\EnterpriseProposalController;
 use App\Mail\SystemNotificationMail;
+use App\Models\EnterpriseQuoteRequest;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
@@ -159,6 +161,7 @@ class StripeCheckoutController extends Controller
         match ($event->type) {
             'customer.subscription.updated',
             'customer.subscription.deleted' => $this->handleSubscriptionChange($event->data->object),
+            'checkout.session.completed'    => $this->handleCheckoutCompleted($event->data->object),
             default                          => null,
         };
 
@@ -182,5 +185,29 @@ class StripeCheckoutController extends Controller
                     : null,
                 'cancel_at_period_end' => (bool) $sub->cancel_at_period_end,
             ]);
+    }
+
+    /**
+     * Gère checkout.session.completed pour les Payment Links Enterprise.
+     * Sécurité : si le client ferme le navigateur avant le redirect,
+     * le webhook active quand même la licence.
+     */
+    private function handleCheckoutCompleted(object $session): void
+    {
+        $token = $session->metadata->token ?? null;
+        if (! $token) return;
+
+        $quote = EnterpriseQuoteRequest::where('proposal_token', $token)
+            ->whereNull('proposal_accepted_at')
+            ->first();
+
+        if (! $quote) return; // déjà activé via le redirect
+
+        $quote->update([
+            'status'               => 'converted',
+            'proposal_accepted_at' => now(),
+        ]);
+
+        (new EnterpriseProposalController)->activateLicensePublic($quote->load(['user', 'plan']));
     }
 }

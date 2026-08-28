@@ -382,9 +382,10 @@ class UserService
             return ['level' => 'consul', 'label' => 'Consul'];
         }
 
-        $planName = strtolower($user->subscription?->plan?->name ?? '');
+        $effectivePlan = $user->effectivePlan();
+        $planName = strtolower($effectivePlan?->name ?? '');
         if ($planName && !str_contains($planName, 'basic')) {
-            return ['level' => 'premium', 'label' => $user->subscription->plan->label ?? ucfirst($planName)];
+            return ['level' => 'premium', 'label' => $effectivePlan->label ?? ucfirst($planName)];
         }
 
         return ['level' => 'basic', 'label' => 'Basic'];

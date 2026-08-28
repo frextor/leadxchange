@@ -128,7 +128,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Téléphone <span class="text-gray-400 font-normal">(optionnel)</span></label>
                     <input type="text" name="phone" maxlength="30"
-                           value="{{ old('phone') }}"
+                           value="{{ old('phone', auth()->user()->phone) }}"
                            class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                            placeholder="+212 6 XX XX XX XX">
                     @error('phone')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
