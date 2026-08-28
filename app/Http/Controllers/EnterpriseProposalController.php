@@ -17,12 +17,18 @@ class EnterpriseProposalController extends Controller
     {
         $quote = EnterpriseQuoteRequest::with(['user', 'plan'])
             ->where('proposal_token', $token)
-            ->where('status', 'proposed')
+            ->whereIn('status', ['proposed', 'converted'])
             ->firstOrFail();
 
         // Seul le propriétaire peut la voir
         if (auth()->id() !== $quote->user_id) {
             abort(403, 'Cette proposition ne vous appartient pas.');
+        }
+
+        // Si déjà payée, rediriger vers l'espace entreprise
+        if ($quote->proposal_accepted_at) {
+            return redirect()->route('enterprise.team')
+                ->with('success', 'Votre Pack Entreprise est déjà actif.');
         }
 
         return view('enterprise.proposal', compact('quote'));
@@ -35,22 +41,47 @@ class EnterpriseProposalController extends Controller
             ->where('proposal_token', $token)
             ->firstOrFail();
 
-        if ($quote->proposal_accepted_at) {
-            return redirect()->route('enterprise.team')
-                ->with('success', 'Votre licence Enterprise est déjà activée.');
+        // Vérifier que l'utilisateur connecté est bien le propriétaire de la proposition
+        // (au cas où un admin clique sur le lien de paiement en étant connecté)
+        $currentUser = auth()->user();
+        if ($currentUser && $currentUser->id !== $quote->user_id) {
+            // Rediriger vers le dashboard de l'utilisateur courant, pas entreprise.team
+            return redirect()->route('dashboard')
+                ->with('error', 'Ce lien de paiement ne correspond pas à votre compte.');
         }
 
-        // Marquer comme accepté
-        $quote->update([
-            'status'                => 'converted',
-            'proposal_accepted_at'  => now(),
-        ]);
+        // Déjà activé (webhook a battu le redirect) → vérifier que la licence existe
+        if ($quote->proposal_accepted_at) {
+            $license = $quote->user->enterpriseLicense()->first();
+            if ($license && !$license->isExpired()) {
+                return redirect()->route('enterprise.team')
+                    ->with('success', 'Votre licence Entreprise est déjà activée. Bienvenue !');
+            }
+            // Licence pas encore créée (webhook en cours) → réessayer l'activation
+            $this->activateLicense($quote);
+        } else {
+            // Marquer comme accepté
+            $quote->update([
+                'status'               => 'converted',
+                'proposal_accepted_at' => now(),
+            ]);
 
-        // Créer la licence Enterprise
-        $this->activateLicense($quote);
+            // Créer la licence Enterprise
+            $this->activateLicense($quote);
+        }
 
-        return redirect()->route('enterprise.team')
-            ->with('success', "Félicitations ! Votre Pack Entreprise « {$quote->company_name} » est maintenant actif.");
+        // Vérifier que la licence a bien été créée avant de rediriger
+        $quote->user->refresh();
+        $license = $quote->user->enterpriseLicense()->first();
+
+        if ($license && !$license->isExpired()) {
+            return redirect()->route('enterprise.team')
+                ->with('success', "Félicitations ! Votre Pack Entreprise « {$quote->company_name} » est maintenant actif.");
+        }
+
+        // Fallback : activation échouée, rediriger vers dashboard avec message
+        return redirect()->route('dashboard')
+            ->with('success', "Paiement reçu ! Votre licence Entreprise « {$quote->company_name} » est en cours d'activation. Vous serez notifié dans quelques instants.");
     }
 
     public function activateLicensePublic(EnterpriseQuoteRequest $quote): void
