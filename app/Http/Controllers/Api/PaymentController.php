@@ -292,6 +292,19 @@ class PaymentController extends Controller
             return response()->json(['subscription' => null, 'invoices' => []]);
         }
 
+        // Backfill current_period_end if missing
+        if (!$subscription->current_period_end && $subscription->stripe_subscription_id) {
+            $this->configureStripe();
+            try {
+                $stripeSub = StripeSubscription::retrieve($subscription->stripe_subscription_id);
+                $periodEnd = $this->resolveTestPeriodEnd($stripeSub->current_period_end, $subscription->billing_period ?? 'monthly');
+                if ($periodEnd) {
+                    $subscription->update(['current_period_end' => $periodEnd]);
+                    $subscription->refresh();
+                }
+            } catch (\Exception) {}
+        }
+
         $invoices = [];
         if ($subscription->stripe_subscription_id && $user->stripe_customer_id) {
             $this->configureStripe();
