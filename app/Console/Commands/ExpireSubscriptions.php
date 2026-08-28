@@ -8,6 +8,8 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
+use Stripe\Invoice as StripeInvoice;
+use Stripe\Stripe;
 
 class ExpireSubscriptions extends Command
 {
@@ -42,6 +44,7 @@ class ExpireSubscriptions extends Command
                 $subscription->update([
                     'current_period_end' => Carbon::now()->addMinutes($minutes),
                 ]);
+                $this->createStripeTestInvoice($subscription);
                 $this->notifyRenewal($subscription);
                 continue;
             }
@@ -52,6 +55,31 @@ class ExpireSubscriptions extends Command
 
         $count = $subscriptions->count();
         $this->info("Expired {$count} subscription(s)." . ($testMode ? ' [TEST MODE]' : ''));
+    }
+
+    private function createStripeTestInvoice(Subscription $subscription): void
+    {
+        $stripeSubId = $subscription->stripe_subscription_id;
+        $customerId  = $subscription->user?->stripe_customer_id;
+
+        if (!$stripeSubId || !$customerId) {
+            return;
+        }
+
+        try {
+            Stripe::setApiKey(config('services.stripe.secret'));
+
+            $invoice = StripeInvoice::create([
+                'customer'     => $customerId,
+                'subscription' => $stripeSubId,
+                'auto_advance' => false,
+            ]);
+
+            StripeInvoice::finalizeInvoice($invoice->id);
+            StripeInvoice::pay($invoice->id);
+        } catch (\Exception $e) {
+            $this->warn('Stripe test invoice failed: ' . $e->getMessage());
+        }
     }
 
     private function notifyRenewal(Subscription $subscription): void
