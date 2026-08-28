@@ -69,6 +69,19 @@ class DashboardController extends Controller
                     ->limit($popupCount)
                     ->get();
 
+            } elseif ($popupCriteria === 'same_region') {
+                // Même région (region_id) que l'utilisateur connecté
+                if ($user->region_id) {
+                    $prospects = User::with(['profile', 'company', 'city'])
+                        ->where('role', 'user')
+                        ->where('id', '!=', $user->id)
+                        ->whereNotIn('id', $connectedIds->toArray())
+                        ->where('region_id', $user->region_id)
+                        ->inRandomOrder()
+                        ->limit($popupCount)
+                        ->get();
+                }
+
             } elseif ($popupCriteria === 'same_interest' && !empty($userInterestIds)) {
                 $prospects = $baseQuery()
                     ->whereHas('interests', fn($q) => $q->whereIn('interests.id', $userInterestIds))

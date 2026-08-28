@@ -235,6 +235,9 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::get('settings/welcome-popup',       [SettingsController::class, 'welcomePopup'])->name('settings.welcome-popup');
     Route::put('settings/welcome-popup',       [SettingsController::class, 'updateWelcomePopup'])->name('settings.welcome-popup.update');
 
+    Route::get('settings/about-page',          [SettingsController::class, 'aboutPage'])->name('settings.about-page');
+    Route::put('settings/about-page',          [SettingsController::class, 'updateAboutPage'])->name('settings.about-page.update');
+
     Route::get('settings/maintenance',         [SettingsController::class, 'maintenance'])->name('settings.maintenance');
     Route::put('settings/maintenance',         [SettingsController::class, 'updateMaintenance'])->name('settings.maintenance.update');
     Route::get('settings/maintenance/preview', fn() => response()->view('errors.503', ['message' => 'Quelques minutes (démonstration)']))->name('settings.maintenance.preview');

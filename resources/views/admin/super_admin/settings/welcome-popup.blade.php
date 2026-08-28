@@ -58,10 +58,11 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     @foreach([
-                        ['none',          'Aléatoire',           'Les membres les plus récents, sans filtre.',                 'M2 12h20M12 2v20'],
-                        ['same_city',     'Même ville',          'Membres habitant la même ville que l\'utilisateur connecté.','M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z'],
-                        ['same_interest', 'Même centre d\'intérêt', 'Membres ayant au moins un intérêt commun.',              'M4.5 6.375a4.125 4.125 0 1 1 8.25 0 4.125 4.125 0 0 1-8.25 0ZM14.25 8.625a3.375 3.375 0 1 1 6.75 0 3.375 3.375 0 0 1-6.75 0Z'],
-                        ['both',          'Ville + Intérêt',     'Membres de la même ville ET avec des intérêts communs. Si pas assez, complète par ville seule.',  'M9 12l2 2 4-4'],
+                        ['none',          'Aléatoire',              'Les membres les plus récents, sans filtre.',                                           'M2 12h20M12 2v20'],
+                        ['same_city',     'Même ville',             'Membres habitant la même ville que l\'utilisateur connecté.',                          'M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z'],
+                        ['same_region',   'Même région',            'Membres de la même région que l\'utilisateur (basé sur le champ région du profil).',   'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 0 0 1 1h3m10-11l2 2m-2-2v10a1 1 0 0 1-1 1h-3m-6 0a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3'],
+                        ['same_interest', 'Même centre d\'intérêt', 'Membres ayant au moins un intérêt commun.',                                            'M4.5 6.375a4.125 4.125 0 1 1 8.25 0 4.125 4.125 0 0 1-8.25 0ZM14.25 8.625a3.375 3.375 0 1 1 6.75 0 3.375 3.375 0 0 1-6.75 0Z'],
+                        ['both',          'Ville + Intérêt',        'Membres de la même ville ET avec des intérêts communs. Si pas assez, complète par ville seule.', 'M9 12l2 2 4-4'],
                     ] as [$val, $label, $desc, $path])
                     <label class="criteria-card flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition
                                   {{ $s('welcome_popup_criteria', 'none') === $val ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-200 hover:bg-gray-50' }}">
@@ -215,6 +216,10 @@
                 <div class="flex items-start gap-2">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="mt-0.5 flex-shrink-0"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/></svg>
                     <p><strong>Même ville</strong> : filtre sur les membres partageant la même ville que l'utilisateur connecté.</p>
+                </div>
+                <div class="flex items-start gap-2">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="mt-0.5 flex-shrink-0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                    <p><strong>Même région</strong> : filtre sur les membres ayant la même région (champ région du profil utilisateur).</p>
                 </div>
                 <div class="flex items-start gap-2">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="mt-0.5 flex-shrink-0"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>

@@ -95,6 +95,9 @@ HTML);
 // Legal pages (CGU, Privacy Policy) — public, no auth required
 Route::get('/legal/{slug}', [PageController::class, 'show'])->name('legal.show');
 
+// À propos — public, no auth required
+Route::get('/a-propos', [\App\Http\Controllers\AboutController::class, 'show'])->name('about');
+
 // Firebase Messaging Service Worker (must be at root scope, no auth required)
 Route::get('/firebase-messaging-sw.js', function () {
     return response()

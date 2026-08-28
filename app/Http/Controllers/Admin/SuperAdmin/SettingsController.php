@@ -104,7 +104,7 @@ class SettingsController extends Controller
     {
         $request->validate([
             'welcome_popup_enabled'   => ['boolean'],
-            'welcome_popup_criteria'  => ['required', 'in:none,same_city,same_interest,both'],
+            'welcome_popup_criteria'  => ['required', 'in:none,same_city,same_region,same_interest,both'],
             'welcome_popup_count'     => ['required', 'integer', 'in:2,3,4'],
             'welcome_popup_frequency' => ['required', 'in:once,session,always'],
             'welcome_popup_title'     => ['nullable', 'string', 'max:120'],
@@ -136,6 +136,54 @@ class SettingsController extends Controller
         ActivityLogger::log('admin.settings.updated', "Paramètres popup de bienvenue mis à jour (critère : {$request->welcome_popup_criteria})");
 
         return back()->with('success', 'Paramètres du popup enregistrés.');
+    }
+
+    // ── §5.3 Page À propos ───────────────────────────────────────────────
+
+    public function aboutPage(): View
+    {
+        $settings = SystemSetting::where('group', 'about_page')->get()->keyBy('key');
+        return view('admin.super_admin.settings.about-page', compact('settings'));
+    }
+
+    public function updateAboutPage(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'about_enabled'       => ['boolean'],
+            'about_title'         => ['required', 'string', 'max:100'],
+            'about_tagline'       => ['nullable', 'string', 'max:200'],
+            'about_mission'       => ['nullable', 'string', 'max:600'],
+            'about_content'       => ['nullable', 'string', 'max:10000'],
+            'about_contact_email' => ['nullable', 'email', 'max:150'],
+            'about_founded_year'  => ['nullable', 'integer', 'min:2000', 'max:2030'],
+            'about_cta_label'     => ['nullable', 'string', 'max:60'],
+            'about_cta_url'       => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $fields = [
+            'about_enabled'       => $request->boolean('about_enabled') ? '1' : '0',
+            'about_title'         => $request->about_title,
+            'about_tagline'       => $request->about_tagline       ?? '',
+            'about_mission'       => $request->about_mission       ?? '',
+            'about_content'       => $request->about_content       ?? '',
+            'about_contact_email' => $request->about_contact_email ?? '',
+            'about_founded_year'  => $request->about_founded_year  ?? '',
+            'about_cta_label'     => $request->about_cta_label     ?? '',
+            'about_cta_url'       => $request->about_cta_url       ?? '',
+        ];
+
+        foreach ($fields as $key => $value) {
+            SystemSetting::updateOrCreate(['key' => $key], [
+                'value' => $value,
+                'group' => 'about_page',
+                'type'  => $key === 'about_enabled' ? 'bool' : 'string',
+            ]);
+        }
+
+        Cache::forget('system_settings');
+        ActivityLogger::log('admin.settings.updated', 'Page À propos mise à jour');
+
+        return back()->with('success', 'Page À propos enregistrée.');
     }
 
     // ── §5.x Payments ─────────────────────────────────────────────────────
