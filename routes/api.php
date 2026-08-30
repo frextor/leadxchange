@@ -223,3 +223,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 // Referrals
 Route::middleware('auth:sanctum')->post('/referrals', [ReferralController::class, 'send']);
+
+// Feedback
+Route::middleware('auth:sanctum')->post('/feedback', [\App\Http\Controllers\Api\FeedbackController::class, 'store']);
