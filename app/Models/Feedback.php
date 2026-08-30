@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Feedback extends Model
 {
+    protected $table = 'feedbacks';
+
     protected $fillable = ['user_id', 'message', 'status'];
 
     public function user(): BelongsTo
