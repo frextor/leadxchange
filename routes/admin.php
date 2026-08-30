@@ -86,6 +86,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/videos',                        [VideoController::class, 'index'])->name('admin.videos.index');
     Route::post('/videos/{profile}/approve',     [VideoController::class, 'approve'])->name('admin.videos.approve');
     Route::post('/videos/{profile}/reject',      [VideoController::class, 'reject'])->name('admin.videos.reject');
+
+    // Feedback
+    Route::get('/feedbacks',                             [\App\Http\Controllers\Admin\FeedbackController::class, 'index'])->name('admin.feedbacks.index');
+    Route::patch('/feedbacks/{feedback}/status',         [\App\Http\Controllers\Admin\FeedbackController::class, 'updateStatus'])->name('admin.feedbacks.status');
 });
 
 // ── Super Admin only ─────────────────────────────────────────────────────
