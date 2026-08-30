@@ -68,7 +68,13 @@
                     @endif
                 </td>
                 <td class="px-4 py-3 max-w-xs">
-                    <p class="text-gray-700 text-sm line-clamp-3 whitespace-pre-wrap">{{ $feedback->message }}</p>
+                    <p class="text-gray-700 text-sm line-clamp-2 whitespace-pre-wrap">{{ $feedback->message }}</p>
+                    @if(strlen($feedback->message) > 120)
+                    <button onclick="openModal('{{ $feedback->id }}')"
+                            class="mt-1 text-xs font-semibold hover:underline" style="color:#1E8F88;">
+                        Voir tout →
+                    </button>
+                    @endif
                 </td>
                 <td class="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
                     {{ $feedback->created_at->format('d/m/Y H:i') }}
@@ -113,4 +119,47 @@
     </div>
     @endif
 </div>
+{{-- Message modals --}}
+@foreach($feedbacks as $feedback)
+@if(strlen($feedback->message) > 120)
+<div id="modal-{{ $feedback->id }}"
+     class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+     style="background:rgba(0,0,0,.45);"
+     onclick="if(event.target===this) closeModal('{{ $feedback->id }}')">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                @if($feedback->user)
+                <p class="font-bold text-gray-800">{{ $feedback->user->first_name }} {{ $feedback->user->last_name }}</p>
+                <p class="text-xs text-gray-400">{{ $feedback->user->email }} · {{ $feedback->created_at->format('d/m/Y H:i') }}</p>
+                @endif
+            </div>
+            <button onclick="closeModal('{{ $feedback->id }}')" class="text-gray-400 hover:text-gray-600 text-xl leading-none ml-4">&times;</button>
+        </div>
+        <p class="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">{{ $feedback->message }}</p>
+    </div>
+</div>
+@endif
+@endforeach
+
+<script>
+function openModal(id) {
+    const m = document.getElementById('modal-' + id);
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+}
+function closeModal(id) {
+    const m = document.getElementById('modal-' + id);
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('[id^="modal-"]').forEach(m => {
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        });
+    }
+});
+</script>
 @endsection
