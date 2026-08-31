@@ -92,17 +92,17 @@ Route::get('/enterprise/invitations/{token}', function (string $token) {
 HTML);
 })->name('enterprise.invitations.redirect');
 
+// CGU acceptance wall — must be BEFORE the /legal/{slug} wildcard route
+Route::middleware('auth')->get('/legal/cgu-required', function () {
+    $version = \App\Models\SystemSetting::get('cgu_current_version', '1.1');
+    return view('legal.cgu-wall', compact('version'));
+})->name('cgu.wall');
+
 // Legal pages (CGU, Privacy Policy) — public, no auth required
 Route::get('/legal/{slug}', [PageController::class, 'show'])->name('legal.show');
 
 // À propos — public, no auth required
 Route::get('/a-propos', [\App\Http\Controllers\AboutController::class, 'show'])->name('about');
-
-// CGU acceptance wall — accessible while authenticated but before accepting CGU
-Route::middleware('auth')->get('/legal/cgu-required', function () {
-    $version = \App\Models\SystemSetting::get('cgu_current_version', '1.1');
-    return view('legal.cgu-wall', compact('version'));
-})->name('cgu.wall');
 
 // Firebase Messaging Service Worker (must be at root scope, no auth required)
 Route::get('/firebase-messaging-sw.js', function () {
