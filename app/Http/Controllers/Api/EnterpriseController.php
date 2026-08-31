@@ -43,7 +43,7 @@ class EnterpriseController extends Controller
 <li><strong>Entreprise :</strong> {$companyName}</li>
 <li><strong>Utilisateurs souhaités :</strong> {$data['seats_needed']} licences</li>
 <li><strong>Demandeur :</strong> {$user->first_name} {$user->last_name} ({$user->email})</li>
-<li><strong>Téléphone :</strong> " . ($data['phone'] ?: '—') . "</li>
+<li><strong>Téléphone :</strong> " . ($data['phone'] ?? '—') . "</li>
 <li><strong>Message :</strong> " . nl2br(htmlspecialchars($data['message'] ?? '')) . "</li>
 </ul>
 <p><a href=\"" . route('admin.super.enterprise.quotes') . "\">Voir les demandes dans l'administration →</a></p>";
