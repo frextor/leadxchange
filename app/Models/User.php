@@ -478,23 +478,27 @@ class User extends Authenticatable implements MustVerifyEmail
             ->first();
     }
 
-    /** Returns "Premium — CompanyName" for enterprise members, otherwise the plan label. */
+    /** Returns the user's effective plan label (Consul/Ambassadeur take priority over subscription). */
     public function planDisplayLabel(): string
     {
+        // Statuts accordés par l'admin — priorité sur l'abonnement
+        if ($this->isAmbassador()) return 'Ambassadeur';
+        if ($this->isConsul())     return 'Consul';
+
         if ($this->isEnterpriseHolder()) {
             // Utilise la licence active (non expirée) pour le nom
             $activeLicense = $this->enterpriseLicense()
                 ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
                 ->first();
             $name = $activeLicense?->company_name;
-            return 'Premium' . ($name ? ' — ' . $name : '');
+            return 'Entreprise' . ($name ? ' — ' . $name : '');
         }
         $inv = $this->relationLoaded('enterpriseInvitation')
             ? $this->enterpriseInvitation
             : $this->enterpriseInvitation()->with('license')->first();
         if ($inv) {
             $name = $inv->license?->company_name;
-            return 'Premium' . ($name ? ' — ' . $name : '');
+            return 'Entreprise' . ($name ? ' — ' . $name : '');
         }
         return $this->subscription?->plan?->label ?? 'Basic';
     }
