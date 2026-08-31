@@ -27,7 +27,7 @@ class EnterpriseController extends Controller
         ]);
 
         $user = $request->user();
-        $companyName = $data['company_name'] ?? $user->company ?? "{$user->first_name} {$user->last_name}";
+        $companyName = $data['company_name'] ?? $user->company?->name ?? "{$user->first_name} {$user->last_name}";
 
         EnterpriseQuoteRequest::create([
             'user_id'      => $user->id,
