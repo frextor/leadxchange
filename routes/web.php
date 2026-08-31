@@ -98,6 +98,12 @@ Route::get('/legal/{slug}', [PageController::class, 'show'])->name('legal.show')
 // À propos — public, no auth required
 Route::get('/a-propos', [\App\Http\Controllers\AboutController::class, 'show'])->name('about');
 
+// CGU acceptance wall — accessible while authenticated but before accepting CGU
+Route::middleware('auth')->get('/legal/cgu-required', function () {
+    $version = \App\Models\SystemSetting::get('cgu_current_version', '1.1');
+    return view('legal.cgu-wall', compact('version'));
+})->name('cgu.wall');
+
 // Firebase Messaging Service Worker (must be at root scope, no auth required)
 Route::get('/firebase-messaging-sw.js', function () {
     return response()
@@ -144,7 +150,7 @@ Route::post('/email/verification-notification', [VerificationController::class, 
 // ==========================================
 // Protected Routes (Authenticated)
 // ==========================================
-Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
+Route::middleware(['auth', 'user', 'email.verified', 'cgu'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -255,7 +261,7 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
     Route::post('/legal/accept-cgu', function (\Illuminate\Http\Request $request) {
         $version = \App\Models\SystemSetting::get('cgu_current_version', '1.1');
         $request->user()->update(['cgu_version' => $version, 'cgu_accepted_at' => now()]);
-        return back()->with('success', 'Merci d\'avoir accepté les nouvelles CGU v' . $version . '.');
+        return redirect()->route('dashboard')->with('success', 'Merci d\'avoir accepté les CGU v' . $version . '. Bienvenue sur LeadXchange !');
     })->name('cgu.accept');
 
     // Consul/Ambassador requests (user-facing)
