@@ -362,6 +362,12 @@
                 Pages légales
             </a>
 
+            <a href="{{ route('admin.super.settings.about-page') }}"
+               class="nav-item sa {{ request()->routeIs('admin.super.settings.about-page*') ? 'active' : '' }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Page À propos
+            </a>
+
             <a href="{{ route('admin.super.smtp.index') }}"
                class="nav-item sa {{ request()->routeIs('admin.super.smtp*') ? 'active' : '' }}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>

@@ -15,6 +15,38 @@
     @endif
 
     <div class="grid grid-cols-1 gap-4">
+
+        {{-- Page À propos (gérée via system_settings) --}}
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-5 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                     style="background:linear-gradient(135deg,#EFF6FF,#DBEAFE);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-900">À propos</p>
+                    <div class="flex items-center gap-3 mt-0.5">
+                        <span class="text-xs text-gray-400">URL : <code class="bg-gray-100 px-1 rounded">/a-propos</code></span>
+                        <span class="text-xs text-gray-400">Contenu configurable (titre, mission, texte, CTA…)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <a href="{{ route('about') }}" target="_blank"
+                   class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    Voir
+                </a>
+                <a href="{{ route('admin.super.settings.about-page') }}"
+                   class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition"
+                   style="background:linear-gradient(135deg,#3B82F6,#2563EB);">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Modifier
+                </a>
+            </div>
+        </div>
+
+        {{-- Pages légales depuis la DB --}}
         @foreach($pages as $page)
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-5 flex items-center justify-between gap-4">
             <div class="flex items-center gap-4">
