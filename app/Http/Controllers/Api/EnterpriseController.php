@@ -20,17 +20,18 @@ class EnterpriseController extends Controller
     public function requestQuote(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'company_name' => ['required', 'string', 'max:100'],
+            'company_name' => ['nullable', 'string', 'max:100'],
             'seats_needed' => ['required', 'integer', 'min:2', 'max:500'],
             'phone'        => ['nullable', 'string', 'max:30'],
             'message'      => ['nullable', 'string', 'max:1000'],
         ]);
 
         $user = $request->user();
+        $companyName = $data['company_name'] ?? $user->company ?? "{$user->first_name} {$user->last_name}";
 
         EnterpriseQuoteRequest::create([
             'user_id'      => $user->id,
-            'company_name' => $data['company_name'],
+            'company_name' => $companyName,
             'seats_needed' => $data['seats_needed'],
             'phone'        => $data['phone'] ?? null,
             'message'      => $data['message'] ?? null,
@@ -39,7 +40,7 @@ class EnterpriseController extends Controller
 
         $body = "<p>Nouvelle demande de devis Pack Entreprise :</p>
 <ul>
-<li><strong>Entreprise :</strong> {$data['company_name']}</li>
+<li><strong>Entreprise :</strong> {$companyName}</li>
 <li><strong>Utilisateurs souhaités :</strong> {$data['seats_needed']} licences</li>
 <li><strong>Demandeur :</strong> {$user->first_name} {$user->last_name} ({$user->email})</li>
 <li><strong>Téléphone :</strong> " . ($data['phone'] ?: '—') . "</li>
@@ -51,7 +52,7 @@ class EnterpriseController extends Controller
             $adminEmail = env('ADMIN_EMAIL', config('mail.from.address'));
             Mail::to($adminEmail)->send(new SystemNotificationMail(
                 recipientName: 'Équipe LeadXchange',
-                title:         'Demande de devis Pack Entreprise — ' . $data['company_name'],
+                title:         'Demande de devis Pack Entreprise — ' . $companyName,
                 body:          $body,
                 actionLabel:   'Voir les demandes',
                 actionUrl:     route('admin.super.enterprise.quotes'),
