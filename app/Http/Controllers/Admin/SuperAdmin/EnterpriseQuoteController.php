@@ -113,23 +113,11 @@ class EnterpriseQuoteController extends Controller
             ['url' => $proposalUrl],
         );
 
-        // ── Email ─────────────────────────────────────────────────────────────
-        $proposalUrl   = route('enterprise.proposal.view', $token);
+        // ── Email via template ────────────────────────────────────────────────
         $priceFormatted = number_format((float) $data['proposed_price'], 2, ',', ' ') . ' €';
-        $planLabel      = $plan->label;
-        $months         = $data['proposed_duration_months'];
-
-        $body = "<p>Bonjour {$user->first_name},</p>
-<p>Suite à votre demande, nous avons le plaisir de vous adresser notre proposition
-de <strong>Pack Entreprise</strong> pour <strong>« {$quote->company_name} »</strong>.</p>
-<table style='border-collapse:collapse;width:100%;max-width:480px;margin:20px 0;'>
-  <tr style='background:#F8FAFC;'><td style='padding:10px 14px;font-size:13px;color:#374151;border:1px solid #E5E7EB;'><strong>Plan</strong></td><td style='padding:10px 14px;font-size:13px;color:#111827;border:1px solid #E5E7EB;'>{$planLabel}</td></tr>
-  <tr><td style='padding:10px 14px;font-size:13px;color:#374151;border:1px solid #E5E7EB;'><strong>Licences</strong></td><td style='padding:10px 14px;font-size:13px;color:#111827;border:1px solid #E5E7EB;'>{$data['proposed_seats']} utilisateurs</td></tr>
-  <tr style='background:#F8FAFC;'><td style='padding:10px 14px;font-size:13px;color:#374151;border:1px solid #E5E7EB;'><strong>Durée</strong></td><td style='padding:10px 14px;font-size:13px;color:#111827;border:1px solid #E5E7EB;'>{$months} mois</td></tr>
-  <tr><td style='padding:10px 14px;font-size:13px;color:#374151;border:1px solid #E5E7EB;'><strong>Prix total</strong></td><td style='padding:10px 14px;font-size:14px;font-weight:700;color:#6366F1;border:1px solid #E5E7EB;'>{$priceFormatted}</td></tr>
-</table>"
-. ($data['proposal_message'] ? "<p><strong>Message de notre équipe :</strong><br>" . nl2br(htmlspecialchars($data['proposal_message'])) . "</p>" : '')
-. "<p>Consultez votre proposition détaillée et procédez au paiement en toute sécurité via le lien ci-dessous.</p>";
+        $proposalMsgBlock = $data['proposal_message']
+            ? '<div class="info-card"><p style="font-size:14px;color:#0B6B5A;margin:0;"><strong>Message de notre équipe :</strong><br>' . nl2br(htmlspecialchars($data['proposal_message'])) . '</p></div>'
+            : '';
 
         try {
             $recipientName = trim("{$user->first_name} {$user->last_name}");
@@ -140,9 +128,19 @@ de <strong>Pack Entreprise</strong> pour <strong>« {$quote->company_name} »</s
                 mailable: new SystemNotificationMail(
                     recipientName: $recipientName,
                     title:         'Votre proposition Pack Entreprise',
-                    body:          $body,
+                    body:          '',
                     actionLabel:   'Voir la proposition et payer',
                     actionUrl:     $proposalUrl,
+                    templateKey:   'enterprise_proposal',
+                    extraVars:     [
+                        'company_name'          => $quote->company_name,
+                        'plan_label'            => $plan->label,
+                        'seats'                 => (string) $data['proposed_seats'],
+                        'duration_months'       => (string) $data['proposed_duration_months'],
+                        'price'                 => $priceFormatted,
+                        'proposal_message_block'=> $proposalMsgBlock,
+                        'proposal_url'          => $proposalUrl,
+                    ],
                 ),
                 toName:   $recipientName,
             );
@@ -230,10 +228,16 @@ de <strong>Pack Entreprise</strong> pour <strong>« {$quote->company_name} »</s
                     "Bonne nouvelle ! Votre demande pour « {$company} » a été acceptée. Notre équipe va vous contacter prochainement.",
                     ['url' => route('dashboard')],
                 );
-                $body = "<p>Bonjour {$user->first_name},</p>
-<p>Votre demande de <strong>Pack Entreprise</strong> pour <strong>« {$company} »</strong>
-a été <strong>acceptée</strong>. Notre équipe va vous contacter très prochainement.</p>";
-                $this->sendEmail($user->email, $recipientName, 'Votre demande de pack Entreprise a été acceptée', $body);
+                $this->sendEmail(
+                    to:          $user->email,
+                    name:        $recipientName,
+                    subject:     'Votre demande Pack Entreprise a été acceptée — LeadXchange',
+                    templateKey: 'enterprise_quote_accepted',
+                    extraVars:   [
+                        'company_name'  => $company,
+                        'dashboard_url' => route('dashboard'),
+                    ],
+                );
 
             } elseif ($newStatus === 'closed') {
                 Notification::storeForUser(
@@ -243,31 +247,46 @@ a été <strong>acceptée</strong>. Notre équipe va vous contacter très procha
                     "Votre demande de pack Entreprise pour « {$company} » n'a pas pu être retenue. Contactez-nous pour plus d'informations.",
                     ['url' => route('dashboard')],
                 );
-                $body = "<p>Bonjour {$user->first_name},</p>
-<p>Nous n'avons pas pu retenir votre demande de <strong>Pack Entreprise</strong>
-pour <strong>« {$company} »</strong>.</p>"
-. ($request->admin_notes ? "<p><strong>Remarque :</strong> " . nl2br(htmlspecialchars($request->admin_notes)) . "</p>" : '')
-. "<p>N'hésitez pas à nous contacter pour plus d'informations.</p>";
-                $this->sendEmail($user->email, $recipientName, 'Votre demande de pack Entreprise', $body);
+                $notesBlock = $request->admin_notes
+                    ? '<div class="info-card" style="background:#FEF3C7;border-color:#FDE68A;"><p style="font-size:14px;color:#92400E;margin:0;"><strong>Remarque :</strong> ' . nl2br(htmlspecialchars($request->admin_notes)) . '</p></div>'
+                    : '';
+                $this->sendEmail(
+                    to:          $user->email,
+                    name:        $recipientName,
+                    subject:     'Votre demande Pack Entreprise — LeadXchange',
+                    templateKey: 'enterprise_quote_rejected',
+                    extraVars:   [
+                        'company_name'      => $company,
+                        'admin_notes_block' => $notesBlock,
+                        'dashboard_url'     => route('dashboard'),
+                    ],
+                );
             }
         }
 
         return back()->with('success', 'Demande mise à jour.');
     }
 
-    private function sendEmail(string $to, string $name, string $title, string $body): void
-    {
+    private function sendEmail(
+        string $to,
+        string $name,
+        string $subject,
+        string $templateKey,
+        array  $extraVars = [],
+    ): void {
         try {
             SendQueuedEmailJob::dispatch(
                 to:       $to,
-                subject:  $title . ' — LeadXchange',
+                subject:  $subject,
                 type:     'enterprise_quote_update',
                 mailable: new SystemNotificationMail(
                     recipientName: $name,
-                    title:         $title,
-                    body:          $body,
+                    title:         $subject,
+                    body:          '',
                     actionLabel:   'Accéder à mon espace',
                     actionUrl:     route('dashboard'),
+                    templateKey:   $templateKey,
+                    extraVars:     $extraVars,
                 ),
                 toName: $name,
             );

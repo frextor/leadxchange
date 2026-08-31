@@ -139,6 +139,44 @@ class EmailTemplate extends Model
                 'register_url'  => '#',
             ],
         ],
+
+        // ── Pack Entreprise ───────────────────────────────────────────────
+        'enterprise_proposal' => [
+            'name'            => 'Proposition Pack Entreprise',
+            'default_subject' => 'Votre proposition Pack Entreprise — {{company_name}}',
+            'variables'       => ['name', 'company_name', 'plan_label', 'seats', 'duration_months', 'price', 'proposal_message', 'proposal_url'],
+            'sample'          => [
+                'name'             => 'Jean Dupont',
+                'company_name'     => 'Acme SAS',
+                'plan_label'       => 'Entreprise',
+                'seats'            => '10',
+                'duration_months'  => '12',
+                'price'            => '2 400,00 €',
+                'proposal_message' => 'Nous sommes ravis de vous soumettre cette proposition adaptée à vos besoins.',
+                'proposal_url'     => '#',
+            ],
+        ],
+        'enterprise_quote_accepted' => [
+            'name'            => 'Demande Pack Entreprise acceptée',
+            'default_subject' => 'Votre demande Pack Entreprise a été acceptée — LeadXchange',
+            'variables'       => ['name', 'company_name', 'dashboard_url'],
+            'sample'          => [
+                'name'          => 'Jean Dupont',
+                'company_name'  => 'Acme SAS',
+                'dashboard_url' => '#',
+            ],
+        ],
+        'enterprise_quote_rejected' => [
+            'name'            => 'Demande Pack Entreprise non retenue',
+            'default_subject' => 'Votre demande Pack Entreprise — LeadXchange',
+            'variables'       => ['name', 'company_name', 'admin_notes', 'dashboard_url'],
+            'sample'          => [
+                'name'          => 'Jean Dupont',
+                'company_name'  => 'Acme SAS',
+                'admin_notes'   => 'Profil non éligible pour le moment.',
+                'dashboard_url' => '#',
+            ],
+        ],
     ];
 
     // ── Core rendering ────────────────────────────────────────────────────────
