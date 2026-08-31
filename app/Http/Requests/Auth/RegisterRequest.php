@@ -34,7 +34,8 @@ class RegisterRequest extends FormRequest
             'nationality_id'     => ['nullable', 'integer', 'exists:countries,id'],
             'gender'             => ['required', 'string', 'in:male,female,other'],
             'birthday'           => ['required', 'date', 'before:today'],
-            'invitation_token'    => ['nullable', 'string', 'max:255'],\n            'referral_token'      => ['nullable', 'string', 'max:255'],
+            'invitation_token'    => ['nullable', 'string', 'max:255'],
+            'referral_token'      => ['nullable', 'string', 'max:255'],
         ];
     }
 
