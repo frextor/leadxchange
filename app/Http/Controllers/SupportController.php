@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Feedback;
 use App\Models\RgpdRequest;
 use App\Models\User;
 use App\Models\UserReport;
@@ -26,9 +27,13 @@ class SupportController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        $historyCount = $rgpdRequests->count() + $reports->count();
+        $feedbacks = Feedback::where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->get();
 
-        return view('support.index', compact('tab', 'rgpdRequests', 'reports', 'historyCount'));
+        $historyCount = $rgpdRequests->count() + $reports->count() + $feedbacks->count();
+
+        return view('support.index', compact('tab', 'rgpdRequests', 'reports', 'feedbacks', 'historyCount'));
     }
 
     public function submitRgpd(Request $request): RedirectResponse
@@ -59,6 +64,22 @@ class SupportController extends Controller
 
         return redirect()->route('support.index', ['tab' => 'history'])
             ->with('support_success', 'Votre demande RGPD a été envoyée. Nous vous répondrons sous 1 mois (Art. 12 RGPD).');
+    }
+
+    public function submitFeedback(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'message' => ['required', 'string', 'min:5', 'max:2000'],
+        ]);
+
+        Feedback::create([
+            'user_id' => $request->user()->id,
+            'message' => $request->message,
+            'status'  => 'pending',
+        ]);
+
+        return redirect()->route('support.index', ['tab' => 'history'])
+            ->with('support_success', 'Merci pour votre retour ! Notre équipe le prendra en compte.');
     }
 
     public function submitReport(Request $request): RedirectResponse

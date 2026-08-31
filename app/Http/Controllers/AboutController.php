@@ -71,8 +71,8 @@ HTML : '';
             </div>
             <div class="lx-stat-sep"></div>
             <div class="lx-stat">
-                <span class="lx-stat-val">🇲🇦</span>
-                <span class="lx-stat-lbl">Fait au Maroc</span>
+                <span class="lx-stat-val">🇫🇷</span>
+                <span class="lx-stat-lbl">Fait en France</span>
             </div>
         </div>
 HTML : '';

@@ -220,6 +220,7 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
     Route::get('/support',            [SupportController::class, 'index'])->name('support.index');
     Route::post('/support/rgpd',      [SupportController::class, 'submitRgpd'])->name('support.rgpd');
     Route::post('/support/report',    [SupportController::class, 'submitReport'])->name('support.report');
+    Route::post('/support/feedback',  [SupportController::class, 'submitFeedback'])->name('support.feedback');
     // Backward compat — old RGPD URL redirects to new Support page
     Route::get('/rgpd/request',  fn() => redirect()->route('support.index'))->name('rgpd.request');
     Route::post('/rgpd/request', fn() => redirect()->route('support.index'))->name('rgpd.submit');

@@ -33,6 +33,7 @@
         @foreach([
             ['rgpd',       'RGPD',          'M3 11 L21 11 M3 11 L3 21 L21 21 L21 11 M7 11 L7 7 A5 5 0 0 1 17 7 L17 11'],
             ['signalement','Signalement',    'M10.29 3.86 L1.82 18 A2 2 0 0 0 3.54 21 L20.46 21 A2 2 0 0 0 22.18 18 L13.71 3.86 A2 2 0 0 0 10.29 3.86Z M12 9 L12 13 M12 17 L12.01 17'],
+            ['feedback',   'Feedback',       'M21 15 A2 2 0 0 1 19 17 L7 17 L3 21 L3 5 A2 2 0 0 1 5 3 L19 3 A2 2 0 0 1 21 5 L21 15'],
             ['history',    'Mes demandes',   'M12 22 C17.5228 22 22 17.5228 22 12 22 6.4772 17.5228 2 12 2 6.4772 2 6.4772 2 12 2 12 6.4772 12 22 17.5228 22 M12 6 L12 12 L16 14'],
         ] as [$key, $label, $icon])
         <a href="{{ route('support.index', ['tab' => $key]) }}"
@@ -206,6 +207,60 @@
         </form>
     </div>
 
+    {{-- ── TAB FEEDBACK ────────────────────────────────────────────────────── --}}
+    @elseif($tab === 'feedback')
+    <div class="space-y-5">
+        <div class="bg-indigo-50 border border-indigo-100 rounded-2xl px-5 py-4 text-sm text-indigo-800">
+            Partagez vos suggestions, idées ou retours d'expérience. Notre équipe lit chaque message avec attention.
+        </div>
+
+        <form method="POST" action="{{ route('support.feedback') }}" class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+            @csrf
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Votre message</label>
+                <textarea name="message" rows="6" placeholder="Décrivez votre retour, une idée d'amélioration ou un problème rencontré…"
+                          class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 resize-none leading-relaxed"
+                          minlength="5" maxlength="2000">{{ old('message') }}</textarea>
+                <p class="text-[11px] text-gray-400 mt-1">Entre 5 et 2 000 caractères.</p>
+            </div>
+            <button type="submit"
+                    class="w-full py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
+                    style="background:linear-gradient(135deg,#6366F1,#4338CA);">
+                Envoyer mon feedback
+            </button>
+        </form>
+
+        @if($feedbacks->isNotEmpty())
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100">
+                <p class="text-sm font-bold text-gray-900">Mes retours envoyés</p>
+                <p class="text-xs text-gray-400">{{ $feedbacks->count() }} feedback{{ $feedbacks->count() > 1 ? 's' : '' }}</p>
+            </div>
+            <div class="divide-y divide-gray-50">
+                @foreach($feedbacks as $fb)
+                @php
+                    $fbStatuses = [
+                        'pending'  => ['label' => 'En attente', 'bg' => 'bg-amber-100',  'text' => 'text-amber-700'],
+                        'reviewed' => ['label' => 'Lu',         'bg' => 'bg-blue-100',   'text' => 'text-blue-700'],
+                        'closed'   => ['label' => 'Traité',     'bg' => 'bg-emerald-100','text' => 'text-emerald-700'],
+                    ];
+                    $fbs = $fbStatuses[$fb->status] ?? $fbStatuses['pending'];
+                @endphp
+                <div class="px-5 py-4">
+                    <div class="flex items-start justify-between gap-4">
+                        <p class="text-sm text-gray-700 leading-relaxed flex-1">{{ Str::limit($fb->message, 150) }}</p>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0 {{ $fbs['bg'] }} {{ $fbs['text'] }}">
+                            {{ $fbs['label'] }}
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1.5">{{ $fb->created_at->format('d/m/Y à H:i') }}</p>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+    </div>
+
     {{-- ── TAB MES DEMANDES ─────────────────────────────────────────────────── --}}
     @else
     @php
@@ -224,13 +279,13 @@
     ];
     @endphp
 
-    @if($rgpdRequests->isEmpty() && $reports->isEmpty())
+    @if($rgpdRequests->isEmpty() && $reports->isEmpty() && $feedbacks->isEmpty())
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-16 text-center">
         <div class="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5"><path d="M9 12h.01M15 12h.01M12 12h.01"/><circle cx="12" cy="12" r="10"/></svg>
         </div>
         <p class="text-sm font-semibold text-gray-500">Aucune demande pour le moment</p>
-        <p class="text-xs text-gray-400 mt-1">Vos demandes RGPD et signalements apparaîtront ici.</p>
+        <p class="text-xs text-gray-400 mt-1">Vos demandes RGPD, signalements et feedbacks apparaîtront ici.</p>
     </div>
     @else
 
@@ -337,6 +392,42 @@
                     <p class="text-xs text-gray-400">En cours d'examen — traitement sous 10 jours ouvrés.</p>
                 </div>
                 @endif
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+    {{-- Feedbacks --}}
+    @if($feedbacks->isNotEmpty())
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mt-5">
+        <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div>
+                <p class="text-sm font-bold text-gray-900">Feedbacks envoyés</p>
+                <p class="text-xs text-gray-400">{{ $feedbacks->count() }} retour{{ $feedbacks->count() > 1 ? 's' : '' }}</p>
+            </div>
+        </div>
+        <div class="divide-y divide-gray-50">
+            @foreach($feedbacks as $fb)
+            @php
+                $fbStatuses = [
+                    'pending'  => ['label' => 'En attente', 'bg' => 'bg-amber-100',  'text' => 'text-amber-700'],
+                    'reviewed' => ['label' => 'Lu',         'bg' => 'bg-blue-100',   'text' => 'text-blue-700'],
+                    'closed'   => ['label' => 'Traité',     'bg' => 'bg-emerald-100','text' => 'text-emerald-700'],
+                ];
+                $fbs = $fbStatuses[$fb->status] ?? $fbStatuses['pending'];
+            @endphp
+            <div class="px-5 py-4">
+                <div class="flex items-start justify-between gap-4">
+                    <p class="text-sm text-gray-700 leading-relaxed flex-1">{{ Str::limit($fb->message, 150) }}</p>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0 {{ $fbs['bg'] }} {{ $fbs['text'] }}">
+                        {{ $fbs['label'] }}
+                    </span>
+                </div>
+                <p class="text-xs text-gray-400 mt-1.5">{{ $fb->created_at->format('d/m/Y à H:i') }}</p>
             </div>
             @endforeach
         </div>
