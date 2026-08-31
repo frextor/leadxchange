@@ -153,7 +153,9 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
     // Upgrade / Plans
     Route::get('/upgrade', function () {
         $plans = \App\Models\Plan::where('is_active', true)->where('is_visible', true)->orderBy('sort_order')->get();
-        $currentPlan = auth()->user()->subscription?->plan;
+        // effectivePlan() tient compte du statut Consul/Ambassadeur (accordé par admin)
+        // indépendamment du plan d'abonnement Stripe.
+        $currentPlan = auth()->user()->effectivePlan();
         return view('upgrade', compact('plans', 'currentPlan'));
     })->name('upgrade');
 

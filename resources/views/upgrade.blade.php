@@ -66,6 +66,27 @@
 
     {{-- Current plan banner --}}
     @if($currentPlan)
+    @php $isSpecialRole = in_array($currentPlan->name, ['consul','ambassadeur']); @endphp
+    @if($isSpecialRole)
+    {{-- Consul / Ambassadeur : statut accordé par l'admin, pas un abonnement achetable --}}
+    <div class="mb-7 flex flex-col items-center gap-2 text-sm">
+        <div class="flex items-center gap-2">
+            <span class="text-gray-500">Statut actuel :</span>
+            @if($currentPlan->name === 'ambassadeur')
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+                🏅 Ambassadeur
+            </span>
+            @else
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-teal-100 text-teal-800">
+                🛡️ Consul
+            </span>
+            @endif
+        </div>
+        <p class="text-xs text-gray-400">
+            Votre statut {{ $currentPlan->label }} est accordé par l'administration — il inclut toutes les fonctionnalités Premium et plus.
+        </p>
+    </div>
+    @else
     <div class="mb-7 flex items-center justify-center gap-2 text-sm">
         <span class="text-gray-500">Plan actuel :</span>
         <span class="font-bold text-gray-900">{{ $currentPlan->label }}</span>
@@ -78,9 +99,12 @@
         @endif
     </div>
     @endif
+    @endif
 
     {{-- Plans grid --}}
-    <div class="grid grid-cols-1 md:grid-cols-{{ min($plans->count(), 3) }} gap-5 mb-10">
+    <div class="grid grid-cols-1 gap-5 mb-10"
+         style="grid-template-columns: repeat({{ min($plans->count(), 3) }}, minmax(0, 1fr));">
+
         @foreach($plans as $plan)
         @php
             $t = $themes[$plan->name] ?? $themes['basic'];
