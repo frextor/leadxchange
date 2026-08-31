@@ -177,6 +177,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/enterprise/invitations',                 [EnterpriseInvitationController::class, 'store']);
     Route::post('/enterprise/invitations/{token}/accept',  [EnterpriseInvitationController::class, 'accept']);
 
+    // Enterprise quote request
+    Route::post('/enterprise/request-quote',               [\App\Http\Controllers\Api\EnterpriseController::class, 'requestQuote']);
+
     // Event Routes
     Route::get('/events',                                       [ApiEventController::class, 'index']);
     Route::post('/events',                                      [ApiEventController::class, 'store']);
