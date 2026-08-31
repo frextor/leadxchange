@@ -9,8 +9,8 @@ class AboutController extends Controller
 {
     public function show(): Response
     {
-        $enabled = SystemSetting::get('about_enabled', '1');
-        if ($enabled !== '1') {
+        $enabled = SystemSetting::get('about_enabled', true);
+        if (! $enabled) {
             abort(404);
         }
 

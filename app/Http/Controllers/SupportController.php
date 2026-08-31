@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendQueuedEmailJob;
+use App\Mail\SystemNotificationMail;
 use App\Models\Feedback;
 use App\Models\RgpdRequest;
 use App\Models\User;
 use App\Models\UserReport;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
@@ -72,11 +75,51 @@ class SupportController extends Controller
             'message' => ['required', 'string', 'min:5', 'max:2000'],
         ]);
 
+        $user = $request->user();
+
         Feedback::create([
-            'user_id' => $request->user()->id,
+            'user_id' => $user->id,
             'message' => $request->message,
             'status'  => 'pending',
         ]);
+
+        $recipientName  = trim("{$user->first_name} {$user->last_name}") ?: $user->email;
+        $messageExcerpt = \Illuminate\Support\Str::limit($request->message, 200);
+
+        // ── Email de remerciement à l'utilisateur ──────────────────────────
+        try {
+            SendQueuedEmailJob::dispatch(
+                to:       $user->email,
+                subject:  'Merci pour votre retour — LeadXchange',
+                type:     'feedback_received',
+                mailable: new SystemNotificationMail(
+                    recipientName: $recipientName,
+                    title:         'Merci pour votre retour',
+                    body:          '',
+                    actionLabel:   'Accéder à mon espace',
+                    actionUrl:     route('dashboard'),
+                    templateKey:   'feedback_received',
+                    extraVars:     [
+                        'message_excerpt' => $messageExcerpt,
+                        'dashboard_url'   => route('dashboard'),
+                    ],
+                ),
+                toName: $recipientName,
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Feedback thank-you email failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+        }
+
+        // ── Notification à l'administrateur ────────────────────────────────
+        try {
+            Mail::raw(
+                "Nouveau feedback reçu\n\nMembre : {$recipientName} ({$user->email})\nDate : " . now()->format('d/m/Y à H:i') . "\n\nMessage :\n{$request->message}",
+                fn ($m) => $m->to('contact@leadxchange.com')
+                             ->subject("[Feedback] Nouveau retour de {$recipientName}")
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Feedback admin notification failed', ['error' => $e->getMessage()]);
+        }
 
         return redirect()->route('support.index', ['tab' => 'history'])
             ->with('support_success', 'Merci pour votre retour ! Notre équipe le prendra en compte.');

@@ -177,6 +177,16 @@ class EmailTemplate extends Model
                 'dashboard_url' => '#',
             ],
         ],
+        'feedback_received' => [
+            'name'            => 'Confirmation de feedback',
+            'default_subject' => 'Merci pour votre retour — LeadXchange',
+            'variables'       => ['name', 'message_excerpt', 'dashboard_url'],
+            'sample'          => [
+                'name'            => 'Jean Dupont',
+                'message_excerpt' => 'J\'adore la fonctionnalité de mise en relation, mais il serait bien d\'avoir...',
+                'dashboard_url'   => '#',
+            ],
+        ],
     ];
 
     // ── Core rendering ────────────────────────────────────────────────────────

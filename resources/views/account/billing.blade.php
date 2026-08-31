@@ -503,9 +503,10 @@ table.bl-table {
 
     $planInitial = strtoupper(substr($subscription?->plan?->name ?? 'Basic', 0, 1));
     $planLabel   = $subscription?->plan?->label ?? 'Basic';
+    $isEnterprisePlan = $subscription?->plan?->is_enterprise ?? false;
     $planPrice   = $isPaid
         ? currency_format($subscription->plan->price) . ($subscription->billing_period === 'yearly' ? '/an' : '/mois')
-        : 'Gratuit · sans engagement';
+        : ($isEnterprisePlan ? 'Sur Devis' : 'Gratuit · sans engagement');
 
     // expiry style
     if ($isCancelled) {
@@ -598,8 +599,8 @@ table.bl-table {
                 </div>
                 <div>
                     <div class="bl-expiry-eyebrow bl-expiry-eyebrow-muted">Abonnement</div>
-                    <div class="bl-expiry-date" style="font-size:15px;">Gratuit · Basic</div>
-                    <div class="bl-expiry-sub">Sans engagement · pas d'expiration</div>
+                    <div class="bl-expiry-date" style="font-size:15px;">{{ $isEnterprisePlan ? 'Sur Devis' : 'Gratuit · Basic' }}</div>
+                    <div class="bl-expiry-sub">{{ $isEnterprisePlan ? 'Pack négocié · contactez-nous' : 'Sans engagement · pas d\'expiration' }}</div>
                 </div>
             </div>
             @endif
@@ -624,7 +625,7 @@ table.bl-table {
                 <div class="bl-date-item">
                     <div class="bl-date-eyebrow">Paiement</div>
                     <div class="bl-date-val" style="font-size:11px;">{{ $isPaid ? 'Carte bancaire' : '—' }}</div>
-                    <div class="bl-date-hint">{{ $isPaid ? 'PCI-DSS' : 'Gratuit' }}</div>
+                    <div class="bl-date-hint">{{ $isPaid ? 'PCI-DSS' : ($isEnterprisePlan ? 'Sur Devis' : 'Gratuit') }}</div>
                 </div>
             </div>
         </div>
@@ -658,7 +659,7 @@ table.bl-table {
             <div class="bl-plan-card {{ $isCurrent ? 'bl-plan-card--active' : '' }}">
                 <div class="bl-plan-card-label">{{ $plan->label }}</div>
                 <div class="bl-plan-card-price">
-                    {{ $plan->price > 0 ? currency_format($plan->price) : 'Gratuit' }}<span>{{ $plan->price > 0 ? '/mois' : '' }}</span>
+                    {{ $plan->price > 0 ? currency_format($plan->price) : ($plan->is_enterprise ? 'Sur Devis' : 'Gratuit') }}<span>{{ $plan->price > 0 ? '/mois' : '' }}</span>
                 </div>
                 @if($isCurrent)
                     <div class="bl-current-tag">Plan actuel</div>

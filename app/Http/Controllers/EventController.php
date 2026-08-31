@@ -164,7 +164,9 @@ class EventController extends Controller
 
     public function store(Request $request)
     {
-        if (! $request->user()->canFeature('can_organize_group_events')) {
+        $user = $request->user();
+
+        if (! $user->canFeature('can_organize_group_events')) {
             return back()->with('upgrade_feature', 'can_organize_group_events');
         }
 
@@ -191,9 +193,25 @@ class EventController extends Controller
             $coverImagePath = $request->file('cover_image')->store('events/covers', 'public');
         }
 
-        $user      = $request->user();
         $isPrivate = (bool) ($validated['is_private'] ?? false);
-        $cityId    = $user->isConsul() ? $user->city_id : ($validated['city_id'] ?? $user->city_id);
+
+        // ── Restriction région pour les Consuls ──────────────────────────────
+        // Un consul peut créer uniquement dans sa propre région.
+        // Un ambassadeur peut créer dans n'importe quelle région.
+        if ($user->isConsul() && ! $user->isAmbassador()) {
+            $consulRegionId = $user->consul_region_id ?? $user->region_id;
+            if ($consulRegionId) {
+                $chosenCityId = $validated['city_id'] ?? null;
+                if ($chosenCityId) {
+                    $cityRegion = \App\Models\City::find($chosenCityId)?->region_id ?? null;
+                    if ($cityRegion && (int) $cityRegion !== (int) $consulRegionId) {
+                        return back()->withErrors(['city_id' => 'En tant que Consul, vous ne pouvez créer des événements que dans votre région.'])->withInput();
+                    }
+                }
+            }
+        }
+
+        $cityId = $user->isConsul() ? $user->city_id : ($validated['city_id'] ?? $user->city_id);
 
         $event = Event::create([
             'title'           => $validated['title'],

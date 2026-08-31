@@ -264,6 +264,9 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::delete('smtp/logs',               [SmtpController::class, 'clearLogs'])->name('smtp.clear-logs');
 });
 
+// ── Page À propos — publique, accessible sans auth sur le domaine admin ──
+Route::get('/a-propos', [\App\Http\Controllers\AboutController::class, 'show'])->name('admin.about');
+
 // ── Logout ────────────────────────────────────────────────────────────────
 Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth')

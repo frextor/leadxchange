@@ -578,7 +578,23 @@ class GroupController extends Controller
             'cover_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
-        $user      = $request->user();
+        $user = $request->user();
+
+        // ── Restriction région pour les Consuls ──────────────────────────────
+        // Un consul peut créer uniquement dans sa propre région.
+        // Un ambassadeur peut créer dans n'importe quelle région.
+        if ($user->isConsul() && ! $user->isAmbassador()) {
+            $consulRegionId = $user->consul_region_id ?? $user->region_id;
+            if ($consulRegionId) {
+                $chosenCityId = $validated['city_id'] ?? null;
+                if ($chosenCityId) {
+                    $cityRegion = \App\Models\City::find($chosenCityId)?->region_id ?? null;
+                    if ($cityRegion && (int) $cityRegion !== (int) $consulRegionId) {
+                        return back()->withErrors(['city_id' => 'En tant que Consul, vous ne pouvez créer des groupes que dans votre région.'])->withInput();
+                    }
+                }
+            }
+        }
         $photoPath = null;
         if ($request->hasFile('cover_photo')) {
             $photoPath = $request->file('cover_photo')->store('groups', 'public');

@@ -152,7 +152,7 @@ Route::middleware(['auth', 'user', 'email.verified'])->group(function () {
 
     // Upgrade / Plans
     Route::get('/upgrade', function () {
-        $plans = \App\Models\Plan::where('is_active', true)->orderBy('sort_order')->get();
+        $plans = \App\Models\Plan::where('is_active', true)->where('is_visible', true)->orderBy('sort_order')->get();
         $currentPlan = auth()->user()->subscription?->plan;
         return view('upgrade', compact('plans', 'currentPlan'));
     })->name('upgrade');
