@@ -74,7 +74,7 @@
                         <label class="block text-xs font-semibold text-gray-500 mb-1.5">Accroche (tagline)</label>
                         <input type="text" name="about_tagline"
                                value="{{ $s('about_tagline', '') }}"
-                               placeholder="La plateforme professionnelle qui connecte les talents du Maroc"
+                               placeholder="La plateforme professionnelle qui connecte les talents en France"
                                maxlength="200"
                                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition">
                     </div>
@@ -93,14 +93,44 @@
             </div>
 
             {{-- Contenu principal --}}
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Contenu principal</p>
-                <p class="text-xs text-gray-400 mb-4">HTML accepté : <code class="bg-gray-100 px-1 rounded">&lt;h2&gt;</code>, <code class="bg-gray-100 px-1 rounded">&lt;p&gt;</code>, <code class="bg-gray-100 px-1 rounded">&lt;ul&gt;</code>, <code class="bg-gray-100 px-1 rounded">&lt;strong&gt;</code>, <code class="bg-gray-100 px-1 rounded">&lt;em&gt;</code>.</p>
-                <textarea name="about_content"
-                          rows="12"
-                          maxlength="10000"
-                          placeholder="<h2>Notre histoire</h2>&#10;<p>LeadXchange est née de la conviction que...</p>&#10;&#10;<h2>Nos valeurs</h2>&#10;<ul>&#10;  <li><strong>Transparence</strong> : ...</li>&#10;</ul>"
-                          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition resize-y">{{ $s('about_content', '') }}</textarea>
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100">
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Contenu principal</p>
+                    <p class="text-xs text-gray-400 mt-1">Utilisez la barre d'outils pour mettre en forme votre texte sans écrire de HTML.</p>
+                </div>
+
+                {{-- Toolbar --}}
+                <div class="px-4 py-2.5 border-b border-gray-100 bg-gray-50 flex flex-wrap gap-1" id="about-toolbar">
+                    <button type="button" onclick="aboutFmt('bold')" title="Gras" class="about-tbtn font-bold">B</button>
+                    <button type="button" onclick="aboutFmt('italic')" title="Italique" class="about-tbtn italic">I</button>
+                    <button type="button" onclick="aboutWrap('h2')" title="Titre H2" class="about-tbtn text-xs">H2</button>
+                    <button type="button" onclick="aboutWrap('h3')" title="Titre H3" class="about-tbtn text-xs">H3</button>
+                    <button type="button" onclick="aboutWrap('p')" title="Paragraphe" class="about-tbtn text-xs">¶</button>
+                    <div class="w-px bg-gray-200 mx-1 self-stretch"></div>
+                    <button type="button" onclick="aboutWrap('ul','li')" title="Liste à puces" class="about-tbtn text-xs">• Liste</button>
+                    <button type="button" onclick="aboutWrap('ol','li')" title="Liste numérotée" class="about-tbtn text-xs">1. Liste</button>
+                    <div class="w-px bg-gray-200 mx-1 self-stretch"></div>
+                    <button type="button" onclick="aboutLink()" title="Lien" class="about-tbtn text-xs">🔗 Lien</button>
+                    <div class="w-px bg-gray-200 mx-1 self-stretch"></div>
+                    <button type="button" onclick="aboutTogglePreview()" id="about-preview-btn"
+                            class="about-tbtn text-xs font-semibold ml-auto" style="color:#6366F1;">
+                        👁 Prévisualiser
+                    </button>
+                </div>
+
+                {{-- Editor --}}
+                <div class="relative">
+                    <textarea name="about_content" id="about-editor" rows="14"
+                              maxlength="10000"
+                              placeholder="<h2>Notre histoire</h2>&#10;<p>LeadXchange est née de la conviction que...</p>&#10;&#10;<h2>Nos valeurs</h2>&#10;<ul>&#10;  <li><strong>Transparence</strong> : ...</li>&#10;</ul>"
+                              class="w-full px-6 py-4 text-sm font-mono border-0 focus:outline-none focus:ring-0 resize-none"
+                              style="min-height:300px;line-height:1.7;">{{ $s('about_content', '') }}</textarea>
+
+                    {{-- Preview panel --}}
+                    <div id="about-preview-panel" class="hidden absolute inset-0 bg-white px-8 py-6 overflow-auto">
+                        <div class="about-preview-content max-w-3xl mx-auto prose"></div>
+                    </div>
+                </div>
             </div>
 
             {{-- Infos pratiques --}}
@@ -225,6 +255,32 @@
 
 @endsection
 
+@push('styles')
+<style>
+.about-tbtn {
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid #E5E7EB;
+    background: white;
+    font-size: 12px;
+    color: #374151;
+    cursor: pointer;
+    transition: all .15s;
+    line-height: 1.6;
+}
+.about-tbtn:hover { background:#F9FAFB; border-color:#D1D5DB; }
+.about-tbtn.active { background:#EEF2FF; border-color:#6366F1; color:#4338CA; }
+.about-preview-content h2 { font-size:17px;font-weight:700;color:#0F1623;margin:24px 0 10px;padding-top:16px;border-top:1px solid #EEF0F4; }
+.about-preview-content h2:first-child { margin-top:0;padding-top:0;border-top:none; }
+.about-preview-content h3 { font-size:14.5px;font-weight:600;color:#14A98C;margin:16px 0 8px; }
+.about-preview-content p { font-size:14px;color:#2E3850;margin-bottom:14px; }
+.about-preview-content ul,.about-preview-content ol { padding-left:20px;margin-bottom:14px; }
+.about-preview-content li { font-size:14px;color:#2E3850;margin-bottom:6px; }
+.about-preview-content strong { color:#0F1623;font-weight:600; }
+.about-preview-content a { color:#14A98C; }
+</style>
+@endpush
+
 @push('scripts')
 <script>
 const toggleAbout = document.getElementById('toggle-about');
@@ -243,5 +299,55 @@ document.querySelector('[name=about_tagline]').addEventListener('input', e => {
     const v = e.target.value.substring(0, 60);
     document.getElementById('preview-tagline').textContent = v;
 });
+
+// ── Éditeur de contenu ─────────────────────────────────────────────
+let aboutPreviewing = false;
+
+function aboutFmt(cmd) {
+    document.execCommand(cmd, false, null);
+}
+
+function aboutWrap(tag, innerTag) {
+    const ta    = document.getElementById('about-editor');
+    const start = ta.selectionStart;
+    const end   = ta.selectionEnd;
+    const sel   = ta.value.substring(start, end);
+    let wrapped;
+    if (innerTag) {
+        const lines = sel ? sel.split('\n').map(l => `  <${innerTag}>${l.trim()}</${innerTag}>`).join('\n') : `  <${innerTag}></${innerTag}>`;
+        wrapped = `<${tag}>\n${lines}\n</${tag}>`;
+    } else {
+        wrapped = `<${tag}>${sel}</${tag}>`;
+    }
+    ta.setRangeText(wrapped, start, end, 'end');
+    ta.focus();
+}
+
+function aboutLink() {
+    const url = prompt('URL du lien :', 'https://');
+    if (!url) return;
+    const ta    = document.getElementById('about-editor');
+    const start = ta.selectionStart;
+    const end   = ta.selectionEnd;
+    const sel   = ta.value.substring(start, end) || 'Lien';
+    ta.setRangeText(`<a href="${url}">${sel}</a>`, start, end, 'end');
+    ta.focus();
+}
+
+function aboutTogglePreview() {
+    aboutPreviewing = !aboutPreviewing;
+    const panel = document.getElementById('about-preview-panel');
+    const btn   = document.getElementById('about-preview-btn');
+    if (aboutPreviewing) {
+        panel.querySelector('.about-preview-content').innerHTML = document.getElementById('about-editor').value;
+        panel.classList.remove('hidden');
+        btn.classList.add('active');
+        btn.textContent = '✏️ Éditer';
+    } else {
+        panel.classList.add('hidden');
+        btn.classList.remove('active');
+        btn.textContent = '👁 Prévisualiser';
+    }
+}
 </script>
 @endpush
