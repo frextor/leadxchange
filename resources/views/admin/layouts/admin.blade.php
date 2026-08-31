@@ -166,6 +166,14 @@
                 @if($pv > 0)<span class="nav-badge text-white" style="background:#EF4444;">{{ $pv }}</span>@endif
             </a>
 
+            <a href="{{ route('admin.feedbacks.index') }}"
+               class="nav-item {{ request()->routeIs('admin.feedbacks*') ? 'active' : '' }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Feedbacks
+                @php $pf = \App\Models\Feedback::where('status','pending')->count(); @endphp
+                @if($pf > 0)<span class="nav-badge text-white" style="background:#D97706;">{{ $pf }}</span>@endif
+            </a>
+
             {{-- ── SUPER ADMIN ── --}}
             @if(auth()->user()->role === 'super_admin')
 
