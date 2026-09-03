@@ -95,7 +95,7 @@ class EnterpriseProposalController extends Controller
     {
         $quote = EnterpriseQuoteRequest::with(['user', 'plan'])
             ->where('proposal_token', $token)
-            ->whereIn('status', ['proposed'])
+            ->whereIn('status', ['proposed', 'contacted'])
             ->firstOrFail();
 
         if (auth()->id() !== $quote->user_id) {

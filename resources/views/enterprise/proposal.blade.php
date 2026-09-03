@@ -83,31 +83,7 @@
             </div>
             @endif
 
-            {{-- État : virement demandé (status = contacted) --}}
-            @if($quote->status === 'contacted' && !$quote->proposal_accepted_at)
-            <div class="rounded-2xl bg-emerald-50 border border-emerald-200 px-6 py-5 text-center">
-                <div class="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                </div>
-                <h3 class="text-base font-bold text-emerald-800 mb-1">Virement demandé — merci !</h3>
-                <p class="text-sm text-emerald-700 mb-4">Notre équipe activera votre Pack Entreprise dès réception du virement.</p>
-                @if(!empty($bankTransferDetails))
-                <div class="bg-white rounded-xl border border-emerald-200 px-5 py-4 text-left">
-                    <p class="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Coordonnées bancaires</p>
-                    <pre class="text-sm text-gray-700 whitespace-pre-wrap font-mono leading-relaxed">{{ $bankTransferDetails }}</pre>
-                </div>
-                @endif
-            </div>
-
-            {{-- Session flash : virement vient d'être soumis --}}
-            @elseif(session('wire_transfer_requested'))
-            <div class="rounded-2xl bg-emerald-50 border border-emerald-200 px-6 py-5 text-center">
-                <p class="text-base font-bold text-emerald-800 mb-1">✅ Votre demande de virement a été enregistrée.</p>
-                <p class="text-sm text-emerald-700">Nous activerons votre licence dès réception du paiement.</p>
-            </div>
-
-            {{-- Boutons de paiement normaux --}}
-            @else
+            {{-- Boutons de paiement --}}
             <div class="space-y-3">
                 {{-- Stripe --}}
                 @if($quote->stripe_payment_link)
@@ -176,7 +152,6 @@
                 </div>
                 @endif
             </div>
-            @endif
         </div>
     </div>
 
