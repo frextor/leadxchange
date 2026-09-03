@@ -130,7 +130,7 @@
                                    style="display:none;">
                             <div class="flex items-center gap-2 w-full">
                                 <span class="dot" style="flex-shrink:0;"></span>
-                                <span class="item-name text-sm font-semibold">{{ $meta[2] }} {{ $rName }}</span>
+                                <span class="item-name text-sm font-semibold">{{ $meta[1] }} {{ $rName }}</span>
                             </div>
                             <span class="text-xs text-gray-400 ml-4">{{ $meta[0] }}</span>
                         </label>
