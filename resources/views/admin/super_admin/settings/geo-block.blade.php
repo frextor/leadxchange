@@ -66,17 +66,49 @@
 
 <div class="max-w-5xl">
 
+    {{-- Info technique --}}
+    <div class="flex items-start gap-3 px-4 py-3 rounded-xl text-xs bg-blue-50 border border-blue-100 text-blue-700 mb-5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <div>
+            <strong>Pourquoi "régions" et non "villes" ?</strong>
+            L'API de géolocalisation IP retourne la <em>commune exacte</em> (ex: Lognes, Vincennes, Boulogne-Billancourt…), jamais "Paris" pour quelqu'un en banlieue.
+            Bloquer par <strong>région</strong> (ex: Île-de-France) couvre toute la zone parisienne. C'est la méthode fiable.
+        </div>
+    </div>
+
     <div class="geo-tabs">
-        <button class="geo-tab active" onclick="switchTab('villes', this)">
-            🏙️ Par ville <span class="badge-count ml-1" id="cityBadge">{{ count($blockedCities) }}</span>
+        <button class="geo-tab active" onclick="switchTab('regions', this)">
+            🗺️ Par région <span class="badge-count ml-1" id="regionBadge">{{ count($blockedCities) }}</span>
         </button>
         <button class="geo-tab" onclick="switchTab('pays', this)">
             🌍 Par pays <span class="badge-count ml-1" id="countryBadge">{{ count($blockedCountries) }}</span>
         </button>
     </div>
 
-    {{-- ── VILLES ── --}}
-    <div class="geo-panel active" id="panel-villes">
+    {{-- ── RÉGIONS ── --}}
+    @php
+    $frenchRegions = [
+        'Île-de-France'          => ['Paris, Lognes, Versailles, Boulogne…',    '🗼'],
+        'Auvergne-Rhône-Alpes'   => ['Lyon, Grenoble, Clermont-Ferrand…',       '⛰️'],
+        'Hauts-de-France'        => ['Lille, Amiens, Dunkerque…',               '🏭'],
+        'Nouvelle-Aquitaine'     => ['Bordeaux, Limoges, Pau…',                 '🍷'],
+        'Occitanie'              => ['Toulouse, Montpellier, Nîmes…',           '☀️'],
+        'Grand Est'              => ['Strasbourg, Reims, Nancy…',               '🏰'],
+        'Provence-Alpes-Côte d\'Azur' => ['Marseille, Nice, Toulon…',          '🌊'],
+        'Pays de la Loire'       => ['Nantes, Le Mans, Angers…',               '🏄'],
+        'Normandie'              => ['Rouen, Caen, Le Havre…',                  '🚢'],
+        'Bretagne'               => ['Rennes, Brest, Quimper…',                 '⚓'],
+        'Bourgogne-Franche-Comté'=> ['Dijon, Besançon, Chalon…',               '🍾'],
+        'Centre-Val de Loire'    => ['Orléans, Tours, Bourges…',               '🏯'],
+        'Corse'                  => ['Ajaccio, Bastia…',                        '🏝️'],
+        'Guadeloupe'             => ['Pointe-à-Pitre, Basse-Terre…',           '🌺'],
+        'Martinique'             => ['Fort-de-France…',                         '🌴'],
+        'Guyane'                 => ['Cayenne…',                                '🌿'],
+        'La Réunion'             => ['Saint-Denis, Saint-Pierre…',             '🌋'],
+        'Mayotte'                => ['Mamoudzou…',                              '🏖️'],
+    ];
+    @endphp
+    <div class="geo-panel active" id="panel-regions">
         <form method="POST" action="{{ route('admin.super.settings.geo-block.update') }}" id="formVilles">
             @csrf @method('PUT')
             <input type="hidden" name="type" value="cities">
@@ -85,22 +117,24 @@
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
                     <div class="flex items-center gap-3">
-                        <span class="text-sm font-bold text-gray-800">Villes françaises</span>
-                        <span class="badge-count" id="cityCount"><span id="cityNum">{{ count($blockedCities) }}</span> bloquée(s)</span>
+                        <span class="text-sm font-bold text-gray-800">Régions françaises</span>
+                        <span class="badge-count"><span id="cityNum">{{ count($blockedCities) }}</span> bloquée(s)</span>
                     </div>
-                    <input type="text" class="search-input" style="max-width:200px;"
-                           placeholder="Rechercher…" oninput="filterGrid('cityGrid', this.value)">
                 </div>
                 <div class="p-5">
-                    <div class="item-grid" id="cityGrid">
-                        @foreach($cities as $city)
-                        @php $isBlocked = in_array($city->name, $blockedCities); @endphp
-                        <label class="geo-item {{ $isBlocked ? 'blocked' : '' }}" data-name="{{ strtolower($city->name) }}">
-                            <input type="checkbox" name="blocked[]" value="{{ $city->name }}"
-                                   {{ $isBlocked ? 'checked' : '' }}
-                                   onchange="toggleItem(this,'cityNum')">
-                            <span class="dot"></span>
-                            <span class="item-name text-sm text-gray-700">{{ $city->name }}</span>
+                    <div class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(260px,1fr));" id="cityGrid">
+                        @foreach($frenchRegions as $regionName => $meta)
+                        @php $isBlocked = in_array($regionName, $blockedCities); @endphp
+                        <label class="geo-item {{ $isBlocked ? 'blocked' : '' }}" data-name="{{ strtolower($regionName) }}"
+                               style="flex-direction:column;align-items:flex-start;padding:14px 16px;gap:4px;">
+                            <div class="flex items-center gap-2 w-full">
+                                <input type="checkbox" style="display:none;" name="blocked[]" value="{{ $regionName }}"
+                                       {{ $isBlocked ? 'checked' : '' }}
+                                       onchange="toggleItem(this,'cityNum')">
+                                <span class="dot" style="flex-shrink:0;"></span>
+                                <span class="item-name text-sm font-semibold">{{ $meta[2] }} {{ $regionName }}</span>
+                            </div>
+                            <span class="text-xs text-gray-400 ml-4">{{ $meta[0] }}</span>
                         </label>
                         @endforeach
                     </div>
@@ -179,7 +213,10 @@ function switchTab(tab, btn) {
     document.querySelectorAll('.geo-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.geo-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('panel-' + tab).classList.add('active');
+    // tab 'villes' était l'ancien id, maintenant c'est 'regions'
+    var panelId = tab === 'villes' ? 'panel-villes' : 'panel-' + tab;
+    var el = document.getElementById(panelId) || document.getElementById('panel-regions');
+    if (el) el.classList.add('active');
 }
 function toggleItem(cb, counterId) {
     cb.closest('label').classList.toggle('blocked', cb.checked);

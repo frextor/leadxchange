@@ -56,6 +56,7 @@ class GeoBlock
 
         $countryCode = $info['countryCode'] ?? '';
         $countryName = $info['country']     ?? '';
+        $regionName  = $info['regionName']  ?? '';
         $cityName    = $info['city']        ?? '';
 
         // Blocage par pays
@@ -66,14 +67,16 @@ class GeoBlock
             ], 403);
         }
 
-        // Blocage par ville
-        if ($cityName && ! empty($blockedCities)) {
-            $cityLower = mb_strtolower($cityName);
+        // Blocage par région (regionName de ip-api, ex: "Île-de-France")
+        // La liste $blockedCities contient en réalité des noms de régions
+        if ($regionName && ! empty($blockedCities)) {
+            $regionLower = mb_strtolower($regionName);
             foreach ($blockedCities as $bc) {
-                if (mb_strtolower($bc) === $cityLower) {
+                if (mb_strtolower($bc) === $regionLower) {
+                    $location = $cityName ? "{$cityName} ({$regionName})" : $regionName;
                     return response()->view('geo-blocked', [
-                        'location' => $cityName,
-                        'reason'   => 'ville',
+                        'location' => $location,
+                        'reason'   => 'région',
                     ], 403);
                 }
             }
@@ -103,7 +106,7 @@ class GeoBlock
         $cacheKey = 'geoip_' . md5($ip);
         return Cache::remember($cacheKey, 21600, function () use ($ip) {
             try {
-                $response = Http::timeout(3)->get("http://ip-api.com/json/{$ip}?fields=country,countryCode,regionName,city,status");
+                $response = Http::timeout(3)->get("http://ip-api.com/json/{$ip}?fields=status,country,countryCode,regionName,city");
                 if ($response->ok()) {
                     $data = $response->json();
                     return $data['status'] === 'success' ? $data : null;
