@@ -378,8 +378,9 @@ Route::middleware(['auth', 'user', 'email.verified', 'cgu'])->group(function () 
     // Enterprise team management (holder only)
     Route::get('/enterprise/expired',                 [EnterpriseController::class, 'expired'])->name('enterprise.expired');
     // Proposition reçue (client)
-    Route::get('/enterprise/proposal/{token}',        [\App\Http\Controllers\EnterpriseProposalController::class, 'view'])->name('enterprise.proposal.view');
-    Route::get('/enterprise/proposal/{token}/paid',   [\App\Http\Controllers\EnterpriseProposalController::class, 'paid'])->name('enterprise.proposal.paid');
+    Route::get('/enterprise/proposal/{token}',              [\App\Http\Controllers\EnterpriseProposalController::class, 'view'])->name('enterprise.proposal.view');
+    Route::get('/enterprise/proposal/{token}/paid',         [\App\Http\Controllers\EnterpriseProposalController::class, 'paid'])->name('enterprise.proposal.paid');
+    Route::post('/enterprise/proposal/{token}/accept-wire', [\App\Http\Controllers\EnterpriseProposalController::class, 'acceptWireTransfer'])->name('enterprise.proposal.accept-wire');
     Route::get('/enterprise/team',                    [EnterpriseController::class, 'team'])->name('enterprise.team');
     Route::post('/enterprise/team/invite',            [EnterpriseController::class, 'invite'])->name('enterprise.invite');
     Route::post('/enterprise/team/{inv}/revoke',      [EnterpriseController::class, 'revoke'])->name('enterprise.revoke');

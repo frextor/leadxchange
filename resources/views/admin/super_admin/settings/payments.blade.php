@@ -31,7 +31,7 @@
 <div class="grid grid-cols-3 gap-6">
 
     <div class="col-span-2">
-        <form method="POST" action="{{ route('admin.super.settings.payments.update') }}">
+        <form id="payments-form" method="POST" action="{{ route('admin.super.settings.payments.update') }}">
             @csrf @method('PUT')
 
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
@@ -117,6 +117,41 @@
     </div>
 
     <div class="space-y-4">
+
+        {{-- Virement bancaire --}}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#ECFDF5;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-bold text-gray-800">Paiement par virement</p>
+                    <p class="text-xs text-gray-400">Affiche un bouton virement sur la page de proposition Pack Entreprise</p>
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="bank_transfer_toggle" name="bank_transfer_enabled" value="1"
+                           form="payments-form"
+                           {{ $bankTransferEnabled ? 'checked' : '' }}
+                           class="sr-only">
+                    <button type="button" onclick="document.getElementById('bank_transfer_toggle').click()"
+                            id="bank_transfer_toggle_ui"
+                            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {{ $bankTransferEnabled ? 'bg-emerald-500' : 'bg-gray-300' }}">
+                        <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform {{ $bankTransferEnabled ? 'translate-x-6' : 'translate-x-1' }}"></span>
+                    </button>
+                    <span id="bank_transfer_label" class="ml-2 text-sm font-semibold {{ $bankTransferEnabled ? 'text-emerald-600' : 'text-gray-400' }}">
+                        {{ $bankTransferEnabled ? 'Activé' : 'Désactivé' }}
+                    </span>
+                </div>
+            </div>
+            <div id="bank_transfer_fields" class="px-5 py-4 {{ $bankTransferEnabled ? '' : 'opacity-40 pointer-events-none' }}">
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Coordonnées bancaires affichées au client</label>
+                <textarea name="bank_transfer_details" form="payments-form" rows="6"
+                          placeholder="Banque : CIH Bank&#10;IBAN : MA64 0000 0000 0000 0000 0000&#10;BIC/SWIFT : CIHMMAMC&#10;Titulaire : LeadXchange SAS&#10;Référence : indiquer votre nom + « Pack Entreprise »"
+                          class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none">{{ $bankTransferDetails }}</textarea>
+                <p class="text-xs text-gray-400 mt-1.5">Ce texte sera affiché au client quand il choisit "Payer par virement". Après confirmation du virement, l'admin active le pack manuellement.</p>
+            </div>
+        </div>
+
         <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 text-xs text-indigo-700 space-y-3">
             <p class="font-bold text-sm">Comment ça fonctionne</p>
             <p>L'utilisateur choisit un nombre de points à acheter. Le montant total est calculé automatiquement :</p>
@@ -162,5 +197,26 @@ toggle.addEventListener('change', function () {
         ? 'ml-2 text-sm font-semibold text-amber-600'
         : 'ml-2 text-sm font-semibold text-gray-400';
 });
+
+// Bank transfer toggle
+const btToggle = document.getElementById('bank_transfer_toggle');
+const btToggleUi = document.getElementById('bank_transfer_toggle_ui');
+const btFields  = document.getElementById('bank_transfer_fields');
+const btLabel   = document.getElementById('bank_transfer_label');
+if (btToggle) {
+    btToggle.addEventListener('change', function () {
+        const on = this.checked;
+        btFields.classList.toggle('opacity-40', !on);
+        btFields.classList.toggle('pointer-events-none', !on);
+        btLabel.textContent = on ? 'Activé' : 'Désactivé';
+        btLabel.className = on
+            ? 'ml-2 text-sm font-semibold text-emerald-600'
+            : 'ml-2 text-sm font-semibold text-gray-400';
+        btToggleUi.classList.toggle('bg-emerald-500', on);
+        btToggleUi.classList.toggle('bg-gray-300', !on);
+        btToggleUi.querySelector('span').classList.toggle('translate-x-6', on);
+        btToggleUi.querySelector('span').classList.toggle('translate-x-1', !on);
+    });
+}
 </script>
 @endpush

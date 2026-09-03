@@ -6,6 +6,7 @@ use App\Models\EnterpriseLicense;
 use App\Models\EnterpriseInvitation;
 use App\Models\EnterpriseQuoteRequest;
 use App\Models\Subscription;
+use App\Models\SystemSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Stripe\StripeClient;
@@ -17,7 +18,7 @@ class EnterpriseProposalController extends Controller
     {
         $quote = EnterpriseQuoteRequest::with(['user', 'plan'])
             ->where('proposal_token', $token)
-            ->whereIn('status', ['proposed', 'converted'])
+            ->whereIn('status', ['proposed', 'contacted', 'converted'])
             ->firstOrFail();
 
         // Seul le propriétaire peut la voir
@@ -25,13 +26,16 @@ class EnterpriseProposalController extends Controller
             abort(403, 'Cette proposition ne vous appartient pas.');
         }
 
-        // Si déjà payée, rediriger vers l'espace entreprise
-        if ($quote->proposal_accepted_at) {
+        // Si déjà activée, rediriger vers l'espace entreprise
+        if ($quote->proposal_accepted_at && $quote->status === 'converted') {
             return redirect()->route('enterprise.team')
                 ->with('success', 'Votre Pack Entreprise est déjà actif.');
         }
 
-        return view('enterprise.proposal', compact('quote'));
+        $bankTransferEnabled = (bool) SystemSetting::where('key', 'bank_transfer.enabled')->first()?->value;
+        $bankTransferDetails = SystemSetting::where('key', 'bank_transfer.details')->first()?->value ?? '';
+
+        return view('enterprise.proposal', compact('quote', 'bankTransferEnabled', 'bankTransferDetails'));
     }
 
     /** Retour Stripe après paiement réussi */
@@ -82,6 +86,31 @@ class EnterpriseProposalController extends Controller
         // Fallback : activation échouée, rediriger vers dashboard avec message
         return redirect()->route('dashboard')
             ->with('success', "Paiement reçu ! Votre licence Entreprise « {$quote->company_name} » est en cours d'activation. Vous serez notifié dans quelques instants.");
+    }
+
+    /**
+     * Accepter la proposition par virement bancaire.
+     * Le pack est marqué "en attente de virement" — l'admin valide manuellement après réception.
+     */
+    public function acceptWireTransfer(Request $request, string $token)
+    {
+        $quote = EnterpriseQuoteRequest::with(['user', 'plan'])
+            ->where('proposal_token', $token)
+            ->whereIn('status', ['proposed'])
+            ->firstOrFail();
+
+        if (auth()->id() !== $quote->user_id) {
+            abort(403, 'Cette proposition ne vous appartient pas.');
+        }
+
+        // Marquer comme "contacté / en attente de virement"
+        $quote->update([
+            'status'                => 'contacted',
+            'proposal_accepted_at'  => null, // pas encore payé
+        ]);
+
+        return redirect()->route('enterprise.proposal.view', $token)
+            ->with('wire_transfer_requested', true);
     }
 
     public function activateLicensePublic(EnterpriseQuoteRequest $quote): void

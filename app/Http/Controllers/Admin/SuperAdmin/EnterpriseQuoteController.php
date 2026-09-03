@@ -22,7 +22,7 @@ class EnterpriseQuoteController extends Controller
             ->get();
 
         $pendingCount = $quotes->whereIn('status', ['pending', 'contacted'])->count();
-        $plans        = Plan::orderBy('price')->get();
+        $plans        = Plan::where('name', 'enterprise')->orderBy('price')->get();
 
         return view('admin.enterprise.quotes', compact('quotes', 'pendingCount', 'plans'));
     }
@@ -31,7 +31,7 @@ class EnterpriseQuoteController extends Controller
     public function proposalForm(EnterpriseQuoteRequest $quote)
     {
         $quote->load(['user', 'plan']);
-        $plans = Plan::orderBy('price')->get();
+        $plans = Plan::where('name', 'enterprise')->orderBy('price')->get();
 
         return view('admin.enterprise.proposal_form', compact('quote', 'plans'));
     }

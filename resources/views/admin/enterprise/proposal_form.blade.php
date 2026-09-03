@@ -98,28 +98,24 @@
                     </div>
                 </div>
 
-                {{-- Plan --}}
+                {{-- Plan (Entreprise uniquement) --}}
+                @php $enterprisePlan = $plans->first(); @endphp
+                @if($enterprisePlan)
+                <input type="hidden" name="plan_id" value="{{ $enterprisePlan->id }}">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Plan inclus</label>
-                    <div class="grid grid-cols-2 sm:grid-cols-{{ $plans->count() }} gap-3">
-                        @foreach($plans as $plan)
-                        <label class="relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 cursor-pointer transition
-                                      {{ (old('plan_id', $quote->plan_id ?? 5) == $plan->id) ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-300' }}"
-                               style="min-width:0;">
-                            <input type="radio" name="plan_id" value="{{ $plan->id }}"
-                                   {{ (old('plan_id', $quote->plan_id ?? 5) == $plan->id) ? 'checked' : '' }}
-                                   class="sr-only" onchange="this.closest('.grid').querySelectorAll('label').forEach(l=>l.classList.remove('border-indigo-500','bg-indigo-50'));this.closest('label').classList.add('border-indigo-500','bg-indigo-50')">
-                            <span class="text-xs font-bold text-gray-700">{{ $plan->label }}</span>
-                            @if($plan->price > 0)
-                            <span class="text-[11px] text-gray-400">{{ number_format($plan->price, 0, ',', ' ') }} €/mois</span>
-                            @else
-                            <span class="text-[11px] text-gray-400">Gratuit</span>
+                    <div class="flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-blue-200 bg-blue-50">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.8"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
+                        <div>
+                            <p class="text-sm font-bold text-blue-800">{{ $enterprisePlan->label }}</p>
+                            @if($enterprisePlan->price > 0)
+                            <p class="text-xs text-blue-500">{{ number_format($enterprisePlan->price, 0, ',', ' ') }} €/mois par utilisateur</p>
                             @endif
-                        </label>
-                        @endforeach
+                        </div>
+                        <span class="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Pack Entreprise</span>
                     </div>
-                    @error('plan_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
+                @endif
 
                 {{-- Prix total proposé --}}
                 <div>

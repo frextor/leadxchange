@@ -192,7 +192,11 @@ class SettingsController extends Controller
     {
         $settings = SystemSetting::where('group', 'payments')->get()->keyBy('key');
 
-        return view('admin.super_admin.settings.payments', compact('settings'));
+        // Bank transfer settings
+        $bankTransferEnabled = (bool) SystemSetting::where('key', 'bank_transfer.enabled')->first()?->value;
+        $bankTransferDetails = SystemSetting::where('key', 'bank_transfer.details')->first()?->value ?? '';
+
+        return view('admin.super_admin.settings.payments', compact('settings', 'bankTransferEnabled', 'bankTransferDetails'));
     }
 
     public function updatePayments(Request $request): RedirectResponse
@@ -202,6 +206,8 @@ class SettingsController extends Controller
             'subscription_test_mode'             => ['nullable', 'boolean'],
             'subscription_test_monthly_minutes'  => ['nullable', 'integer', 'min:1', 'max:10080'],
             'subscription_test_annual_minutes'   => ['nullable', 'integer', 'min:1', 'max:10080'],
+            'bank_transfer_enabled'              => ['nullable', 'boolean'],
+            'bank_transfer_details'              => ['nullable', 'string', 'max:2000'],
         ]);
 
         SystemSetting::updateOrCreate(
@@ -223,8 +229,19 @@ class SettingsController extends Controller
             ['value' => (string) ($data['subscription_test_annual_minutes'] ?? 10), 'group' => 'payments', 'type' => 'int']
         );
 
+        // Bank transfer
+        $bankEnabled = $request->boolean('bank_transfer_enabled');
+        SystemSetting::updateOrCreate(
+            ['key' => 'bank_transfer.enabled'],
+            ['value' => $bankEnabled ? '1' : '0', 'group' => 'payments', 'type' => 'bool']
+        );
+        SystemSetting::updateOrCreate(
+            ['key' => 'bank_transfer.details'],
+            ['value' => $data['bank_transfer_details'] ?? '', 'group' => 'payments', 'type' => 'string']
+        );
+
         Cache::forget('system_settings');
-        ActivityLogger::log('admin.settings.updated', "Paramètres de paiement mis à jour (test_mode=" . ($testMode ? 'on' : 'off') . ")");
+        ActivityLogger::log('admin.settings.updated', "Paramètres de paiement mis à jour (virement=" . ($bankEnabled ? 'activé' : 'désactivé') . ")");
 
         return back()->with('success', 'Paramètres enregistrés.');
     }
