@@ -177,6 +177,30 @@ $canViewFull = $isOwnProfile || auth()->user()->canFeature('can_view_member_name
                                 Modifier le profil
                             </button>
 
+                            {{-- ── Widget points ── --}}
+                            @if(isset($pointsBalance))
+                            <a href="{{ route('points.index') }}"
+                               class="mt-2 w-full inline-flex items-center justify-between gap-2 py-2 px-3 rounded-[10px] text-sm font-semibold border transition hover:opacity-90"
+                               style="{{ $pointsBalance < 0
+                                    ? 'background:#FEF2F2;color:#DC2626;border-color:#FECACA;'
+                                    : ($pointsBalance === 0
+                                        ? 'background:#FFFBEB;color:#92400E;border-color:#FDE68A;'
+                                        : 'background:#ECFDF5;color:#065F46;border-color:#6EE7B7;') }}">
+                                <span class="flex items-center gap-1.5">
+                                    <span style="font-size:14px;">⭐</span>
+                                    Mes points
+                                </span>
+                                <span class="text-xs font-bold px-2 py-0.5 rounded-full"
+                                      style="{{ $pointsBalance < 0
+                                            ? 'background:#FEE2E2;color:#DC2626;'
+                                            : ($pointsBalance === 0
+                                                ? 'background:#FEF3C7;color:#92400E;'
+                                                : 'background:#D1FAE5;color:#059669;') }}">
+                                    {{ $pointsBalance > 0 ? '+' : '' }}{{ $pointsBalance }} pts
+                                </span>
+                            </a>
+                            @endif
+
                             {{-- Role progression (own profile) --}}
                             @php $me = auth()->user(); @endphp
                             @if($me->isAmbassador())
@@ -955,6 +979,86 @@ $canViewFull = $isOwnProfile || auth()->user()->canFeature('can_view_member_name
 
 </div>{{-- /max-w-5xl (canViewFull) --}}
 @endif {{-- canViewFull --}}
+
+{{-- ── Popup points (propre profil, solde ≤ 0) ── --}}
+@if($isOwnProfile && isset($pointsBalance) && $pointsBalance <= 0)
+<div id="points-popup-overlay"
+     style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);"
+     onclick="if(event.target===this)closePointsPopup()">
+    <div style="background:#fff;border-radius:20px;width:100%;max-width:380px;box-shadow:0 25px 60px -12px rgba(0,0,0,.3);overflow:hidden;animation:slideUp .25s ease-out;">
+
+        {{-- Header --}}
+        <div style="padding:20px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;">
+            <div style="width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;
+                        {{ $pointsBalance < 0 ? 'background:#FEF2F2;' : 'background:#FFFBEB;' }}">
+                {{ $pointsBalance < 0 ? '⚠️' : '⭐' }}
+            </div>
+            <button onclick="closePointsPopup()"
+                    style="width:32px;height:32px;border-radius:8px;border:none;background:#F3F4F6;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6B7280;font-size:16px;transition:background .15s;"
+                    onmouseover="this.style.background='#E5E7EB'" onmouseout="this.style.background='#F3F4F6'">✕</button>
+        </div>
+
+        {{-- Body --}}
+        <div style="padding:16px 24px 24px;">
+            <h3 style="font-size:17px;font-weight:800;color:#0F172A;margin:12px 0 8px;">
+                {{ $pointsBalance < 0 ? 'Solde de points négatif' : 'Vous n\'avez plus de points' }}
+            </h3>
+            <p style="font-size:14px;color:#64748B;line-height:1.6;margin-bottom:20px;">
+                @if($pointsBalance < 0)
+                    Votre solde est de <strong style="color:#DC2626;">{{ $pointsBalance }} point{{ abs($pointsBalance) > 1 ? 's' : '' }}</strong>.
+                    Rechargez votre compte pour continuer à recevoir des leads de la communauté.
+                @else
+                    Votre solde est à <strong style="color:#D97706;">0 point</strong>.
+                    Achetez des points ou envoyez des leads pour en gagner.
+                @endif
+            </p>
+
+            {{-- Solde visuel --}}
+            <div style="display:flex;align-items:center;justify-content:center;padding:14px;border-radius:14px;margin-bottom:20px;
+                        {{ $pointsBalance < 0 ? 'background:#FEF2F2;border:1.5px solid #FECACA;' : 'background:#FFFBEB;border:1.5px solid #FDE68A;' }}">
+                <span style="font-size:36px;font-weight:900;letter-spacing:-1px;{{ $pointsBalance < 0 ? 'color:#DC2626;' : 'color:#D97706;' }}">{{ $pointsBalance }}</span>
+                <span style="font-size:14px;font-weight:600;margin-left:6px;margin-top:8px;{{ $pointsBalance < 0 ? 'color:#EF4444;' : 'color:#F59E0B;' }}">pts</span>
+            </div>
+
+            {{-- Boutons --}}
+            <a href="{{ route('points.index') }}"
+               style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border-radius:12px;font-size:14px;font-weight:700;color:#fff;text-decoration:none;margin-bottom:10px;background:linear-gradient(135deg,#1E8F88,#0D6E68);transition:opacity .15s;"
+               onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
+                Acheter des points
+            </a>
+            <button onclick="closePointsPopup()"
+                    style="width:100%;padding:11px;border-radius:12px;font-size:14px;font-weight:600;color:#64748B;background:#F8FAFC;border:1.5px solid #E5E7EB;cursor:pointer;transition:background .15s;"
+                    onmouseover="this.style.background='#F1F5F9'" onmouseout="this.style.background='#F8FAFC'">
+                Fermer
+            </button>
+        </div>
+    </div>
+</div>
+<style>
+@keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+</style>
+<script>
+function closePointsPopup() {
+    var el = document.getElementById('points-popup-overlay');
+    if (el) {
+        el.style.opacity = '0';
+        el.style.transition = 'opacity .2s';
+        setTimeout(function(){ el.style.display = 'none'; }, 200);
+    }
+    // Ne plus afficher pendant cette session de navigation
+    try { sessionStorage.setItem('points_popup_dismissed', '1'); } catch(e){}
+}
+// Si déjà fermé dans cette session, ne pas afficher
+(function(){
+    try {
+        if (sessionStorage.getItem('points_popup_dismissed')) {
+            document.getElementById('points-popup-overlay').style.display = 'none';
+        }
+    } catch(e){}
+})();
+</script>
+@endif
 
 @endsection
 

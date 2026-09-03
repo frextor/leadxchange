@@ -58,6 +58,8 @@ class ProfileController extends Controller
 
         $markets = Market::orderBy('name')->get();
 
+        $isOwn = $id === $currentUserId;
+
         return view('profile', [
             'user'          => $user,
             'profile'       => $targetUser->profile,
@@ -67,8 +69,9 @@ class ProfileController extends Controller
             'markets'       => $markets,
             'cities'        => City::with('country:id,name')->orderBy('name')->get(),
             'completion'    => $this->profileService->getCompletionPercentage($targetUser),
-            'missing'       => $id === $currentUserId ? $this->profileService->getMissingFields($targetUser) : [],
-            'isOwnProfile'  => $id === $currentUserId,
+            'missing'       => $isOwn ? $this->profileService->getMissingFields($targetUser) : [],
+            'isOwnProfile'  => $isOwn,
+            'pointsBalance' => $isOwn ? (int) ($request->user()->points_balance ?? 0) : null,
         ]);
     }
 
