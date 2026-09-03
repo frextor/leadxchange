@@ -13,24 +13,8 @@ class GeoBlock
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Charger la liste des pays bloqués
-        $blockedRaw = SystemSetting::get('geo_blocked_countries', '');
-        if (! $blockedRaw) {
-            return $next($request);
-        }
-        $blocked = json_decode($blockedRaw, true) ?? [];
-        if (empty($blocked)) {
-            return $next($request);
-        }
-
         // Sous-domaine admin → toujours exempt
         if (str_starts_with($request->getHost(), 'admin.')) {
-            return $next($request);
-        }
-
-        // Admins et super_admins passent toujours
-        $user = $request->user();
-        if ($user && in_array($user->role, ['admin', 'super_admin'])) {
             return $next($request);
         }
 
@@ -40,12 +24,34 @@ class GeoBlock
             return $next($request);
         }
 
-        // Détecter le pays de l'IP visiteur
+        // Admins et super_admins passent toujours
+        $user = $request->user();
+        if ($user && in_array($user->role, ['admin', 'super_admin'])) {
+            return $next($request);
+        }
+
+        // Lire DIRECTEMENT depuis la DB (sans cache) pour avoir les données fraîches
+        $rowCountries = SystemSetting::where('key', 'geo_blocked_countries')->first();
+        $blocked      = ($rowCountries && $rowCountries->value)
+                        ? (json_decode($rowCountries->value, true) ?? [])
+                        : [];
+
+        $rowCities    = SystemSetting::where('key', 'geo_blocked_cities')->first();
+        $blockedCities = ($rowCities && $rowCities->value)
+                        ? (json_decode($rowCities->value, true) ?? [])
+                        : [];
+
+        // Si rien n'est bloqué, on passe
+        if (empty($blocked) && empty($blockedCities)) {
+            return $next($request);
+        }
+
+        // Détecter l'IP et la géolocaliser
         $ip   = $this->getRealIp($request);
         $info = $this->getGeoInfo($ip);
 
         if (! $info) {
-            return $next($request); // En cas d'erreur API, on laisse passer
+            return $next($request); // IP locale ou erreur API → on laisse passer
         }
 
         $countryCode = $info['countryCode'] ?? '';
@@ -53,7 +59,7 @@ class GeoBlock
         $cityName    = $info['city']        ?? '';
 
         // Blocage par pays
-        if (in_array($countryCode, $blocked)) {
+        if (! empty($blocked) && in_array($countryCode, $blocked)) {
             return response()->view('geo-blocked', [
                 'location' => $cityName ? "{$cityName}, {$countryName}" : $countryName,
                 'reason'   => 'pays',
@@ -61,8 +67,6 @@ class GeoBlock
         }
 
         // Blocage par ville
-        $blockedCitiesRaw = SystemSetting::get('geo_blocked_cities', '');
-        $blockedCities    = $blockedCitiesRaw ? (json_decode($blockedCitiesRaw, true) ?? []) : [];
         if ($cityName && ! empty($blockedCities)) {
             $cityLower = mb_strtolower($cityName);
             foreach ($blockedCities as $bc) {
