@@ -180,13 +180,21 @@
 
             {{-- Features list --}}
             <div class="px-5 py-4 flex-1">
-                @php $planFeatures = is_array($plan->features) ? $plan->features : []; @endphp
+                @php
+                    // Features stored as array of strings (new format) or associative (legacy)
+                    $raw = $plan->features;
+                    if (is_array($raw) && array_values($raw) === $raw) {
+                        // Indexed array — new format: ["Feature A", "Feature B"]
+                        $planFeatures = array_filter(array_map('strval', $raw));
+                    } else {
+                        $planFeatures = [];
+                    }
+                @endphp
                 @if(count($planFeatures) > 0)
                 <ul class="space-y-2">
-                    @foreach($planFeatures as $feat)
-                    @php $featText = is_array($feat) ? ($feat['name'] ?? $feat['label'] ?? implode(', ', array_filter((array)$feat, 'is_string'))) : (string)$feat; @endphp
-                    <li class="flex items-center gap-2.5 text-xs text-gray-700">
-                        <span class="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                    @foreach($planFeatures as $featText)
+                    <li class="flex items-start gap-2.5 text-xs text-gray-700">
+                        <span class="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
                               style="background:{{ $t['bg'] }};">
                             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="{{ $t['top'] }}" stroke-width="3"><path d="m5 12 5 5L20 7"/></svg>
                         </span>
@@ -195,7 +203,7 @@
                     @endforeach
                 </ul>
                 @else
-                <p class="text-xs text-gray-400 italic">Fonctionnalités à configurer.</p>
+                <p class="text-xs text-gray-400 italic">Fonctionnalités à configurer dans le paramétrage.</p>
                 @endif
             </div>
 

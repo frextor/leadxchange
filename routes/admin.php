@@ -242,6 +242,16 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::get('settings/about-page',          [SettingsController::class, 'aboutPage'])->name('settings.about-page');
     Route::put('settings/about-page',          [SettingsController::class, 'updateAboutPage'])->name('settings.about-page.update');
 
+    Route::get('settings/menu',               [SettingsController::class, 'menuSettings'])->name('settings.menu');
+    Route::put('settings/menu',               [SettingsController::class, 'updateMenuSettings'])->name('settings.menu.update');
+    Route::post('settings/menu/save',         [SettingsController::class, 'updateMenuSettings'])->name('settings.menu.store');
+
+    Route::get('settings/admin-menu',         [SettingsController::class, 'adminMenuSettings'])->name('settings.admin-menu');
+    Route::put('settings/admin-menu',         [SettingsController::class, 'updateAdminMenuSettings'])->name('settings.admin-menu.update');
+
+    Route::get('settings/geo-block',          [SettingsController::class, 'geoBlockSettings'])->name('settings.geo-block');
+    Route::put('settings/geo-block',          [SettingsController::class, 'updateGeoBlockSettings'])->name('settings.geo-block.update');
+
     Route::get('settings/maintenance',         [SettingsController::class, 'maintenance'])->name('settings.maintenance');
     Route::put('settings/maintenance',         [SettingsController::class, 'updateMaintenance'])->name('settings.maintenance.update');
     Route::get('settings/maintenance/preview', fn() => response()->view('errors.503', ['message' => 'Quelques minutes (démonstration)']))->name('settings.maintenance.preview');

@@ -129,57 +129,31 @@
 
             <hr class="border-gray-100">
 
-            {{-- ── Fonctionnalités ──────────────────────────────────── --}}
+            {{-- ── Fonctionnalités (bullet points affichés sur la page upgrade) ── --}}
             <div class="space-y-3">
-                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Fonctionnalités</p>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Fonctionnalités affichées</p>
+                <p class="text-[11px] text-gray-400 leading-relaxed -mt-1">
+                    Saisissez une fonctionnalité par ligne. Ces points s'affichent sous forme de liste sur la page d'abonnement.
+                </p>
                 @php
-                    $featureDefs = \App\Http\Controllers\Admin\SuperAdmin\PlanController::FEATURES;
-                    $currentFeatures = old('features')
-                        ? (json_decode(old('features'), true) ?? [])
-                        : ($plan->features ?? []);
+                    $savedFeatures = old('features_text')
+                        ?? implode("\n", array_filter(
+                            is_array($plan->features) ? $plan->features : []
+                        ));
                 @endphp
-
-                <div class="grid grid-cols-2 gap-2">
-                    @foreach($featureDefs as $fKey => $fDef)
-                    @php
-                        $fVal = $currentFeatures[$fKey] ?? ($fDef['type'] === 'number' ? null : false);
-                    @endphp
-
-                    @if($fDef['type'] === 'number')
-                    <div class="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-gray-100 bg-gray-50/60">
-                        <span class="text-xs font-semibold text-gray-700 leading-tight">{{ $fDef['label'] }}</span>
-                        <input type="number" min="0"
-                               data-feature-key="{{ $fKey }}" data-feature-type="number"
-                               value="{{ $fVal !== null ? $fVal : '' }}"
-                               placeholder="∞"
-                               class="feature-field w-16 text-center border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-indigo-400 transition placeholder-indigo-300">
-                    </div>
-                    @else
-                    <label class="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-gray-100 bg-gray-50/60 cursor-pointer hover:bg-indigo-50/40 transition group">
-                        <span class="text-xs font-semibold text-gray-700 leading-tight group-hover:text-indigo-700 transition">{{ $fDef['label'] }}</span>
-                        <div class="relative flex-shrink-0">
-                            <input type="checkbox"
-                                   data-feature-key="{{ $fKey }}" data-feature-type="bool"
-                                   class="peer sr-only feature-field"
-                                   {{ $fVal ? 'checked' : '' }}>
-                            <div class="w-9 h-5 rounded-full transition-colors duration-200 peer-checked:bg-indigo-500 bg-gray-200 relative">
-                                <div class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200"
-                                     style="transform:{{ $fVal ? 'translateX(16px)' : 'translateX(0)' }}"></div>
-                            </div>
-                        </div>
-                    </label>
-                    @endif
+                <textarea name="features_text" rows="8"
+                          placeholder="Accès aux leads&#10;Messagerie illimitée&#10;Création de groupes&#10;..."
+                          class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition resize-y font-mono placeholder-gray-300 leading-relaxed">{{ $savedFeatures }}</textarea>
+                @if(is_array($plan->features) && count($plan->features) > 0)
+                <div class="flex flex-wrap gap-1.5 pt-1">
+                    @foreach($plan->features as $feat)
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-indigo-50 text-indigo-600">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 7"/></svg>
+                        {{ is_string($feat) ? $feat : ($feat['name'] ?? '') }}
+                    </span>
                     @endforeach
                 </div>
-
-                {{-- Hidden field with JSON sent to controller --}}
-                <input type="hidden" name="features" id="featuresJsonHidden">
-
-                {{-- Live JSON preview --}}
-                <details class="mt-1">
-                    <summary class="text-[10px] text-gray-400 cursor-pointer select-none hover:text-gray-600 transition">Aperçu JSON</summary>
-                    <pre id="featuresJsonPreview" class="mt-2 text-[10px] font-mono bg-gray-50 border border-gray-100 rounded-xl p-3 overflow-x-auto text-gray-500"></pre>
-                </details>
+                @endif
             </div>
 
             <hr class="border-gray-100">
@@ -233,42 +207,4 @@
 </div>
 </div>
 
-@push('scripts')
-<script>
-function buildFeaturesJson() {
-    const obj = {};
-    document.querySelectorAll('.feature-field').forEach(function(el) {
-        const key  = el.dataset.featureKey;
-        const type = el.dataset.featureType;
-        if (type === 'bool') {
-            obj[key] = el.checked;
-        } else {
-            const v = el.value.trim();
-            obj[key] = (v === '') ? null : parseInt(v, 10);
-        }
-    });
-    const json = JSON.stringify(obj);
-    document.getElementById('featuresJsonHidden').value = json;
-    const preview = document.getElementById('featuresJsonPreview');
-    if (preview) preview.textContent = JSON.stringify(obj, null, 2);
-}
-}
-
-// Animate toggles on change + rebuild JSON
-document.querySelectorAll('.feature-field').forEach(function(el) {
-    el.addEventListener('change', function() {
-        if (el.dataset.featureType === 'bool') {
-            const thumb = el.closest('label').querySelector('div > div');
-            if (thumb) thumb.style.transform = el.checked ? 'translateX(16px)' : 'translateX(0)';
-        }
-        buildFeaturesJson();
-    });
-    el.addEventListener('input', buildFeaturesJson);
-});
-
-// Build on submit + on load (prepopulate hidden field)
-document.querySelector('form').addEventListener('submit', buildFeaturesJson);
-buildFeaturesJson();
-</script>
-@endpush
 @endsection

@@ -91,7 +91,7 @@
                 </div>
                 <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-400">
                     @if($event->creator)
-                    <span>Organized by <strong class="text-gray-700">{{ $event->creator->first_name }} {{ $event->creator->last_name }}</strong></span>
+                    <span>Organisé par <strong class="text-gray-700">{{ $event->creator->first_name }} {{ $event->creator->last_name }}</strong></span>
                     @endif
                     @if($event->sector)
                     <span>·</span>
@@ -129,12 +129,12 @@
                 </button>
                 @endif
                 <form method="POST" action="{{ route('events.destroy', $event->id) }}"
-                      onsubmit="return confirm('Delete this event? This action cannot be undone.')">
+                      onsubmit="return confirm('Supprimer cet événement ? Cette action est irréversible.')">
                     @csrf @method('DELETE')
                     <button type="submit" class="px-4 py-2 rounded-xl text-sm font-semibold border transition"
                             style="border-color:#EF4444;color:#EF4444;"
                             onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background='transparent'">
-                        Delete event
+                        Supprimer l'événement
                     </button>
                 </form>
                 @endif
@@ -396,7 +396,7 @@
                         <form method="POST" action="{{ route('events.attendees.destroy', [$event->id, $attendee->id]) }}"
                               class="opacity-0 group-hover/att:opacity-100 transition flex-shrink-0">
                             @csrf @method('DELETE')
-                            <button type="submit" title="Remove attendee"
+                            <button type="submit" title="Retirer le participant"
                                     class="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-red-400 hover:bg-red-50 transition">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
                             </button>
@@ -587,7 +587,7 @@
 <div id="inviteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.45);">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-            <h2 class="font-semibold text-gray-900">Invite to "{{ Str::limit($event->title, 30) }}"</h2>
+            <h2 class="font-semibold text-gray-900">Inviter à « {{ Str::limit($event->title, 30) }} »</h2>
             <button type="button" onclick="document.getElementById('inviteModal').classList.add('hidden')"
                     class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -596,8 +596,8 @@
         <form method="POST" action="{{ route('events.invite', $event->id) }}" id="inviteForm" class="px-6 py-5 space-y-4">
             @csrf
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">Search a connection</label>
-                <input type="text" id="inviteSearch" placeholder="Name…" oninput="filterConnections(this.value)"
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">Rechercher une connexion</label>
+                <input type="text" id="inviteSearch" placeholder="Nom…" oninput="filterConnections(this.value)"
                        class="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm outline-none focus:border-teal-500 transition">
             </div>
             <div id="connectionList" class="space-y-1 max-h-52 overflow-y-auto"></div>
@@ -605,11 +605,11 @@
             <div id="inviteSelected" class="hidden px-3 py-2 rounded-xl text-sm font-medium" style="background:#E6F7F4;color:#1E8F88;"></div>
             <div class="flex gap-3 pt-1">
                 <button type="button" onclick="document.getElementById('inviteModal').classList.add('hidden')"
-                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">Annuler</button>
                 <button type="submit" id="inviteSubmitBtn" disabled
                         class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition disabled:opacity-40"
                         style="background:#1E8F88;" onmouseover="if(!this.disabled)this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
-                    Send invitation
+                    Envoyer l'invitation
                 </button>
             </div>
         </form>
@@ -623,7 +623,7 @@ const connections = @json($eventConnections);
 function renderConnections(list) {
     const el = document.getElementById('connectionList');
     if (!list.length) {
-        el.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">No connections available to invite</p>';
+        el.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Aucune connexion disponible à inviter</p>';
         return;
     }
     el.innerHTML = list.map(u => `

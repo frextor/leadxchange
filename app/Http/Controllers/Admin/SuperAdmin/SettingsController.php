@@ -252,4 +252,247 @@ class SettingsController extends Controller
         ActivityLogger::log('admin.settings.updated', "Bandeau de maintenance {$status}");
         return back()->with('success', "Bandeau de maintenance {$status}.");
     }
+
+    /* ─────────────────────────────── ADMIN MENU ─────────────────────────────── */
+
+    public static function defaultAdminMenuPlateforme(): array
+    {
+        return [
+            ['key' => 'dashboard',  'label' => 'Tableau de bord',  'visible' => true],
+            ['key' => 'users',      'label' => 'Utilisateurs',      'visible' => true],
+            ['key' => 'leads',      'label' => 'Leads',             'visible' => true],
+            ['key' => 'notation',   'label' => 'Notation & Badges', 'visible' => true],
+            ['key' => 'events',     'label' => 'Événements',        'visible' => true],
+            ['key' => 'groups',     'label' => 'Groupes / Pôles',   'visible' => true],
+            ['key' => 'videos',     'label' => 'Vidéos',            'visible' => true],
+            ['key' => 'feedbacks',  'label' => 'Feedbacks',         'visible' => true],
+        ];
+    }
+
+    public static function defaultAdminMenuSuperAdmin(): array
+    {
+        return [
+            ['key' => 'analytics',        'label' => 'Analytiques',         'visible' => true],
+            ['key' => 'subscribers',      'label' => 'Abonnés',             'visible' => true],
+            ['key' => 'reports',          'label' => 'Signalements',        'visible' => true],
+            ['key' => 'rgpd',             'label' => 'RGPD',                'visible' => true],
+            ['key' => 'consuls',          'label' => 'Consuls',             'visible' => true],
+            ['key' => 'ambassadors',      'label' => 'Ambassadeurs',        'visible' => true],
+            ['key' => 'admins',           'label' => 'Admins',              'visible' => true],
+            ['key' => 'plans',            'label' => 'Plans & Permissions', 'visible' => true],
+            ['key' => 'regions',          'label' => 'Régions / Villes',    'visible' => true],
+            ['key' => 'sectors',          'label' => 'Secteurs',            'visible' => true],
+            ['key' => 'countries',        'label' => 'Pays',                'visible' => true],
+            ['key' => 'interests',        'label' => 'Intérêts',            'visible' => true],
+            ['key' => 'event_categories', 'label' => 'Catégories events',   'visible' => true],
+            ['key' => 'activity_log',     'label' => "Journal d'activité",  'visible' => true],
+            ['key' => 'settings',         'label' => 'Paramètres',          'visible' => true],
+            ['key' => 'payments_cfg',     'label' => 'Paiements (config)',  'visible' => true],
+            ['key' => 'menu_nav',         'label' => 'Menu navigation',     'visible' => true],
+            ['key' => 'admin_menu_nav',   'label' => 'Menu administration', 'visible' => true],
+            ['key' => 'welcome_popup',    'label' => 'Popup bienvenue',     'visible' => true],
+            ['key' => 'maintenance',      'label' => 'Maintenance',         'visible' => true],
+            ['key' => 'email_templates',  'label' => 'Templates email',     'visible' => true],
+            ['key' => 'pages',            'label' => 'Pages légales',       'visible' => true],
+            ['key' => 'about',            'label' => 'Page À propos',       'visible' => true],
+            ['key' => 'smtp',             'label' => 'Email / SMTP',        'visible' => true],
+            ['key' => 'geo_block',        'label' => 'Blocage géographique','visible' => true],
+        ];
+    }
+
+    public function adminMenuSettings(): View
+    {
+        $platRaw = SystemSetting::get('admin_nav_plateforme', '');
+        $saRaw   = SystemSetting::get('admin_nav_superadmin', '');
+
+        $plat = $platRaw ? (json_decode($platRaw, true) ?? []) : self::defaultAdminMenuPlateforme();
+        $sa   = $saRaw   ? (json_decode($saRaw,   true) ?? []) : self::defaultAdminMenuSuperAdmin();
+
+        // Merge any newly-added default items
+        foreach (self::defaultAdminMenuPlateforme() as $def) {
+            if (! collect($plat)->pluck('key')->contains($def['key'])) $plat[] = $def;
+        }
+        foreach (self::defaultAdminMenuSuperAdmin() as $def) {
+            if (! collect($sa)->pluck('key')->contains($def['key'])) $sa[] = $def;
+        }
+
+        return view('admin.super_admin.settings.admin-menu', compact('plat', 'sa'));
+    }
+
+    public function updateAdminMenuSettings(Request $request): RedirectResponse
+    {
+        $section  = $request->input('section', 'plateforme');
+        $raw      = $request->input('config_json', '');
+        $incoming = $raw ? json_decode($raw, true) : [];
+
+        $defaults = collect(
+            $section === 'superadmin'
+                ? self::defaultAdminMenuSuperAdmin()
+                : self::defaultAdminMenuPlateforme()
+        )->keyBy('key');
+
+        $config = [];
+        foreach ((array) $incoming as $entry) {
+            $key = $entry['key'] ?? '';
+            if ($defaults->has($key)) {
+                $config[] = [
+                    'key'     => $key,
+                    'label'   => $defaults[$key]['label'],
+                    'visible' => (bool) ($entry['visible'] ?? true),
+                ];
+            }
+        }
+
+        if (empty($config)) {
+            return back()->withErrors(['config_json' => 'Aucun élément reçu — sauvegarde annulée.']);
+        }
+
+        $settingKey = $section === 'superadmin' ? 'admin_nav_superadmin' : 'admin_nav_plateforme';
+        SystemSetting::set($settingKey, json_encode($config));
+
+        ActivityLogger::log('admin.settings.updated', "Menu admin ({$section}) mis à jour");
+        return back()->with('success', 'Menu d\'administration mis à jour.');
+    }
+
+    /* ─────────────────────────────── USER MENU ──────────────────────────────── */
+
+    /** Default ordered list of nav items — used when no custom config saved yet. */
+    public static function defaultMenuItems(): array
+    {
+        return [
+            ['key' => 'dashboard',  'label' => 'Start',        'visible' => true,  'fixed' => false],
+            ['key' => 'members',    'label' => 'Membres',       'visible' => true,  'fixed' => false],
+            ['key' => 'network',    'label' => 'Réseau',        'visible' => true,  'fixed' => false],
+            ['key' => 'groups',     'label' => 'Groupes',       'visible' => true,  'fixed' => false],
+            ['key' => 'events',     'label' => 'Événements',    'visible' => true,  'fixed' => false],
+            ['key' => 'leads',      'label' => 'Leads',         'visible' => true,  'fixed' => false],
+            ['key' => 'chat',       'label' => 'Chat',          'visible' => true,  'fixed' => false],
+        ];
+    }
+
+    public function menuSettings(): View
+    {
+        $row   = SystemSetting::where('key', 'nav_menu_config')->first();
+        $saved = $row ? $row->value : '';
+        $items = $saved ? (json_decode($saved, true) ?? []) : self::defaultMenuItems();
+
+        // Ensure all default items are represented (in case new ones were added)
+        $defaults = collect(self::defaultMenuItems())->keyBy('key');
+        $itemKeys  = collect($items)->pluck('key')->all();
+        foreach ($defaults as $key => $def) {
+            if (! in_array($key, $itemKeys)) {
+                $items[] = $def;
+            }
+        }
+
+        return view('admin.super_admin.settings.menu', compact('items'));
+    }
+
+    public function updateMenuSettings(Request $request)
+    {
+        // New approach: order[] contains keys in display order, visible[] contains checked keys
+        $order   = $request->input('order', []);
+        $visible = $request->input('visible', []);   // only checked checkboxes are submitted
+
+        $defaults = collect(self::defaultMenuItems())->keyBy('key');
+        $config   = [];
+
+        foreach ($order as $key) {
+            if ($defaults->has($key)) {
+                $config[] = [
+                    'key'     => $key,
+                    'label'   => $defaults[$key]['label'],
+                    'visible' => in_array($key, (array) $visible),
+                    'fixed'   => false,
+                ];
+            }
+        }
+
+        if (empty($config)) {
+            return back()->withErrors(['order' => 'Aucun élément reçu — sauvegarde annulée.']);
+        }
+
+        SystemSetting::set('nav_menu_config', json_encode($config));
+        Cache::forget('system_settings');
+
+        ActivityLogger::log('admin.settings.updated', 'Configuration du menu de navigation mise à jour');
+
+        return redirect()->route('admin.super.settings.menu')->with('success', 'Menu de navigation mis à jour.');
+    }
+
+    /* ─────────────────────────────── GEO BLOCK ─────────────────────────────── */
+
+    public static function allCountries(): array
+    {
+        return [
+            'AF'=>'Afghanistan','ZA'=>'Afrique du Sud','AL'=>'Albanie','DZ'=>'Algérie','DE'=>'Allemagne',
+            'AD'=>'Andorre','AO'=>'Angola','SA'=>'Arabie saoudite','AR'=>'Argentine','AM'=>'Arménie',
+            'AU'=>'Australie','AT'=>'Autriche','AZ'=>'Azerbaïdjan','BS'=>'Bahamas','BH'=>'Bahreïn',
+            'BD'=>'Bangladesh','BY'=>'Biélorussie','BE'=>'Belgique','BZ'=>'Belize','BJ'=>'Bénin',
+            'BO'=>'Bolivie','BA'=>'Bosnie-Herzégovine','BW'=>'Botswana','BR'=>'Brésil','BN'=>'Brunei',
+            'BG'=>'Bulgarie','BF'=>'Burkina Faso','BI'=>'Burundi','KH'=>'Cambodge','CM'=>'Cameroun',
+            'CA'=>'Canada','CV'=>'Cap-Vert','CL'=>'Chili','CN'=>'Chine','CY'=>'Chypre',
+            'CO'=>'Colombie','KM'=>'Comores','CG'=>'Congo','KR'=>'Corée du Sud','KP'=>'Corée du Nord',
+            'HR'=>'Croatie','CU'=>'Cuba','DK'=>'Danemark','DJ'=>'Djibouti','EG'=>'Égypte',
+            'AE'=>'Émirats arabes unis','EC'=>'Équateur','ER'=>'Érythrée','ES'=>'Espagne','EE'=>'Estonie',
+            'ET'=>'Éthiopie','FI'=>'Finlande','FR'=>'France','GA'=>'Gabon','GM'=>'Gambie',
+            'GE'=>'Géorgie','GH'=>'Ghana','GR'=>'Grèce','GT'=>'Guatemala','GN'=>'Guinée',
+            'HT'=>'Haïti','HN'=>'Honduras','HU'=>'Hongrie','IN'=>'Inde','ID'=>'Indonésie',
+            'IQ'=>'Irak','IR'=>'Iran','IE'=>'Irlande','IS'=>'Islande','IL'=>'Israël',
+            'IT'=>'Italie','JM'=>'Jamaïque','JP'=>'Japon','JO'=>'Jordanie','KZ'=>'Kazakhstan',
+            'KE'=>'Kenya','KW'=>'Koweït','LB'=>'Liban','LY'=>'Libye','LI'=>'Liechtenstein',
+            'LT'=>'Lituanie','LU'=>'Luxembourg','MK'=>'Macédoine du Nord','MG'=>'Madagascar','MY'=>'Malaisie',
+            'MW'=>'Malawi','MV'=>'Maldives','ML'=>'Mali','MT'=>'Malte','MA'=>'Maroc',
+            'MR'=>'Mauritanie','MU'=>'Maurice','MX'=>'Mexique','MD'=>'Moldavie','MC'=>'Monaco',
+            'MN'=>'Mongolie','ME'=>'Monténégro','MZ'=>'Mozambique','MM'=>'Myanmar','NA'=>'Namibie',
+            'NP'=>'Népal','NI'=>'Nicaragua','NE'=>'Niger','NG'=>'Nigéria','NO'=>'Norvège',
+            'NZ'=>'Nouvelle-Zélande','OM'=>'Oman','UG'=>'Ouganda','UZ'=>'Ouzbékistan','PK'=>'Pakistan',
+            'PA'=>'Panama','PY'=>'Paraguay','NL'=>'Pays-Bas','PE'=>'Pérou','PH'=>'Philippines',
+            'PL'=>'Pologne','PT'=>'Portugal','QA'=>'Qatar','RO'=>'Roumanie','GB'=>'Royaume-Uni',
+            'RU'=>'Russie','RW'=>'Rwanda','SN'=>'Sénégal','RS'=>'Serbie','SL'=>'Sierra Leone',
+            'SG'=>'Singapour','SK'=>'Slovaquie','SI'=>'Slovénie','SO'=>'Somalie','SD'=>'Soudan',
+            'SS'=>'Soudan du Sud','LK'=>'Sri Lanka','SE'=>'Suède','CH'=>'Suisse','SR'=>'Suriname',
+            'SY'=>'Syrie','TJ'=>'Tadjikistan','TZ'=>'Tanzanie','TD'=>'Tchad','CZ'=>'Tchéquie',
+            'TH'=>'Thaïlande','TG'=>'Togo','TT'=>'Trinité-et-Tobago','TN'=>'Tunisie','TM'=>'Turkménistan',
+            'TR'=>'Turquie','UA'=>'Ukraine','UY'=>'Uruguay','US'=>'États-Unis','VE'=>'Venezuela',
+            'VN'=>'Viêt Nam','YE'=>'Yémen','ZM'=>'Zambie','ZW'=>'Zimbabwe',
+        ];
+    }
+
+    public function geoBlockSettings(): View
+    {
+        // Lecture directe DB (bypass cache) pour avoir l'état le plus récent
+        $rowCountries = SystemSetting::where('key', 'geo_blocked_countries')->first();
+        $rowCities    = SystemSetting::where('key', 'geo_blocked_cities')->first();
+
+        $blockedCountries = $rowCountries ? (json_decode($rowCountries->value, true) ?? []) : [];
+        $blockedCities    = $rowCities    ? (json_decode($rowCities->value,    true) ?? []) : [];
+
+        $countries = self::allCountries();
+        $cities    = \App\Models\City::orderBy('name')->get(['id', 'name']);
+
+        return view('admin.super_admin.settings.geo-block', compact(
+            'blockedCountries', 'blockedCities', 'countries', 'cities'
+        ));
+    }
+
+    public function updateGeoBlockSettings(Request $request): RedirectResponse
+    {
+        $type    = $request->input('type', 'countries');
+        $raw     = $request->input('config_json', '');
+        $blocked = $raw ? array_values(array_filter(json_decode($raw, true) ?? [])) : [];
+
+        if ($type === 'cities') {
+            SystemSetting::set('geo_blocked_cities', json_encode($blocked));
+            $msg = count($blocked) . ' ville(s) bloquée(s).';
+            ActivityLogger::log('admin.settings.updated', $msg);
+        } else {
+            SystemSetting::set('geo_blocked_countries', json_encode($blocked));
+            $msg = count($blocked) . ' pays bloqué(s).';
+            ActivityLogger::log('admin.settings.updated', $msg);
+        }
+
+        Cache::forget('system_settings');
+        return back()->with('success', 'Blocage géographique mis à jour — ' . $msg);
+    }
 }

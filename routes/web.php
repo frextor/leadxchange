@@ -118,6 +118,10 @@ Route::post('/stripe/webhook', [\App\Http\Controllers\StripeCheckoutController::
 // ==========================================
 // Guest Routes (Not authenticated)
 // ==========================================
+// Admin login bypass (accessible même en mode maintenance)
+Route::get('/admin-access',  [LoginController::class, 'showLoginForm'])->name('admin.access.form');
+Route::post('/admin-access', [LoginController::class, 'login'])->name('admin.access.post');
+
 Route::middleware('guest')->group(function () {
     // Login
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');

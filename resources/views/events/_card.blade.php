@@ -55,12 +55,12 @@
         @if(!$isPast && !$isOrganizer)
         <span class="absolute bottom-3 right-3 px-2 py-0.5 rounded-full text-[11px] font-semibold"
               style="{{ $event->is_free ? 'background:#10B981;color:white;' : 'background:rgba(0,0,0,.45);color:white;' }}">
-            {{ $event->is_free ? 'Free' : currency_format($event->price) }}
+            {{ $event->is_free ? 'Gratuit' : currency_format($event->price) }}
         </span>
         @elseif(!$isPast && $isOrganizer)
         <span class="absolute bottom-3 right-3 px-2 py-0.5 rounded-full text-[11px] font-semibold"
               style="{{ $event->is_free ? 'background:#10B981;color:white;' : 'background:rgba(0,0,0,.45);color:white;' }}">
-            {{ $event->is_free ? 'Free' : currency_format($event->price) }}
+            {{ $event->is_free ? 'Gratuit' : currency_format($event->price) }}
         </span>
         @endif
     </div>
@@ -118,7 +118,7 @@
         @if($capacity)
         <div class="mb-3">
             <div class="flex items-center justify-between text-[11px] text-gray-400 mb-1">
-                <span>{{ number_format($event->attendees_count) }} / {{ number_format($capacity) }} spots</span>
+                <span>{{ number_format($event->attendees_count) }} / {{ number_format($capacity) }} places</span>
                 <span class="{{ $pct >= 90 ? 'text-red-500' : ($pct >= 60 ? 'text-amber-500' : 'text-gray-400') }}">
                     {{ $pct }}%
                 </span>
@@ -169,7 +169,7 @@
             <button type="submit" class="w-full py-2 rounded-xl text-xs font-semibold border transition"
                     style="border-color:#1E8F88;color:#1E8F88;"
                     onmouseover="this.style.background='#E6F7F4'" onmouseout="this.style.background='transparent'">
-                Registered ✓ &nbsp;· Cancel
+                Inscrit ✓ &nbsp;· Annuler
             </button>
         </form>
         @else

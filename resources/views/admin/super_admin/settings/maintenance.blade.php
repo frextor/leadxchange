@@ -38,14 +38,14 @@
 
             <div class="flex items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-100">
                 <div>
-                    <p class="text-sm font-semibold text-gray-800">Activer le bandeau</p>
-                    <p class="text-xs text-gray-400 mt-0.5">Visible immédiatement par tous les utilisateurs connectés</p>
+                    <p class="text-sm font-semibold text-gray-800">Activer le mode maintenance</p>
+                    <p class="text-xs text-gray-400 mt-0.5">Redirige tous les visiteurs vers une page de maintenance (les admins ne sont pas affectés)</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="hidden" name="maintenance_banner_enabled" value="0">
                     <input type="checkbox" name="maintenance_banner_enabled" value="1"
                            class="sr-only peer"
-                           {{ $settings->get('maintenance_banner_enabled')?->value == '1' ? 'checked' : '' }}>
+                           {{ optional(\App\Models\SystemSetting::where('key','maintenance_banner_enabled')->first())->value == '1' ? 'checked' : '' }}>
                     <div class="w-10 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
                 </label>
             </div>
@@ -54,7 +54,7 @@
                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Message du bandeau</label>
                 <textarea name="maintenance_banner_message" rows="3"
                           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-50 transition resize-none"
-                          placeholder="Maintenance programmée le [DATE] de [H1] à [H2]. Le service sera brièvement indisponible.">{{ $settings->get('maintenance_banner_message')?->value ?? '' }}</textarea>
+                          placeholder="Maintenance programmée le [DATE] de [H1] à [H2]. Le service sera brièvement indisponible.">{{ optional(\App\Models\SystemSetting::where('key','maintenance_banner_message')->first())->value ?? '' }}</textarea>
                 <p class="text-xs text-gray-400 mt-1.5">Ce message s'affiche en bandeau sombre en haut de chaque page.</p>
             </div>
 

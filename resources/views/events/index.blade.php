@@ -68,7 +68,7 @@
     <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-2xl font-semibold text-gray-900 tracking-tight">Events</h1>
-            <p class="text-sm text-gray-500 mt-1">Discover and join professional events in your network</p>
+            <p class="text-sm text-gray-500 mt-1">Découvrez et rejoignez des événements professionnels de votre réseau</p>
         </div>
         @if(auth()->user()->canFeature('can_organize_group_events'))
         <button onclick="document.getElementById('createEventModal').classList.remove('hidden')"
@@ -115,7 +115,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
-                    <textarea name="description" rows="3" placeholder="What is this event about?" maxlength="1000"
+                    <textarea name="description" rows="3" placeholder="De quoi s'agit-il ? Décrivez votre événement..." maxlength="1000"
                               class="gr-input" style="height:auto;padding-top:10px;padding-bottom:10px;resize:none;">{{ old('description') }}</textarea>
                 </div>
 
@@ -155,13 +155,13 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Start date <span class="text-red-400">*</span></label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Date de début <span class="text-red-400">*</span></label>
                         <input type="datetime-local" name="starts_at" value="{{ old('starts_at') }}"
                                required class="gr-input @error('starts_at') border-red-400 @enderror">
                         @error('starts_at') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">End date</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Date de fin</label>
                         <input type="datetime-local" name="ends_at" value="{{ old('ends_at') }}" class="gr-input">
                     </div>
                 </div>
@@ -222,9 +222,9 @@
                     <div class="flex gap-2 mb-3">
                         <button type="button" id="btnCoverPhoto" onclick="switchCoverMode('photo')"
                                 class="flex-1 py-2 rounded-lg text-xs font-semibold border transition"
-                                style="border-color:#1E8F88;background:#E6F7F4;color:#1E8F88;">Add photo</button>
+                                style="border-color:#1E8F88;background:#E6F7F4;color:#1E8F88;">Ajouter une photo</button>
                         <button type="button" id="btnCoverColor" onclick="switchCoverMode('color')"
-                                class="flex-1 py-2 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 transition">Choose color</button>
+                                class="flex-1 py-2 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 transition">Choisir une couleur</button>
                     </div>
                     <div id="coverPhotoArea">
                         <label class="block w-full cursor-pointer border-2 border-dashed border-gray-200 rounded-xl p-5 text-center hover:border-teal-400 transition">
@@ -234,8 +234,8 @@
                                     <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
                                     <path d="m21 15-5-5L5 21"/>
                                 </svg>
-                                <p class="text-sm text-gray-400">Click to upload a cover photo</p>
-                                <p class="text-xs text-gray-300 mt-0.5">PNG, JPG up to 2MB</p>
+                                <p class="text-sm text-gray-400">Cliquez pour télécharger une photo de couverture</p>
+                                <p class="text-xs text-gray-300 mt-0.5">PNG, JPG jusqu'à 2 Mo</p>
                             </div>
                             <img id="photoPreview" src="" alt="" class="hidden w-full h-28 object-cover rounded-lg">
                         </label>
@@ -271,10 +271,10 @@
 
                 <div class="flex gap-3 pt-2">
                     <button type="button" onclick="document.getElementById('createEventModal').classList.add('hidden')"
-                            class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+                            class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">Annuler</button>
                     <button type="submit"
                             class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition"
-                            style="background:#1E8F88;" onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">Create event</button>
+                            style="background:#1E8F88;" onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">Créer l'événement</button>
                 </div>
             </form>
         </div>
@@ -285,7 +285,7 @@
     <div id="inviteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.4);">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                <h2 class="font-semibold text-gray-900" id="inviteModalTitle">Invite someone</h2>
+                <h2 class="font-semibold text-gray-900" id="inviteModalTitle">Inviter quelqu'un</h2>
                 <button type="button" onclick="closeInviteModal()"
                         class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -294,8 +294,8 @@
             <form id="inviteForm" method="POST" class="px-6 py-5 space-y-4">
                 @csrf
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Search a connection</label>
-                    <input type="text" id="inviteSearch" placeholder="Name…"
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Rechercher une connexion</label>
+                    <input type="text" id="inviteSearch" placeholder="Nom…"
                            class="gr-input" oninput="filterInviteUsers(this.value)">
                 </div>
                 <div id="inviteUserList" class="space-y-1 max-h-52 overflow-y-auto"></div>
@@ -303,7 +303,7 @@
                 <div id="inviteSelectedUser" class="hidden px-3 py-2 rounded-xl text-sm font-medium" style="background:#E6F7F4;color:#1E8F88;"></div>
                 <div class="flex gap-3 pt-1">
                     <button type="button" onclick="closeInviteModal()"
-                            class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+                            class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">Annuler</button>
                     <button type="submit" id="inviteSubmitBtn" disabled
                             class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition disabled:opacity-40"
                             style="background:#1E8F88;" onmouseover="if(!this.disabled)this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
@@ -329,18 +329,18 @@
                             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                         </svg>
                         <input type="text" name="search" value="{{ request('search') }}"
-                               class="ev-search" placeholder="Search events…">
+                               class="ev-search" placeholder="Rechercher un événement…">
                     </div>
                     <input type="hidden" name="category"     id="inp_category"     value="{{ request('category') }}">
                     <input type="hidden" name="type"         id="inp_type"         value="{{ request('type') }}">
                     <input type="hidden" name="when"         id="inp_when"         value="{{ request('when') }}">
                     <input type="hidden" name="price_filter" id="inp_price_filter" value="{{ request('price_filter') }}">
 
-                    <p class="ev-sidebar-title">Categories</p>
+                    <p class="ev-sidebar-title">Catégories</p>
                     <div class="space-y-0.5 mb-4">
                         <button type="button" onclick="setFilter('category','')"
                                 class="ev-filter-btn {{ !request('category') ? 'active' : '' }}">
-                            <span>All events</span>
+                            <span>Tous les événements</span>
                             <span class="count">{{ $allPublicCount }}</span>
                         </button>
                         @foreach($categoryLabels as $key => $label)
@@ -362,7 +362,7 @@
 
                     <p class="ev-sidebar-title">When</p>
                     <div class="space-y-0.5 mb-4">
-                        @foreach([''=>'Any time','today'=>'Today','this_week'=>'This week','this_month'=>'This month'] as $val => $lbl)
+                        @foreach([''=>'Toutes les dates','today'=>'Aujourd\'hui','this_week'=>'Cette semaine','this_month'=>'Ce mois-ci'] as $val => $lbl)
                         <button type="button" onclick="setFilter('when','{{ $val }}')"
                                 class="ev-filter-btn {{ request('when', '') === $val ? 'active' : '' }}">
                             {{ $lbl }}
@@ -372,7 +372,7 @@
 
                     <p class="ev-sidebar-title">Price</p>
                     <div class="space-y-0.5">
-                        @foreach([''=>'Any price','free'=>'Free','paid'=>'Paid'] as $val => $lbl)
+                        @foreach([''=>'Tous les prix','free'=>'Gratuit','paid'=>'Payant'] as $val => $lbl)
                         <button type="button" onclick="setFilter('price_filter','{{ $val }}')"
                                 class="ev-filter-btn {{ request('price_filter', '') === $val ? 'active' : '' }}">
                             {{ $lbl }}
@@ -516,7 +516,7 @@
             @if($recommended->isNotEmpty() && !request('category'))
             <div>
                 <div class="flex items-center gap-2 mb-3">
-                    <h2 class="section-title">Recommended for you</h2>
+                    <h2 class="section-title">Recommandés pour vous</h2>
                     <span class="section-badge" style="background:#E6F7F4;color:#1E8F88;">{{ $recommended->count() }}</span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -572,8 +572,8 @@
                         <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                     </svg>
                 </div>
-                <p class="font-semibold text-gray-700 text-base">No events found</p>
-                <p class="text-sm text-gray-400 mt-1">Be the first to organize a networking event!</p>
+                <p class="font-semibold text-gray-700 text-base">Aucun événement trouvé</p>
+                <p class="text-sm text-gray-400 mt-1">Soyez le premier à organiser un événement networking !</p>
                 <button onclick="const m=document.getElementById('createEventModal');if(m)m.classList.remove('hidden')"
                         class="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition"
                         style="background:#1E8F88;" onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
@@ -656,7 +656,7 @@ document.getElementById('inviteModal').addEventListener('click', function(e) {
 
 /* ── Invite modal ── */
 function openInviteModal(eventId, eventTitle) {
-    document.getElementById('inviteModalTitle').textContent = 'Invite to ' + eventTitle;
+    document.getElementById('inviteModalTitle').textContent = 'Inviter à ' + eventTitle;
     document.getElementById('inviteForm').action = `/events/${eventId}/invite`;
     document.getElementById('inviteSearch').value = '';
     document.getElementById('inviteUserId').value = '';
@@ -675,7 +675,7 @@ function closeInviteModal() {
 function renderInviteUsers(list) {
     const container = document.getElementById('inviteUserList');
     if (list.length === 0) {
-        container.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">No connections found</p>';
+        container.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Aucune connexion trouvée</p>';
         return;
     }
     container.innerHTML = list.map(u => `

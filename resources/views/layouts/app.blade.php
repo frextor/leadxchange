@@ -100,18 +100,29 @@
                 <span class="font-semibold text-[15px] text-gray-900 hidden sm:block">LeadXchange</span>
             </a>
 
-            <!-- Nav links — icon + label -->
+            <!-- Nav links — icon + label (order & visibility from admin menu settings) -->
+            @php
+                $navConfigRow = \App\Models\SystemSetting::where('key','nav_menu_config')->first();
+                $navMenuItems = ($navConfigRow && $navConfigRow->value)
+                    ? (json_decode($navConfigRow->value, true) ?? \App\Http\Controllers\Admin\SuperAdmin\SettingsController::defaultMenuItems())
+                    : \App\Http\Controllers\Admin\SuperAdmin\SettingsController::defaultMenuItems();
+            @endphp
             <nav class="hidden md:flex items-stretch">
 
+                @foreach($navMenuItems as $navItem)
+                @if(!($navItem['visible'] ?? true)) @continue @endif
+
+                @if($navItem['key'] === 'dashboard')
                 {{-- START --}}
                 <a href="{{ route('dashboard') }}"
                    class="lx-nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
                     </svg>
-                    <span>Start</span>
+                    <span>{{ $navItem['label'] }}</span>
                 </a>
 
+                @elseif($navItem['key'] === 'members')
                 {{-- MEMBERS --}}
                 <div class="relative lx-nav-item {{ request()->routeIs('connections.*') ? 'active' : '' }}"
                      id="membersNavItem" onclick="toggleMembers()" style="cursor:pointer;">
@@ -122,31 +133,31 @@
                         </svg>
                         <span id="membersBadge" class="lx-nav-badge" style="display:none;">0</span>
                     </div>
-                    <span>Members</span>
+                    <span>{{ $navItem['label'] }}</span>
 
                     {{-- Connection requests dropdown --}}
                     <div id="notificationPanel" class="hidden absolute top-full right-0 mt-0 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden dropdown-enter" style="top:72px;">
                         <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                             <div>
-                                <h3 class="font-semibold text-gray-900 text-sm">Connection Requests</h3>
-                                <p class="text-xs text-gray-500 mt-0.5" id="requestCountText">Loading...</p>
+                                <h3 class="font-semibold text-gray-900 text-sm">Demandes de connexion</h3>
+                                <p class="text-xs text-gray-500 mt-0.5" id="requestCountText">Chargement...</p>
                             </div>
-                            <a href="{{ route('connections.index') }}" class="text-xs font-semibold" style="color:#1E8F88;">View all →</a>
+                            <a href="{{ route('connections.index') }}" class="text-xs font-semibold" style="color:#1E8F88;">Voir tout →</a>
                         </div>
                         <div id="loadingState" class="p-8 text-center">
                             <div class="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mx-auto" style="border-color:#2BB6A3; border-top-color:transparent;"></div>
-                            <p class="text-gray-400 text-sm mt-3">Loading...</p>
+                            <p class="text-gray-400 text-sm mt-3">Chargement...</p>
                         </div>
                         <div id="requestsList" class="max-h-80 overflow-y-auto custom-scrollbar" style="display:none;"></div>
                         <div id="emptyState" class="p-10 text-center" style="display:none;">
                             <div class="text-4xl mb-3">📭</div>
-                            <p class="text-gray-600 font-semibold text-sm">No pending requests</p>
-                            <p class="text-gray-400 text-xs mt-1">All caught up!</p>
+                            <p class="text-gray-600 font-semibold text-sm">Aucune demande en attente</p>
+                            <p class="text-gray-400 text-xs mt-1">Vous êtes à jour !</p>
                         </div>
                     </div>
                 </div>
 
-
+                @elseif($navItem['key'] === 'network')
                 {{-- NETWORK --}}
                 <a href="{{ route('connections.index') }}"
                    class="lx-nav-item {{ request()->routeIs('connections.*') ? 'active' : '' }}">
@@ -154,9 +165,10 @@
                         <circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>
                         <path d="M12 7v4M12 11l-5.5 6M12 11l5.5 6"/>
                     </svg>
-                    <span>Network</span>
+                    <span>{{ $navItem['label'] }}</span>
                 </a>
 
+                @elseif($navItem['key'] === 'groups')
                 {{-- GROUPS --}}
                 <a href="{{ route('groups.index') }}"
                    class="lx-nav-item {{ request()->routeIs('groups.*') ? 'active' : '' }}">
@@ -164,9 +176,10 @@
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
                     </svg>
-                    <span>Groupes</span>
+                    <span>{{ $navItem['label'] }}</span>
                 </a>
 
+                @elseif($navItem['key'] === 'events')
                 {{-- EVENTS --}}
                 <a href="{{ route('events.index') }}"
                    class="lx-nav-item {{ request()->routeIs('events.*') ? 'active' : '' }}">
@@ -174,9 +187,10 @@
                         <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
                         <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                     </svg>
-                    <span>Événements</span>
+                    <span>{{ $navItem['label'] }}</span>
                 </a>
 
+                @elseif($navItem['key'] === 'leads')
                 {{-- LEADS --}}
                 <a href="{{ route('leads.index') }}"
                    class="lx-nav-item {{ request()->routeIs('leads.*') ? 'active' : '' }}">
@@ -189,14 +203,31 @@
                         <span class="lx-nav-badge">{{ $pendingLeadsCount > 9 ? '9+' : $pendingLeadsCount }}</span>
                         @endif
                     </div>
-                    <span>Leads</span>
+                    <span>{{ $navItem['label'] }}</span>
                 </a>
 
-                {{-- CONSULS (ambassadors only) --}}
+                @elseif($navItem['key'] === 'chat')
+                {{-- CHAT --}}
+                <a href="{{ route('chat.index') }}"
+                   class="lx-nav-item {{ request()->routeIs('chat.*') ? 'active' : '' }}">
+                    <div class="relative">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        @if($unreadChatCount > 0)
+                        <span class="lx-nav-badge">{{ $unreadChatCount > 9 ? '9+' : $unreadChatCount }}</span>
+                        @endif
+                    </div>
+                    <span>{{ $navItem['label'] }}</span>
+                </a>
+                @endif
+
+                @endforeach
+
+                {{-- CONSULS (ambassadors only — always shown, not in config) --}}
                 @if(auth()->user()->isAmbassador())
                 <a href="{{ route('ambassador.consuls.index') }}"
-                   class="lx-nav-item {{ request()->routeIs('ambassador.consuls.*') ? 'active' : '' }}"
-                   style="{{ request()->routeIs('ambassador.consuls.*') ? '' : '' }}">
+                   class="lx-nav-item {{ request()->routeIs('ambassador.consuls.*') ? 'active' : '' }}">
                     <div class="relative">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -209,20 +240,6 @@
                     <span>Consuls</span>
                 </a>
                 @endif
-
-                {{-- CHAT --}}
-                <a href="{{ route('chat.index') }}"
-                   class="lx-nav-item {{ request()->routeIs('chat.*') ? 'active' : '' }}">
-                    <div class="relative">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                        </svg>
-                        @if($unreadChatCount > 0)
-                        <span class="lx-nav-badge">{{ $unreadChatCount > 9 ? '9+' : $unreadChatCount }}</span>
-                        @endif
-                    </div>
-                    <span>Chat</span>
-                </a>
 
             </nav>
 

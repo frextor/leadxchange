@@ -43,7 +43,7 @@ class PlanController extends Controller
             'max_groups'     => ['nullable', 'integer', 'min:0'],
             'initial_points' => ['nullable', 'integer', 'min:0'],
             'sort_order'     => ['required', 'integer', 'min:0'],
-            'features'       => ['nullable', 'string'],
+            'features_text'  => ['nullable', 'string'],
         ]);
 
         Plan::create([
@@ -57,7 +57,7 @@ class PlanController extends Controller
             'initial_points' => $validated['initial_points'] ?? null,
             'billing_period' => $validated['price'] == 0 ? 'free' : 'monthly',
             'sort_order'     => $validated['sort_order'],
-            'features'       => $validated['features'] ? json_decode($validated['features'], true) : [],
+            'features'       => self::parseFeaturesText($validated['features_text'] ?? ''),
             'is_active'      => $request->boolean('is_active', true),
         ]);
 
@@ -82,7 +82,7 @@ class PlanController extends Controller
             'max_groups'     => ['nullable', 'integer', 'min:0'],
             'initial_points' => ['nullable', 'integer', 'min:0'],
             'sort_order'     => ['required', 'integer', 'min:0'],
-            'features'       => ['nullable', 'string'],
+            'features_text'  => ['nullable', 'string'],
         ]);
 
         $plan->update([
@@ -95,7 +95,7 @@ class PlanController extends Controller
             'initial_points' => $validated['initial_points'] ?? null,
             'billing_period' => $validated['price'] == 0 ? 'free' : 'monthly',
             'sort_order'     => $validated['sort_order'],
-            'features'       => $validated['features'] ? json_decode($validated['features'], true) : $plan->features,
+            'features'       => self::parseFeaturesText($validated['features_text'] ?? ''),
             'is_active'      => $request->boolean('is_active'),
         ]);
 
@@ -157,6 +157,17 @@ class PlanController extends Controller
 
     // Flatten for backward compat with upgrade-gate component
     public const FEATURES = [];
+
+    /**
+     * Convert a newline-separated textarea value into a clean array of strings
+     * suitable for storing in the `features` JSON column.
+     */
+    private static function parseFeaturesText(string $raw): array
+    {
+        return array_values(array_filter(
+            array_map('trim', explode("\n", str_replace("\r", '', $raw)))
+        ));
+    }
 
     public function permissions(): View
     {
