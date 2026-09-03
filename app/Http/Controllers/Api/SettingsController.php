@@ -50,7 +50,7 @@ class SettingsController extends Controller
 
             'plans'         => Plan::where('is_active', true)
                                    ->orderBy('sort_order')
-                                   ->get(['id', 'name', 'label', 'description', 'price', 'annual_price', 'billing_period', 'max_leads', 'max_groups', 'max_users', 'features', 'permissions', 'is_visible'])
+                                   ->get(['id', 'name', 'label', 'description', 'price', 'annual_price', 'billing_period', 'max_leads', 'max_groups', 'max_users', 'features', 'permissions', 'is_visible', 'is_enterprise', 'contact_cta'])
                                    ->map(fn($plan) => [
                                        'id'             => $plan->id,
                                        'name'           => $plan->name,
@@ -66,6 +66,8 @@ class SettingsController extends Controller
                                        'permissions'    => $this->planPermissionsToArray($plan->permissions),
                                        'raw_permissions' => is_array($plan->permissions) ? $plan->permissions : (object)[],
                                        'is_visible'     => (bool) $plan->is_visible,
+                                       'is_enterprise'  => (bool) $plan->is_enterprise,
+                                       'contact_cta'    => $plan->contact_cta,
                                    ]),
 
             'cities'        => City::where('is_active', true)->with('country:id,name,code,flag')
