@@ -382,6 +382,19 @@
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 flex-shrink-0"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                             Mon abonnement
                         </a>
+                        {{-- Points --}}
+                        <a href="{{ route('points.index') }}" class="flex items-center justify-between gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
+                            <span class="flex items-center gap-3">
+                                <span style="font-size:15px;line-height:1;">⭐</span>
+                                Mes Points
+                            </span>
+                            @php $navPointsBalance = (int)(auth()->user()->points_balance ?? 0); @endphp
+                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                                  style="background:{{ $navPointsBalance >= 0 ? '#ECFDF5' : '#FEF2F2' }};
+                                         color:{{ $navPointsBalance >= 0 ? '#059669' : '#DC2626' }};">
+                                {{ $navPointsBalance > 0 ? '+' : '' }}{{ $navPointsBalance }} pts
+                            </span>
+                        </a>
                         {{-- Support --}}
                         <a href="{{ route('support.index') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>

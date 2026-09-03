@@ -175,6 +175,11 @@ Route::middleware(['auth', 'user', 'email.verified', 'cgu'])->group(function () 
     Route::post('/points/buy',     [\App\Http\Controllers\PointsPurchaseController::class, 'checkout'])->name('points.buy');
     Route::get('/points/success',  [\App\Http\Controllers\PointsPurchaseController::class, 'success'])->name('points.success');
 
+    // Points wallet
+    Route::get('/points',              [\App\Http\Controllers\PointsController::class, 'index'])->name('points.index');
+    Route::post('/points/buy-free',    [\App\Http\Controllers\PointsController::class, 'buy'])->name('points.buy.free');
+    Route::get('/points/buy-success',  [\App\Http\Controllers\PointsController::class, 'success'])->name('points.buy.success');
+
     // Company Routes
     Route::get('/company/create', [CompanyController::class, 'create'])->name('company.create');
     Route::get('/company/search', [CompanyController::class, 'search'])->name('company.search');
