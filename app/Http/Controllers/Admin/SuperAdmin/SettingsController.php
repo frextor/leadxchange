@@ -478,9 +478,17 @@ class SettingsController extends Controller
 
     public function updateGeoBlockSettings(Request $request): RedirectResponse
     {
-        $type    = $request->input('type', 'countries');
-        $raw     = $request->input('config_json', '');
-        $blocked = $raw ? array_values(array_filter(json_decode($raw, true) ?? [])) : [];
+        $type = $request->input('type', 'countries');
+        $raw  = $request->input('config_json', '');
+
+        \Log::info('updateGeoBlockSettings type=' . $type . ' raw=' . $raw);
+
+        // Si config_json est vide, on sauvegarde une liste vide (déblocage total)
+        if ($raw === '' || $raw === null) {
+            $blocked = [];
+        } else {
+            $blocked = array_values(array_filter(json_decode($raw, true) ?? []));
+        }
 
         if ($type === 'cities') {
             SystemSetting::set('geo_blocked_cities', json_encode($blocked));
@@ -493,6 +501,6 @@ class SettingsController extends Controller
         }
 
         Cache::forget('system_settings');
-        return back()->with('success', 'Blocage géographique mis à jour — ' . $msg);
+        return redirect()->route('admin.super.settings.geo-block')->with('success', 'Blocage géographique mis à jour — ' . $msg);
     }
 }

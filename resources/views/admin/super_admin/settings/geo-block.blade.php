@@ -207,7 +207,14 @@ function saveGeo(tab) {
     document.querySelectorAll('#' + gridId + ' input[type=checkbox]:checked').forEach(function(cb) {
         checked.push(cb.value);
     });
-    document.getElementById(jsonId).value = JSON.stringify(checked);
+    var jsonVal = JSON.stringify(checked);
+    var jsonInput = document.getElementById(jsonId);
+    jsonInput.value = jsonVal;
+    // Vérification avant soumission
+    if (jsonInput.value !== jsonVal) {
+        alert('Erreur lors de la préparation des données. Réessayez.');
+        return;
+    }
     document.getElementById(formId).submit();
 }
 </script>
