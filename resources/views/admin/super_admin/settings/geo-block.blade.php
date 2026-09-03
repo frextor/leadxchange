@@ -109,30 +109,28 @@
     ];
     @endphp
     <div class="geo-panel active" id="panel-regions">
-        <form method="POST" action="{{ route('admin.super.settings.geo-block.update') }}" id="formVilles">
+        <form method="POST" action="{{ route('admin.super.settings.geo-block.update') }}">
             @csrf @method('PUT')
-            <input type="hidden" name="type" value="cities">
-            <input type="hidden" name="config_json" id="jsonVilles">
+            <input type="hidden" name="type" value="regions">
 
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
-                    <div class="flex items-center gap-3">
-                        <span class="text-sm font-bold text-gray-800">Régions françaises</span>
-                        <span class="badge-count"><span id="cityNum">{{ count($blockedCities) }}</span> bloquée(s)</span>
-                    </div>
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+                    <span class="text-sm font-bold text-gray-800">Régions françaises</span>
+                    <span class="badge-count" id="regionCount">{{ count($blockedCities) }} bloquée(s)</span>
                 </div>
                 <div class="p-5">
-                    <div class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(260px,1fr));" id="cityGrid">
-                        @foreach($frenchRegions as $regionName => $meta)
-                        @php $isBlocked = in_array($regionName, $blockedCities); @endphp
-                        <label class="geo-item {{ $isBlocked ? 'blocked' : '' }}" data-name="{{ strtolower($regionName) }}"
-                               style="flex-direction:column;align-items:flex-start;padding:14px 16px;gap:4px;">
+                    <div class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(260px,1fr));">
+                        @foreach($frenchRegions as $rName => $meta)
+                        @php $isBlocked = in_array($rName, $blockedCities); @endphp
+                        <label class="geo-item {{ $isBlocked ? 'blocked' : '' }} region-label"
+                               style="flex-direction:column;align-items:flex-start;padding:14px 16px;gap:4px;cursor:pointer;"
+                               onclick="toggleRegion(this)">
+                            <input type="checkbox" name="regions[]" value="{{ $rName }}"
+                                   {{ $isBlocked ? 'checked' : '' }}
+                                   style="display:none;">
                             <div class="flex items-center gap-2 w-full">
-                                <input type="checkbox" style="display:none;" name="blocked[]" value="{{ $regionName }}"
-                                       {{ $isBlocked ? 'checked' : '' }}
-                                       onchange="toggleItem(this,'cityNum')">
                                 <span class="dot" style="flex-shrink:0;"></span>
-                                <span class="item-name text-sm font-semibold">{{ $meta[2] }} {{ $regionName }}</span>
+                                <span class="item-name text-sm font-semibold">{{ $meta[2] }} {{ $rName }}</span>
                             </div>
                             <span class="text-xs text-gray-400 ml-4">{{ $meta[0] }}</span>
                         </label>
@@ -140,12 +138,12 @@
                     </div>
                 </div>
                 <div class="px-5 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
-                    <button type="button" onclick="clearGrid('cityGrid','cityNum')"
+                    <button type="button" onclick="clearAllRegions()"
                             class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-500 hover:bg-white transition">
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                         Tout débloquer
                     </button>
-                    <button type="button" onclick="saveGeo('villes')"
+                    <button type="submit"
                             class="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
                             style="background:linear-gradient(135deg,#EF4444,#DC2626);">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg>
@@ -158,28 +156,28 @@
 
     {{-- ── PAYS ── --}}
     <div class="geo-panel" id="panel-pays">
-        <form method="POST" action="{{ route('admin.super.settings.geo-block.update') }}" id="formPays">
+        <form method="POST" action="{{ route('admin.super.settings.geo-block.update') }}">
             @csrf @method('PUT')
             <input type="hidden" name="type" value="countries">
-            <input type="hidden" name="config_json" id="jsonPays">
 
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
                     <div class="flex items-center gap-3">
                         <span class="text-sm font-bold text-gray-800">Pays bloqués</span>
-                        <span class="badge-count"><span id="countryNum">{{ count($blockedCountries) }}</span> bloqué(s)</span>
+                        <span class="badge-count" id="countryCount">{{ count($blockedCountries) }} bloqué(s)</span>
                     </div>
                     <input type="text" class="search-input" style="max-width:200px;"
-                           placeholder="Rechercher…" oninput="filterGrid('countryGrid', this.value)">
+                           placeholder="Rechercher…" oninput="filterCountries(this.value)">
                 </div>
                 <div class="p-5">
                     <div class="item-grid" id="countryGrid">
                         @foreach($countries as $code => $name)
                         @php $isBlocked = in_array($code, $blockedCountries); @endphp
-                        <label class="geo-item {{ $isBlocked ? 'blocked' : '' }}" data-name="{{ strtolower($name) }}">
-                            <input type="checkbox" name="blocked[]" value="{{ $code }}"
+                        <label class="geo-item {{ $isBlocked ? 'blocked' : '' }}" data-name="{{ strtolower($name) }}"
+                               onclick="toggleCountry(this)">
+                            <input type="checkbox" name="countries[]" value="{{ $code }}"
                                    {{ $isBlocked ? 'checked' : '' }}
-                                   onchange="toggleItem(this,'countryNum')">
+                                   style="display:none;">
                             <span class="dot"></span>
                             <span class="item-name text-sm text-gray-700">{{ $name }}</span>
                             <span class="ml-auto text-[10px] font-mono text-gray-300">{{ $code }}</span>
@@ -188,12 +186,12 @@
                     </div>
                 </div>
                 <div class="px-5 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
-                    <button type="button" onclick="clearGrid('countryGrid','countryNum')"
+                    <button type="button" onclick="clearAllCountries()"
                             class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-500 hover:bg-white transition">
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                         Tout débloquer
                     </button>
-                    <button type="button" onclick="saveGeo('pays')"
+                    <button type="submit"
                             class="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
                             style="background:linear-gradient(135deg,#EF4444,#DC2626);">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg>
@@ -213,46 +211,46 @@ function switchTab(tab, btn) {
     document.querySelectorAll('.geo-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.geo-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
-    // tab 'villes' était l'ancien id, maintenant c'est 'regions'
-    var panelId = tab === 'villes' ? 'panel-villes' : 'panel-' + tab;
-    var el = document.getElementById(panelId) || document.getElementById('panel-regions');
-    if (el) el.classList.add('active');
-}
-function toggleItem(cb, counterId) {
-    cb.closest('label').classList.toggle('blocked', cb.checked);
-    document.getElementById(counterId).textContent =
-        document.querySelectorAll('#' + (counterId === 'cityNum' ? 'cityGrid' : 'countryGrid') + ' input:checked').length;
-}
-function clearGrid(gridId, counterId) {
-    document.querySelectorAll('#' + gridId + ' input:checked').forEach(cb => {
-        cb.checked = false; cb.closest('label').classList.remove('blocked');
-    });
-    document.getElementById(counterId).textContent = 0;
-}
-function filterGrid(gridId, q) {
-    var term = q.toLowerCase().trim();
-    document.querySelectorAll('#' + gridId + ' label').forEach(function(label) {
-        label.style.display = (!term || (label.getAttribute('data-name') || '').includes(term)) ? '' : 'none';
-    });
+    document.getElementById('panel-' + tab).classList.add('active');
 }
 
-function saveGeo(tab) {
-    var gridId  = tab === 'villes' ? 'cityGrid'    : 'countryGrid';
-    var jsonId  = tab === 'villes' ? 'jsonVilles'  : 'jsonPays';
-    var formId  = tab === 'villes' ? 'formVilles'  : 'formPays';
-    var checked = [];
-    document.querySelectorAll('#' + gridId + ' input[type=checkbox]:checked').forEach(function(cb) {
-        checked.push(cb.value);
+function toggleRegion(label) {
+    var cb = label.querySelector('input[type=checkbox]');
+    cb.checked = !cb.checked;
+    label.classList.toggle('blocked', cb.checked);
+    var count = document.querySelectorAll('.region-label input:checked').length;
+    document.getElementById('regionCount').textContent = count + ' bloquée(s)';
+}
+
+function clearAllRegions() {
+    document.querySelectorAll('.region-label').forEach(function(label) {
+        label.querySelector('input').checked = false;
+        label.classList.remove('blocked');
     });
-    var jsonVal = JSON.stringify(checked);
-    var jsonInput = document.getElementById(jsonId);
-    jsonInput.value = jsonVal;
-    // Vérification avant soumission
-    if (jsonInput.value !== jsonVal) {
-        alert('Erreur lors de la préparation des données. Réessayez.');
-        return;
-    }
-    document.getElementById(formId).submit();
+    document.getElementById('regionCount').textContent = '0 bloquée(s)';
+}
+
+function toggleCountry(label) {
+    var cb = label.querySelector('input[type=checkbox]');
+    cb.checked = !cb.checked;
+    label.classList.toggle('blocked', cb.checked);
+    var count = document.querySelectorAll('#countryGrid input:checked').length;
+    document.getElementById('countryCount').textContent = count + ' bloqué(s)';
+}
+
+function clearAllCountries() {
+    document.querySelectorAll('#countryGrid label').forEach(function(label) {
+        label.querySelector('input').checked = false;
+        label.classList.remove('blocked');
+    });
+    document.getElementById('countryCount').textContent = '0 bloqué(s)';
+}
+
+function filterCountries(q) {
+    var term = q.toLowerCase().trim();
+    document.querySelectorAll('#countryGrid label').forEach(function(label) {
+        label.style.display = (!term || (label.getAttribute('data-name') || '').includes(term)) ? '' : 'none';
+    });
 }
 </script>
 @endpush

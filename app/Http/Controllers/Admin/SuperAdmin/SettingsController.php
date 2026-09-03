@@ -479,22 +479,16 @@ class SettingsController extends Controller
     public function updateGeoBlockSettings(Request $request): RedirectResponse
     {
         $type = $request->input('type', 'countries');
-        $raw  = $request->input('config_json', '');
 
-        \Log::info('updateGeoBlockSettings type=' . $type . ' raw=' . $raw);
-
-        // Si config_json est vide, on sauvegarde une liste vide (déblocage total)
-        if ($raw === '' || $raw === null) {
-            $blocked = [];
-        } else {
-            $blocked = array_values(array_filter(json_decode($raw, true) ?? []));
-        }
-
-        if ($type === 'cities') {
+        if ($type === 'regions') {
+            // Checkboxes name="regions[]" — liste des régions cochées
+            $blocked = array_values(array_filter($request->input('regions', [])));
             SystemSetting::set('geo_blocked_cities', json_encode($blocked));
-            $msg = count($blocked) . ' ville(s) bloquée(s).';
+            $msg = count($blocked) . ' région(s) bloquée(s).';
             ActivityLogger::log('admin.settings.updated', $msg);
         } else {
+            // Checkboxes name="countries[]" — liste des codes pays cochés
+            $blocked = array_values(array_filter($request->input('countries', [])));
             SystemSetting::set('geo_blocked_countries', json_encode($blocked));
             $msg = count($blocked) . ' pays bloqué(s).';
             ActivityLogger::log('admin.settings.updated', $msg);
