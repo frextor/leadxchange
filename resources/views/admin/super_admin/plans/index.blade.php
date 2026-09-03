@@ -97,7 +97,12 @@ $permGroups = [
                 </div>
                 <div>
                     <h3 class="text-base font-bold text-gray-900">{{ $plan->label }}</h3>
-                    <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md" style="background:{{ $t['badge'] }};color:{{ $t['badgeTxt'] }};">{{ strtoupper($plan->name) }}</span>
+                    <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
+                        <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md" style="background:{{ $t['badge'] }};color:{{ $t['badgeTxt'] }};">{{ strtoupper($plan->name) }}</span>
+                        @if(in_array($plan->name, ['consul', 'ambassadeur']))
+                        <span class="text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 border border-amber-200">🏅 Badge admin</span>
+                        @endif
+                    </div>
                 </div>
             </div>
             <div class="text-right flex-shrink-0">
@@ -118,7 +123,12 @@ $permGroups = [
 
     {{-- Prix --}}
     <div class="px-5 py-3.5 border-y border-gray-100" style="background:{{ $t['light'] }};">
-        @if((float)$plan->price === 0.0)
+        @if(in_array($plan->name, ['consul', 'ambassadeur']))
+        <div class="flex items-center gap-2">
+            <span class="text-base font-bold" style="color:{{ $t['color'] }};">Attribué par l'administration</span>
+        </div>
+        <p class="text-xs text-gray-400 mt-0.5">Non payant — badge accordé manuellement</p>
+        @elseif((float)$plan->price === 0.0)
         <span class="text-2xl font-extrabold text-gray-900">Basic</span>
         <span class="text-xs text-gray-400 ml-1">pour toujours</span>
         @else

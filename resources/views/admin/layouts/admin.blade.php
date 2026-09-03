@@ -279,6 +279,9 @@
                         <a href="{{ route('admin.super.payments.index') }}" class="nav-item sa {{ request()->routeIs('admin.super.payments*') ? 'active' : '' }}">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Paiements
                         </a>
+                        <a href="{{ route('admin.super.points.index') }}" class="nav-item sa {{ request()->routeIs('admin.super.points*') ? 'active' : '' }}">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Points utilisateurs
+                        </a>
                         <a href="{{ route('admin.super.settings.points') }}" class="nav-item sa {{ request()->routeIs('admin.super.settings.points*') ? 'active' : '' }}">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Achat de points
                         </a>

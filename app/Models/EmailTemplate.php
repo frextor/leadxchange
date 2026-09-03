@@ -187,6 +187,18 @@ class EmailTemplate extends Model
                 'dashboard_url'   => '#',
             ],
         ],
+
+        // ── Points ────────────────────────────────────────────────────────────
+        'buy_points_reminder' => [
+            'name'            => 'Rappel achat de points',
+            'default_subject' => '{{name}}, votre solde de points est faible — LeadXchange',
+            'variables'       => ['name', 'balance', 'points_url'],
+            'sample'          => [
+                'name'       => 'Jean Dupont',
+                'balance'    => '0',
+                'points_url' => '#',
+            ],
+        ],
     ];
 
     // ── Core rendering ────────────────────────────────────────────────────────

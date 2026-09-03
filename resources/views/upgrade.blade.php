@@ -68,22 +68,25 @@
     @if($currentPlan)
     @php $isSpecialRole = in_array($currentPlan->name, ['consul','ambassadeur']); @endphp
     @if($isSpecialRole)
-    {{-- Consul / Ambassadeur : statut accordé par l'admin, pas un abonnement achetable --}}
-    <div class="mb-7 flex flex-col items-center gap-2 text-sm">
+    {{-- Consul / Ambassadeur : badge accordé par l'admin ou sur demande --}}
+    <div class="mb-7 flex flex-col items-center gap-3 text-sm">
         <div class="flex items-center gap-2">
-            <span class="text-gray-500">Statut actuel :</span>
             @if($currentPlan->name === 'ambassadeur')
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
-                🏅 Ambassadeur
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                🏅 Badge Ambassadeur actif
             </span>
             @else
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-teal-100 text-teal-800">
-                🛡️ Consul
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-teal-100 text-teal-800 border border-teal-200">
+                🛡️ Badge Consul actif
             </span>
             @endif
+            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                ✓ Inclut Premium
+            </span>
         </div>
-        <p class="text-xs text-gray-400">
-            Votre statut {{ $currentPlan->label }} est accordé par l'administration — il inclut toutes les fonctionnalités Premium et plus.
+        <p class="text-xs text-gray-400 max-w-sm text-center">
+            Votre badge {{ $currentPlan->label }} vous donne accès à toutes les fonctionnalités Premium.
+            Ce statut est attribué par l'administration — il n'est pas lié à un abonnement payant.
         </p>
     </div>
     @else
@@ -344,15 +347,14 @@
         </div>
         <h2 class="text-base font-bold text-gray-900 mb-2" id="contactTitle">Mettre à niveau votre plan</h2>
         <p class="text-sm text-gray-500 mb-5 leading-relaxed">
-            Pour upgrader votre abonnement, contactez notre équipe ou utilisez l'application mobile LeadXchange.
+            En cas de difficulté pour upgrader votre abonnement, contactez notre équipe LeadXchange.
         </p>
-        <a href="mailto:support@leadxchange.ma?subject=Demande%20d%27upgrade%20de%20plan"
+        <a href="mailto:support@lxchange.org?subject=Demande%20d%27upgrade%20de%20plan"
            class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
            style="background:linear-gradient(135deg,#6366F1,#4338CA);">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            Contacter le support
+            support@lxchange.org
         </a>
-        <p class="mt-3 text-xs text-gray-400">ou utilisez l'application mobile pour gérer votre abonnement</p>
     </div>
 
 </div>

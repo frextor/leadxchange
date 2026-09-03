@@ -130,6 +130,9 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::put('plans/permission-labels',        [PlanController::class, 'updatePermissionLabels'])->name('plans.permission-labels.update');
     Route::get('plans/stripe',                   [PlanController::class, 'stripeIndex'])->name('plans.stripe');
     Route::get('payments',                       [PaymentsController::class, 'index'])->name('payments.index');
+    Route::get('points-history',                 [\App\Http\Controllers\Admin\SuperAdmin\PointsHistoryController::class, 'index'])->name('points.index');
+    Route::get('points-history/{user}',          [\App\Http\Controllers\Admin\SuperAdmin\PointsHistoryController::class, 'show'])->name('points.show');
+    Route::post('points-history/{user}/remind',  [\App\Http\Controllers\Admin\SuperAdmin\PointsHistoryController::class, 'sendReminder'])->name('points.remind');
     Route::post('plans/stripe/sync-all',         [PlanController::class, 'stripeSyncAll'])->name('plans.stripe.sync-all');
     Route::post('plans/stripe/{plan}/sync',      [PlanController::class, 'stripeSyncPlan'])->name('plans.stripe.sync');
     Route::get('plans/{plan}/edit',              [PlanController::class, 'edit'])->name('plans.edit');
