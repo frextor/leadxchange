@@ -128,7 +128,6 @@
                 @endif
 
                 {{-- Virement bancaire --}}
-                @if($bankTransferEnabled)
                 <div class="relative flex items-center gap-3 my-2">
                     <div class="flex-1 h-px bg-gray-200"></div>
                     <span class="text-xs text-gray-400 font-medium">ou</span>
@@ -169,11 +168,10 @@
                         </div>
                     </div>
                 </div>
-                @endif
 
-                @if(!$quote->stripe_payment_link && !$bankTransferEnabled)
+                @if(!$quote->stripe_payment_link)
                 <div class="text-center py-4 text-sm text-gray-500">
-                    Le lien de paiement sera disponible très prochainement. Contactez-nous :
+                    Pas de paiement en ligne disponible ? Utilisez le virement ci-dessus ou contactez-nous :
                     <a href="mailto:support@lxchange.org" class="text-indigo-600 underline">support@lxchange.org</a>
                 </div>
                 @endif

@@ -32,10 +32,9 @@ class EnterpriseProposalController extends Controller
                 ->with('success', 'Votre Pack Entreprise est déjà actif.');
         }
 
-        $bankTransferEnabled = (bool) SystemSetting::where('key', 'bank_transfer.enabled')->first()?->value;
         $bankTransferDetails = SystemSetting::where('key', 'bank_transfer.details')->first()?->value ?? '';
 
-        return view('enterprise.proposal', compact('quote', 'bankTransferEnabled', 'bankTransferDetails'));
+        return view('enterprise.proposal', compact('quote', 'bankTransferDetails'));
     }
 
     /** Retour Stripe après paiement réussi */
