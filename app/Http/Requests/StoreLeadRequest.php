@@ -22,7 +22,7 @@ class StoreLeadRequest extends FormRequest
                     }
                 },
             ],
-            'company_name'     => ['required', 'string', 'max:150'],
+            'company_name'     => ['nullable', 'string', 'max:150'],
             'contact_name'     => ['required', 'string', 'max:100'],
             'contact_email'    => ['required', 'email', 'max:150'],
             'contact_phone'    => ['required', 'string', 'max:30'],
