@@ -135,7 +135,7 @@ class EventController extends Controller
 
         // Batch-load top-3 attendee avatar previews
         $allEvIds = collect([$myEventsPaginator->getCollection(),$participatingPaginator->getCollection(),$recommendedPaginator->getCollection(),$allPaginator->getCollection()])->flatten()->pluck('id')->unique()->values()->all();
-        $rawPrev = \DB::table('event_user')->join('profiles','profiles.user_id','=','event_user.user_id')->whereIn('event_user.event_id',$allEvIds)->orderBy('event_user.created_at')->select('event_user.event_id','profiles.avatar')->get();
+        $rawPrev = \DB::table('event_user')->join('profiles','profiles.user_id','=','event_user.user_id')->whereIn('event_user.event_id',$allEvIds)->orderBy('event_user.user_id')->select('event_user.event_id','profiles.avatar')->get();
         $previewsMap = [];
         foreach ($rawPrev as $row) {
             if (!isset($previewsMap[$row->event_id])) $previewsMap[$row->event_id] = [];
