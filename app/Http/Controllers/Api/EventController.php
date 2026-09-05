@@ -132,16 +132,29 @@ class EventController extends Controller
             $allPaginator->lastPage(),
         );
 
+
+        // Batch-load top-3 attendee avatar previews
+        $allEvIds = collect([$myEventsPaginator->getCollection(),$participatingPaginator->getCollection(),$recommendedPaginator->getCollection(),$allPaginator->getCollection()])->flatten()->pluck('id')->unique()->values()->all();
+        $rawPrev = \DB::table('event_user')->join('profiles','profiles.user_id','=','event_user.user_id')->whereIn('event_user.event_id',$allEvIds)->orderBy('event_user.created_at')->select('event_user.event_id','profiles.avatar')->get();
+        $previewsMap = [];
+        foreach ($rawPrev as $row) {
+            if (!isset($previewsMap[$row->event_id])) $previewsMap[$row->event_id] = [];
+            if (count($previewsMap[$row->event_id]) < 3 && $row->avatar) {
+                $url = str_starts_with($row->avatar,'http') ? $row->avatar : \Storage::disk('public')->url($row->avatar);
+                $previewsMap[$row->event_id][] = $url;
+            }
+        }
+
         return response()->json([
             'data' => [
                 'invitations' => $invitations,
-                'my_events'   => $myEventsPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
-                'participating' => $participatingPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
-                'recommended' => $recommendedPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
-                'all'         => $allPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
+                'my_events'   => $myEventsPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId, $previewsMap[$e->id] ?? []))->values(),
+                'participating' => $participatingPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId, $previewsMap[$e->id] ?? []))->values(),
+                'recommended' => $recommendedPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId, $previewsMap[$e->id] ?? []))->values(),
+                'all'         => $allPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId, $previewsMap[$e->id] ?? []))->values(),
                 // Legacy keys kept during mobile transition.
-                'nearby'      => $recommendedPaginator->getCollection()->filter(fn($e) => $activeCityId && $e->city_id === $activeCityId)->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
-                'others'      => $allPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
+                'nearby'      => $recommendedPaginator->getCollection()->filter(fn($e) => $activeCityId && $e->city_id === $activeCityId)->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId, $previewsMap[$e->id] ?? []))->values(),
+                'others'      => $allPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId, $previewsMap[$e->id] ?? []))->values(),
                 'past'        => [],
             ],
             'meta' => [
@@ -624,7 +637,7 @@ class EventController extends Controller
         ]);
     }
 
-    private function formatEvent(Event $event, array $attendingIds, ?int $userCityId = null): array
+    private function formatEvent(Event $event, array $attendingIds, ?int $userCityId = null, array $previews = []): array
     {
         return [
             'id'              => $event->id,
@@ -654,6 +667,7 @@ class EventController extends Controller
                 'avatar' => $event->creator->profile?->avatar_url,
             ] : null,
             'created_at' => $event->created_at,
+            'attendee_previews' => $previews,
         ];
     }
 }
