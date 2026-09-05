@@ -124,22 +124,12 @@ class EventController extends Controller
             $page
         );
 
-        // ── Past events (all public, paginated) ───────────────────
-        $pastPage    = max(1, (int) $request->input('past_page', 1));
-        $pastPerPage = 10;
-        $pastEvents  = Event::with(['sector:id,name', 'creator:id,first_name,last_name', 'creator.profile:user_id,avatar', 'city:id,name'])
-            ->where('is_public', true)
-            ->where('starts_at', '<', now())
-            ->when($activeCityId, fn($q) => $q->where('city_id', $activeCityId))
-            ->orderBy('starts_at', 'desc')
-            ->paginate($pastPerPage, ['*'], 'past_page', $pastPage);
 
         $lastPage = max(
             $myEventsPaginator->lastPage(),
             $participatingPaginator->lastPage(),
             $recommendedPaginator->lastPage(),
             $allPaginator->lastPage(),
-            $pastEvents->lastPage(),
         );
 
         return response()->json([
@@ -152,7 +142,7 @@ class EventController extends Controller
                 // Legacy keys kept during mobile transition.
                 'nearby'      => $recommendedPaginator->getCollection()->filter(fn($e) => $activeCityId && $e->city_id === $activeCityId)->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
                 'others'      => $allPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
-                'past'        => $pastEvents->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
+                'past'        => [],
             ],
             'meta' => [
                 'total_public'       => $publicEvents->count(),
@@ -161,9 +151,9 @@ class EventController extends Controller
                 'last_page'          => $lastPage,
                 'per_page'           => $perPage,
                 'has_more'           => $page < $lastPage,
-                'past_current_page'  => $pastEvents->currentPage(),
-                'past_last_page'     => $pastEvents->lastPage(),
-                'past_has_more'      => $pastEvents->hasMorePages(),
+                'past_current_page'  => 1,
+                'past_last_page'     => 1,
+                'past_has_more'      => false,
             ],
         ]);
     }
