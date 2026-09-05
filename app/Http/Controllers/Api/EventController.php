@@ -443,6 +443,13 @@ class EventController extends Controller
             ], 403);
         }
 
+        $resolvedCityId = $validated['city_id'] ?? $user->city_id;
+        if ($resolvedCityId === null) {
+            return response()->json([
+                'message' => 'Please update your profile location before creating events.',
+            ], 422);
+        }
+
         $coverImagePath = null;
         if ($request->hasFile('cover_image')) {
             $coverImagePath = $request->file('cover_image')->store('events/covers', 'public');
@@ -462,7 +469,7 @@ class EventController extends Controller
             'starts_at'       => $validated['starts_at'],
             'ends_at'         => $validated['ends_at'] ?? null,
             'sector_id'       => $validated['sector_id'] ?? null,
-            'city_id'         => $validated['city_id'] ?? $user->city_id,
+            'city_id'         => $resolvedCityId,
             'cover_color'     => $validated['cover_color'] ?? '#1E8F88',
             'cover_image'     => $coverImagePath,
             'price'           => $validated['price'] ?? null,
