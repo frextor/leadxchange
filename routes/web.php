@@ -170,7 +170,14 @@ Route::middleware(['auth', 'user', 'email.verified', 'cgu'])->group(function () 
             ->orderBy('sort_order')
             ->get();
         $currentPlan = auth()->user()->effectivePlan();
-        return view('upgrade', compact('plans', 'currentPlan'));
+
+        // Demande Pack Entreprise en cours (non close/convertie) pour cet utilisateur
+        $pendingEnterpriseQuote = \App\Models\EnterpriseQuoteRequest::where('user_id', auth()->id())
+            ->whereNotIn('status', ['closed', 'converted'])
+            ->latest()
+            ->first();
+
+        return view('upgrade', compact('plans', 'currentPlan', 'pendingEnterpriseQuote'));
     })->name('upgrade');
 
     // Stripe Checkout (auth required)
@@ -381,9 +388,12 @@ Route::middleware(['auth', 'user', 'email.verified', 'cgu'])->group(function () 
     Route::get('/enterprise/proposal/{token}',              [\App\Http\Controllers\EnterpriseProposalController::class, 'view'])->name('enterprise.proposal.view');
     Route::get('/enterprise/proposal/{token}/paid',         [\App\Http\Controllers\EnterpriseProposalController::class, 'paid'])->name('enterprise.proposal.paid');
     Route::post('/enterprise/proposal/{token}/accept-wire', [\App\Http\Controllers\EnterpriseProposalController::class, 'acceptWireTransfer'])->name('enterprise.proposal.accept-wire');
+    Route::get('/enterprise/dashboard',                [EnterpriseController::class, 'dashboard'])->name('enterprise.dashboard');
     Route::get('/enterprise/team',                    [EnterpriseController::class, 'team'])->name('enterprise.team');
     Route::post('/enterprise/team/invite',            [EnterpriseController::class, 'invite'])->name('enterprise.invite');
     Route::post('/enterprise/team/{inv}/revoke',      [EnterpriseController::class, 'revoke'])->name('enterprise.revoke');
+    Route::post('/enterprise/team/{inv}/resend',      [EnterpriseController::class, 'resendInvitation'])->name('enterprise.resend');
+    Route::post('/enterprise/team/message/{user}',    [EnterpriseController::class, 'messageMember'])->name('enterprise.message');
 
     // Enterprise quote request
     Route::post('/enterprise/request-quote',          [EnterpriseController::class, 'requestQuote'])->name('enterprise.request-quote');

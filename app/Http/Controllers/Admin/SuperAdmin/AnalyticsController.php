@@ -133,6 +133,15 @@ class AnalyticsController extends Controller
         ]);
     }
 
+    public function enterprise(): View
+    {
+        return view('admin.super_admin.analytics.enterprise', [
+            'stats'         => $this->analytics->enterpriseStats(),
+            'growthChart'   => $this->analytics->enterpriseGrowthChart(12),
+            'topLicenses'   => $this->analytics->topEnterpriseLicenses(10),
+        ]);
+    }
+
     public function regional(): View
     {
         return view('admin.super_admin.analytics.regional', [

@@ -97,9 +97,9 @@
         <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 class="text-sm font-bold text-gray-700">Toutes les licences</h2>
             <div class="flex items-center gap-2 text-xs text-gray-400">
-                <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">{{ $grouped['active']->count() ?? 0 }} actives</span>
-                <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-semibold">{{ $grouped['pending']->count() ?? 0 }} en attente</span>
-                <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">{{ $grouped['available']->count() ?? 0 }} disponibles</span>
+                <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">{{ $grouped->get('active', collect())->count() }} actives</span>
+                <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-semibold">{{ $grouped->get('pending', collect())->count() }} en attente</span>
+                <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">{{ $grouped->get('available', collect())->count() }} disponibles</span>
             </div>
         </div>
         <table class="w-full text-sm">
@@ -109,6 +109,7 @@
                     <th class="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
                     <th class="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Lien d'activation</th>
                     <th class="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
+                    <th class="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -152,6 +153,20 @@
                             Rejoint le {{ $inv->accepted_at->format('d/m/Y') }}
                         @else
                             {{ $inv->created_at->format('d/m/Y') }}
+                        @endif
+                    </td>
+                    <td class="px-5 py-3 text-right">
+                        @if($inv->status === 'pending')
+                        <form method="POST" action="{{ route('admin.super.enterprise.invitations.resend', $inv) }}" class="inline">
+                            @csrf
+                            <button type="submit" title="Renvoyer l'invitation"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                                Renvoyer
+                            </button>
+                        </form>
+                        @else
+                        <span class="text-gray-300 text-xs">—</span>
                         @endif
                     </td>
                 </tr>

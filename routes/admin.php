@@ -107,6 +107,7 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
         Route::get('/events',       [AnalyticsController::class, 'events'])->name('events');
         Route::get('/subscriptions',[AnalyticsController::class, 'subscriptions'])->name('subscriptions');
         Route::get('/ambassadors',  [AnalyticsController::class, 'ambassadors'])->name('ambassadors');
+        Route::get('/enterprise',   [AnalyticsController::class, 'enterprise'])->name('enterprise');
         Route::get('/regional',     [AnalyticsController::class, 'regional'])->name('regional');
         Route::get('/system',       [AnalyticsController::class, 'system'])->name('system');
     });
@@ -217,11 +218,13 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::get('enterprise/{license}/edit',[\App\Http\Controllers\Admin\SuperAdmin\EnterpriseLicenseController::class, 'edit'])->name('enterprise.edit');
     Route::put('enterprise/{license}',     [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseLicenseController::class, 'update'])->name('enterprise.update');
     Route::delete('enterprise/{license}',  [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseLicenseController::class, 'destroy'])->name('enterprise.destroy');
+    Route::post('enterprise/invitations/{invitation}/resend', [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseLicenseController::class, 'resendInvitation'])->name('enterprise.invitations.resend');
     Route::get('enterprise-quotes',                    [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'index'])->name('enterprise.quotes');
     Route::patch('enterprise-quotes/{quote}',          [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'update'])->name('enterprise.quotes.update');
     Route::get('enterprise-quotes/{quote}/proposal',        [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'proposalForm'])->name('enterprise.quotes.proposal.form');
     Route::post('enterprise-quotes/{quote}/proposal',       [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'sendProposal'])->name('enterprise.quotes.proposal.send');
     Route::post('enterprise-quotes/{quote}/regenerate-link',[\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'regeneratePaymentLink'])->name('enterprise.quotes.proposal.regenerate');
+    Route::post('enterprise-quotes/{quote}/approve-wire',    [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseQuoteController::class, 'approveWireTransfer'])->name('enterprise.quotes.approve-wire');
 
     // Pages légales (CGU, Confidentialité)
     Route::get('pages',              [\App\Http\Controllers\Admin\SuperAdmin\PageController::class, 'index'])->name('pages.index');

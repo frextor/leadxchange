@@ -83,75 +83,106 @@
             </div>
             @endif
 
-            {{-- Boutons de paiement --}}
-            <div class="space-y-3">
-                {{-- Stripe --}}
-                @if($quote->stripe_payment_link)
-                <div class="text-center">
-                    <a href="{{ $quote->stripe_payment_link }}"
-                       class="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-base font-bold text-white shadow-lg transition hover:opacity-90 hover:shadow-xl w-full justify-center"
-                       style="background:linear-gradient(135deg,#6366F1,#4338CA);">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
-                        </svg>
-                        Accepter et payer — {{ number_format((float)$quote->proposed_price, 2, ',', ' ') }} €
-                    </a>
-                    <p class="text-xs text-gray-400 mt-2">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="inline-block mr-1"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        Paiement sécurisé via Stripe — vos données bancaires ne transitent pas par nos serveurs.
-                    </p>
+            {{-- État : virement envoyé, en attente de validation admin --}}
+            @if($quote->status === 'contacted' && !$quote->proposal_accepted_at)
+            <div class="rounded-2xl border-2 border-amber-200 bg-amber-50 px-6 py-6 text-center">
+                <div class="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-3">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                 </div>
-                @endif
-
-                {{-- Virement bancaire --}}
-                <div class="relative flex items-center gap-3 my-2">
-                    <div class="flex-1 h-px bg-gray-200"></div>
-                    <span class="text-xs text-gray-400 font-medium">ou</span>
-                    <div class="flex-1 h-px bg-gray-200"></div>
-                </div>
-
-                <div id="wire-section">
-                    <button type="button" onclick="document.getElementById('wire-details').classList.toggle('hidden')"
-                            class="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-base font-bold text-emerald-700 border-2 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 transition w-full justify-center">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-                        Accepter le pack — paiement par virement
-                    </button>
-
-                    {{-- Détails + confirmation --}}
-                    <div id="wire-details" class="hidden mt-4 rounded-2xl border border-emerald-200 bg-white overflow-hidden">
-                        <div class="px-6 py-4 bg-emerald-50 border-b border-emerald-100">
-                            <p class="text-sm font-bold text-emerald-800">Coordonnées bancaires</p>
-                            <p class="text-xs text-emerald-600 mt-0.5">Effectuez le virement, puis confirmez ci-dessous. Votre licence sera activée après réception.</p>
-                        </div>
-                        @if(!empty($bankTransferDetails))
-                        <div class="px-6 py-4 border-b border-gray-100">
-                            <pre class="text-sm text-gray-700 whitespace-pre-wrap font-mono leading-relaxed">{{ $bankTransferDetails }}</pre>
-                        </div>
-                        @endif
-                        <div class="px-6 py-4">
-                            <form method="POST" action="{{ route('enterprise.proposal.accept-wire', $quote->proposal_token) }}">
-                                @csrf
-                                <label class="flex items-start gap-3 mb-4 cursor-pointer">
-                                    <input type="checkbox" id="wire-confirm" class="mt-0.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400" required>
-                                    <span class="text-sm text-gray-600">J'ai effectué le virement bancaire du montant de <strong>{{ number_format((float)$quote->proposed_price, 2, ',', ' ') }} €</strong> et je confirme ma demande d'activation du Pack Entreprise.</span>
-                                </label>
-                                <button type="submit"
-                                        class="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition">
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 11 3 3L22 4"/></svg>
-                                    Confirmer mon virement — Activer le pack
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                @if(!$quote->stripe_payment_link)
-                <div class="text-center py-4 text-sm text-gray-500">
-                    Pas de paiement en ligne disponible ? Utilisez le virement ci-dessus ou contactez-nous :
-                    <a href="mailto:support@lxchange.org" class="text-indigo-600 underline">support@lxchange.org</a>
+                <h3 class="text-base font-bold text-amber-800 mb-1">Virement envoyé — en attente de validation</h3>
+                <p class="text-sm text-amber-700">Notre équipe vérifie la réception de votre virement et activera votre Pack Entreprise sous peu.</p>
+                @if(!empty($bankTransferDetails))
+                <div class="bg-white rounded-xl border border-amber-200 px-5 py-4 mt-4 text-left">
+                    <p class="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Rappel des coordonnées bancaires</p>
+                    <pre class="text-sm text-gray-700 whitespace-pre-wrap font-mono leading-relaxed">{{ $bankTransferDetails }}</pre>
                 </div>
                 @endif
             </div>
+
+            @else
+            {{-- Choisissez votre mode de paiement --}}
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Choisissez votre mode de paiement</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                {{-- Option 1 : Carte bancaire (Stripe) --}}
+                <div class="rounded-2xl border-2 border-indigo-200 bg-indigo-50 overflow-hidden flex flex-col">
+                    <div class="px-5 py-4 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:#EEF2FF;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-indigo-900">Carte bancaire</p>
+                            <p class="text-xs text-indigo-500">Paiement immédiat via Stripe</p>
+                        </div>
+                    </div>
+                    <div class="px-5 pb-5 mt-auto">
+                        @if($quote->stripe_payment_link)
+                        <a href="{{ $quote->stripe_payment_link }}"
+                           class="flex items-center justify-center gap-2 w-full px-5 py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
+                           style="background:linear-gradient(135deg,#6366F1,#4338CA);">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            Payer {{ number_format((float)$quote->proposed_price, 2, ',', ' ') }} €
+                        </a>
+                        <p class="text-xs text-indigo-400 text-center mt-2">Activation immédiate après paiement</p>
+                        @else
+                        <p class="text-xs text-indigo-400 text-center py-2">Lien de paiement non disponible.<br>Contactez-nous : <a href="mailto:support@lxchange.org" class="underline">support@lxchange.org</a></p>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Option 2 : Virement bancaire --}}
+                <div class="rounded-2xl border-2 border-emerald-200 bg-emerald-50 overflow-hidden flex flex-col">
+                    <div class="px-5 py-4 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:#ECFDF5;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M12 14v-4M10 12h4"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-emerald-900">Virement bancaire</p>
+                            <p class="text-xs text-emerald-600">Activation après vérification</p>
+                        </div>
+                    </div>
+                    <div class="px-5 pb-5 mt-auto">
+                        <button type="button" onclick="document.getElementById('wire-details').classList.toggle('hidden'); this.classList.add('hidden'); document.getElementById('wire-cancel').classList.remove('hidden')"
+                                class="flex items-center justify-center gap-2 w-full px-5 py-3 rounded-xl text-sm font-bold text-emerald-700 border-2 border-emerald-300 bg-white hover:bg-emerald-100 transition">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+                            Payer par virement
+                        </button>
+                        <button type="button" id="wire-cancel" onclick="document.getElementById('wire-details').classList.add('hidden'); this.classList.add('hidden'); document.querySelector('[onclick*=wire-details]').classList.remove('hidden')"
+                                class="hidden flex items-center justify-center gap-2 w-full px-5 py-3 rounded-xl text-sm font-semibold text-gray-500 border border-gray-200 bg-white hover:bg-gray-50 transition mt-2">
+                            Annuler
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Détails virement (accordéon) --}}
+            <div id="wire-details" class="hidden mt-4 rounded-2xl border border-emerald-200 bg-white overflow-hidden">
+                <div class="px-6 py-4 bg-emerald-50 border-b border-emerald-100">
+                    <p class="text-sm font-bold text-emerald-800">Coordonnées bancaires</p>
+                    <p class="text-xs text-emerald-600 mt-0.5">Effectuez le virement puis confirmez ci-dessous. Notre équipe activera votre licence après réception.</p>
+                </div>
+                @if(!empty($bankTransferDetails))
+                <div class="px-6 py-4 border-b border-gray-100">
+                    <pre class="text-sm text-gray-700 whitespace-pre-wrap font-mono leading-relaxed">{{ $bankTransferDetails }}</pre>
+                </div>
+                @endif
+                <div class="px-6 py-4">
+                    <form method="POST" action="{{ route('enterprise.proposal.accept-wire', $quote->proposal_token) }}">
+                        @csrf
+                        <label class="flex items-start gap-3 mb-4 cursor-pointer">
+                            <input type="checkbox" class="mt-0.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400" required>
+                            <span class="text-sm text-gray-600">J'ai effectué le virement du montant de <strong>{{ number_format((float)$quote->proposed_price, 2, ',', ' ') }} €</strong> et je confirme ma demande d'activation du Pack Entreprise.</span>
+                        </label>
+                        <button type="submit"
+                                class="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 11 3 3L22 4"/></svg>
+                            Confirmer mon virement
+                        </button>
+                    </form>
+                </div>
+            </div>
+            @endif
         </div>
     </div>
 

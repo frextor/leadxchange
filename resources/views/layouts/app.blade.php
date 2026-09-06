@@ -280,6 +280,23 @@
                 </div>
             </div>
 
+            <!-- Notification detail modal -->
+            <div id="notifDetailModal" class="hidden fixed inset-0 z-[999] flex items-center justify-center p-4" style="background:rgba(15,23,42,.45);" onclick="if(event.target===this) closeNotifDetail()">
+                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+                    <div class="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
+                        <h3 id="notifDetailTitle" class="text-sm font-bold text-gray-900 leading-snug"></h3>
+                        <button onclick="closeNotifDetail()" class="text-gray-300 hover:text-gray-500 flex-shrink-0">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                    <div class="px-5 py-4">
+                        <p id="notifDetailBody" class="text-sm text-gray-600 leading-relaxed"></p>
+                        <p id="notifDetailDate" class="text-xs text-gray-300 mt-3"></p>
+                    </div>
+                    <div id="notifDetailActions" class="px-5 pb-5 flex gap-2"></div>
+                </div>
+            </div>
+
             <!-- Right: avatar + dropdown -->
             <div class="flex items-center relative" id="userDropdown">
                 <button onclick="toggleUserMenu()" class="flex items-center gap-2 rounded-full hover:bg-gray-100 transition px-2 py-1.5 h-full">
@@ -372,9 +389,9 @@
                         </a>
                         @endif
                         @if(auth()->user()->isEnterpriseHolder())
-                        <a href="{{ route('enterprise.team') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 flex-shrink-0"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                            Mon équipe
+                        <a href="{{ route('enterprise.dashboard') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4338CA" stroke-width="2" class="flex-shrink-0"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
+                            <span class="font-semibold" style="color:#4338CA;">Espace Entreprise</span>
                         </a>
                         @endif
                         {{-- §12 CGU — Mon abonnement --}}
@@ -747,15 +764,19 @@
             if (!items.length) { empty.style.display = 'block'; return; }
             empty.style.display = 'none';
             list.style.display  = 'block';
+            window._notifCache = window._notifCache || {};
+            items.forEach(n => window._notifCache[n.id] = n);
+
             list.innerHTML = items.map(n => `
-                <div class="flex items-start gap-3 px-5 py-3.5 border-b border-gray-50 hover:bg-gray-50 transition ${n.is_read ? 'opacity-70' : ''}" id="notif-${n.id}">
+                <div class="flex items-start gap-3 px-5 py-3.5 border-b border-gray-50 hover:bg-gray-50 transition cursor-pointer ${n.is_read ? 'opacity-70' : ''}"
+                     id="notif-${n.id}" onclick="openNotifDetail(${n.id})">
                     <div class="w-2 h-2 rounded-full mt-2 flex-shrink-0 ${n.is_read ? 'bg-gray-200' : 'bg-teal-500'}"></div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-semibold text-gray-900 leading-tight">${escapeHtml(n.title)}</p>
                         <p class="text-xs text-gray-500 mt-0.5 line-clamp-2">${escapeHtml(n.body)}</p>
                         <p class="text-[10px] text-gray-300 mt-1">${timeAgo(n.created_at)}</p>
                     </div>
-                    <button onclick="deleteNotif(${n.id})" class="text-gray-200 hover:text-red-400 transition flex-shrink-0 mt-0.5">
+                    <button onclick="event.stopPropagation(); deleteNotif(${n.id})" class="text-gray-200 hover:text-red-400 transition flex-shrink-0 mt-0.5">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
                     </button>
                 </div>`).join('');
@@ -781,6 +802,60 @@
                 loadNotifications();
                 updateNotifBadge(0);
             } catch {}
+        };
+
+        // URL is only offered as a link if it does NOT point to the admin subdomain —
+        // a regular user must never be bounced to admin.* and hit a login/403 wall.
+        function isSafeNotifUrl(url) {
+            if (!url) return false;
+            try {
+                const u = new URL(url, window.location.origin);
+                return !/^admin\./i.test(u.hostname);
+            } catch {
+                return !/^\/?admin\b/i.test(url);
+            }
+        }
+
+        window.openNotifDetail = async function(id) {
+            const n = (window._notifCache || {})[id];
+            if (!n) return;
+
+            document.getElementById('notifDetailTitle').textContent = n.title;
+            document.getElementById('notifDetailBody').textContent  = n.body;
+            document.getElementById('notifDetailDate').textContent  = timeAgo(n.created_at);
+
+            const url = n.data && n.data.url ? n.data.url : null;
+            const actions = document.getElementById('notifDetailActions');
+            actions.innerHTML = '';
+            if (url && isSafeNotifUrl(url)) {
+                const a = document.createElement('a');
+                a.href = url;
+                a.className = 'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90';
+                a.style.background = 'linear-gradient(135deg,#2BB6A3,#1E8F88)';
+                a.textContent = 'Voir';
+                actions.appendChild(a);
+            }
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.onclick = closeNotifDetail;
+            closeBtn.className = (url && isSafeNotifUrl(url) ? '' : 'flex-1 ') + 'px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 border border-gray-200 hover:bg-gray-50 transition';
+            closeBtn.textContent = 'Fermer';
+            actions.appendChild(closeBtn);
+
+            document.getElementById('notifDetailModal').classList.remove('hidden');
+
+            if (!n.is_read) {
+                n.is_read = true;
+                const el = document.getElementById('notif-' + id);
+                if (el) { el.classList.add('opacity-70'); el.querySelector('.bg-teal-500')?.classList.replace('bg-teal-500','bg-gray-200'); }
+                try {
+                    await fetch('/api/notifications/' + id + '/read', { method:'POST', headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF,'Authorization':'Bearer '+window.API_TOKEN}, credentials:'same-origin' });
+                } catch {}
+            }
+        };
+
+        window.closeNotifDetail = function() {
+            document.getElementById('notifDetailModal').classList.add('hidden');
         };
 
         window.deleteNotif = async function(id) {

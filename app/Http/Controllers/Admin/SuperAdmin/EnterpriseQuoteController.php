@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendQueuedEmailJob;
 use App\Mail\SystemNotificationMail;
+use App\Models\EnterpriseLicense;
 use App\Models\EnterpriseQuoteRequest;
 use App\Models\Notification;
 use App\Models\Plan;
@@ -24,7 +25,27 @@ class EnterpriseQuoteController extends Controller
         $pendingCount = $quotes->whereIn('status', ['pending', 'contacted'])->count();
         $plans        = Plan::where('name', 'enterprise')->orderBy('price')->get();
 
-        return view('admin.enterprise.quotes', compact('quotes', 'pendingCount', 'plans'));
+        // ── Packs Entreprise actifs / expirés — pour l'onglet "Packs" ───────────
+        $licenses = EnterpriseLicense::with(['holder', 'plan'])
+            ->withCount(['invitations', 'activeInvitations'])
+            ->with(['invitations' => function ($q) {
+                $q->where('status', 'pending')->whereNotNull('email');
+            }])
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($license) {
+                $license->pack_status       = $license->isExpired() ? 'expired' : 'active';
+                $license->pending_members   = $license->invitations; // filtered to pending in the with() above
+                return $license;
+            });
+
+        $activeLicensesCount  = $licenses->where('pack_status', 'active')->count();
+        $expiredLicensesCount = $licenses->where('pack_status', 'expired')->count();
+
+        return view('admin.enterprise.quotes', compact(
+            'quotes', 'pendingCount', 'plans',
+            'licenses', 'activeLicensesCount', 'expiredLicensesCount'
+        ));
     }
 
     /** Formulaire de proposition (modal pré-rempli) */
@@ -293,5 +314,50 @@ class EnterpriseQuoteController extends Controller
         } catch (\Exception $e) {
             Log::warning('EnterpriseQuote email failed', ['to' => $to, 'error' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Admin approuve le virement bancaire et active le Pack Entreprise.
+     */
+    public function approveWireTransfer(EnterpriseQuoteRequest $quote)
+    {
+        abort_unless($quote->status === 'contacted' && !$quote->proposal_accepted_at, 403, 'Ce pack ne peut pas être approuvé par virement.');
+
+        $quote->load('user');
+
+        // Marquer comme converti
+        $quote->update([
+            'status'               => 'converted',
+            'proposal_accepted_at' => now(),
+        ]);
+
+        // Activer la licence via EnterpriseProposalController
+        app(\App\Http\Controllers\EnterpriseProposalController::class)->activateLicensePublic($quote);
+
+        // Notifier le client par email
+        try {
+            $user = $quote->user;
+            $name = $user->first_name . ' ' . $user->last_name;
+            SendQueuedEmailJob::dispatch(
+                to:       $user->email,
+                subject:  "Votre Pack Entreprise « {$quote->company_name} » est activé — LeadXchange",
+                type:     'enterprise_quote_accepted',
+                mailable: new SystemNotificationMail(
+                    recipientName: $name,
+                    title:         "Votre Pack Entreprise est activé !",
+                    body:          '',
+                    actionLabel:   'Accéder à mon espace entreprise',
+                    actionUrl:     route('enterprise.team'),
+                    templateKey:   'enterprise_quote_accepted',
+                    extraVars:     ['name' => $name, 'company_name' => $quote->company_name, 'dashboard_url' => route('enterprise.team')],
+                ),
+                toName: $name,
+            );
+        } catch (\Exception $e) {
+            Log::warning('EnterpriseQuote approve-wire email failed', ['error' => $e->getMessage()]);
+        }
+
+        return redirect()->route('admin.super.enterprise.quotes')
+            ->with('success', "Pack Entreprise « {$quote->company_name} » activé après virement bancaire.");
     }
 }

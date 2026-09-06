@@ -54,6 +54,21 @@ class NotificationController extends Controller
     }
 
     /**
+     * POST /api/notifications/{id}/read
+     * Marks a single notification as read.
+     */
+    public function markRead(int $id, Request $request): JsonResponse
+    {
+        $notification = Notification::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $notification->update(['is_read' => true]);
+
+        return response()->json(['message' => 'Notification marked as read.']);
+    }
+
+    /**
      * DELETE /api/notifications/{id}
      * Deletes a single notification belonging to the authenticated user.
      */

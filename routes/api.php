@@ -200,6 +200,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Notification Routes
     Route::get('/notifications',                 [NotificationController::class, 'index']);
     Route::post('/notifications/read-all',       [NotificationController::class, 'readAll']);
+    Route::post('/notifications/{id}/read',      [NotificationController::class, 'markRead']);
     Route::delete('/notifications/{id}',         [NotificationController::class, 'destroy']);
 
     // Chat Routes — static paths must come before wildcard /{userId}

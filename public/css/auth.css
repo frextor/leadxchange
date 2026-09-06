@@ -54,12 +54,25 @@
 
 /* ————————— 3. Left column ————————— */
 .lx-auth-left {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   padding: 36px 56px;
   justify-content: space-between;
   min-height: 100vh;
 }
+
+.lx-auth-bg-ellipse {
+  position: absolute;
+  top: -210px;
+  left: -109px;
+  width: 440px;
+  height: 449px;
+  pointer-events: none;
+  z-index: 0;
+}
+.lx-auth-left > *:not(.lx-auth-bg-ellipse) { position: relative; z-index: 1; }
 
 .lx-auth-logo {
   display: inline-flex;
@@ -85,6 +98,15 @@
 }
 .lx-logo-text { color: var(--lx-text); }
 
+/* Wordmark logo: "Lead+change" */
+.lx-auth-logo-word {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--lx-text);
+  letter-spacing: -0.02em;
+}
+.lx-logo-plus { color: var(--lx-teal); font-weight: 800; padding: 0 1px; }
+
 .lx-auth-form-wrap {
   width: 100%;
   max-width: 400px;
@@ -108,137 +130,76 @@
   position: relative;
   overflow: hidden;
   color: var(--lx-trust-fg);
-  padding: 44px;
+  padding: 64px 56px;
   display: flex;
-  flex-direction: column;
-  gap: 28px;
-  background:
-    radial-gradient(900px 600px at 80% 10%, rgba(43,182,163,0.22), transparent 60%),
-    radial-gradient(700px 500px at 10% 90%, rgba(30,143,136,0.16), transparent 60%),
-    var(--lx-trust-bg);
+  align-items: center;
+  background: #0B1140;
 }
 
-.lx-trust-bg-grid {
-  position: absolute; inset: 0;
-  background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
-  background-size: 22px 22px;
+.lx-trust-photo-overlay {
+  position: absolute;
+  inset: -14px -10px;
+  background-image: url('/images/auth/trust-photo.png');
+  background-size: cover;
+  background-position: center;
+  filter: blur(2px);
   pointer-events: none;
 }
+.lx-trust-photo-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 16, 126, 0.7);
+}
 
-/* Trust head */
-.lx-trust-head {
+.lx-trust-content {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 40px;
+  max-width: 480px;
 }
-.lx-trust-pill {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
-  background: rgba(43,182,163,0.15);
-  color: var(--lx-teal-glow);
-  border: 1px solid rgba(43,182,163,0.35);
-}
+
 .lx-trust-title {
   font-size: 34px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.03em;
-  line-height: 1.1;
+  line-height: 1.15;
   margin: 0;
-}
-.lx-trust-accent { color: var(--lx-teal-glow); }
-.lx-trust-sub {
-  font-size: 15px;
-  color: rgba(240,250,248,0.7);
-  max-width: 480px;
-  margin: 0;
-  line-height: 1.55;
-}
-
-/* Avatars + trust meta */
-.lx-trust-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.lx-avatars { display: flex; }
-.lx-avatar {
-  width: 40px; height: 40px;
-  border-radius: 999px;
-  border: 3px solid var(--lx-trust-bg);
-  display: grid; place-items: center;
-  font-weight: 600; font-size: 14px;
   color: #fff;
-  margin-left: -10px;
-  flex-shrink: 0;
-}
-.lx-avatar:first-child { margin-left: 0; }
-.lx-avatar-count {
-  background: rgba(255,255,255,0.1);
-  font-family: ui-monospace, Menlo, monospace;
-  font-size: 11.5px;
-  font-weight: 500;
-}
-.lx-trust-meta { display: flex; flex-direction: column; gap: 4px; }
-.lx-trust-meta-strong { font-size: 14.5px; font-weight: 500; }
-.lx-trust-meta-stars {
-  font-size: 12.5px;
-  color: rgba(240,250,248,0.65);
-  display: flex; align-items: center; gap: 6px;
-}
-.lx-trust-meta-stars > span { display: inline-flex; gap: 1px; }
-
-/* Companies grid */
-.lx-trust-companies { position: relative; display: flex; flex-direction: column; gap: 10px; }
-.lx-trust-eyebrow {
-  font-size: 11px;
-  color: rgba(240,250,248,0.5);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-}
-.lx-trust-companies-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1px;
-  background: rgba(255,255,255,0.08);
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.06);
-}
-.lx-trust-company {
-  padding: 20px 14px;
-  background: var(--lx-trust-bg-2);
-  display: grid; place-items: center;
-  color: rgba(240,250,248,0.85);
-  font-size: 14px;
 }
 
-/* Testimonial */
-.lx-trust-quote {
-  position: relative;
-  padding: 20px 22px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.03);
-  display: flex; flex-direction: column; gap: 14px;
-}
-.lx-trust-quote-text {
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--lx-trust-fg);
-  letter-spacing: -0.01em;
+.lx-trust-checklist {
+  list-style: none;
   margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
 }
-.lx-trust-quote-author { display: flex; align-items: center; gap: 12px; }
-.lx-trust-author-name { font-size: 14px; font-weight: 500; }
-.lx-trust-author-role { font-size: 12.5px; color: rgba(240,250,248,0.65); }
+.lx-trust-checklist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.lx-trust-checklist .lx-check {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.lx-trust-item-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+.lx-trust-item-text {
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(230,235,255,0.72);
+  margin: 0;
+  max-width: 400px;
+}
 
 /* ————————— 5. Inputs ————————— */
 .lx-input {
@@ -275,6 +236,16 @@
 }
 .gradient-button:hover { background: var(--lx-grad-hover); }
 .gradient-button:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Solid blue button (login) */
+.lx-btn-blue {
+  background: #3C55FD;
+  box-shadow: 0 8px 20px -8px rgba(60, 85, 253, 0.45);
+  cursor: pointer;
+  border: none;
+}
+.lx-btn-blue:hover { background: #2F44E0; }
+.lx-btn-blue:disabled { opacity: .5; cursor: not-allowed; }
 
 /* ————————— 7. Animations ————————— */
 @keyframes lx-fade-in {

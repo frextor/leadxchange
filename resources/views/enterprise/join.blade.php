@@ -45,7 +45,7 @@
             @endif
 
             @if($confirmOnly)
-            {{-- ── Existing user: confirmation only ── --}}
+            {{-- ── Existing user: must authenticate before activation ── --}}
             <div class="mb-5 flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
                 <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
                      style="background:linear-gradient(135deg,#1D4ED8,#1E40AF);">
@@ -57,8 +57,9 @@
                 </div>
             </div>
 
+            @if($alreadyAuthenticated)
             <p class="text-sm text-gray-600 mb-6 leading-relaxed">
-                Votre compte existe déjà. En confirmant, votre licence <strong>Premium Entreprise</strong>
+                Vous êtes déjà connecté à ce compte. En confirmant, votre licence <strong>Premium Entreprise</strong>
                 sera activée immédiatement — aucun paiement requis.
             </p>
 
@@ -70,6 +71,32 @@
                     Activer ma licence Premium →
                 </button>
             </form>
+            @else
+            <p class="text-sm text-gray-600 mb-5 leading-relaxed">
+                Ce compte existe déjà. Connectez-vous avec votre mot de passe pour activer votre licence
+                <strong>Premium Entreprise</strong> — aucun paiement requis.
+            </p>
+
+            <form method="POST" action="{{ route('enterprise.join.process', $invitation->token) }}" class="space-y-4">
+                @csrf
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Mot de passe</label>
+                    <input type="password" name="password" required autofocus
+                           class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Votre mot de passe">
+                </div>
+                <button type="submit"
+                        class="w-full py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
+                        style="background:linear-gradient(135deg,#1D4ED8,#1E40AF);">
+                    Se connecter et activer ma licence →
+                </button>
+                <p class="text-center text-xs text-gray-400">
+                    Mot de passe oublié ?
+                    <a href="{{ route('password.request') }}" class="text-blue-600 hover:underline">Réinitialisez-le</a>,
+                    puis revenez sur ce lien.
+                </p>
+            </form>
+            @endif
 
             @else
             {{-- ── New user: registration form ── --}}

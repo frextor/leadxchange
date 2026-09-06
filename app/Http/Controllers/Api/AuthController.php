@@ -104,7 +104,17 @@ class AuthController extends Controller
     {
         $credentials = $request->only('email', 'password');
 
-        if (!Auth::attempt($credentials)) {
+        try {
+            $attempted = Auth::attempt($credentials);
+        } catch (\RuntimeException $e) {
+            \Illuminate\Support\Facades\Log::error('API login hash format error', [
+                'email' => $credentials['email'] ?? null,
+                'error' => $e->getMessage(),
+            ]);
+            $attempted = false;
+        }
+
+        if (!$attempted) {
             return response()->json([
                 'message' => 'Invalid credentials',
             ], 401);

@@ -149,6 +149,45 @@ class EnterpriseLicenseController extends Controller
         return back()->with('success', 'Licence mise à jour.');
     }
 
+    /**
+     * Renvoie l'email d'invitation à un membre qui n'a pas encore accepté (statut pending).
+     */
+    public function resendInvitation(EnterpriseInvitation $invitation)
+    {
+        if ($invitation->status !== EnterpriseInvitation::STATUS_PENDING) {
+            return back()->with('error', 'Cette invitation ne peut pas être renvoyée.');
+        }
+
+        $license = $invitation->license()->with('holder')->firstOrFail();
+
+        // Nouveau token pour invalider l'ancien lien
+        $invitation->update(['token' => EnterpriseInvitation::generateToken()]);
+
+        try {
+            $holderName = trim(($license->holder?->first_name ?? '') . ' ' . ($license->holder?->last_name ?? '')) ?: 'LeadXchange';
+            $company    = $license->company_name ?: $holderName;
+
+            \App\Jobs\SendQueuedEmailJob::dispatch(
+                to:       $invitation->email,
+                subject:  $company . ' vous invite à rejoindre son équipe LeadXchange',
+                type:     'enterprise_invitation',
+                mailable: new \App\Mail\EnterpriseInvitationMail($invitation, $holderName),
+                toName:   $invitation->email,
+                metadata: ['invitation_id' => $invitation->id],
+            );
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Enterprise invitation resend failed', [
+                'invitation_id' => $invitation->id,
+                'error'         => $e->getMessage(),
+            ]);
+            return back()->with('error', "Échec de l'envoi de l'email.");
+        }
+
+        ActivityLogger::log('admin.enterprise.invitation_resent', "Invitation renvoyée à {$invitation->email} (pack « {$license->company_name} »)");
+
+        return back()->with('success', "Invitation renvoyée à {$invitation->email}.");
+    }
+
     public function destroy(EnterpriseLicense $license)
     {
         $companyName = $license->company_name;

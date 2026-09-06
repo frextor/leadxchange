@@ -24,10 +24,12 @@
     {{-- ─────────── LEFT — form column ─────────── --}}
     <div class="lx-auth-left">
 
+        {{-- Decorative background ellipse --}}
+        <img src="{{ asset('images/auth/bg-ellipse.svg') }}" alt="" class="lx-auth-bg-ellipse" aria-hidden="true">
+
         {{-- Logo --}}
-        <a href="{{ route('login') }}" class="lx-auth-logo">
-            <div class="lx-logo-mark"><span>LX</span></div>
-            <span class="lx-logo-text">LeadXchange</span>
+        <a href="{{ route('login') }}" class="lx-auth-logo lx-auth-logo-word">
+            <span>Lead</span><span class="lx-logo-plus">+</span><span>change</span>
         </a>
 
         {{-- Form (centered vertically) --}}
@@ -48,77 +50,41 @@
 
     {{-- ─────────── RIGHT — dark trust panel ─────────── --}}
     <aside class="lx-auth-right">
-        <div class="lx-trust-bg-grid"></div>
+        <div class="lx-trust-photo-overlay"></div>
 
-        {{-- Tagline --}}
-        <div class="lx-trust-head">
-            <span class="lx-trust-pill">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M7 7h10l-3-3M17 17H7l3 3"/>
-                </svg>
-                B2B Lead Marketplace
-            </span>
-            <h2 class="lx-trust-title">
-                Share a lead.<br>
-                Receive a lead.<br>
-                <span class="lx-trust-accent">Grow together.</span>
-            </h2>
-            <p class="lx-trust-sub">
-                The platform built for Business Developers who believe in the give-to-get principle.
-            </p>
-        </div>
+        <div class="lx-trust-content">
+            <h2 class="lx-trust-title">Fait pour développer votre réseau</h2>
 
-        {{-- Avatars + rating --}}
-        <div class="lx-trust-row">
-            <div class="lx-avatars">
-                <div class="lx-avatar" style="background:linear-gradient(135deg,hsl(165,60%,60%),hsl(205,55%,45%));">C</div>
-                <div class="lx-avatar" style="background:linear-gradient(135deg,hsl(195,60%,60%),hsl(235,55%,45%));">L</div>
-                <div class="lx-avatar" style="background:linear-gradient(135deg,hsl(30,60%,60%),hsl(70,55%,45%));">S</div>
-                <div class="lx-avatar" style="background:linear-gradient(135deg,hsl(220,60%,60%),hsl(260,55%,45%));">A</div>
-                <div class="lx-avatar" style="background:linear-gradient(135deg,hsl(340,60%,60%),hsl(20,55%,45%));">T</div>
-                <div class="lx-avatar lx-avatar-count">+1.5k</div>
-            </div>
-            <div class="lx-trust-meta">
-                <div class="lx-trust-meta-strong">Trusted by 1,500+ Business Developers</div>
-                <div class="lx-trust-meta-stars">
-                    <span>
-                        @for ($i = 0; $i < 5; $i++)
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="#FFC65C"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>
-                        @endfor
-                    </span>
-                    4.8/5 &middot; 312 reviews
-                </div>
-            </div>
-        </div>
-
-        {{-- Companies --}}
-        <div class="lx-trust-companies">
-            <div class="lx-trust-eyebrow">Companies using LeadXchange</div>
-            <div class="lx-trust-companies-grid">
-                <div class="lx-trust-company" style="font-weight:600;letter-spacing:-0.03em;">Greenway</div>
-                <div class="lx-trust-company" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:0.18em;">NORTHBEAM</div>
-                <div class="lx-trust-company" style="font-weight:500;letter-spacing:-0.02em;">pivotlabs</div>
-                <div class="lx-trust-company" style="font-weight:700;letter-spacing:0.1em;">VOLTIC</div>
-                <div class="lx-trust-company" style="font-weight:600;letter-spacing:-0.04em;">Lyra&middot;</div>
-                <div class="lx-trust-company" style="font-family:ui-monospace,Menlo,monospace;letter-spacing:-0.02em;">acme/</div>
-            </div>
-        </div>
-
-        {{-- Testimonial --}}
-        <div class="lx-trust-quote">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="rgba(93,223,200,0.55)" style="margin-bottom:-4px;flex-shrink:0;">
-                <path d="M9 7H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2v2a2 2 0 0 1-2 2H4v2h1a4 4 0 0 0 4-4V7zm10 0h-4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2v2a2 2 0 0 1-2 2h-1v2h1a4 4 0 0 0 4-4V7z"/>
-            </svg>
-            <p class="lx-trust-quote-text">
-                In 3 months I received 24 qualified leads. The give-and-receive system replaced 80% of my cold prospecting.
-            </p>
-            <div class="lx-trust-quote-author">
-                <div class="lx-avatar" style="width:36px;height:36px;background:linear-gradient(135deg,hsl(165,60%,60%),hsl(180,55%,45%));border:none;font-size:13px;flex-shrink:0;">C</div>
-                <div>
-                    <div class="lx-trust-author-name">Camille D.</div>
-                    <div class="lx-trust-author-role">Head of Sales &middot; Greenway</div>
-                </div>
-            </div>
+            <ul class="lx-trust-checklist">
+                <li>
+                    <svg class="lx-check" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><path d="m5 12 5 5L20 7"/></svg>
+                    <div>
+                        <p class="lx-trust-item-title">Tout au même endroit</p>
+                        <p class="lx-trust-item-text">Pilotez vos leads de bout en bout&nbsp;: réception, échange, qualification et suivi.</p>
+                    </div>
+                </li>
+                <li>
+                    <svg class="lx-check" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><path d="m5 12 5 5L20 7"/></svg>
+                    <div>
+                        <p class="lx-trust-item-title">Des leads qualifiés</p>
+                        <p class="lx-trust-item-text">Recevez des leads SQL &amp; SP triés selon vos secteurs et vos marchés.</p>
+                    </div>
+                </li>
+                <li>
+                    <svg class="lx-check" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><path d="m5 12 5 5L20 7"/></svg>
+                    <div>
+                        <p class="lx-trust-item-title">Un réseau de confiance</p>
+                        <p class="lx-trust-item-text">Connectez-vous à des professionnels vérifiés et échangez vos leads en toute sérénité.</p>
+                    </div>
+                </li>
+                <li>
+                    <svg class="lx-check" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><path d="m5 12 5 5L20 7"/></svg>
+                    <div>
+                        <p class="lx-trust-item-title">Événements &amp; groupes</p>
+                        <p class="lx-trust-item-text">Rejoignez des groupes, créez vos événements et rencontrez les bons contacts.</p>
+                    </div>
+                </li>
+            </ul>
         </div>
     </aside>
 

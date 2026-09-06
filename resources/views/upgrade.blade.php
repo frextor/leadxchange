@@ -216,6 +216,21 @@
                 <div class="w-full py-2.5 rounded-xl text-xs font-semibold text-center border-2 border-indigo-200 text-indigo-400 bg-indigo-50">
                     ✓ Plan actuel
                 </div>
+                @elseif($plan->is_enterprise && $pendingEnterpriseQuote)
+                @php
+                    $quoteStatusLabels = [
+                        'pending'   => 'En attente de traitement',
+                        'contacted' => 'Notre équipe vous a contacté',
+                        'proposed'  => 'Proposition envoyée — consultez vos emails',
+                    ];
+                @endphp
+                <div class="w-full py-2.5 px-3 rounded-xl text-xs font-semibold text-center border-2 border-amber-200 text-amber-700 bg-amber-50 flex items-center justify-center gap-1.5">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    Demande déjà envoyée
+                </div>
+                <p class="text-center text-[10px] text-amber-500 mt-2">
+                    {{ $quoteStatusLabels[$pendingEnterpriseQuote->status] ?? 'Notre équipe va vous recontacter sous 24 h.' }}
+                </p>
                 @elseif($plan->is_enterprise)
                 <button type="button"
                         onclick="toggleEnterpriseForm()"

@@ -25,6 +25,7 @@
             ['route' => 'admin.super.analytics.events',        'label' => 'Événements',      'icon' => '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'],
             ['route' => 'admin.super.analytics.subscriptions', 'label' => 'Abonnements',     'icon' => '<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>'],
             ['route' => 'admin.super.analytics.ambassadors',   'label' => 'Ambassadeurs',    'icon' => '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'],
+            ['route' => 'admin.super.analytics.enterprise',    'label' => 'Entreprise',      'icon' => '<path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/>'],
             ['route' => 'admin.super.analytics.regional',      'label' => 'Régions',         'icon' => '<circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.35 11.76a1 1 0 0 0 1.3 0C12.95 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>'],
             ['route' => 'admin.super.analytics.system',        'label' => 'Système',         'icon' => '<rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>'],
         ];

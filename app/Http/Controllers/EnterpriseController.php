@@ -6,11 +6,14 @@ use App\Mail\SystemNotificationMail;
 use App\Models\EnterpriseInvitation;
 use App\Models\EnterpriseLicense;
 use App\Models\EnterpriseQuoteRequest;
+use App\Models\Lead;
+use App\Models\Notification;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -34,6 +37,26 @@ class EnterpriseController extends Controller
         return view('enterprise.expired', compact('license'));
     }
 
+    /**
+     * Tableau de bord — vue d'ensemble de l'espace Entreprise.
+     */
+    public function dashboard(Request $request)
+    {
+        $user    = $request->user();
+        $license = $user->enterpriseLicense()->with('invitations.user')->first();
+
+        abort_unless($license, 403, 'Vous n\'avez pas de licence entreprise.');
+
+        if ($license->isExpired()) {
+            return redirect()->route('enterprise.expired');
+        }
+
+        ['invitations' => $invitations, 'leaderboard' => $leaderboard, 'analytics' => $analytics]
+            = $this->buildTeamAnalytics($license, $user);
+
+        return view('enterprise.dashboard', compact('license', 'invitations', 'leaderboard', 'analytics'));
+    }
+
     public function team(Request $request)
     {
         $user    = $request->user();
@@ -46,13 +69,120 @@ class EnterpriseController extends Controller
             return redirect()->route('enterprise.expired');
         }
 
+        ['invitations' => $invitations, 'leaderboard' => $leaderboard, 'analytics' => $analytics]
+            = $this->buildTeamAnalytics($license, $user);
+
+        return view('enterprise.team', compact('license', 'invitations', 'leaderboard', 'analytics'));
+    }
+
+    /**
+     * Calcule l'historique des invitations et les analytics agrégées de l'équipe
+     * (titulaire + membres actifs) pour une licence donnée.
+     */
+    private function buildTeamAnalytics(EnterpriseLicense $license, User $user): array
+    {
         $invitations = $license->invitations()
             ->with('user')
             ->orderByRaw("FIELD(status,'active','pending','available','revoked')")
             ->latest()
             ->get();
 
-        return view('enterprise.team', compact('license', 'invitations'));
+        $memberIds = $invitations->where('status', 'active')->pluck('user_id')->filter()->values();
+        $teamIds   = $memberIds->push($user->id)->unique();
+
+        $teamUsers = User::whereIn('id', $teamIds)
+            ->select(['id', 'first_name', 'last_name', 'email', 'points_balance'])
+            ->get()
+            ->keyBy('id');
+
+        $leadsSentByUser = Lead::whereIn('sender_id', $teamIds)
+            ->selectRaw('sender_id, COUNT(*) as total, SUM(status = "converted") as converted')
+            ->groupBy('sender_id')
+            ->get()
+            ->keyBy('sender_id');
+
+        $leadsReceivedByUser = Lead::whereIn('receiver_id', $teamIds)
+            ->selectRaw('receiver_id, COUNT(*) as total')
+            ->groupBy('receiver_id')
+            ->get()
+            ->keyBy('receiver_id');
+
+        $connectionsByUser = \App\Models\Connection::where('status', 'accepted')
+            ->where(function ($q) use ($teamIds) {
+                $q->whereIn('sender_id', $teamIds)->orWhereIn('receiver_id', $teamIds);
+            })
+            ->get()
+            ->flatMap(fn($c) => [$c->sender_id, $c->receiver_id])
+            ->filter(fn($id) => $teamIds->contains($id))
+            ->countBy();
+
+        $leaderboard = $teamIds->map(function ($id) use ($teamUsers, $leadsSentByUser, $leadsReceivedByUser, $connectionsByUser) {
+            $u = $teamUsers->get($id);
+            if (!$u) return null;
+            return [
+                'user'        => $u,
+                'leads_sent'  => (int) ($leadsSentByUser->get($id)->total ?? 0),
+                'converted'   => (int) ($leadsSentByUser->get($id)->converted ?? 0),
+                'leads_recv'  => (int) ($leadsReceivedByUser->get($id)->total ?? 0),
+                'connections' => (int) ($connectionsByUser->get($id) ?? 0),
+                'points'      => (int) ($u->points_balance ?? 0),
+            ];
+        })->filter()->sortByDesc('leads_sent')->values();
+
+        $analytics = [
+            'leads_sent_total'  => $leaderboard->sum('leads_sent'),
+            'leads_converted'   => $leaderboard->sum('converted'),
+            'leads_recv_total'  => $leaderboard->sum('leads_recv'),
+            'connections_total' => $leaderboard->sum('connections'),
+            'points_total'      => $leaderboard->sum('points'),
+            'days_left'         => $license->expires_at ? max(0, now()->diffInDays($license->expires_at, false)) : null,
+        ];
+
+        return compact('invitations', 'leaderboard', 'analytics');
+    }
+
+    /**
+     * Envoie un message (notification in-app + email) du titulaire à un membre de son pack.
+     */
+    public function messageMember(Request $request, int $userId): RedirectResponse
+    {
+        $holder  = $request->user();
+        $license = $holder->enterpriseLicense()->first();
+        abort_unless($license, 403);
+
+        // Le destinataire doit être un membre actif de CE pack
+        $isMember = $license->invitations()->where('user_id', $userId)->where('status', 'active')->exists();
+        abort_unless($isMember, 403, 'Ce membre ne fait pas partie de votre pack.');
+
+        $data = $request->validate([
+            'subject' => ['required', 'string', 'max:150'],
+            'message' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $member = User::findOrFail($userId);
+        $holderName = trim("{$holder->first_name} {$holder->last_name}");
+
+        Notification::storeForUser(
+            $member,
+            'enterprise_holder_message',
+            $data['subject'],
+            $data['message'],
+            ['url' => route('enterprise.team'), 'from_user_id' => $holder->id]
+        );
+
+        try {
+            Mail::to($member->email)->send(new SystemNotificationMail(
+                recipientName: $member->first_name,
+                title:         $data['subject'],
+                body:          nl2br(htmlspecialchars($data['message'])) . "<p style=\"color:#94a3b8;font-size:12px;margin-top:16px;\">Message envoyé par {$holderName}, titulaire de votre Pack Entreprise « {$license->company_name} ».</p>",
+                actionLabel:   'Répondre depuis mon dashboard',
+                actionUrl:     route('dashboard'),
+            ));
+        } catch (\Exception $e) {
+            Log::warning('Enterprise member message email failed', ['error' => $e->getMessage()]);
+        }
+
+        return back()->with('success', "Message envoyé à {$member->first_name} {$member->last_name}.");
     }
 
     public function invite(Request $request)
@@ -105,6 +235,29 @@ class EnterpriseController extends Controller
         $this->sendInvitationEmail($slot, $license);
 
         return back()->with('success', "Invitation envoyée à {$email}.");
+    }
+
+    /**
+     * Renvoie l'email d'invitation à un membre qui n'a pas encore accepté (statut pending).
+     */
+    public function resendInvitation(Request $request, int $invId)
+    {
+        $user    = $request->user();
+        $license = $user->enterpriseLicense()->first();
+        abort_unless($license, 403);
+
+        $invitation = $license->invitations()->findOrFail($invId);
+
+        if ($invitation->status !== EnterpriseInvitation::STATUS_PENDING) {
+            return back()->with('error', 'Cette invitation ne peut pas être renvoyée (statut : ' . $invitation->status . ').');
+        }
+
+        // Nouveau token pour invalider l'ancien lien
+        $invitation->update(['token' => EnterpriseInvitation::generateToken()]);
+
+        $this->sendInvitationEmail($invitation, $license);
+
+        return back()->with('success', "Invitation renvoyée à {$invitation->email}.");
     }
 
     public function revoke(Request $request, int $invId)
@@ -202,10 +355,13 @@ class EnterpriseController extends Controller
 
         $existingUser = $invitation->user ?? ($invitation->email ? User::where('email', $invitation->email)->first() : null);
 
-        // Existing user with a pending invite → confirmation page (no registration needed)
+        // Existing user with a pending invite → login required (no registration needed)
         $confirmOnly = ($existingUser && $invitation->status === EnterpriseInvitation::STATUS_PENDING && $invitation->user_id);
 
-        return view('enterprise.join', compact('invitation', 'existingUser', 'confirmOnly'));
+        // Already logged in as the invited account? No need to re-enter the password.
+        $alreadyAuthenticated = $confirmOnly && auth()->check() && auth()->id() === $existingUser->id;
+
+        return view('enterprise.join', compact('invitation', 'existingUser', 'confirmOnly', 'alreadyAuthenticated'));
     }
 
     public function processJoin(Request $request, string $token)
@@ -257,9 +413,27 @@ class EnterpriseController extends Controller
 
             $invitation->license->increment('seats_used');
 
-        // ── Case 2: pending invitation — existing user, just confirm ──
+        // ── Case 2: pending invitation — existing user must authenticate ──
         } elseif ($invitation->user_id && $invitation->user) {
             $targetUser = $invitation->user;
+
+            // Already logged in as this exact account? No need to re-enter the password.
+            $alreadyAuthenticated = auth()->check() && auth()->id() === $targetUser->id;
+
+            if (! $alreadyAuthenticated) {
+                $request->validate(['password' => ['required', 'string']]);
+
+                try {
+                    $valid = Auth::guard()->validate(['email' => $targetUser->email, 'password' => $request->password]);
+                } catch (\RuntimeException $e) {
+                    Log::error('Enterprise join hash format error', ['user_id' => $targetUser->id, 'error' => $e->getMessage()]);
+                    $valid = false;
+                }
+
+                if (! $valid) {
+                    return back()->withErrors(['password' => 'Mot de passe incorrect.'])->withInput();
+                }
+            }
 
             $invitation->update([
                 'status'      => EnterpriseInvitation::STATUS_ACTIVE,

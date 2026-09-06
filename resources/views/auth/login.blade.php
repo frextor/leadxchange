@@ -1,12 +1,12 @@
 {{-- resources/views/auth/login.blade.php --}}
 @extends('layouts.auth')
 
-@section('title', 'Sign in — LeadXchange')
+@section('title', 'Connexion — LeadXchange')
 
 @section('content')
-    <div class="mb-8">
-        <h1 class="text-3xl font-semibold text-gray-900" style="letter-spacing:-0.025em;">Welcome back</h1>
-        <p class="text-gray-500 mt-2" style="font-size:15px;">Sign in to continue exchanging leads.</p>
+    <div class="mb-8 text-center">
+        <h1 class="text-3xl font-semibold text-gray-900" style="letter-spacing:-0.025em;">Connexion</h1>
+        <p class="text-gray-500 mt-2" style="font-size:15px;">Connectez-vous à une gestion de leads plus intelligente avec LeadXchange</p>
     </div>
 
     {{-- Session status --}}
@@ -21,8 +21,9 @@
 
         {{-- Email --}}
         <div>
-            <input type="email" name="email" value="{{ old('email') }}"
-                placeholder="Work Email" autocomplete="email" autofocus required
+            <label for="email-field" class="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+            <input type="email" id="email-field" name="email" value="{{ old('email') }}"
+                placeholder="m@example.com" autocomplete="email" autofocus required
                 class="lx-input px-4 py-3.5 @error('email') lx-error @enderror">
             @error('email')
                 <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p>
@@ -31,9 +32,17 @@
 
         {{-- Password --}}
         <div>
+            <div class="flex items-center justify-between mb-1.5">
+                <label for="password-field" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+                @if (Route::has('password.request'))
+                    <a href="{{ route('password.request') }}" class="text-sm font-medium" style="color:#3C55FD;">
+                        Mot de passe oublié?
+                    </a>
+                @endif
+            </div>
             <div class="relative">
                 <input type="password" id="password-field" name="password"
-                    placeholder="Password" autocomplete="current-password" required
+                    placeholder="••••••••••" autocomplete="current-password" required
                     class="lx-input px-4 py-3.5 pr-12 @error('password') lx-error @enderror">
                 <button type="button" onclick="togglePassword('password-field')"
                     class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
@@ -48,31 +57,17 @@
             @enderror
         </div>
 
-        {{-- Remember + Forgot --}}
-        <div class="flex items-center justify-between">
-            <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" name="remember" value="1" {{ old('remember') ? 'checked' : '' }}
-                    class="w-4 h-4 rounded" style="accent-color:#2BB6A3;">
-                <span class="text-sm text-gray-600">Remember me</span>
-            </label>
-            @if (Route::has('password.request'))
-                <a href="{{ route('password.request') }}" class="text-sm font-medium" style="color:#1E8F88;">
-                    Forgot password?
-                </a>
-            @endif
-        </div>
-
         {{-- Submit --}}
         <button type="submit"
-            class="gradient-button w-full text-white font-semibold py-4 rounded-xl uppercase tracking-wider transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]">
-            Sign in
+            class="lx-btn-blue w-full text-white font-semibold py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]">
+            Se connecter
         </button>
     </form>
 
     {{-- Divider --}}
     <div style="display:flex;align-items:center;gap:12px;color:#9CA3AF;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;margin:20px 0;">
         <span style="flex:1;height:1px;background:#E5E7EB;"></span>
-        or
+        ou continuer avec
         <span style="flex:1;height:1px;background:#E5E7EB;"></span>
     </div>
 
@@ -83,15 +78,15 @@
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="#0A66C2">
                 <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14ZM8.34 18.34V10H5.67v8.34h2.67Zm-1.34-9.5a1.55 1.55 0 1 0 0-3.09 1.55 1.55 0 0 0 0 3.09Zm12 9.5v-4.78c0-2.45-1.31-3.59-3.06-3.59-1.41 0-2.04.78-2.4 1.32V10h-2.66v8.34h2.66v-4.65c0-.25.02-.5.09-.68.2-.5.66-1.02 1.42-1.02 1 0 1.4.76 1.4 1.88v4.47H19Z"/>
             </svg>
-            Continue with LinkedIn
+            LinkedIn
         </a>
     </div>
 @endsection
 
 @section('below_card')
     <div class="text-center mt-6 text-sm text-gray-600">
-        Don't have an account?
-        <a href="{{ route('register') }}" class="font-semibold" style="color:#1E8F88;">Sign up</a>
+        Pas encore membre ?
+        <a href="{{ route('register') }}" class="font-semibold" style="color:#3C55FD;">Créer un compte</a>
     </div>
 @endsection
 

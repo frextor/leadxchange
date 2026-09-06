@@ -50,7 +50,19 @@ class LoginController extends Controller
         ]);
 
         // Attempt login
-        if (Auth::attempt($credentials, $request->filled('remember'))) {
+        try {
+            $attempted = Auth::attempt($credentials, $request->filled('remember'));
+        } catch (\RuntimeException $e) {
+            // Password stored in an unexpected/legacy hash format — treat as invalid
+            // credentials for the user, but log so an admin can reset that account.
+            \Illuminate\Support\Facades\Log::error('Login hash format error', [
+                'email' => $credentials['email'],
+                'error' => $e->getMessage(),
+            ]);
+            $attempted = false;
+        }
+
+        if ($attempted) {
             $user = Auth::user();
 
             // Block admins from user area — they must use the admin domain

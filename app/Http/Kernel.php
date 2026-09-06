@@ -73,5 +73,6 @@ class Kernel extends HttpKernel
         'super_admin' => \App\Http\Middleware\EnsureIsSuperAdmin::class,
         'ambassador'  => \App\Http\Middleware\EnsureIsAmbassador::class,
         'consul'      => \App\Http\Middleware\EnsureIsConsul::class,
+        'enterprise.holder' => \App\Http\Middleware\EnsureIsEnterpriseHolder::class,
     ];
 }

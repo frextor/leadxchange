@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Connection;
 use App\Models\ConsulRequest;
+use App\Models\EnterpriseInvitation;
+use App\Models\EnterpriseLicense;
 use App\Models\Event;
 use App\Models\Group;
 use App\Models\Lead;
@@ -318,6 +320,80 @@ class AnalyticsService
                 ->groupBy('plans.id', 'plans.label', 'plans.name')
                 ->orderByDesc('count')
                 ->get()->toArray()
+        );
+    }
+
+    // ─── Enterprise ──────────────────────────────────────────────────────────
+
+    public function enterpriseStats(): array
+    {
+        return Cache::remember('analytics.enterprise_stats', self::TTL, function () {
+            $licenses = EnterpriseLicense::all(['id', 'expires_at', 'seats_total', 'seats_used']);
+
+            $active  = $licenses->filter(fn ($l) => ! $l->expires_at || $l->expires_at->isFuture())->count();
+            $expired = $licenses->filter(fn ($l) => $l->expires_at && $l->expires_at->isPast())->count();
+
+            $expiringSoon = $licenses->filter(fn ($l) =>
+                $l->expires_at && $l->expires_at->isFuture() && $l->expires_at->diffInDays(now()) <= 30
+            )->count();
+
+            $seatsTotal = $licenses->sum('seats_total');
+            $seatsUsed  = $licenses->sum('seats_used');
+
+            $pendingInvites = EnterpriseInvitation::where('status', 'pending')->count();
+
+            return [
+                'total_packs'      => $licenses->count(),
+                'active'           => $active,
+                'expired'          => $expired,
+                'expiring_soon'    => $expiringSoon,
+                'seats_total'      => $seatsTotal,
+                'seats_used'       => $seatsUsed,
+                'seats_available'  => max(0, $seatsTotal - $seatsUsed),
+                'occupancy_rate'   => $seatsTotal > 0 ? round($seatsUsed / $seatsTotal * 100, 1) : 0,
+                'pending_invites'  => $pendingInvites,
+            ];
+        });
+    }
+
+    public function enterpriseGrowthChart(int $months = 12): array
+    {
+        return Cache::remember("analytics.enterprise_growth_{$months}", self::TTL, function () use ($months) {
+            $rows = DB::table('enterprise_licenses')
+                ->where('created_at', '>=', now()->subMonths($months)->startOfMonth())
+                ->select(DB::raw('YEAR(created_at) as yr'), DB::raw('MONTH(created_at) as mo'), DB::raw('COUNT(*) as cnt'))
+                ->groupBy('yr', 'mo')
+                ->get()
+                ->keyBy(fn ($r) => $r->yr . '-' . str_pad($r->mo, 2, '0', STR_PAD_LEFT));
+
+            $labels = $data = [];
+            for ($i = $months - 1; $i >= 0; $i--) {
+                $d   = now()->subMonths($i)->startOfMonth();
+                $key = $d->format('Y-m');
+                $labels[] = self::$fr[$d->month - 1] . ' ' . $d->format('y');
+                $data[]   = $rows->get($key)?->cnt ?? 0;
+            }
+            return ['labels' => $labels, 'data' => $data];
+        });
+    }
+
+    public function topEnterpriseLicenses(int $limit = 10): array
+    {
+        return Cache::remember("analytics.top_enterprise_{$limit}", self::TTL, fn () =>
+            EnterpriseLicense::with('holder')
+                ->orderByDesc('seats_used')
+                ->limit($limit)
+                ->get()
+                ->map(fn ($l) => [
+                    'id'           => $l->id,
+                    'company_name' => $l->company_name,
+                    'holder_name'  => trim(($l->holder?->first_name ?? '') . ' ' . ($l->holder?->last_name ?? '')),
+                    'seats_used'   => $l->seats_used,
+                    'seats_total'  => $l->seats_total,
+                    'is_expired'   => $l->isExpired(),
+                    'expires_at'   => $l->expires_at,
+                ])
+                ->toArray()
         );
     }
 

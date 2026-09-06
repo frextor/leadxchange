@@ -1,54 +1,88 @@
-@extends('layouts.app')
-@section('title', 'Mon équipe — ' . $license->company_name)
+@extends('enterprise.layouts.enterprise')
+@section('title', 'Membres — ' . $license->company_name)
+@section('page-title', 'Membres & licences')
 
 @section('content')
-<div class="max-w-4xl mx-auto px-4 py-10">
 
     {{-- Header --}}
-    <div class="flex items-start justify-between gap-4 mb-8 flex-wrap">
+    <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div>
-            <div class="flex items-center gap-2 mb-1">
-                <span class="text-xs font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full"
-                      style="background:#EEF2FF;color:#6366F1;">Premium Entreprise</span>
-            </div>
-            <h1 class="text-2xl font-bold text-gray-900">{{ $license->company_name }}</h1>
-            <p class="text-sm text-gray-500 mt-0.5">Gérez les licences de votre pack.</p>
-        </div>
-        {{-- Seats gauge --}}
-        <div class="flex items-center gap-4 bg-white border border-gray-200 rounded-2xl px-6 py-4 shadow-sm">
-            <div class="text-center">
-                <p class="text-3xl font-extrabold text-gray-900">{{ $license->seats_used }}</p>
-                <p class="text-xs text-gray-400 mt-0.5">attribuées</p>
-            </div>
-            <div class="text-gray-300 text-2xl font-light">/</div>
-            <div class="text-center">
-                <p class="text-3xl font-extrabold" style="color:#6366F1;">{{ $license->seats_total }}</p>
-                <p class="text-xs text-gray-400 mt-0.5">licences</p>
-            </div>
-            @if($license->seatsAvailable() > 0)
-            <div class="pl-3 border-l border-gray-100 text-center">
-                <p class="text-xl font-extrabold text-emerald-600">{{ $license->seatsAvailable() }}</p>
-                <p class="text-xs text-gray-400 mt-0.5">libres</p>
-            </div>
-            @endif
+            <h1 class="text-xl font-bold text-slate-900">Membres &amp; licences</h1>
+            <p class="text-sm text-slate-500 mt-0.5">Gérez les licences de {{ $license->company_name }}.</p>
         </div>
     </div>
 
-    {{-- Alerts --}}
-    @if(session('success'))
-    <div class="mb-5 flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl px-5 py-4 text-sm">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><path d="m9 11 3 3L22 4"/></svg>
-        {{ session('success') }}
+    {{-- ── Analytics ────────────────────────────────────────────────────────── --}}
+    <div class="mb-6">
+        <h2 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>
+            Activité de l'équipe
+        </h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3.5">
+                <p class="text-2xl font-extrabold text-gray-900">{{ $analytics['leads_sent_total'] }}</p>
+                <p class="text-xs text-gray-400 mt-0.5">Leads envoyés</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3.5">
+                <p class="text-2xl font-extrabold text-teal-600">{{ $analytics['leads_converted'] }}</p>
+                <p class="text-xs text-gray-400 mt-0.5">Convertis</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3.5">
+                <p class="text-2xl font-extrabold text-gray-900">{{ $analytics['leads_recv_total'] }}</p>
+                <p class="text-xs text-gray-400 mt-0.5">Leads reçus</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3.5">
+                <p class="text-2xl font-extrabold text-indigo-600">{{ $analytics['connections_total'] }}</p>
+                <p class="text-xs text-gray-400 mt-0.5">Connexions</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3.5">
+                <p class="text-2xl font-extrabold text-amber-600">⭐ {{ $analytics['points_total'] }}</p>
+                <p class="text-xs text-gray-400 mt-0.5">Points cumulés</p>
+            </div>
+        </div>
     </div>
-    @endif
-    @if(session('error'))
-    <div class="mb-5 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-4 text-sm">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        {{ session('error') }}
+
+    {{-- ── Leaderboard ──────────────────────────────────────────────────────── --}}
+    @if($leaderboard->count() > 1)
+    <div class="mb-6 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-gray-100">
+            <h2 class="text-sm font-bold text-gray-800">Classement de l'équipe</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-50">
+                        <th class="text-left px-5 py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Membre</th>
+                        <th class="text-center px-3 py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Envoyés</th>
+                        <th class="text-center px-3 py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Convertis</th>
+                        <th class="text-center px-3 py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Reçus</th>
+                        <th class="text-center px-3 py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Connexions</th>
+                        <th class="text-right px-5 py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Points</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    @foreach($leaderboard as $i => $row)
+                    <tr>
+                        <td class="px-5 py-2.5">
+                            <div class="flex items-center gap-2.5">
+                                @if($i === 0)<span title="Meilleur contributeur">🥇</span>@endif
+                                <span class="text-sm font-medium text-gray-700">{{ $row['user']->first_name }} {{ $row['user']->last_name }}</span>
+                                @if($row['user']->id === $license->holder_user_id)
+                                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-500">TITULAIRE</span>
+                                @endif
+                            </div>
+                        </td>
+                        <td class="px-3 py-2.5 text-center font-semibold text-gray-700">{{ $row['leads_sent'] }}</td>
+                        <td class="px-3 py-2.5 text-center font-semibold text-teal-600">{{ $row['converted'] }}</td>
+                        <td class="px-3 py-2.5 text-center font-semibold text-gray-700">{{ $row['leads_recv'] }}</td>
+                        <td class="px-3 py-2.5 text-center font-semibold text-indigo-600">{{ $row['connections'] }}</td>
+                        <td class="px-5 py-2.5 text-right font-semibold text-amber-600">{{ $row['points'] }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     </div>
-    @endif
-    @if(session('info'))
-    <div class="mb-5 bg-blue-50 border border-blue-200 text-blue-700 rounded-2xl px-5 py-4 text-sm">{{ session('info') }}</div>
     @endif
 
     {{-- Members list --}}
@@ -119,6 +153,21 @@
                 @endif
             </div>
             <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 flex-shrink-0">Actif</span>
+
+            @if($inv->user)
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+                <a href="{{ route('profile.show', $inv->user_id) }}" title="Voir le profil"
+                   class="p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </a>
+                <button type="button" title="Envoyer un message"
+                        onclick="openMessageModal({{ $inv->user_id }}, '{{ addslashes($inv->user->first_name) }}')"
+                        class="p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </button>
+            </div>
+            @endif
+
             <form method="POST" action="{{ route('enterprise.revoke', $inv->id) }}"
                   onsubmit="return confirm('Révoquer la licence de {{ addslashes($inv->email) }} ? La licence sera libérée et le membre repassera en Basic.')">
                 @csrf
@@ -139,14 +188,24 @@
                 <p class="text-[10px] text-gray-400 mt-0.5">Invitation envoyée — en attente d'activation</p>
             </div>
             <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700 flex-shrink-0">En attente</span>
-            <form method="POST" action="{{ route('enterprise.revoke', $inv->id) }}"
-                  onsubmit="return confirm('Annuler cette invitation et libérer la licence ?')">
-                @csrf
-                <button type="submit"
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
-                    Annuler
-                </button>
-            </form>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+                <form method="POST" action="{{ route('enterprise.resend', $inv->id) }}">
+                    @csrf
+                    <button type="submit" title="Renvoyer l'invitation"
+                            class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition flex items-center gap-1.5">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        Renvoyer
+                    </button>
+                </form>
+                <form method="POST" action="{{ route('enterprise.revoke', $inv->id) }}"
+                      onsubmit="return confirm('Annuler cette invitation et libérer la licence ?')">
+                    @csrf
+                    <button type="submit"
+                            class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
+                        Annuler
+                    </button>
+                </form>
+            </div>
             @endif
 
         </div>
@@ -172,6 +231,42 @@
 
 </div>
 
+{{-- Message modal --}}
+<div id="messageModal" class="hidden fixed inset-0 z-[999] flex items-center justify-center p-4" style="background:rgba(15,23,42,.45);" onclick="if(event.target===this) closeMessageModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-gray-900">Message à <span id="msgRecipientName" class="text-indigo-600"></span></h3>
+            <button onclick="closeMessageModal()" class="text-gray-300 hover:text-gray-500">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form id="messageForm" method="POST">
+            @csrf
+            <div class="px-6 py-4 space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Objet</label>
+                    <input type="text" name="subject" required maxlength="150" placeholder="Ex : Point sur les leads du mois"
+                           class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Message</label>
+                    <textarea name="message" required maxlength="2000" rows="5" placeholder="Votre message…"
+                              class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
+                </div>
+                <p class="text-[11px] text-gray-400">Le membre recevra une notification dans l'app et un email.</p>
+            </div>
+            <div class="px-6 pb-5">
+                <button type="submit"
+                        class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition"
+                        style="background:linear-gradient(135deg,#6366F1,#4338CA);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                    Envoyer le message
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 function copyLink(url, btn) {
     navigator.clipboard.writeText(url).then(function() {
@@ -182,6 +277,15 @@ function copyLink(url, btn) {
     }).catch(function() {
         prompt('Copiez ce lien :', url);
     });
+}
+
+function openMessageModal(userId, firstName) {
+    document.getElementById('msgRecipientName').textContent = firstName;
+    document.getElementById('messageForm').action = '/enterprise/team/message/' + userId;
+    document.getElementById('messageModal').classList.remove('hidden');
+}
+function closeMessageModal() {
+    document.getElementById('messageModal').classList.add('hidden');
 }
 </script>
 
