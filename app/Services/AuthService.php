@@ -14,6 +14,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -141,12 +142,14 @@ class AuthService
                 $user->forceFill(['email_verified_at' => now()])->save();
             }
 
-            $profileFields = array_filter([
-                'avatar' => $linkedinUser['picture'] ?? null,
-            ], fn($value) => $value !== null && $value !== '');
-
-            if (!empty($profileFields)) {
-                $user->profile()->updateOrCreate(['user_id' => $user->id], $profileFields);
+            // Download and store LinkedIn photo locally to avoid CDN URL expiry
+            $linkedinPicture = $linkedinUser['picture'] ?? null;
+            if ($linkedinPicture) {
+                $localAvatar = $this->downloadAndStoreAvatar($linkedinPicture);
+                $user->profile()->updateOrCreate(
+                    ['user_id' => $user->id],
+                    ['avatar' => $localAvatar ?? $linkedinPicture]
+                );
             }
 
             return $user->fresh();
@@ -235,6 +238,41 @@ class AuthService
      * @param User $user
      * @return Subscription|null
      */
+
+    /**
+     * Download a remote avatar image and store it on the public disk.
+     * Returns the stored relative path, or null on failure.
+     */
+    private function downloadAndStoreAvatar(string $url): ?string
+    {
+        try {
+            $imageData = @file_get_contents($url, false, stream_context_create([
+                'http' => ['timeout' => 10, 'follow_location' => true],
+                'ssl'  => ['verify_peer' => false],
+            ]));
+            if ($imageData === false || strlen($imageData) < 100) {
+                return null;
+            }
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mime  = $finfo->buffer($imageData);
+            $ext   = match ($mime) {
+                'image/jpeg' => 'jpg',
+                'image/png'  => 'png',
+                'image/webp' => 'webp',
+                'image/gif'  => 'gif',
+                default      => null,
+            };
+            if (!$ext) return null;
+
+            $path = 'avatars/' . Str::uuid() . '.' . $ext;
+            Storage::disk('public')->put($path, $imageData);
+            return $path;
+        } catch (\Throwable $e) {
+            Log::warning('Failed to download LinkedIn avatar', ['url' => $url, 'error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
     private function assignBasicPlan(User $user): ?Subscription
     {
         $basicPlan = Plan::where('name', 'basic')->first();

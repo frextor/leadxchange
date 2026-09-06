@@ -34,7 +34,7 @@ class PointsService
     const SEND_CREDIT    = 2;
     const RECEIVE_DEBIT  = -1;
     const CAP            = 30;
-    const MIN_TO_RECEIVE = 1;   // must have ≥ 1 pt to receive
+    const MIN_TO_RECEIVE = 0;   // must have ≥ 0 pt to receive (negative balance blocks)
 
     const BONUS_MAP = [
         'MQL' => 1,

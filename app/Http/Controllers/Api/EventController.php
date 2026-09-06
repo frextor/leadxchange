@@ -124,35 +124,38 @@ class EventController extends Controller
             $page
         );
 
-        // ── Past events (all public, paginated) ───────────────────
-        $pastPage    = max(1, (int) $request->input('past_page', 1));
-        $pastPerPage = 10;
-        $pastEvents  = Event::with(['sector:id,name', 'creator:id,first_name,last_name', 'creator.profile:user_id,avatar', 'city:id,name'])
-            ->where('is_public', true)
-            ->where('starts_at', '<', now())
-            ->when($activeCityId, fn($q) => $q->where('city_id', $activeCityId))
-            ->orderBy('starts_at', 'desc')
-            ->paginate($pastPerPage, ['*'], 'past_page', $pastPage);
 
         $lastPage = max(
             $myEventsPaginator->lastPage(),
             $participatingPaginator->lastPage(),
             $recommendedPaginator->lastPage(),
             $allPaginator->lastPage(),
-            $pastEvents->lastPage(),
         );
+
+
+        // Batch-load top-3 attendee avatar previews
+        $allEvIds = collect([$myEventsPaginator->getCollection(),$participatingPaginator->getCollection(),$recommendedPaginator->getCollection(),$allPaginator->getCollection()])->flatten()->pluck('id')->unique()->values()->all();
+        $rawPrev = \DB::table('event_user')->join('profiles','profiles.user_id','=','event_user.user_id')->whereIn('event_user.event_id',$allEvIds)->orderBy('event_user.user_id')->select('event_user.event_id','profiles.avatar')->get();
+        $previewsMap = [];
+        foreach ($rawPrev as $row) {
+            if (!isset($previewsMap[$row->event_id])) $previewsMap[$row->event_id] = [];
+            if (count($previewsMap[$row->event_id]) < 3 && $row->avatar) {
+                $url = str_starts_with($row->avatar,'http') ? $row->avatar : \Storage::disk('public')->url($row->avatar);
+                $previewsMap[$row->event_id][] = $url;
+            }
+        }
 
         return response()->json([
             'data' => [
                 'invitations' => $invitations,
-                'my_events'   => $myEventsPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
-                'participating' => $participatingPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
-                'recommended' => $recommendedPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
-                'all'         => $allPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
+                'my_events'   => $myEventsPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId, $previewsMap[$e->id] ?? []))->values(),
+                'participating' => $participatingPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId, $previewsMap[$e->id] ?? []))->values(),
+                'recommended' => $recommendedPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId, $previewsMap[$e->id] ?? []))->values(),
+                'all'         => $allPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId, $previewsMap[$e->id] ?? []))->values(),
                 // Legacy keys kept during mobile transition.
-                'nearby'      => $recommendedPaginator->getCollection()->filter(fn($e) => $activeCityId && $e->city_id === $activeCityId)->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
-                'others'      => $allPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
-                'past'        => $pastEvents->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId))->values(),
+                'nearby'      => $recommendedPaginator->getCollection()->filter(fn($e) => $activeCityId && $e->city_id === $activeCityId)->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId, $previewsMap[$e->id] ?? []))->values(),
+                'others'      => $allPaginator->getCollection()->map(fn($e) => $this->formatEvent($e, $attendingIds, $activeCityId, $previewsMap[$e->id] ?? []))->values(),
+                'past'        => [],
             ],
             'meta' => [
                 'total_public'       => $publicEvents->count(),
@@ -161,9 +164,9 @@ class EventController extends Controller
                 'last_page'          => $lastPage,
                 'per_page'           => $perPage,
                 'has_more'           => $page < $lastPage,
-                'past_current_page'  => $pastEvents->currentPage(),
-                'past_last_page'     => $pastEvents->lastPage(),
-                'past_has_more'      => $pastEvents->hasMorePages(),
+                'past_current_page'  => 1,
+                'past_last_page'     => 1,
+                'past_has_more'      => false,
             ],
         ]);
     }
@@ -440,6 +443,13 @@ class EventController extends Controller
             ], 403);
         }
 
+        $resolvedCityId = $validated['city_id'] ?? $user->city_id;
+        if ($resolvedCityId === null) {
+            return response()->json([
+                'message' => 'Please update your profile location before creating events.',
+            ], 422);
+        }
+
         $coverImagePath = null;
         if ($request->hasFile('cover_image')) {
             $coverImagePath = $request->file('cover_image')->store('events/covers', 'public');
@@ -459,7 +469,7 @@ class EventController extends Controller
             'starts_at'       => $validated['starts_at'],
             'ends_at'         => $validated['ends_at'] ?? null,
             'sector_id'       => $validated['sector_id'] ?? null,
-            'city_id'         => $validated['city_id'] ?? $user->city_id,
+            'city_id'         => $resolvedCityId,
             'cover_color'     => $validated['cover_color'] ?? '#1E8F88',
             'cover_image'     => $coverImagePath,
             'price'           => $validated['price'] ?? null,
@@ -634,7 +644,7 @@ class EventController extends Controller
         ]);
     }
 
-    private function formatEvent(Event $event, array $attendingIds, ?int $userCityId = null): array
+    private function formatEvent(Event $event, array $attendingIds, ?int $userCityId = null, array $previews = []): array
     {
         return [
             'id'              => $event->id,
@@ -664,6 +674,7 @@ class EventController extends Controller
                 'avatar' => $event->creator->profile?->avatar_url,
             ] : null,
             'created_at' => $event->created_at,
+            'attendee_previews' => $previews,
         ];
     }
 }
