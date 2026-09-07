@@ -51,9 +51,6 @@ class GroupController extends Controller
             ->whereIn('id', $invitedGroupIds);
         if ($request->filled('search')) $invitedQuery->where('name', 'like', '%' . $request->search . '%');
         $invitedPaginator = $invitedQuery->paginate($perPage, ['*'], 'page', $page);
-        $invited = $invitedPaginator->getCollection()
-            ->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole, true))
-            ->values();
 
         // ── My groups (paginated) ─────────────────────────────────────────
         $myGroupsQuery = Group::with(['sector:id,name', 'creator' => fn($q) => $q->select('id', 'first_name', 'last_name', 'email')->with('profile'), 'city:id,name'])
@@ -62,9 +59,6 @@ class GroupController extends Controller
             ->where('city_id', $userCityId);
         if ($request->filled('search')) $myGroupsQuery->where('name', 'like', '%' . $request->search . '%');
         $myGroupsPaginator = $myGroupsQuery->paginate($perPage, ['*'], 'page', $page);
-        $myGroups = $myGroupsPaginator->getCollection()
-            ->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole))
-            ->values();
 
         // ── Public groups not yet joined (paginated) ──────────────────────
         $excludedGroupIds = array_values(array_unique(array_merge($memberGroupIds, $invitedGroupIds)));
@@ -79,18 +73,48 @@ class GroupController extends Controller
         if ($request->filled('search'))   $publicQuery->where('name', 'like', '%' . $request->search . '%');
 
         $publicPaginator = $publicQuery->orderBy('members_count', 'desc')->paginate($perPage, ['*'], 'page', $page);
-        $mapped = $publicPaginator->getCollection()
-            ->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole));
+        $mapped = $publicPaginator->getCollection();
+
+        // Batch-load top-3 member avatar previews for all groups
+        $allGroupIds = array_unique(array_merge(
+            $invitedPaginator->getCollection()->pluck('id')->toArray(),
+            $myGroupsPaginator->getCollection()->pluck('id')->toArray(),
+            $mapped->pluck('id')->toArray(),
+        ));
+        $rawPrev = \DB::table('group_user')
+            ->join('profiles', 'profiles.user_id', '=', 'group_user.user_id')
+            ->whereIn('group_user.group_id', $allGroupIds)
+            ->whereNull('group_user.blocked_at')
+            ->orderBy('group_user.user_id')
+            ->select('group_user.group_id', 'profiles.avatar')
+            ->get();
+        $previewsMap = [];
+        foreach ($rawPrev as $row) {
+            if (!isset($previewsMap[$row->group_id])) $previewsMap[$row->group_id] = [];
+            if (count($previewsMap[$row->group_id]) < 3 && $row->avatar) {
+                $url = str_starts_with($row->avatar, 'http') ? $row->avatar : \Storage::disk('public')->url($row->avatar);
+                $previewsMap[$row->group_id][] = $url;
+            }
+        }
+
+        $mappedGroups = $mapped->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole, false, $previewsMap[$g->id] ?? []));
 
         $lastPage = max($invitedPaginator->lastPage(), $myGroupsPaginator->lastPage(), $publicPaginator->lastPage());
+
+        $invited = $invitedPaginator->getCollection()
+            ->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole, true, $previewsMap[$g->id] ?? []))
+            ->values();
+        $myGroups = $myGroupsPaginator->getCollection()
+            ->map(fn($g) => $this->formatGroup($g, $memberGroupIds, $userSectorIds, $userCityId, $user->id, $userRole, false, $previewsMap[$g->id] ?? []))
+            ->values();
 
         return response()->json([
             'data' => [
                 'invited'     => $invited,
                 'my_groups'   => $myGroups,
-                'nearby'      => $mapped->filter(fn($g) => $g['is_nearby'])->values(),
-                'recommended' => $mapped->filter(fn($g) => $g['is_recommended'] && !$g['is_nearby'])->values(),
-                'others'      => $mapped->filter(fn($g) => !$g['is_recommended'] && !$g['is_nearby'])->values(),
+                'nearby'      => $mappedGroups->filter(fn($g) => $g['is_nearby'])->values(),
+                'recommended' => $mappedGroups->filter(fn($g) => $g['is_recommended'] && !$g['is_nearby'])->values(),
+                'others'      => $mappedGroups->filter(fn($g) => !$g['is_recommended'] && !$g['is_nearby'])->values(),
             ],
             'meta' => [
                 'current_page' => $page,
@@ -779,7 +803,7 @@ class GroupController extends Controller
         ];
     }
 
-    private function formatGroup(Group $group, array $memberGroupIds, array $userSectorIds, ?int $userCityId, ?int $authUserId, array $userRoles = [], bool $isInvited = false): array
+    private function formatGroup(Group $group, array $memberGroupIds, array $userSectorIds, ?int $userCityId, ?int $authUserId, array $userRoles = [], bool $isInvited = false, array $memberPreviews = []): array
     {
         return [
             'id'              => $group->id,
@@ -804,6 +828,7 @@ class GroupController extends Controller
                 'avatar_url' => $group->creator->profile?->avatar_url,
             ] : null,
             'created_at'      => $group->created_at,
+            'member_previews' => $memberPreviews,
         ];
     }
 }
