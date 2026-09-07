@@ -411,7 +411,7 @@ class EventController extends Controller
         $user         = $request->user();
         $attendingIds = $user->events()->pluck('events.id')->toArray();
 
-        return response()->json(['data' => $this->formatEvent($event, $attendingIds, $user->city_id)]);
+        return response()->json(['data' => $this->formatEvent($event, $attendingIds, $user->city_id, [], $user->id)]);
     }
 
     public function store(Request $request): JsonResponse
@@ -578,6 +578,58 @@ class EventController extends Controller
         ]);
     }
 
+
+    public function update(int $id, Request $request): JsonResponse
+    {
+        $event = Event::findOrFail($id);
+        $user  = $request->user();
+
+        if ($event->created_by !== $user->id) {
+            return response()->json(['message' => 'Only the organizer can update this event.'], 403);
+        }
+
+        $validated = $request->validate([
+            'title'         => ['sometimes', 'required', 'string', 'max:150'],
+            'description'   => ['nullable', 'string', 'max:1000'],
+            'type'          => ['sometimes', 'required', 'in:virtual,in_person,hybrid'],
+            'scope'         => ['nullable', 'in:regional,private'],
+            'category'      => ['nullable', 'in:' . implode(',', array_keys(Event::categoryLabels()))],
+            'location'      => ['nullable', 'string', 'max:255'],
+            'meeting_link'  => ['nullable', 'url', 'max:500'],
+            'starts_at'     => ['sometimes', 'required', 'date'],
+            'ends_at'       => ['nullable', 'date'],
+            'sector_id'     => ['nullable', 'integer', 'exists:sectors,id'],
+            'city_id'       => ['nullable', 'integer', 'exists:cities,id'],
+            'cover_color'   => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'cover_image'   => ['nullable', 'image', 'max:2048'],
+            'price'         => ['nullable', 'numeric', 'min:0'],
+            'max_attendees' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        if ($request->hasFile('cover_image')) {
+            if ($event->cover_image) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($event->cover_image);
+            }
+            $validated['cover_image'] = $request->file('cover_image')->store('events/covers', 'public');
+        } else {
+            unset($validated['cover_image']);
+        }
+
+        if (isset($validated['scope'])) {
+            $validated['is_public'] = $validated['scope'] !== 'private';
+        }
+
+        $event->update($validated);
+        $event->refresh();
+
+        $attendingIds = $user->events()->pluck('events.id')->toArray();
+
+        return response()->json([
+            'message' => 'Event updated successfully.',
+            'data'    => $this->formatEvent($event->load(['sector', 'creator', 'creator.profile', 'city']), $attendingIds, $user->city_id, [], $user->id),
+        ]);
+    }
+
     public function destroy(int $id, Request $request): JsonResponse
     {
         $event = Event::findOrFail($id);
@@ -644,7 +696,7 @@ class EventController extends Controller
         ]);
     }
 
-    private function formatEvent(Event $event, array $attendingIds, ?int $userCityId = null, array $previews = []): array
+    private function formatEvent(Event $event, array $attendingIds, ?int $userCityId = null, array $previews = [], ?int $currentUserId = null): array
     {
         return [
             'id'              => $event->id,
@@ -665,6 +717,7 @@ class EventController extends Controller
             'attendees_count' => $event->attendees_count,
             'is_attending'    => in_array($event->id, $attendingIds),
             'is_upcoming'     => $event->starts_at->isFuture(),
+            'is_creator'      => $currentUserId !== null && $event->created_by === $currentUserId,
             'is_nearby'       => $userCityId !== null && $event->city_id === $userCityId,
             'sector'          => $event->sector ? ['id' => $event->sector->id, 'name' => $event->sector->name] : null,
             'city'            => $event->city   ? ['id' => $event->city->id,   'name' => $event->city->name]   : null,

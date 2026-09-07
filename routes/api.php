@@ -194,6 +194,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/events/{id}/invite/bulk',                     [ApiEventController::class, 'inviteBulk']);
     Route::post('/events/{id}/invite/group',                    [ApiEventController::class, 'inviteGroup']);
     Route::delete('/events/{id}',                               [ApiEventController::class, 'destroy']);
+    Route::put('/events/{id}',                                  [ApiEventController::class, 'update']);
     Route::get('/events/{id}/attendees',                        [ApiEventController::class, 'attendees']);
     Route::delete('/events/{id}/attendees/{userId}',            [ApiEventController::class, 'removeAttendee']);
 
