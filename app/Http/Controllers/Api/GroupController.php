@@ -292,6 +292,10 @@ class GroupController extends Controller
      */
     public function join(int $id, Request $request): JsonResponse
     {
+        if (!$request->user()->canFeature('can_join_pole')) {
+            return response()->json(['message' => 'Votre plan ne permet pas de rejoindre des groupes.'], 403);
+        }
+
         $group = Group::findOrFail($id);
         $user  = $request->user();
 
