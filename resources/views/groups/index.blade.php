@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Groups — LeadXchange')
+@section('title', 'Groupes — LeadXchange')
 
 @push('styles')
 <style>
@@ -42,15 +42,15 @@
     {{-- Header --}}
     <div class="flex items-center justify-between mb-6">
         <div>
-            <h1 class="text-2xl font-semibold text-gray-900 tracking-tight">Groups</h1>
-            <p class="text-sm text-gray-500 mt-1">Discover groups recommended based on your professional interests</p>
+            <h1 class="text-2xl font-semibold text-gray-900 tracking-tight">Groupes</h1>
+            <p class="text-sm text-gray-500 mt-1">Découvrez des groupes recommandés selon vos intérêts professionnels</p>
         </div>
         @if(auth()->user()->canFeature('can_create_pole'))
         <button onclick="document.getElementById('createGroupModal').classList.remove('hidden')"
             class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition"
             style="background:#1E8F88;" onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-            Create a group
+            Créer un groupe
         </button>
         @else
         <button type="button" onclick="openUpgradeModal('can_create_pole')"
@@ -67,7 +67,7 @@
     <div id="createGroupModal" class="{{ $errors->any() ? '' : 'hidden' }} fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.4);">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto">
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
-                <h2 class="font-semibold text-gray-900">Create a group</h2>
+                <h2 class="font-semibold text-gray-900">Créer un groupe</h2>
                 <button type="button" onclick="document.getElementById('createGroupModal').classList.add('hidden')"
                     class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -77,20 +77,20 @@
             <form method="POST" action="{{ route('groups.store') }}" enctype="multipart/form-data" class="px-6 py-5 space-y-4">
                 @csrf
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Group name <span class="text-red-400">*</span></label>
-                    <input type="text" name="name" value="{{ old('name') }}" placeholder="Ex: Sales & Business Dev Morocco"
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Nom du groupe <span class="text-red-400">*</span></label>
+                    <input type="text" name="name" value="{{ old('name') }}" placeholder="Ex: Ventes & Business Dev Maroc"
                         required maxlength="100" class="gr-input @error('name') border-red-400 @enderror">
                     @error('name') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
-                    <textarea name="description" rows="3" placeholder="What is this group about?" maxlength="500"
+                    <textarea name="description" rows="3" placeholder="De quoi s'agit-il ?" maxlength="500"
                         class="gr-input" style="height:auto;padding-top:10px;padding-bottom:10px;resize:none;">{{ old('description') }}</textarea>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Category</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Catégorie</label>
                     <select name="sector_id" class="gr-input" style="appearance:none;">
-                        <option value="">— No category —</option>
+                        <option value="">— Aucune catégorie —</option>
                         @foreach($sectors as $sector)
                             <option value="{{ $sector->id }}" {{ old('sector_id') == $sector->id ? 'selected' : '' }}>{{ $sector->name }}</option>
                         @endforeach
@@ -112,7 +112,7 @@
                         </div>
                     @else
                         <select name="city_id" class="gr-input" style="appearance:none;">
-                            <option value="">— No city —</option>
+                            <option value="">— Indifférent —</option>
                             @foreach($cities as $city)
                                 <option value="{{ $city->id }}" {{ old('city_id', auth()->user()->city_id) == $city->id ? 'selected' : '' }}>{{ $city->name }}</option>
                             @endforeach
@@ -121,8 +121,8 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">
-                        Cover photo
-                        <span class="text-gray-400 font-normal text-xs ml-1">(optional)</span>
+                        Photo de couverture
+                        <span class="text-gray-400 font-normal text-xs ml-1">(facultatif)</span>
                     </label>
                     <label id="photoDropzone"
                         class="flex flex-col items-center justify-center gap-2 w-full h-28 rounded-xl border-2 border-dashed border-gray-200 cursor-pointer transition hover:border-teal-400 hover:bg-teal-50 relative overflow-hidden">
@@ -130,8 +130,8 @@
                         <img id="coverPhotoPreview" src="" alt="" class="absolute inset-0 w-full h-full object-cover hidden">
                         <div id="photoPlaceholder" class="flex flex-col items-center gap-1 text-gray-400 pointer-events-none">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                            <span class="text-xs font-medium">Click or drag image</span>
-                            <span class="text-xs">JPG, PNG, WebP — max 2MB</span>
+                            <span class="text-xs font-medium">Cliquez ou glissez une image</span>
+                            <span class="text-xs">JPG, PNG, WebP — 2 Mo max</span>
                         </div>
                         <button type="button" id="removePhotoBtn"
                             class="hidden absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70"
@@ -141,7 +141,7 @@
                     </label>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Cover color</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Couleur de couverture</label>
                     <div class="flex gap-2 flex-wrap">
                         @foreach(['#1E8F88','#6366F1','#F59E0B','#EF4444','#8B5CF6','#EC4899','#10B981','#3B82F6'] as $color)
                         <label class="swatch-label">
@@ -153,9 +153,9 @@
                 </div>
                 <div class="flex gap-3 pt-2">
                     <button type="button" onclick="document.getElementById('createGroupModal').classList.add('hidden')"
-                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">Annuler</button>
                     <button type="submit" class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition"
-                        style="background:#1E8F88;" onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">Create</button>
+                        style="background:#1E8F88;" onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">Créer</button>
                 </div>
             </form>
         </div>
@@ -166,7 +166,7 @@
     <div id="inviteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.4);">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                <h2 class="font-semibold text-gray-900" id="inviteModalTitle">Invite a member</h2>
+                <h2 class="font-semibold text-gray-900" id="inviteModalTitle">Inviter un membre</h2>
                 <button type="button" onclick="closeInviteModal()"
                     class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -175,8 +175,8 @@
             <form id="inviteForm" method="POST" class="px-6 py-5 space-y-4">
                 @csrf
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Search a connection</label>
-                    <input type="text" id="inviteSearch" placeholder="Name…"
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Rechercher une connexion</label>
+                    <input type="text" id="inviteSearch" placeholder="Nom…"
                         class="gr-input" oninput="filterInviteUsers(this.value)">
                 </div>
                 <div id="inviteUserList" class="space-y-1 max-h-52 overflow-y-auto"></div>
@@ -184,11 +184,11 @@
                 <div id="inviteSelectedUser" class="hidden px-3 py-2 rounded-xl text-sm font-medium" style="background:#E6F7F4;color:#1E8F88;"></div>
                 <div class="flex gap-3 pt-1">
                     <button type="button" onclick="closeInviteModal()"
-                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">Annuler</button>
                     <button type="submit" id="inviteSubmitBtn" disabled
                         class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition disabled:opacity-40"
                         style="background:#1E8F88;" onmouseover="if(!this.disabled)this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
-                        Send invitation
+                        Envoyer l'invitation
                     </button>
                 </div>
             </form>
@@ -205,14 +205,14 @@
                     <div class="relative mb-4">
                         <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                         <input type="text" name="search" value="{{ request('search') }}"
-                            placeholder="Search groups…" class="gr-input pl-9"
+                            placeholder="Rechercher un groupe…" class="gr-input pl-9"
                             oninput="document.getElementById('filterForm').submit()">
                     </div>
 
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">Categories</p>
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">Catégories</p>
                     <div class="space-y-0.5">
                         <button type="button" data-cat="" class="cat-btn {{ !request('category') ? 'active' : '' }}">
-                            <span>All groups</span>
+                            <span>Tous les groupes</span>
                             <span class="text-xs font-normal">{{ $groups->count() }}</span>
                         </button>
                         @foreach($sectors as $sector)
@@ -231,7 +231,7 @@
 
                 @if($myGroups->isNotEmpty())
                 <div class="mt-4 pt-4 border-t border-gray-100 space-y-1">
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2">My groups</p>
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2">Mes groupes</p>
                     @foreach($myGroups->take(5) as $g)
                     <a href="{{ route('groups.show', $g->id) }}"
                        class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition text-sm text-gray-700 truncate">
@@ -240,14 +240,14 @@
                         <span class="truncate">{{ $g->name }}</span>
                         @php $r = $userRoles[$g->id] ?? null; @endphp
                         @if($r === 'owner')
-                            <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0" style="background:#FEF3C7;color:#92400E;">Owner</span>
+                            <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0" style="background:#FEF3C7;color:#92400E;">Propriétaire</span>
                         @elseif($r === 'admin')
                             <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0" style="background:#E6F7F4;color:#1E8F88;">Admin</span>
                         @endif
                     </a>
                     @endforeach
                     @if($myGroups->count() > 5)
-                    <p class="text-xs text-gray-400 px-2 pt-1">+ {{ $myGroups->count() - 5 }} more</p>
+                    <p class="text-xs text-gray-400 px-2 pt-1">+ {{ $myGroups->count() - 5 }} de plus</p>
                     @endif
                 </div>
                 @endif
@@ -289,7 +289,7 @@
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-semibold text-gray-900 truncate">{{ $inv->group->name }}</p>
                                 <p class="text-xs text-gray-400">
-                                    Invited by <strong class="text-gray-600">{{ $inv->inviter?->first_name }} {{ $inv->inviter?->last_name }}</strong>
+                                    Invité(e) par <strong class="text-gray-600">{{ $inv->inviter?->first_name }} {{ $inv->inviter?->last_name }}</strong>
                                     @if($inv->group->sector) · {{ $inv->group->sector->name }} @endif
                                 </p>
                             </div>
@@ -323,7 +323,7 @@
             @if($myGroups->isNotEmpty())
             <div>
                 <div class="flex items-center gap-2 mb-3">
-                    <h2 class="section-title">My groups</h2>
+                    <h2 class="section-title">Mes groupes</h2>
                     <span class="section-badge" style="background:#E6F7F4;color:#1E8F88;">{{ $myGroups->count() }}</span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -341,7 +341,7 @@
             @if($nearby->isNotEmpty())
             <div>
                 <div class="flex items-center gap-2 mb-3">
-                    <h2 class="section-title">Nearby</h2>
+                    <h2 class="section-title">À proximité</h2>
                     <span class="section-badge" style="background:#EFF6FF;color:#3B82F6;">{{ $nearby->count() }}</span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -358,7 +358,7 @@
             @if($recommended->isNotEmpty() && !request('category'))
             <div>
                 <div class="flex items-center gap-2 mb-3">
-                    <h2 class="section-title">Recommended for you</h2>
+                    <h2 class="section-title">Recommandés pour vous</h2>
                     <span class="section-badge" style="background:#E6F7F4;color:#1E8F88;">{{ $recommended->count() }}</span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -376,7 +376,7 @@
             <div>
                 <div class="flex items-center gap-2 mb-3">
                     <h2 class="section-title">
-                        {{ request('category') ? ($sectors->find(request('category'))?->name ?? 'Groups') : 'Other groups' }}
+                        {{ request('category') ? ($sectors->find(request('category'))?->name ?? 'Groupes') : 'Autres groupes' }}
                     </h2>
                     <span class="section-badge" style="background:#F3F4F6;color:#6B7280;">{{ $others->count() }}</span>
                 </div>
@@ -394,8 +394,8 @@
                 <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background:#E6F7F4;">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1E8F88" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 </div>
-                <p class="font-semibold text-gray-700">No groups found</p>
-                <p class="text-sm text-gray-400 mt-1">Try a different search or be the first to create one!</p>
+                <p class="font-semibold text-gray-700">Aucun groupe trouvé</p>
+                <p class="text-sm text-gray-400 mt-1">Essayez une autre recherche ou soyez le premier à en créer un !</p>
             </div>
             @endif
 
@@ -438,7 +438,7 @@ const groupConnections = @json($groupConnections);
         if (e.target === this) this.classList.add('hidden');
     });
 
-    // ── Cover photo preview ──
+    // ── Photo de couverture preview ──
     const photoInput  = document.getElementById('coverPhotoInput');
     const preview     = document.getElementById('coverPhotoPreview');
     const placeholder = document.getElementById('photoPlaceholder');
@@ -465,7 +465,7 @@ const groupConnections = @json($groupConnections);
     let inviteUsers = [];
 
     function openInviteModal(groupId, groupName) {
-        document.getElementById('inviteModalTitle').textContent = 'Invite to ' + groupName;
+        document.getElementById('inviteModalTitle').textContent = 'Inviter à ' + groupName;
         document.getElementById('inviteForm').action = `/groups/${groupId}/invite`;
         document.getElementById('inviteSearch').value = '';
         document.getElementById('inviteUserId').value = '';
@@ -484,7 +484,7 @@ const groupConnections = @json($groupConnections);
     function renderInviteUsers(list) {
         const container = document.getElementById('inviteUserList');
         if (list.length === 0) {
-            container.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">No connections found</p>';
+            container.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Aucune connexion trouvée</p>';
             return;
         }
         container.innerHTML = list.map(u => `

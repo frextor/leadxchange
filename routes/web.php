@@ -160,6 +160,11 @@ Route::middleware(['auth', 'user', 'email.verified', 'cgu'])->group(function () 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/home',      [DashboardController::class, 'index']);
 
+    // Guided onboarding wizard (shown once, right after registration)
+    Route::get('/onboarding',      [\App\Http\Controllers\OnboardingController::class, 'show'])->name('onboarding.show');
+    Route::post('/onboarding',     [\App\Http\Controllers\OnboardingController::class, 'update'])->name('onboarding.update');
+    Route::post('/onboarding/skip', [\App\Http\Controllers\OnboardingController::class, 'skip'])->name('onboarding.skip');
+
     // Upgrade / Plans
     Route::get('/upgrade', function () {
         // Consul et Ambassadeur sont des badges/rôles attribués par l'admin ou sur demande,

@@ -2,7 +2,7 @@
     use Illuminate\Support\Facades\Storage;
 
     $typeColors  = ['virtual' => '#6366F1', 'in_person' => '#1E8F88', 'hybrid' => '#F59E0B'];
-    $typeLabels  = ['virtual' => 'Virtual', 'in_person' => 'In-person', 'hybrid' => 'Hybrid'];
+    $typeLabels  = ['virtual' => 'Virtuel', 'in_person' => 'Présentiel', 'hybrid' => 'Hybride'];
     $typeColor   = $typeColors[$event->type] ?? $event->cover_color;
     $typeLabel   = $typeLabels[$event->type] ?? $event->type;
     $isPast      = $event->starts_at->isPast();
@@ -96,7 +96,7 @@
                 <path d="M15 7h3a5 5 0 0 1 5 5 5 5 0 0 1-5 5h-3m-6 0H6a5 5 0 0 1-5-5 5 5 0 0 1 5-5h3"/>
                 <line x1="8" y1="12" x2="16" y2="12"/>
             </svg>
-            Online
+            En ligne
         </div>
         @endif
 
@@ -134,14 +134,14 @@
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
-            {{ number_format($event->attendees_count) }} attending
+            {{ number_format($event->attendees_count) }} participant(s)
         </div>
         @endif
 
         {{-- Action button --}}
         @if($isPast)
         <button disabled class="w-full py-2 rounded-xl text-xs font-semibold bg-gray-100 text-gray-400 cursor-default">
-            Event ended
+            Événement terminé
         </button>
         @elseif($isOrganizer)
         <div class="flex gap-2" onclick="event.stopPropagation()">

@@ -15,7 +15,10 @@
       "Bash(curl -sL -o d3.png \"https://www.figma.com/api/mcp/asset/c5d31b65-96d2-4090-9e8d-36afac957896.png\")",
       "Bash(curl -sL -o d4.png \"https://www.figma.com/api/mcp/asset/776cd09b-7acc-4366-b872-a621fb2afa31.png\")",
       "Bash(curl -sL -o d5.png \"https://www.figma.com/api/mcp/asset/4fab2b0f-b2a8-4767-94cc-7a28294f5320.png\")",
-      "Bash(curl -sL -o d7.png \"https://www.figma.com/api/mcp/asset/7478d1c3-d6dd-454f-85eb-75e03263b48d.png\")"
+      "Bash(curl -sL -o d7.png \"https://www.figma.com/api/mcp/asset/7478d1c3-d6dd-454f-85eb-75e03263b48d.png\")",
+      "Bash(php -l resources/views/events/index.blade.php)",
+      "Bash(php -l resources/views/events/_card.blade.php)",
+      "Bash(php -l resources/views/events/show.blade.php)"
     ]
   }
 }

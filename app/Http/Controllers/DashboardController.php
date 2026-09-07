@@ -24,6 +24,10 @@ class DashboardController extends Controller
 
     public function index(Request $request)
     {
+        if (! $request->user()->onboarding_completed) {
+            return redirect()->route('onboarding.show');
+        }
+
         $user = $request->user()->load(['profile', 'subscription.plan', 'interests', 'company']);
 
         $connectedIds = Connection::where(function ($q) use ($user) {

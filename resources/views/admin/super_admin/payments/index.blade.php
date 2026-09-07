@@ -24,7 +24,7 @@
 </div>
 
 {{-- Stats KPI --}}
-<div class="grid grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Abonnements actifs</p>
         <p class="text-2xl font-bold text-gray-900">{{ number_format($stats['active_subs']) }}</p>
@@ -40,6 +40,14 @@
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Paiements événements</p>
         <p class="text-2xl font-bold text-gray-900">{{ number_format($stats['evt_count']) }}</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Revenus points</p>
+        <p class="text-2xl font-bold text-amber-600">{{ number_format($stats['points_revenue'], 2) }} €</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Points vendus</p>
+        <p class="text-2xl font-bold text-gray-900">{{ number_format($stats['points_sold']) }}</p>
     </div>
 </div>
 
@@ -57,6 +65,13 @@
         Événements
         <span class="ml-1.5 text-xs font-bold px-1.5 py-0.5 rounded-full {{ $tab === 'events' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-200 text-gray-500' }}">
             {{ $eventPayments->total() }}
+        </span>
+    </a>
+    <a href="{{ request()->fullUrlWithQuery(['tab' => 'points']) }}"
+       class="px-4 py-1.5 rounded-lg text-sm font-semibold transition {{ $tab === 'points' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700' }}">
+        Achats de points
+        <span class="ml-1.5 text-xs font-bold px-1.5 py-0.5 rounded-full {{ $tab === 'points' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-200 text-gray-500' }}">
+            {{ $pointsPayments->total() }}
         </span>
     </a>
 </div>
@@ -380,6 +395,128 @@
             @endif
             @if($eventPayments->hasMorePages())
             <a href="{{ $eventPayments->nextPageUrl() }}" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 border border-gray-100 transition">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            </a>
+            @else
+            <span class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-200 cursor-not-allowed border border-gray-100">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            </span>
+            @endif
+        </div>
+    </div>
+    @endif
+</div>
+@endif
+
+{{-- ── Tab: Achats de points ─────────────────────────────────────────────────── --}}
+@if($tab === 'points')
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+
+    {{-- Filters --}}
+    <form method="GET" class="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+        <input type="hidden" name="tab" value="points">
+        <div class="relative flex-1 max-w-xs">
+            <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Nom, email…"
+                   class="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-50 transition placeholder-gray-300">
+        </div>
+        <button type="submit" class="h-9 px-4 rounded-xl text-xs font-semibold text-white transition hover:opacity-90" style="background:#6366F1;">Filtrer</button>
+        @if(request()->hasAny(['search']) && $tab === 'points')
+        <a href="{{ route('admin.super.payments.index', ['tab' => 'points']) }}"
+           class="h-9 px-3 rounded-xl text-xs font-medium text-gray-500 border border-gray-200 flex items-center gap-1 hover:bg-gray-50 transition">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg> Reset
+        </a>
+        @endif
+    </form>
+
+    {{-- Table header --}}
+    <div class="grid grid-cols-[1fr_110px_110px_110px_130px_48px] px-5 py-2 border-b border-gray-50 bg-gray-50/60">
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Membre</p>
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Points</p>
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Montant</p>
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Origine</p>
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Date</p>
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"></p>
+    </div>
+
+    {{-- Rows --}}
+    @forelse($pointsPayments as $pmt)
+    <div class="grid grid-cols-[1fr_110px_110px_110px_130px_48px] items-center px-5 py-3 border-b border-gray-50 last:border-b-0 hover:bg-slate-50/50 transition-colors">
+
+        {{-- User --}}
+        <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
+                 style="background:linear-gradient(135deg,#F59E0B,#D97706);">
+                {{ strtoupper(substr($pmt->user?->first_name ?? '?', 0, 1)) }}
+            </div>
+            <div class="min-w-0">
+                <p class="text-sm font-semibold text-gray-900 truncate leading-none">
+                    {{ $pmt->user?->first_name }} {{ $pmt->user?->last_name }}
+                </p>
+                <p class="text-[11px] text-gray-400 truncate mt-0.5">{{ $pmt->user?->email }}</p>
+            </div>
+        </div>
+
+        {{-- Points --}}
+        <p class="text-sm font-semibold text-amber-600">⭐ {{ $pmt->points_purchased }}</p>
+
+        {{-- Amount --}}
+        <p class="text-sm font-semibold text-gray-900">
+            {{ number_format($pmt->amount, 2) }} {{ strtoupper($pmt->currency) }}
+        </p>
+
+        {{-- Source --}}
+        <span class="inline-flex items-center px-2 py-1 rounded-lg text-[11px] font-semibold w-fit
+            {{ $pmt->source === 'negative_balance_topup' ? 'bg-red-50 text-red-600' : 'bg-indigo-50 text-indigo-600' }}">
+            {{ $pmt->source === 'negative_balance_topup' ? 'Remise à 0' : 'Achat libre' }}
+        </span>
+
+        {{-- Date --}}
+        <div>
+            <p class="text-sm text-gray-700">{{ $pmt->created_at->format('d/m/Y') }}</p>
+            <p class="text-[11px] text-gray-400">{{ $pmt->created_at->format('H:i') }}</p>
+        </div>
+
+        {{-- Stripe link --}}
+        @if($pmt->stripe_payment_intent_id)
+        <a href="https://dashboard.stripe.com/payments/{{ $pmt->stripe_payment_intent_id }}"
+           target="_blank"
+           title="Voir sur Stripe"
+           class="w-8 h-8 rounded-lg flex items-center justify-center text-indigo-400 hover:bg-indigo-50 hover:text-indigo-600 transition mx-auto">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+        @else
+        <span></span>
+        @endif
+
+    </div>
+    @empty
+    <div class="px-5 py-16 text-center">
+        <div class="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-3">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <p class="text-sm font-semibold text-gray-400">Aucun achat de points trouvé</p>
+    </div>
+    @endforelse
+
+    {{-- Pagination --}}
+    @if($pointsPayments->hasPages())
+    <div class="px-5 py-3.5 border-t border-gray-100 flex items-center justify-between">
+        <p class="text-xs text-gray-400">
+            {{ $pointsPayments->firstItem() }}–{{ $pointsPayments->lastItem() }} sur {{ $pointsPayments->total() }}
+        </p>
+        <div class="flex items-center gap-1">
+            @if($pointsPayments->onFirstPage())
+            <span class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-200 cursor-not-allowed border border-gray-100">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+            </span>
+            @else
+            <a href="{{ $pointsPayments->previousPageUrl() }}" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 border border-gray-100 transition">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+            </a>
+            @endif
+            @if($pointsPayments->hasMorePages())
+            <a href="{{ $pointsPayments->nextPageUrl() }}" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 border border-gray-100 transition">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
             </a>
             @else

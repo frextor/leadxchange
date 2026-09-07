@@ -18,7 +18,7 @@
 
         {{-- Role badge (top-left) --}}
         @if($userRole === 'owner')
-        <span class="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold" style="background:#FEF3C7;color:#92400E;">Owner</span>
+        <span class="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold" style="background:#FEF3C7;color:#92400E;">Propriétaire</span>
         @elseif($userRole === 'admin')
         <span class="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold" style="background:#E6F7F4;color:#1E8F88;">Admin</span>
         @endif
@@ -40,7 +40,7 @@
         <div class="flex items-center justify-between mt-3">
             <div class="flex items-center gap-1 text-xs text-gray-400">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                {{ number_format($group->members_count) }} members
+                {{ number_format($group->members_count) }} membres
             </div>
 
             <div class="flex items-center gap-1.5" onclick="event.stopPropagation()">
@@ -50,7 +50,7 @@
                     onclick="openInviteModal({{ $group->id }}, '{{ addslashes($group->name) }}')"
                     class="px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition flex items-center gap-1">
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-                    Invite
+                    Inviter
                 </button>
                 @endif
 
@@ -63,7 +63,7 @@
                         class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition"
                         style="border-color:#1E8F88;color:#1E8F88;"
                         onmouseover="this.style.background='#E6F7F4'" onmouseout="this.style.background='transparent'">
-                        Leave
+                        Quitter
                     </button>
                 </form>
                 @else
@@ -71,7 +71,7 @@
                    class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition"
                    style="background:#1E8F88;"
                    onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
-                    Manage
+                    Gérer
                 </a>
                 @endif
                 @else
@@ -82,7 +82,7 @@
                         class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition"
                         style="background:#1E8F88;"
                         onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
-                        Join
+                        Rejoindre
                     </button>
                 </form>
                 @else
@@ -90,7 +90,7 @@
                         class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-dashed transition inline-flex items-center gap-1 cursor-pointer"
                         style="border-color:#6366F1;color:#6366F1;background:transparent;">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    Upgrade
+                    Passer au niveau supérieur
                 </button>
                 @endif
                 @endif

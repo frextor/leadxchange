@@ -47,7 +47,7 @@
                     <div class="flex items-center gap-2">
                         <h1 class="text-xl font-bold text-gray-900 leading-tight">{{ $group->name }}</h1>
                         @if($isOwner)
-                            <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold role-badge-owner">Owner</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold role-badge-owner">Propriétaire</span>
                         @elseif($isAdmin)
                             <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold role-badge-admin">Admin</span>
                         @endif
@@ -476,7 +476,7 @@
                                 <p class="text-sm font-semibold text-gray-900 truncate leading-tight">
                                     {{ $member->first_name }} {{ $member->last_name }}
                                     @if($member->pivot->role === 'owner')
-                                        <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-semibold role-badge-owner">Owner</span>
+                                        <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-semibold role-badge-owner">Propriétaire</span>
                                     @elseif($member->pivot->role === 'admin')
                                         <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium role-badge-admin">Admin</span>
                                     @endif

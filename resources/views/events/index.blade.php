@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Events — LeadXchange')
+@section('title', 'Événements — LeadXchange')
 
 @push('styles')
 <style>
@@ -67,7 +67,7 @@
     {{-- Header --}}
     <div class="flex items-center justify-between mb-6">
         <div>
-            <h1 class="text-2xl font-semibold text-gray-900 tracking-tight">Events</h1>
+            <h1 class="text-2xl font-semibold text-gray-900 tracking-tight">Événements</h1>
             <p class="text-sm text-gray-500 mt-1">Découvrez et rejoignez des événements professionnels de votre réseau</p>
         </div>
         @if(auth()->user()->canFeature('can_organize_group_events'))
@@ -75,15 +75,15 @@
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition"
                 style="background:#1E8F88;" onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-            Organize an event
+            Organiser un événement
         </button>
         @else
         <button type="button" onclick="openUpgradeModal('can_organize_group_events')"
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border-2 border-dashed border-teal-200 text-teal-500 hover:border-teal-400 hover:bg-teal-50/50 transition cursor-pointer"
                 style="background:transparent;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            Organize an event
-            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-600">Upgrade</span>
+            Organiser un événement
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-600">Passer au niveau supérieur</span>
         </button>
         @endif
     </div>
@@ -95,7 +95,7 @@
          style="background:rgba(0,0,0,0.5);">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
-                <h2 class="font-semibold text-gray-900">Organize an event</h2>
+                <h2 class="font-semibold text-gray-900">Organiser un événement</h2>
                 <button type="button" onclick="document.getElementById('createEventModal').classList.add('hidden')"
                         class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -105,7 +105,7 @@
                 @csrf
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Title <span class="text-red-400">*</span></label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Titre <span class="text-red-400">*</span></label>
                     <input type="text" name="title" value="{{ old('title') }}"
                            placeholder="Ex: B2B Networking Casablanca Spring Edition"
                            required maxlength="150"
@@ -121,17 +121,17 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Type <span class="text-red-400">*</span></label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Type d'événement <span class="text-red-400">*</span></label>
                         <select name="type" id="evType" required class="gr-input" style="appearance:none;" onchange="toggleTypeFields()">
-                            <option value="virtual"   {{ old('type','virtual') === 'virtual'   ? 'selected' : '' }}>Virtual</option>
-                            <option value="in_person" {{ old('type') === 'in_person' ? 'selected' : '' }}>In-person</option>
-                            <option value="hybrid"    {{ old('type') === 'hybrid'    ? 'selected' : '' }}>Hybrid</option>
+                            <option value="virtual"   {{ old('type','virtual') === 'virtual'   ? 'selected' : '' }}>Virtuel</option>
+                            <option value="in_person" {{ old('type') === 'in_person' ? 'selected' : '' }}>Présentiel</option>
+                            <option value="hybrid"    {{ old('type') === 'hybrid'    ? 'selected' : '' }}>Hybride</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Category</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Catégorie</label>
                         <select name="category" class="gr-input" style="appearance:none;">
-                            <option value="">— None —</option>
+                            <option value="">— Aucune —</option>
                             @foreach($categoryLabels as $key => $label)
                             <option value="{{ $key }}" {{ old('category') === $key ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
@@ -140,14 +140,14 @@
                 </div>
 
                 <div id="fieldLocation" class="{{ old('type','virtual') === 'virtual' ? 'hidden' : '' }}">
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Location</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Lieu</label>
                     <input type="text" name="location" value="{{ old('location') }}"
                            placeholder="Ex: 23 Rue des Entreprises, Casablanca"
                            maxlength="255" class="gr-input @error('location') border-red-400 @enderror">
                 </div>
 
                 <div id="fieldMeetingLink" class="{{ old('type') === 'in_person' ? 'hidden' : '' }}">
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Meeting link</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Lien de la réunion</label>
                     <input type="url" name="meeting_link" value="{{ old('meeting_link') }}"
                            placeholder="https://meet.google.com/…"
                            maxlength="500" class="gr-input @error('meeting_link') border-red-400 @enderror">
@@ -168,9 +168,9 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Sector</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Secteur</label>
                         <select name="sector_id" class="gr-input" style="appearance:none;">
-                            <option value="">— Any —</option>
+                            <option value="">— Indifférent —</option>
                             @foreach($sectors as $sector)
                             <option value="{{ $sector->id }}" {{ old('sector_id') == $sector->id ? 'selected' : '' }}>{{ $sector->name }}</option>
                             @endforeach
@@ -192,7 +192,7 @@
                             </div>
                         @else
                             <select name="city_id" class="gr-input" style="appearance:none;">
-                                <option value="">— Any —</option>
+                                <option value="">— Indifférent —</option>
                                 @foreach($cities as $city)
                                 <option value="{{ $city->id }}"
                                     {{ old('city_id', auth()->user()->city_id) == $city->id ? 'selected' : '' }}>
@@ -208,17 +208,17 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Prix ({{ currency_symbol() }})</label>
                         <input type="number" name="price" value="{{ old('price') }}"
-                               placeholder="0 = Free" min="0" step="0.01" class="gr-input">
+                               placeholder="0 = Gratuit" min="0" step="0.01" class="gr-input">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Max attendees</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Participants max</label>
                         <input type="number" name="max_attendees" value="{{ old('max_attendees') }}"
-                               placeholder="Unlimited" min="1" class="gr-input">
+                               placeholder="Illimité" min="1" class="gr-input">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Cover</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Couverture</label>
                     <div class="flex gap-2 mb-3">
                         <button type="button" id="btnCoverPhoto" onclick="switchCoverMode('photo')"
                                 class="flex-1 py-2 rounded-lg text-xs font-semibold border transition"
@@ -307,7 +307,7 @@
                     <button type="submit" id="inviteSubmitBtn" disabled
                             class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition disabled:opacity-40"
                             style="background:#1E8F88;" onmouseover="if(!this.disabled)this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
-                        Send invitation
+                        Envoyer l'invitation
                     </button>
                 </div>
             </form>
@@ -360,7 +360,7 @@
                         @endforeach
                     </div>
 
-                    <p class="ev-sidebar-title">When</p>
+                    <p class="ev-sidebar-title">Quand</p>
                     <div class="space-y-0.5 mb-4">
                         @foreach([''=>'Toutes les dates','today'=>'Aujourd\'hui','this_week'=>'Cette semaine','this_month'=>'Ce mois-ci'] as $val => $lbl)
                         <button type="button" onclick="setFilter('when','{{ $val }}')"
@@ -370,7 +370,7 @@
                         @endforeach
                     </div>
 
-                    <p class="ev-sidebar-title">Price</p>
+                    <p class="ev-sidebar-title">Prix</p>
                     <div class="space-y-0.5">
                         @foreach([''=>'Tous les prix','free'=>'Gratuit','paid'=>'Payant'] as $val => $lbl)
                         <button type="button" onclick="setFilter('price_filter','{{ $val }}')"
@@ -383,7 +383,7 @@
 
                 @if($myEvents->isNotEmpty())
                 <div class="mt-4 pt-4 border-t border-gray-100 space-y-1">
-                    <p class="ev-sidebar-title">My events</p>
+                    <p class="ev-sidebar-title">Mes événements</p>
                     @foreach($myEvents->take(5) as $e)
                     <a href="{{ route('events.show', $e->id) }}"
                        class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition text-sm text-gray-700 truncate">
@@ -393,12 +393,12 @@
                         </span>
                         <span class="truncate">{{ $e->title }}</span>
                         @if($e->created_by === auth()->id())
-                        <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0" style="background:#FEF3C7;color:#92400E;">Host</span>
+                        <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0" style="background:#FEF3C7;color:#92400E;">Organisateur</span>
                         @endif
                     </a>
                     @endforeach
                     @if($myEvents->count() > 5)
-                    <p class="text-xs text-gray-400 px-2 pt-1">+ {{ $myEvents->count() - 5 }} more</p>
+                    <p class="text-xs text-gray-400 px-2 pt-1">+ {{ $myEvents->count() - 5 }} de plus</p>
                     @endif
                 </div>
                 @endif
@@ -428,7 +428,7 @@
                 <div class="flex items-center gap-2 mb-3">
                     <h2 class="section-title">Invitations</h2>
                     <span class="section-badge" style="background:#FEF3C7;color:#92400E;">
-                        {{ $pendingInvitations->count() }} pending
+                        {{ $pendingInvitations->count() }} en attente
                     </span>
                 </div>
                 <div class="bg-white rounded-2xl border border-amber-200 overflow-hidden shadow-sm">
@@ -448,7 +448,7 @@
                                 <p class="text-xs text-gray-400">
                                     {{ $inv->event->starts_at->isoFormat('ddd, D MMM · H:mm') }}
                                     &nbsp;·&nbsp;
-                                    Invited by <strong class="text-gray-600">{{ $inv->inviter?->first_name }} {{ $inv->inviter?->last_name }}</strong>
+                                    Invité par <strong class="text-gray-600">{{ $inv->inviter?->first_name }} {{ $inv->inviter?->last_name }}</strong>
                                     @if($inv->event->sector) &nbsp;·&nbsp; {{ $inv->event->sector->name }} @endif
                                 </p>
                             </div>
@@ -482,7 +482,7 @@
             @if($myEvents->isNotEmpty())
             <div>
                 <div class="flex items-center gap-2 mb-3">
-                    <h2 class="section-title">My events</h2>
+                    <h2 class="section-title">Mes événements</h2>
                     <span class="section-badge" style="background:#E6F7F4;color:#1E8F88;">{{ $myEvents->count() }}</span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -499,7 +499,7 @@
             @if($nearby->isNotEmpty())
             <div>
                 <div class="flex items-center gap-2 mb-3">
-                    <h2 class="section-title">Near you</h2>
+                    <h2 class="section-title">Près de vous</h2>
                     <span class="section-badge" style="background:#EFF6FF;color:#3B82F6;">{{ $nearby->count() }}</span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -534,7 +534,7 @@
             <div>
                 <div class="flex items-center gap-2 mb-3">
                     <h2 class="section-title">
-                        {{ request('category') ? ($categoryLabels[request('category')] ?? 'Events') : 'Other events' }}
+                        {{ request('category') ? ($categoryLabels[request('category')] ?? 'Événements') : 'Autres événements' }}
                     </h2>
                     <span class="section-badge" style="background:#F3F4F6;color:#6B7280;">{{ $others->count() }}</span>
                 </div>
@@ -552,7 +552,7 @@
             @if($pastEvents->isNotEmpty())
             <div>
                 <div class="flex items-center gap-2 mb-3">
-                    <h2 class="section-title">Past events</h2>
+                    <h2 class="section-title">Événements passés</h2>
                     <span class="section-badge" style="background:#F3F4F6;color:#6B7280;">{{ $pastEvents->count() }}</span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 opacity-80">
@@ -578,7 +578,7 @@
                         class="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition"
                         style="background:#1E8F88;" onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-                    Organize an event
+                    Organiser un événement
                 </button>
             </div>
             @endif

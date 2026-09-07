@@ -26,7 +26,7 @@
 @section('content')
 @php
     $typeColors   = ['virtual' => '#6366F1', 'in_person' => '#1E8F88', 'hybrid' => '#F59E0B'];
-    $typeLabels   = ['virtual' => 'Virtual', 'in_person' => 'In-person', 'hybrid' => 'Hybrid'];
+    $typeLabels   = ['virtual' => 'Virtuel', 'in_person' => 'Présentiel', 'hybrid' => 'Hybride'];
     $typeColor    = $typeColors[$event->type] ?? $event->cover_color;
     $typeLabel    = $typeLabels[$event->type] ?? $event->type;
     $isPast       = $event->starts_at->isPast();
@@ -83,7 +83,7 @@
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-2xl font-bold text-gray-900 leading-tight">{{ $event->title }}</h1>
                     @if($isOrganizer)
-                    <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold" style="background:#FEF3C7;color:#92400E;">Organizer</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold" style="background:#FEF3C7;color:#92400E;">Organisateur</span>
                     @endif
                     @if(!$event->is_public)
                     <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold" style="background:#EDE9FE;color:#5B21B6;">Privé</span>
@@ -114,7 +114,7 @@
                         <line x1="19" y1="8" x2="19" y2="14"/>
                         <line x1="22" y1="11" x2="16" y2="11"/>
                     </svg>
-                    Invite
+                    Inviter
                 </button>
                 @if($organizerGroups->isNotEmpty())
                 <button type="button" onclick="openInviteGroupModal()"
@@ -125,7 +125,7 @@
                         <circle cx="9" cy="7" r="4"/>
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
                     </svg>
-                    Inviter un groupe
+                    Inviterr un groupe
                 </button>
                 @endif
                 <form method="POST" action="{{ route('events.destroy', $event->id) }}"
@@ -382,7 +382,7 @@
                                 <p class="text-sm font-semibold text-gray-900 truncate leading-tight">
                                     {{ $attendee->first_name }} {{ $attendee->last_name }}
                                     @if($attendee->pivot->role === 'organizer')
-                                    <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium" style="background:#FEF3C7;color:#92400E;">Organizer</span>
+                                    <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium" style="background:#FEF3C7;color:#92400E;">Organisateur</span>
                                     @endif
                                 </p>
                                 @if($attendee->profile?->job_title)
@@ -710,7 +710,7 @@ document.getElementById('inviteModal').addEventListener('click', function(e) {
                 <button type="submit"
                         class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition"
                         style="background:#6366F1;" onmouseover="this.style.background='#4F46E5'" onmouseout="this.style.background='#6366F1'">
-                    Inviter le groupe
+                    Inviterr le groupe
                 </button>
             </div>
         </form>

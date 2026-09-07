@@ -112,6 +112,12 @@ class RegisterController extends Controller
                 'sector_id'          => $validated['sector_id'],     // §4.1
             ]);
 
+            // The registration form already collects the account & step-2 info,
+            // but the guided onboarding (photo, entreprise, préférences, présentation)
+            // still needs to run — updateProfile() marks onboarding as completed,
+            // so we reset it here to route the user through that wizard next.
+            $user->update(['onboarding_completed' => false]);
+
             // Traitement du parrainage
             $referralToken = $validated['referral_token'] ?? $request->session()->get('referral_token');
             if ($referralToken) {
@@ -144,8 +150,8 @@ class RegisterController extends Controller
             $token = $user->createToken('web-spa')->plainTextToken;
             $request->session()->put('web_api_token', $token);
 
-            // Redirect with success message to dashboard
-            return redirect()->route('dashboard')
+            // Redirect to the guided onboarding wizard before the dashboard
+            return redirect()->route('onboarding.show')
                 ->with('success', 'Compte créé avec succès ! Bienvenue ' . $user->first_name . ' !');
         } catch (\Exception $e) {
             return back()
