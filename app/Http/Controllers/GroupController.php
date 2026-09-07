@@ -649,11 +649,15 @@ class GroupController extends Controller
         $user  = $request->user();
 
         if ($group->isBlocked($user->id)) {
-            return back()->with('error', 'Vous avez été bloqué de ce groupe.');
+            return $request->expectsJson()
+                ? response()->json(['message' => 'Vous avez été bloqué de ce groupe.'], 403)
+                : back()->with('error', 'Vous avez été bloqué de ce groupe.');
         }
 
         if ($group->isMember($user->id)) {
-            return back()->with('info', 'Vous êtes déjà membre de ce groupe.');
+            return $request->expectsJson()
+                ? response()->json(['message' => 'Vous êtes déjà membre de ce groupe.'], 422)
+                : back()->with('info', 'Vous êtes déjà membre de ce groupe.');
         }
 
         $existing = GroupInvitation::where('group_id', $id)
@@ -663,7 +667,9 @@ class GroupController extends Controller
             ->exists();
 
         if ($existing) {
-            return back()->with('info', 'Votre demande est déjà en attente.');
+            return $request->expectsJson()
+                ? response()->json(['message' => 'Votre demande est déjà en attente.'], 422)
+                : back()->with('info', 'Votre demande est déjà en attente.');
         }
 
         GroupInvitation::create([
@@ -708,7 +714,9 @@ class GroupController extends Controller
 
         ActivityLogger::log('group.join_requested', "{$user->first_name} {$user->last_name} a demandé à rejoindre le groupe « {$group->name} »", $user->id, $group);
 
-        return back()->with('success', 'Demande envoyée — le responsable du groupe vous répondra bientôt.');
+        return $request->expectsJson()
+            ? response()->json(['message' => 'Demande envoyée — le responsable du groupe vous répondra bientôt.'], 200)
+            : back()->with('success', 'Demande envoyée — le responsable du groupe vous répondra bientôt.');
     }
 
     public function approveRequest(Request $request, int $id, int $userId)
