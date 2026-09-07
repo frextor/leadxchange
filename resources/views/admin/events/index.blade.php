@@ -98,7 +98,7 @@
         </div>
 
         <div class="flex items-end gap-2 ml-auto">
-            <button type="submit" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white transition hover:opacity-90" style="background:#0D9488;">
+            <button type="submit" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white transition hover:opacity-90" style="background:#2F44E0;">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                 Filtrer
             </button>
@@ -145,7 +145,7 @@
                     $isPast  = $event->ends_at && $event->ends_at < $now;
                     $isNow   = $event->starts_at <= $now && (!$event->ends_at || $event->ends_at > $now);
                     $isFuture = $event->starts_at > $now;
-                    $colorHex = $event->cover_color ?? '#0D9488';
+                    $colorHex = $event->cover_color ?? '#2F44E0';
                 @endphp
                 <tr class="hover:bg-gray-50/50 transition {{ $isPast ? 'opacity-60' : '' }}">
 
@@ -170,7 +170,7 @@
                         @if($event->creator)
                         <div class="flex items-center gap-2">
                             <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
-                                 style="background:linear-gradient(135deg,#34d4bf,#1E8F88);">
+                                 style="background:linear-gradient(135deg,#7181ED,#2F44E0);">
                                 {{ strtoupper(substr($event->creator->first_name, 0, 1)) }}
                             </div>
                             <span class="text-sm text-gray-700 font-medium">{{ $event->creator->first_name }} {{ $event->creator->last_name }}</span>

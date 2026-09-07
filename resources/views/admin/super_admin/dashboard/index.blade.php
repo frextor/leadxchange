@@ -12,7 +12,7 @@
 <div class="flex items-center justify-between mb-4">
     <div>
         <h1 class="text-2xl font-bold text-gray-900 tracking-tight">
-            Bonjour, <span style="color:#0D9488;">{{ auth()->user()->first_name }}</span> 👋
+            Bonjour, <span style="color:#2F44E0;">{{ auth()->user()->first_name }}</span> 👋
         </h1>
         <p class="text-sm text-gray-400 mt-0.5">{{ now()->locale('fr')->isoFormat('dddd D MMMM YYYY') }}</p>
     </div>
@@ -49,7 +49,7 @@
     {{-- Région --}}
     <div class="bg-white border border-gray-100 rounded-2xl px-4 py-3 shadow-sm flex items-center gap-3 {{ $activeFilters['city_id'] ? 'border-teal-200 ring-1 ring-teal-100' : '' }}">
         <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 {{ $activeFilters['city_id'] ? 'bg-teal-50' : 'bg-gray-50' }}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{ $activeFilters['city_id'] ? '#0D9488' : '#9CA3AF' }}" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.35 11.76a1 1 0 0 0 1.3 0C12.95 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{ $activeFilters['city_id'] ? '#2F44E0' : '#9CA3AF' }}" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.35 11.76a1 1 0 0 0 1.3 0C12.95 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/></svg>
         </div>
         <div class="flex-1 min-w-0">
             <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Région</p>
@@ -195,7 +195,7 @@
     {{-- Revenu --}}
     <a href="{{ route('admin.super.subscribers.index') }}"
        class="group rounded-2xl p-5 border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all block"
-       style="background:linear-gradient(135deg,#0D9488,#0F766E); border-color:#0D9488;">
+       style="background:linear-gradient(135deg,#2F44E0,#23339E); border-color:#2F44E0;">
         <div class="flex items-start justify-between mb-4">
             <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:rgba(255,255,255,.15);">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-white"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
@@ -275,7 +275,7 @@
 {{-- ── Charts ────────────────────────────────────────────────────────────── --}}
 @php
     $donutTotal   = $planDistribution->sum('active_subscriptions_count');
-    $planColors   = ['basic' => '#6366F1', 'vip' => '#F59E0B', 'enterprise' => '#0D9488'];
+    $planColors   = ['basic' => '#6366F1', 'vip' => '#F59E0B', 'enterprise' => '#2F44E0'];
     $planDotClass = ['basic' => 'bg-indigo-500', 'vip' => 'bg-amber-400', 'enterprise' => 'bg-teal-600'];
 @endphp
 <div id="dash-data" class="hidden"
@@ -366,7 +366,7 @@
             @forelse($recentUsers as $u)
             <div class="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50/60 transition">
                 <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                     style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
+                     style="background:linear-gradient(135deg,#7181ED,#2F44E0);">
                     {{ strtoupper(substr($u->first_name, 0, 1)) }}
                 </div>
                 <div class="flex-1 min-w-0">
@@ -419,7 +419,7 @@
             @endphp
             <div class="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/60 transition" id="amb-row-{{ $applicant->id }}">
                 <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                     style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
+                     style="background:linear-gradient(135deg,#7181ED,#2F44E0);">
                     {{ strtoupper(substr($applicant->first_name, 0, 1).substr($applicant->last_name, 0, 1)) }}
                 </div>
                 <div class="flex-1 min-w-0">
@@ -522,14 +522,14 @@ new Chart(document.getElementById('chartReg'), {
         labels,
         datasets: [{
             data: dataReg,
-            borderColor: '#0D9488',
+            borderColor: '#2F44E0',
             backgroundColor: (ctx) => {
                 const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 144);
                 g.addColorStop(0, 'rgba(13,148,136,.18)');
                 g.addColorStop(1, 'rgba(13,148,136,0)');
                 return g;
             },
-            borderWidth: 2.5, pointRadius: 3, pointBackgroundColor: '#0D9488',
+            borderWidth: 2.5, pointRadius: 3, pointBackgroundColor: '#2F44E0',
             pointHoverRadius: 5, fill: true, tension: 0.4,
         }],
     },

@@ -12,10 +12,10 @@
 
         {{-- Identity card --}}
         <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div class="h-16" style="background:linear-gradient(135deg,#34d4bf,#1E8F88);"></div>
+            <div class="h-16" style="background:linear-gradient(135deg,#7181ED,#2F44E0);"></div>
             <div class="px-5 pb-5 -mt-8">
                 <div class="w-16 h-16 rounded-full border-4 border-white flex items-center justify-center text-white font-bold text-xl mb-3"
-                     style="background:linear-gradient(135deg,#34d4bf,#1E8F88);">
+                     style="background:linear-gradient(135deg,#7181ED,#2F44E0);">
                     {{ strtoupper(substr($user->first_name,0,1).substr($user->last_name,0,1)) }}
                 </div>
                 <h2 class="text-base font-bold text-gray-900">{{ $user->first_name }} {{ $user->last_name }}</h2>
@@ -75,7 +75,7 @@
                 <div class="mt-4">
                     <a href="{{ route('admin.users.edit', $user) }}"
                        class="block text-center py-2 rounded-lg text-sm font-semibold text-white"
-                       style="background:#1E8F88;">Modifier</a>
+                       style="background:#2F44E0;">Modifier</a>
                 </div>
             </div>
         </div>
@@ -196,7 +196,7 @@
         <div class="bg-white rounded-xl border border-gray-200 p-5">
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Entreprise</p>
             <div class="flex items-start gap-3">
-                <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-lg font-bold flex-shrink-0" style="color:#1E8F88;">{{ strtoupper(substr($user->company->name,0,1)) }}</div>
+                <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-lg font-bold flex-shrink-0" style="color:#2F44E0;">{{ strtoupper(substr($user->company->name,0,1)) }}</div>
                 <div>
                     <p class="font-semibold text-gray-900">{{ $user->company->name }}</p>
                     @if($user->company->siret)<p class="text-xs text-gray-400">SIRET : {{ $user->company->siret }}</p>@endif
@@ -213,7 +213,7 @@
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Centres d'intérêt</p>
             <div class="flex flex-wrap gap-2">
                 @foreach($user->interests as $interest)
-                <span class="px-3 py-1.5 rounded-full text-xs font-medium border" style="background:#E6F7F4;color:#1E8F88;border-color:#A8E2D9;">{{ $interest->icon }} {{ $interest->name }}</span>
+                <span class="px-3 py-1.5 rounded-full text-xs font-medium border" style="background:#E6F7F4;color:#2F44E0;border-color:#A8E2D9;">{{ $interest->icon }} {{ $interest->name }}</span>
                 @endforeach
             </div>
         </div>

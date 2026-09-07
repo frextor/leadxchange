@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\EventPayment;
+use App\Models\PointsPayment;
 use App\Models\Subscription;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -60,19 +61,36 @@ class PaymentsController extends Controller
 
         $eventPayments = $evtQuery->orderByDesc('created_at')->paginate(30)->withQueryString();
 
+        // ── Points purchases ─────────────────────────────────────────────────────
+        $pointsQuery = PointsPayment::with('user');
+
+        if ($request->filled('search') && $tab === 'points') {
+            $s = $request->search;
+            $pointsQuery->whereHas('user', fn($q) => $q
+                ->where('first_name', 'like', "%{$s}%")
+                ->orWhere('last_name',  'like', "%{$s}%")
+                ->orWhere('email',      'like', "%{$s}%")
+            );
+        }
+
+        $pointsPayments = $pointsQuery->orderByDesc('created_at')->paginate(30)->withQueryString();
+
         // ── Stats ─────────────────────────────────────────────────────────────
         $stats = [
-            'active_subs'  => Subscription::where('status', 'active')->whereNotNull('stripe_subscription_id')->count(),
-            'mrr'          => Subscription::with('plan')->where('status', 'active')->whereNotNull('stripe_subscription_id')
-                                ->get()->sum(fn($s) => (float) ($s->plan?->price ?? 0)),
-            'event_revenue'=> EventPayment::where('status', 'succeeded')->sum('amount') / 100,
-            'evt_count'    => EventPayment::where('status', 'succeeded')->count(),
+            'active_subs'    => Subscription::where('status', 'active')->whereNotNull('stripe_subscription_id')->count(),
+            'mrr'            => Subscription::with('plan')->where('status', 'active')->whereNotNull('stripe_subscription_id')
+                                    ->get()->sum(fn($s) => (float) ($s->plan?->price ?? 0)),
+            'event_revenue'  => EventPayment::where('status', 'succeeded')->sum('amount') / 100,
+            'evt_count'      => EventPayment::where('status', 'succeeded')->count(),
+            'points_revenue' => PointsPayment::where('status', 'succeeded')->sum('amount_cents') / 100,
+            'points_count'   => PointsPayment::where('status', 'succeeded')->count(),
+            'points_sold'    => PointsPayment::where('status', 'succeeded')->sum('points_purchased'),
         ];
 
         $plans = \App\Models\Plan::where('price', '>', 0)->orderBy('sort_order')->get(['id', 'label']);
 
         return view('admin.super_admin.payments.index', compact(
-            'tab', 'subscriptions', 'eventPayments', 'stats', 'plans'
+            'tab', 'subscriptions', 'eventPayments', 'pointsPayments', 'stats', 'plans'
         ));
     }
 }

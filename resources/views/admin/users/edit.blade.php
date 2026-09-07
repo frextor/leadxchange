@@ -10,7 +10,7 @@
 
         <div class="flex items-center gap-3 mb-6 pb-5 border-b border-gray-100">
             <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"
-                 style="background:linear-gradient(135deg,#34d4bf,#1E8F88);">
+                 style="background:linear-gradient(135deg,#7181ED,#2F44E0);">
                 {{ strtoupper(substr($user->first_name,0,1).substr($user->last_name,0,1)) }}
             </div>
             <div>
@@ -50,7 +50,7 @@
             </div>
 
             <div class="flex gap-3 pt-2">
-                <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white" style="background:#1E8F88;">Enregistrer</button>
+                <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white" style="background:#2F44E0;">Enregistrer</button>
                 <a href="{{ route('admin.users.show', $user) }}" class="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-500 border border-gray-200 hover:bg-gray-50">Annuler</a>
             </div>
         </form>

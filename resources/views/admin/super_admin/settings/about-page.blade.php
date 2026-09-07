@@ -209,7 +209,7 @@
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Aperçu</p>
             <div class="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-                <div class="px-4 py-5 text-center" style="background:linear-gradient(135deg,#0f2027,#1a3a4a,#1E8F88);">
+                <div class="px-4 py-5 text-center" style="background:linear-gradient(135deg,#0f2027,#1a3a4a,#2F44E0);">
                     <div class="w-10 h-10 mx-auto mb-2 rounded-xl flex items-center justify-center bg-white/15 font-bold text-white text-sm">LX</div>
                     <p class="text-white text-xs font-bold leading-snug" id="preview-title">{{ $s('about_title', 'À propos de LeadXchange') }}</p>
                     <p class="text-white/60 text-[10px] mt-1 leading-snug" id="preview-tagline">{{ Str::limit($s('about_tagline', ''), 60) }}</p>
@@ -223,7 +223,7 @@
                 </div>
                 @if($s('about_cta_label'))
                 <div class="px-4 py-3 bg-white border-t border-gray-100">
-                    <div class="w-full py-2 rounded-lg text-[10px] font-bold text-center text-white" style="background:#1E8F88;">
+                    <div class="w-full py-2 rounded-lg text-[10px] font-bold text-center text-white" style="background:#2F44E0;">
                         {{ $s('about_cta_label') }}
                     </div>
                 </div>

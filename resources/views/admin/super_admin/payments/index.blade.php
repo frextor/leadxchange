@@ -11,10 +11,10 @@
         <h1 class="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
             Paiements
             <span class="text-sm font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-600">
-                {{ $subscriptions->total() + $eventPayments->total() }}
+                {{ $subscriptions->total() + $eventPayments->total() + $pointsPayments->total() }}
             </span>
         </h1>
-        <p class="text-sm text-gray-400 mt-1">Abonnements et paiements événements traités via Stripe.</p>
+        <p class="text-sm text-gray-400 mt-1">Abonnements, événements et achats de points traités via Stripe.</p>
     </div>
     <a href="{{ route('admin.super.plans.stripe') }}"
        class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition">

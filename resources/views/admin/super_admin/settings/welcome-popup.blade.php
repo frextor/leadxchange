@@ -182,7 +182,7 @@
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Aperçu du popup</p>
             <div class="rounded-xl overflow-hidden border border-gray-200 shadow-md">
-                <div class="px-5 py-4 text-center" style="background:linear-gradient(135deg,#0f2027,#1a3a4a,#1E8F88);">
+                <div class="px-5 py-4 text-center" style="background:linear-gradient(135deg,#0f2027,#1a3a4a,#2F44E0);">
                     <div class="w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center" style="background:rgba(255,255,255,0.15);">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     </div>
@@ -193,18 +193,18 @@
                     @foreach([['Sophie', 'M', 'UX Designer'], ['Marc', 'D', 'CEO · Casablanca'], ['Imane', 'I', 'Marketing']] as [$name, $initial, $title])
                     <div class="flex items-center gap-3 p-2.5 rounded-lg border border-gray-100">
                         <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
-                             style="background:linear-gradient(135deg,#1E8F88,#14B8A6);">{{ $initial }}</div>
+                             style="background:linear-gradient(135deg,#2F44E0,#3C55FD);">{{ $initial }}</div>
                         <div class="flex-1 min-w-0">
                             <p class="text-xs font-semibold text-gray-900">{{ $name }}</p>
                             <p class="text-[10px] text-gray-400 truncate">{{ $title }}</p>
                         </div>
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-lg text-white flex-shrink-0" style="background:#1E8F88;">+</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-lg text-white flex-shrink-0" style="background:#2F44E0;">+</span>
                     </div>
                     @endforeach
                 </div>
                 <div class="px-4 py-3 bg-white border-t border-gray-100 flex gap-2">
                     <div class="flex-1 py-1.5 rounded-lg text-[10px] font-semibold text-center border border-gray-200 text-gray-500">Later</div>
-                    <div class="flex-1 py-1.5 rounded-lg text-[10px] font-semibold text-center text-white" style="background:#1E8F88;">Explore</div>
+                    <div class="flex-1 py-1.5 rounded-lg text-[10px] font-semibold text-center text-white" style="background:#2F44E0;">Explore</div>
                 </div>
             </div>
         </div>

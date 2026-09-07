@@ -40,7 +40,7 @@
         {{-- User info --}}
         <div class="p-4">
             <div class="flex items-center gap-3 mb-3">
-                <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background:linear-gradient(135deg,#34d4bf,#1E8F88);">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background:linear-gradient(135deg,#7181ED,#2F44E0);">
                     {{ strtoupper(substr($profile->user->first_name,0,1).substr($profile->user->last_name,0,1)) }}
                 </div>
                 <div>
@@ -79,7 +79,7 @@
             @elseif($status === 'rejected')
             <form method="POST" action="{{ route('admin.videos.approve', $profile) }}">
                 @csrf
-                <button type="submit" class="w-full py-2 rounded-lg text-sm font-semibold text-white" style="background:#1E8F88;">
+                <button type="submit" class="w-full py-2 rounded-lg text-sm font-semibold text-white" style="background:#2F44E0;">
                     Réapprouver
                 </button>
             </form>

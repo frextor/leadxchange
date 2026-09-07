@@ -21,7 +21,7 @@
 <div class="grid grid-cols-2 gap-4 mb-6">
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-4">
         <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="1.8">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2F44E0" stroke-width="1.8">
                 <circle cx="12" cy="10" r="3"/>
                 <path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.35 11.76a1 1 0 0 0 1.3 0C12.95 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
             </svg>
@@ -82,7 +82,7 @@
             </select>
             <button type="submit"
                     class="h-9 px-4 rounded-xl text-xs font-semibold text-white flex items-center gap-1.5 transition hover:opacity-90"
-                    style="background:#0D9488;">
+                    style="background:#2F44E0;">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                 </svg>
@@ -261,7 +261,7 @@
         @empty
         <div class="px-5 py-16 text-center">
             <div class="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto mb-3">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="1.5">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2F44E0" stroke-width="1.5">
                     <circle cx="12" cy="10" r="3"/>
                     <path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.35 11.76a1 1 0 0 0 1.3 0C12.95 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/>
                 </svg>
@@ -322,10 +322,10 @@
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden sticky top-4">
 
         {{-- Card header --}}
-        <div class="px-5 py-4 border-b border-gray-100" style="background:linear-gradient(135deg,#F0FDFA,#CCFBF1);">
+        <div class="px-5 py-4 border-b border-gray-100" style="background:linear-gradient(135deg,#F0FDFA,#E0E7FF);">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2F44E0" stroke-width="2">
                         <path d="M12 5v14M5 12h14"/>
                     </svg>
                 </div>
@@ -372,7 +372,7 @@
 
             <button type="submit"
                     class="w-full py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition hover:opacity-90 active:scale-[.98]"
-                    style="background:linear-gradient(135deg,#0D9488,#0F766E);">
+                    style="background:linear-gradient(135deg,#2F44E0,#23339E);">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <path d="M12 5v14M5 12h14"/>
                 </svg>

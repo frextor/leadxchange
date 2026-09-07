@@ -9,7 +9,7 @@
 <div class="flex items-center justify-between mb-6">
     <div>
         <h1 class="text-2xl font-bold text-gray-900 tracking-tight">
-            Bonjour, <span style="color:#0D9488;">{{ auth()->user()->first_name }}</span> 👋
+            Bonjour, <span style="color:#2F44E0;">{{ auth()->user()->first_name }}</span> 👋
         </h1>
         <p class="text-sm text-gray-400 mt-0.5">{{ now()->locale('fr')->isoFormat('dddd D MMMM YYYY') }}</p>
     </div>
@@ -70,7 +70,7 @@
 
     <a href="{{ route('admin.super.subscribers.index') }}"
        class="group rounded-2xl p-4 border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all block"
-       style="background:linear-gradient(135deg,#0D9488,#0F766E); border-color:#0D9488;">
+       style="background:linear-gradient(135deg,#2F44E0,#23339E); border-color:#2F44E0;">
         <div class="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style="background:rgba(255,255,255,.15);">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-white"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
         </div>
@@ -120,7 +120,7 @@
             @forelse($recentUsers as $u)
             <div class="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50/60 transition">
                 <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                     style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
+                     style="background:linear-gradient(135deg,#7181ED,#2F44E0);">
                     {{ strtoupper(substr($u->first_name, 0, 1)) }}
                 </div>
                 <div class="flex-1 min-w-0">

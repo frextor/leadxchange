@@ -30,7 +30,7 @@
     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 max-w-xl">
 
         <h2 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2F44E0" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             Délai avant re-soumission après refus
         </h2>
 
@@ -65,7 +65,7 @@
         <div class="mt-6 pt-5 border-t border-gray-100 flex justify-end">
             <button type="submit"
                     class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
-                    style="background:#0D9488;">
+                    style="background:#2F44E0;">
                 Enregistrer
             </button>
         </div>

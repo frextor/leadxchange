@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function () {
             datasets: [{
                 label: 'Utilisateurs',
                 data: {!! json_encode(collect($top10)->pluck('users_count')->toArray()) !!},
-                backgroundColor: 'rgba(20,184,166,0.2)', borderColor: '#14B8A6', borderWidth: 2, borderRadius: 6,
+                backgroundColor: 'rgba(20,184,166,0.2)', borderColor: '#3C55FD', borderWidth: 2, borderRadius: 6,
             }, {
                 label: 'Ambassadeurs',
                 data: {!! json_encode(collect($top10)->pluck('ambassadors_count')->toArray()) !!},
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     </td>
                     <td class="px-5 py-3">
                         <div class="flex items-center gap-2">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#14B8A6" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.35 11.76a1 1 0 0 0 1.3 0C12.95 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3C55FD" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.35 11.76a1 1 0 0 0 1.3 0C12.95 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/></svg>
                             <span class="text-sm font-semibold text-slate-800">{{ $reg->name }}</span>
                         </div>
                     </td>

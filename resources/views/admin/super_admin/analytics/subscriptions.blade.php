@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
             datasets: [{
                 label: 'Nouveaux abonnements',
                 data: {!! json_encode($growthChart['data']) !!},
-                borderColor: '#14B8A6', backgroundColor: 'rgba(20,184,166,0.08)',
+                borderColor: '#3C55FD', backgroundColor: 'rgba(20,184,166,0.08)',
                 borderWidth: 2.5, fill: true, tension: 0.4, pointRadius: 3,
             }]
         },
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Distribution
     @php
-    $dColors = ['#7C3AED','#14B8A6','#F59E0B','#3B82F6','#EF4444','#EC4899'];
+    $dColors = ['#7C3AED','#3C55FD','#F59E0B','#3B82F6','#EF4444','#EC4899'];
     $dLabels = collect($distribution)->pluck('label')->toArray();
     $dData   = collect($distribution)->pluck('count')->toArray();
     @endphp
@@ -108,10 +108,10 @@ document.addEventListener('DOMContentLoaded', function () {
         <p class="text-xs text-violet-200 mt-1">Revenus récurrents mensuels</p>
     </div>
     {{-- ARR --}}
-    <div class="rounded-2xl p-5 shadow-sm border" style="background:linear-gradient(135deg,#0D9488,#0F766E);border-color:#0F766E;">
-        <p class="text-[11px] font-bold uppercase tracking-widest" style="color:#99F6E4;">ARR</p>
+    <div class="rounded-2xl p-5 shadow-sm border" style="background:linear-gradient(135deg,#2F44E0,#23339E);border-color:#23339E;">
+        <p class="text-[11px] font-bold uppercase tracking-widest" style="color:#C7D2FE;">ARR</p>
         <p class="text-3xl font-bold text-white mt-2">{{ number_format($arr, 2) }} €</p>
-        <p class="text-xs mt-1" style="color:#99F6E4;">Revenus annuels estimés</p>
+        <p class="text-xs mt-1" style="color:#C7D2FE;">Revenus annuels estimés</p>
     </div>
     {{-- Churn --}}
     <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 @foreach($plans as $plan)
                 @php
                     $planShare = $total > 0 ? round($plan->stripe_active_count / $total * 100, 1) : 0;
-                    $planColors = ['#7C3AED','#14B8A6','#F59E0B','#3B82F6','#EF4444','#EC4899'];
+                    $planColors = ['#7C3AED','#3C55FD','#F59E0B','#3B82F6','#EF4444','#EC4899'];
                     $pci = $loop->index % count($planColors);
                 @endphp
                 <tr class="border-b border-gray-50 hover:bg-gray-50">

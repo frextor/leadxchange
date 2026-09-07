@@ -10,7 +10,7 @@
 <div class="grid grid-cols-2 gap-4 mb-6">
     <div class="bg-white rounded-xl border border-gray-200 px-5 py-4">
         <p class="text-xs font-medium text-gray-400">Total</p>
-        <p class="text-2xl font-bold mt-1" style="color:#1E8F88;">{{ $total }}</p>
+        <p class="text-2xl font-bold mt-1" style="color:#2F44E0;">{{ $total }}</p>
     </div>
     <div class="bg-white rounded-xl border border-gray-200 px-5 py-4">
         <p class="text-xs font-medium text-gray-400">En attente</p>
@@ -35,7 +35,7 @@
         </select>
     </div>
     <div class="flex gap-2">
-        <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:#1E8F88;">Filtrer</button>
+        <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:#2F44E0;">Filtrer</button>
         @if(request()->hasAny(['search','status']))
         <a href="{{ route('admin.feedbacks.index') }}" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-500 border border-gray-200 hover:bg-gray-50">Reset</a>
         @endif
@@ -71,7 +71,7 @@
                     <p class="text-gray-700 text-sm line-clamp-2 whitespace-pre-wrap">{{ $feedback->message }}</p>
                     @if(strlen($feedback->message) > 120)
                     <button onclick="openModal('{{ $feedback->id }}')"
-                            class="mt-1 text-xs font-semibold hover:underline" style="color:#1E8F88;">
+                            class="mt-1 text-xs font-semibold hover:underline" style="color:#2F44E0;">
                         Voir tout →
                     </button>
                     @endif

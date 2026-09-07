@@ -4,11 +4,17 @@
 
 /* ————————— 1. Tokens ————————— */
 :root {
-  --lx-teal-light:   #34d4bf;
-  --lx-teal:         #2BB6A3;
-  --lx-teal-dark:    #1E8F88;
-  --lx-teal-deepest: #176D67;
-  --lx-teal-glow:    #5DDFC8;
+  /* Primary brand color — from Figma "Typography & Colors Style Guide" (node 4:940) */
+  --lx-primary:       #3C55FD;
+  --lx-primary-light: #7181ED;
+  --lx-primary-dark:  #2F44E0;
+
+  /* Kept as aliases so existing rules below don't need touching one by one */
+  --lx-teal-light:   var(--lx-primary-light);
+  --lx-teal:         var(--lx-primary);
+  --lx-teal-dark:    var(--lx-primary-dark);
+  --lx-teal-deepest: #23339E;
+  --lx-teal-glow:    var(--lx-primary-light);
 
   --lx-bg:        #F9FAFB;
   --lx-card:      #FFFFFF;
@@ -26,9 +32,9 @@
   --lx-radius:    12px;
   --lx-radius-lg: 24px;
 
-  --lx-grad:       linear-gradient(135deg, #2BB6A3 0%, #1E8F88 100%);
-  --lx-grad-hover: linear-gradient(135deg, #1E8F88 0%, #176D67 100%);
-  --lx-grad-logo:  linear-gradient(135deg, #34d4bf 0%, #1E8F88 100%);
+  --lx-grad:       linear-gradient(129deg, #7181ED 8%, #3750FF 100%);
+  --lx-grad-hover: linear-gradient(129deg, #3750FF 8%, #2F44E0 100%);
+  --lx-grad-logo:  linear-gradient(129deg, #7181ED 8%, #3750FF 100%);
 
   --lx-trust-bg:   #0F1F1D;
   --lx-trust-bg-2: #142523;
@@ -100,6 +106,7 @@
 
 /* Wordmark logo: "Lead+change" */
 .lx-auth-logo-word {
+  gap: 0;
   font-size: 22px;
   font-weight: 700;
   color: var(--lx-text);

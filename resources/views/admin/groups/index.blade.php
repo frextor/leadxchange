@@ -67,7 +67,7 @@
 
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="1.8">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2F44E0" stroke-width="1.8">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                 <circle cx="9" cy="7" r="4"/>
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
@@ -181,7 +181,7 @@
                     @if($group->creator)
                     <div class="flex items-center gap-2">
                         <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
-                             style="background:linear-gradient(135deg,#34d4bf,#1E8F88);">
+                             style="background:linear-gradient(135deg,#7181ED,#2F44E0);">
                             {{ strtoupper(substr($group->creator->first_name, 0, 1)) }}
                         </div>
                         <span class="text-xs text-gray-600 font-medium">{{ $group->creator->first_name }} {{ $group->creator->last_name }}</span>

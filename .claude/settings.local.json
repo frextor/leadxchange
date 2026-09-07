@@ -9,7 +9,13 @@
       "Bash(mysql -u root leadxchange -e \"SELECT id, first_name, last_name, email, points_balance, badge_level FROM users;\")",
       "Bash(mysql -u root -e \"SELECT id, first_name, last_name, email FROM leadxchange.users;\")",
       "Bash(mysql -u root -e \"SELECT COUNT\\(*\\) as leads FROM leadxchange.leads;\")",
-      "Bash(mysql -u root -e \"SELECT COUNT\\(*\\) as profiles FROM leadxchange.profiles;\")"
+      "Bash(mysql -u root -e \"SELECT COUNT\\(*\\) as profiles FROM leadxchange.profiles;\")",
+      "mcp__claude_ai_Figma__get_screenshot",
+      "Bash(curl -sL -o d2.png \"https://www.figma.com/api/mcp/asset/34f7867b-f381-405d-99fb-98234e0a70ab.png\")",
+      "Bash(curl -sL -o d3.png \"https://www.figma.com/api/mcp/asset/c5d31b65-96d2-4090-9e8d-36afac957896.png\")",
+      "Bash(curl -sL -o d4.png \"https://www.figma.com/api/mcp/asset/776cd09b-7acc-4366-b872-a621fb2afa31.png\")",
+      "Bash(curl -sL -o d5.png \"https://www.figma.com/api/mcp/asset/4fab2b0f-b2a8-4767-94cc-7a28294f5320.png\")",
+      "Bash(curl -sL -o d7.png \"https://www.figma.com/api/mcp/asset/7478d1c3-d6dd-454f-85eb-75e03263b48d.png\")"
     ]
   }
 }

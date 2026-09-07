@@ -17,24 +17,9 @@
         </div>
     </div>
 
-    <div class="mb-8">
-        <h1 class="text-3xl font-semibold text-gray-900" style="letter-spacing:-0.025em;">Créer votre compte</h1>
-        <p class="text-gray-500 mt-2" style="font-size:15px;">Rejoignez 1 500+ commerciaux qui échangent des leads qualifiés.</p>
-    </div>
-
-    {{-- LinkedIn quick register --}}
-    <a href="{{ route('login.linkedin') }}"
-       class="flex items-center justify-center gap-2 py-3 mb-4 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="#0A66C2">
-            <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14ZM8.34 18.34V10H5.67v8.34h2.67Zm-1.34-9.5a1.55 1.55 0 1 0 0-3.09 1.55 1.55 0 0 0 0 3.09Zm12 9.5v-4.78c0-2.45-1.31-3.59-3.06-3.59-1.41 0-2.04.78-2.4 1.32V10h-2.66v8.34h2.66v-4.65c0-.25.02-.5.09-.68.2-.5.66-1.02 1.42-1.02 1 0 1.4.76 1.4 1.88v4.47H19Z"/>
-        </svg>
-        Continuer avec LinkedIn
-    </a>
-
-    <div style="display:flex;align-items:center;gap:12px;color:#9CA3AF;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:24px;">
-        <span style="flex:1;height:1px;background:#E5E7EB;"></span>
-        ou remplir le formulaire
-        <span style="flex:1;height:1px;background:#E5E7EB;"></span>
+    <div class="mb-8 text-center">
+        <h1 class="text-3xl font-semibold text-gray-900" style="letter-spacing:-0.025em;">Inscription</h1>
+        <p class="text-gray-500 mt-2" style="font-size:15px;">Créez votre compte LeadXchange</p>
     </div>
 
     {{-- Progress indicator --}}
@@ -42,9 +27,9 @@
         <div class="flex items-center">
             <div id="step1-indicator"
                  class="flex items-center justify-center w-8 h-8 rounded-full text-white text-sm font-semibold transition-all"
-                 style="background:#2BB6A3;">1</div>
+                 style="background:#3C55FD;">1</div>
             <div class="w-16 h-1 mx-2 rounded-full overflow-hidden" style="background:#E5E7EB;">
-                <div id="progress-bar" class="h-1 transition-all duration-300" style="width:0%;background:#2BB6A3;"></div>
+                <div id="progress-bar" class="h-1 transition-all duration-300" style="width:0%;background:#3C55FD;"></div>
             </div>
             <div id="step2-indicator"
                  class="flex items-center justify-center w-8 h-8 rounded-full text-gray-500 text-sm font-semibold transition-all"
@@ -61,7 +46,8 @@
 
             {{-- First Name --}}
             <div>
-                <input type="text" id="first_name" name="first_name" placeholder="Prénom"
+                <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1.5">Prénom</label>
+                <input type="text" id="first_name" name="first_name" placeholder="John"
                     value="{{ old('first_name') }}" required
                     class="lx-input px-4 py-3.5 @error('first_name') lx-error @enderror">
                 @error('first_name') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
@@ -69,7 +55,8 @@
 
             {{-- Last Name --}}
             <div>
-                <input type="text" id="last_name" name="last_name" placeholder="Nom de famille"
+                <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1.5">Nom</label>
+                <input type="text" id="last_name" name="last_name" placeholder="Doe"
                     value="{{ old('last_name') }}" required
                     class="lx-input px-4 py-3.5 @error('last_name') lx-error @enderror">
                 @error('last_name') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
@@ -77,7 +64,8 @@
 
             {{-- Email --}}
             <div>
-                <input type="email" id="email" name="email" placeholder="Email professionnel"
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                <input type="email" id="email" name="email" placeholder="m@example.com"
                     value="{{ old('email') }}" required
                     class="lx-input px-4 py-3.5 @error('email') lx-error @enderror">
                 @error('email') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
@@ -85,8 +73,9 @@
 
             {{-- Password --}}
             <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-1.5">Mot de passe</label>
                 <div class="relative">
-                    <input type="password" id="password" name="password" placeholder="Créer un mot de passe" required
+                    <input type="password" id="password" name="password" placeholder="••••••••••" required
                         class="lx-input px-4 py-3.5 pr-12 @error('password') lx-error @enderror"
                         oninput="updateStrength()">
                     <button type="button" onclick="togglePassword('password')"
@@ -97,6 +86,7 @@
                         </svg>
                     </button>
                 </div>
+                <p class="mt-1.5 text-sm text-gray-500">8 caractères minimum.</p>
                 {{-- Strength meter --}}
                 <div class="mt-2 flex gap-1">
                     <div id="s-1" class="flex-1 h-1 rounded-full transition-all" style="background:#E5E7EB;"></div>
@@ -110,9 +100,10 @@
 
             {{-- Confirm Password --}}
             <div>
+                <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-1.5">Confirmer le mot de passe</label>
                 <div class="relative">
                     <input type="password" id="password_confirmation" name="password_confirmation"
-                        placeholder="Confirmer le mot de passe" required
+                        placeholder="••••••••••" required
                         class="lx-input px-4 py-3.5 pr-12">
                     <button type="button" onclick="togglePassword('password_confirmation')"
                         class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
@@ -125,9 +116,25 @@
             </div>
 
             <button type="button" onclick="goToStep2()"
-                class="gradient-button w-full text-white font-semibold py-4 rounded-xl uppercase tracking-wider transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]">
-                Next
+                class="lx-btn-blue w-full text-white font-semibold py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]">
+                Suivant
             </button>
+
+            {{-- Divider --}}
+            <div style="display:flex;align-items:center;gap:12px;color:#9CA3AF;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;margin:20px 0;">
+                <span style="flex:1;height:1px;background:#E5E7EB;"></span>
+                ou s'inscrire avec
+                <span style="flex:1;height:1px;background:#E5E7EB;"></span>
+            </div>
+
+            {{-- LinkedIn quick register --}}
+            <a href="{{ route('login.linkedin') }}"
+               class="flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="#0A66C2">
+                    <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14ZM8.34 18.34V10H5.67v8.34h2.67Zm-1.34-9.5a1.55 1.55 0 1 0 0-3.09 1.55 1.55 0 0 0 0 3.09Zm12 9.5v-4.78c0-2.45-1.31-3.59-3.06-3.59-1.41 0-2.04.78-2.4 1.32V10h-2.66v8.34h2.66v-4.65c0-.25.02-.5.09-.68.2-.5.66-1.02 1.42-1.02 1 0 1.4.76 1.4 1.88v4.47H19Z"/>
+                </svg>
+                LinkedIn
+            </a>
         </div>
 
         {{-- ─────────── STEP 2 ─────────── --}}
@@ -135,23 +142,19 @@
 
             {{-- Gender --}}
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-3">Genre</label>
-                <div class="grid grid-cols-2 gap-3">
-                    <label class="relative cursor-pointer">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Sexe</label>
+                <div class="flex items-center gap-6">
+                    <label class="flex items-center gap-2 cursor-pointer">
                         <input type="radio" name="gender" value="male"
-                            {{ old('gender') == 'male' ? 'checked' : '' }} class="peer sr-only">
-                        <div class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-center text-gray-700 font-medium transition-all peer-checked:border-teal-500 peer-checked:text-teal-700 peer-checked:bg-teal-50"
-                             style="background:#F9FAFB;">
-                            Male
-                        </div>
+                            {{ old('gender') == 'male' ? 'checked' : '' }}
+                            class="w-4 h-4" style="accent-color:#3C55FD;">
+                        <span class="text-sm text-gray-700">Homme</span>
                     </label>
-                    <label class="relative cursor-pointer">
+                    <label class="flex items-center gap-2 cursor-pointer">
                         <input type="radio" name="gender" value="female"
-                            {{ old('gender') == 'female' ? 'checked' : '' }} class="peer sr-only">
-                        <div class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-center text-gray-700 font-medium transition-all peer-checked:border-teal-500 peer-checked:text-teal-700"
-                             style="background:#F9FAFB;">
-                            Female
-                        </div>
+                            {{ old('gender') == 'female' ? 'checked' : '' }}
+                            class="w-4 h-4" style="accent-color:#3C55FD;">
+                        <span class="text-sm text-gray-700">Femme</span>
                     </label>
                 </div>
                 @error('gender') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
@@ -223,7 +226,7 @@
                         class="lx-input px-4 py-3.5 pr-10 @error('city_id') lx-error @enderror"
                         oninput="filterCities(this.value)" onfocus="showCityDropdown()" onblur="hideCityDropdown()">
                     <span id="city_geo_icon" title="Géolocalisation IP" class="absolute right-3 top-1/2 -translate-y-1/2 hidden">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2BB6A3" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="9"/></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3C55FD" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="9"/></svg>
                     </span>
                 </div>
                 <input type="hidden" id="city_id" name="city_id" value="{{ old('city_id') }}">
@@ -297,7 +300,7 @@
             <div class="p-3.5 rounded-xl border border-gray-200 bg-gray-50">
                 <label class="flex items-start gap-3 cursor-pointer group">
                     <input type="checkbox" name="legal_capacity" value="1" {{ old('legal_capacity') ? 'checked' : '' }}
-                        class="mt-0.5 w-5 h-5 rounded flex-shrink-0" style="accent-color:#2BB6A3;" required>
+                        class="mt-0.5 w-5 h-5 rounded flex-shrink-0" style="accent-color:#3C55FD;" required>
                     <span class="text-sm text-gray-700 group-hover:text-gray-900 transition-colors leading-snug">
                         Je déclare avoir la <span class="font-semibold">pleine capacité juridique</span> pour m'engager, agir en mon nom propre et être âgé(e) d'au moins <span class="font-semibold">18 ans</span>.
                     </span>
@@ -309,7 +312,7 @@
             <div class="p-3.5 rounded-xl border border-gray-200 bg-gray-50">
                 <label class="flex items-start gap-3 cursor-pointer group">
                     <input type="checkbox" name="is_professional" value="1" {{ old('is_professional') ? 'checked' : '' }}
-                        class="mt-0.5 w-5 h-5 rounded flex-shrink-0" style="accent-color:#2BB6A3;" required>
+                        class="mt-0.5 w-5 h-5 rounded flex-shrink-0" style="accent-color:#3C55FD;" required>
                     <span class="text-sm text-gray-700 group-hover:text-gray-900 transition-colors leading-snug">
                         <span class="font-semibold">Je déclare agir dans le cadre de mon activité professionnelle</span>
                         et confirme que cette plateforme est utilisée à des fins exclusivement professionnelles.
@@ -322,12 +325,12 @@
             <div>
                 <label class="flex items-start gap-3 cursor-pointer group">
                     <input type="checkbox" name="terms" value="1" {{ old('terms') ? 'checked' : '' }}
-                        class="mt-1 w-5 h-5 rounded flex-shrink-0" style="accent-color:#2BB6A3;">
+                        class="mt-1 w-5 h-5 rounded flex-shrink-0" style="accent-color:#3C55FD;">
                     <span class="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
                         J'accepte les
-                        <a href="{{ url('/legal/cgu') }}" target="_blank" class="font-medium" style="color:#1E8F88;">Conditions Générales d'Utilisation</a>
+                        <a href="{{ url('/legal/cgu') }}" target="_blank" class="font-medium" style="color:#3C55FD;">Conditions Générales d'Utilisation</a>
                         et la
-                        <a href="{{ url('/legal/privacy') }}" target="_blank" class="font-medium" style="color:#1E8F88;">Politique de Confidentialité</a>
+                        <a href="{{ url('/legal/privacy') }}" target="_blank" class="font-medium" style="color:#3C55FD;">Politique de Confidentialité</a>
                         de LeadXchange.
                     </span>
                 </label>
@@ -337,13 +340,13 @@
             {{-- Buttons --}}
             <div class="flex gap-3 pt-2">
                 <button type="button" onclick="goToStep1()"
-                    class="flex-1 font-semibold py-4 rounded-xl uppercase tracking-wider transition-all border border-gray-200 text-gray-700 hover:bg-gray-100"
+                    class="flex-1 font-semibold py-4 rounded-xl transition-all border border-gray-200 text-gray-700 hover:bg-gray-100"
                     style="background:#F3F4F6;">
-                    Back
+                    Précédent
                 </button>
                 <button type="submit"
-                    class="flex-1 gradient-button text-white font-semibold py-4 rounded-xl uppercase tracking-wider transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]">
-                    Submit
+                    class="flex-1 lx-btn-blue text-white font-semibold py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]">
+                    S'inscrire
                 </button>
             </div>
         </div>
@@ -352,8 +355,8 @@
 
 @section('below_card')
     <div class="text-center mt-6 text-sm text-gray-600">
-        Déjà un compte ?
-        <a href="{{ route('login') }}" class="font-semibold" style="color:#1E8F88;">Se connecter</a>
+        Vous avez déjà un compte ?
+        <a href="{{ route('login') }}" class="font-semibold" style="color:#3C55FD;">Se connecter</a>
     </div>
     {{-- §4.4 — Unicité du compte --}}
     <p class="text-center mt-3 text-xs text-gray-400">
@@ -385,7 +388,7 @@
     function updateStrength() {
         const pw    = document.getElementById('password').value;
         const score = passwordScore(pw);
-        const bgMap = { 0:'#E5E7EB', 1:'#EF4444', 2:'#F59E0B', 3:'#EAB308', 4:'#2BB6A3' };
+        const bgMap = { 0:'#E5E7EB', 1:'#EF4444', 2:'#F59E0B', 3:'#EAB308', 4:'#3C55FD' };
         const labels = ['', 'Trop faible', 'Faible', 'Moyen', 'Fort'];
         for (let i = 1; i <= 4; i++) {
             document.getElementById('s-' + i).style.background = i <= score ? bgMap[score] : bgMap[0];
@@ -421,7 +424,7 @@
         s2.classList.remove('hidden');
         s2.classList.add('lx-fade-in');
 
-        document.getElementById('step2-indicator').style.background = '#2BB6A3';
+        document.getElementById('step2-indicator').style.background = '#3C55FD';
         document.getElementById('step2-indicator').style.color = '#fff';
         document.getElementById('progress-bar').style.width = '100%';
 

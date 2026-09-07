@@ -43,6 +43,6 @@
 @section('below_card')
     <div class="text-center mt-6 text-sm text-gray-600">
         Remember your password?
-        <a href="{{ route('login') }}" class="font-semibold" style="color:#1E8F88;">Sign in</a>
+        <a href="{{ route('login') }}" class="font-semibold" style="color:#3C55FD;">Sign in</a>
     </div>
 @endsection

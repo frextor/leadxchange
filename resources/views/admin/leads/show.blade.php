@@ -60,7 +60,7 @@
             <div class="border border-gray-100 rounded-lg p-4 mb-3 last:mb-0">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-sm font-medium text-gray-900">{{ $rating->rater?->first_name }} {{ $rating->rater?->last_name }}</span>
-                    <span class="text-lg font-bold" style="color:#1E8F88;">{{ number_format($rating->average_note, 1) }}/5</span>
+                    <span class="text-lg font-bold" style="color:#2F44E0;">{{ number_format($rating->average_note, 1) }}/5</span>
                 </div>
                 <div class="grid grid-cols-3 gap-3 text-xs">
                     <div class="text-center p-2 bg-gray-50 rounded-lg"><p class="text-gray-400">Qualité</p><p class="font-bold text-gray-900 mt-1">{{ $rating->quality }}/5</p></div>
@@ -94,7 +94,7 @@
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Expéditeur</p>
             @if($lead->sender)
             <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background:linear-gradient(135deg,#34d4bf,#1E8F88);">{{ strtoupper(substr($lead->sender->first_name,0,1).substr($lead->sender->last_name,0,1)) }}</div>
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background:linear-gradient(135deg,#7181ED,#2F44E0);">{{ strtoupper(substr($lead->sender->first_name,0,1).substr($lead->sender->last_name,0,1)) }}</div>
                 <div>
                     <p class="text-sm font-semibold text-gray-900">{{ $lead->sender->first_name }} {{ $lead->sender->last_name }}</p>
                     <a href="{{ route('admin.users.show', $lead->sender) }}" class="text-xs text-teal-600 hover:underline">Voir le profil →</a>
@@ -108,7 +108,7 @@
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Destinataire</p>
             @if($lead->receiver)
             <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background:linear-gradient(135deg,#34d4bf,#1E8F88);">{{ strtoupper(substr($lead->receiver->first_name,0,1).substr($lead->receiver->last_name,0,1)) }}</div>
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background:linear-gradient(135deg,#7181ED,#2F44E0);">{{ strtoupper(substr($lead->receiver->first_name,0,1).substr($lead->receiver->last_name,0,1)) }}</div>
                 <div>
                     <p class="text-sm font-semibold text-gray-900">{{ $lead->receiver->first_name }} {{ $lead->receiver->last_name }}</p>
                     <a href="{{ route('admin.users.show', $lead->receiver) }}" class="text-xs text-teal-600 hover:underline">Voir le profil →</a>

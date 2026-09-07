@@ -80,7 +80,7 @@
         <div class="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/50 transition {{ $isAmb ? 'bg-amber-50/30' : '' }}">
 
             <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                 style="background:{{ $isAmb ? 'linear-gradient(135deg,#F59E0B,#D97706)' : ($isCon ? 'linear-gradient(135deg,#2DD4BF,#0D9488)' : 'linear-gradient(135deg,#34d4bf,#1E8F88)') }};">
+                 style="background:{{ $isAmb ? 'linear-gradient(135deg,#F59E0B,#D97706)' : ($isCon ? 'linear-gradient(135deg,#7181ED,#2F44E0)' : 'linear-gradient(135deg,#7181ED,#2F44E0)') }};">
                 {{ strtoupper(substr($usr->first_name, 0, 1)) }}
             </div>
 

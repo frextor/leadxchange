@@ -78,7 +78,7 @@
 @section('below_card')
     <div class="text-center mt-6 text-sm text-gray-600">
         Remember your password?
-        <a href="{{ route('login') }}" class="font-semibold" style="color:#1E8F88;">Sign in</a>
+        <a href="{{ route('login') }}" class="font-semibold" style="color:#3C55FD;">Sign in</a>
     </div>
 @endsection
 
@@ -102,7 +102,7 @@
     function updateStrength() {
         const pw    = document.getElementById('password-field').value;
         const score = passwordScore(pw);
-        const bgMap = { 0:'#E5E7EB', 1:'#EF4444', 2:'#F59E0B', 3:'#EAB308', 4:'#2BB6A3' };
+        const bgMap = { 0:'#E5E7EB', 1:'#EF4444', 2:'#F59E0B', 3:'#EAB308', 4:'#3C55FD' };
         const labels = ['', 'Too weak', 'Weak', 'Good', 'Strong'];
         for (let i = 1; i <= 4; i++) {
             document.getElementById('s-' + i).style.background = i <= score ? bgMap[score] : bgMap[0];

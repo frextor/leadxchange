@@ -50,7 +50,7 @@
     </div>
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-4">
         <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2F44E0" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
         </div>
         <div>
             <p class="text-2xl font-extrabold text-gray-900">{{ $counts['total'] }}</p>
@@ -99,7 +99,7 @@
 
             {{-- Avatar --}}
             <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                 style="background: {{ $isAmbassador ? 'linear-gradient(135deg,#F59E0B,#D97706)' : 'linear-gradient(135deg,#34d4bf,#1E8F88)' }};">
+                 style="background: {{ $isAmbassador ? 'linear-gradient(135deg,#F59E0B,#D97706)' : 'linear-gradient(135deg,#7181ED,#2F44E0)' }};">
                 {{ strtoupper(substr($user->first_name, 0, 1)) }}
             </div>
 

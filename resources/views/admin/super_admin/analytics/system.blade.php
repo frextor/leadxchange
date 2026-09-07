@@ -55,7 +55,7 @@
         <div class="space-y-3">
             @php
             $activities = [
-                ['label' => 'Nouvelles inscriptions', 'value' => $todayActivity['new_users'],       'color' => '#14B8A6'],
+                ['label' => 'Nouvelles inscriptions', 'value' => $todayActivity['new_users'],       'color' => '#3C55FD'],
                 ['label' => 'Leads créés',            'value' => $todayActivity['new_leads'],       'color' => '#3B82F6'],
                 ['label' => 'Connexions',             'value' => $todayActivity['new_connections'], 'color' => '#22C55E'],
                 ['label' => 'Événements créés',       'value' => $todayActivity['new_events'],      'color' => '#F97316'],

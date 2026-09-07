@@ -16,7 +16,7 @@
     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
         <div class="flex items-start gap-4">
             <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-bold flex-shrink-0"
-                 style="background:linear-gradient(135deg,#34d4bf,#1E8F88);">
+                 style="background:linear-gradient(135deg,#7181ED,#2F44E0);">
                 {{ strtoupper(substr($user->first_name, 0, 1)) }}
             </div>
             <div class="flex-1">

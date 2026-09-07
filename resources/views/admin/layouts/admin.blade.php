@@ -31,17 +31,17 @@
 
         /* Platform active */
         .nav-item.active {
-            background: linear-gradient(135deg, #F0FDFA, #CCFBF1);
-            color: #0F766E;
+            background: linear-gradient(135deg, #F0FDFA, #E0E7FF);
+            color: #23339E;
             font-weight: 600;
         }
-        .nav-item.active svg { color: #0F766E; }
+        .nav-item.active svg { color: #23339E; }
         .nav-item.active::before {
             content: '';
             position: absolute; left: 0; top: 50%;
             transform: translateY(-50%);
             width: 3px; height: 60%; border-radius: 0 3px 3px 0;
-            background: #14B8A6;
+            background: #3C55FD;
         }
 
         /* Super admin active */
@@ -88,7 +88,7 @@
         <div class="px-5 pt-5 pb-4" style="border-bottom:1px solid #F1F5F9;">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm"
-                     style="background:linear-gradient(135deg,#14B8A6,#0D9488);">LX</div>
+                     style="background:linear-gradient(135deg,#7181ED,#3C55FD);">LX</div>
                 <div>
                     <p class="text-sm font-bold text-slate-800 leading-none">LeadXchange</p>
                     <p class="text-[10px] font-semibold tracking-widest uppercase mt-0.5 text-slate-400">
@@ -238,7 +238,7 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                     {{ $navAdm['label'] }}
                     @php $pendingConsuls = \App\Models\User::where('consul_status','pending')->count(); @endphp
-                    @if($pendingConsuls > 0)<span class="nav-badge text-white" style="background:#0D9488;">{{ $pendingConsuls }}</span>@endif
+                    @if($pendingConsuls > 0)<span class="nav-badge text-white" style="background:#2F44E0;">{{ $pendingConsuls }}</span>@endif
                 </a>
                 @break
 
@@ -424,6 +424,13 @@
             @endswitch
             @endforeach
 
+            <a href="{{ route('admin.super.email-logs.index') }}" class="nav-item sa {{ request()->routeIs('admin.super.email-logs*') ? 'active' : '' }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/><path d="M2 4l7.5 7.5"/></svg>
+                Journal des emails
+                @php $failedCount = \App\Models\EmailLog::where('status','failed')->where('created_at','>=',now()->subDays(7))->count(); @endphp
+                @if($failedCount > 0)<span class="nav-badge text-white" style="background:#EF4444;">{{ $failedCount }}</span>@endif
+            </a>
+
             @endif
         </nav>
 
@@ -431,7 +438,7 @@
         <div class="px-3 py-3" style="border-top:1px solid #F1F5F9;">
             <div class="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-slate-50 transition group">
                 <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-sm"
-                     style="background:linear-gradient(135deg,#14B8A6,#0D9488);">
+                     style="background:linear-gradient(135deg,#3C55FD,#2F44E0);">
                     {{ strtoupper(substr(auth()->user()->first_name, 0, 1)) }}
                 </div>
                 <div class="min-w-0 flex-1">

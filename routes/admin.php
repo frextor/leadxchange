@@ -273,6 +273,8 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::post('email-templates/{key}/send-test', [EmailTemplateController::class, 'sendTest'])->name('email-templates.send-test');
 
     // SMTP / Email settings
+    Route::get('email-logs',                 [\App\Http\Controllers\Admin\SuperAdmin\EmailLogController::class, 'index'])->name('email-logs.index');
+    Route::post('email-logs/{log}/resend',   [\App\Http\Controllers\Admin\SuperAdmin\EmailLogController::class, 'resend'])->name('email-logs.resend');
     Route::get('smtp',                       [SmtpController::class, 'index'])->name('smtp.index');
     Route::put('smtp',                       [SmtpController::class, 'update'])->name('smtp.update');
     Route::post('smtp/test-connection',      [SmtpController::class, 'testConnection'])->name('smtp.test-connection');

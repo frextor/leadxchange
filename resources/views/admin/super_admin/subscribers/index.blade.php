@@ -51,7 +51,7 @@
         </div>
         <button type="submit"
                 class="h-9 px-4 rounded-xl text-sm font-semibold text-white"
-                style="background:#1E8F88;">Filtrer</button>
+                style="background:#2F44E0;">Filtrer</button>
         @if(request()->hasAny(['search','country_id','city_id','plan','status']))
         <a href="{{ route('admin.super.subscribers.index') }}"
            class="h-9 px-4 rounded-xl text-sm font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition flex items-center">
@@ -82,7 +82,7 @@
                         <td class="px-5 py-3">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                                     style="background:linear-gradient(135deg,#34d4bf,#1E8F88);">
+                                     style="background:linear-gradient(135deg,#7181ED,#2F44E0);">
                                     {{ strtoupper(substr($user->first_name, 0, 1)) }}
                                 </div>
                                 <div>

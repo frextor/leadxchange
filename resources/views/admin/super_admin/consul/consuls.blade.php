@@ -35,7 +35,7 @@
 <div class="grid grid-cols-4 gap-4 mb-6">
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-4">
         <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2F44E0" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         </div>
         <div>
             <p class="text-2xl font-extrabold text-gray-900">{{ $counts['consul'] }}</p>
@@ -63,7 +63,7 @@
     </div>
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-4">
         <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2F44E0" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
         </div>
         <div>
             <p class="text-2xl font-extrabold text-gray-900">{{ $counts['total'] }}</p>
@@ -116,7 +116,7 @@
             @forelse($pendingConsulUsers as $user)
             <div class="flex items-center gap-4 px-5 py-3.5 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition">
                 <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                     style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
+                     style="background:linear-gradient(135deg,#7181ED,#2F44E0);">
                     {{ strtoupper(substr($user->first_name ?? '?', 0, 1)) }}
                 </div>
                 <div class="flex-1 min-w-0">
@@ -138,7 +138,7 @@
                     <form method="POST" action="{{ route('admin.super.consuls.nominate', $user) }}">
                         @csrf
                         <button type="submit" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition"
-                                style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
+                                style="background:linear-gradient(135deg,#7181ED,#2F44E0);">
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
                             Approuver
                         </button>
@@ -162,7 +162,7 @@
             @forelse($consulRequests as $req)
             <div class="flex items-start gap-4 px-5 py-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition">
                 <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                     style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
+                     style="background:linear-gradient(135deg,#7181ED,#2F44E0);">
                     {{ strtoupper(substr($req->user->first_name ?? '?', 0, 1)) }}
                 </div>
                 <div class="flex-1 min-w-0">
@@ -278,7 +278,7 @@
         <div class="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/50 transition {{ $isConsul ? 'bg-teal-50/30' : ($isPendingConsul ? 'bg-amber-50/40' : '') }}">
 
             <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                 style="background: {{ $isConsul ? 'linear-gradient(135deg,#2DD4BF,#0D9488)' : 'linear-gradient(135deg,#34d4bf,#1E8F88)' }};">
+                 style="background: {{ $isConsul ? 'linear-gradient(135deg,#7181ED,#2F44E0)' : 'linear-gradient(135deg,#7181ED,#2F44E0)' }};">
                 {{ strtoupper(substr($user->first_name, 0, 1)) }}
             </div>
 
@@ -330,7 +330,7 @@
                     @csrf
                     <button type="submit"
                             class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition"
-                            style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
+                            style="background:linear-gradient(135deg,#7181ED,#2F44E0);">
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
                         Approuver
                     </button>
@@ -350,7 +350,7 @@
                     @csrf
                     <button type="submit"
                             class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white hover:opacity-90 transition"
-                            style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
+                            style="background:linear-gradient(135deg,#7181ED,#2F44E0);">
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                         Nommer Consul
                     </button>
@@ -361,7 +361,7 @@
         @empty
         <div class="px-5 py-16 text-center">
             <div class="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto mb-3">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2F44E0" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             </div>
             <p class="text-sm font-semibold text-gray-400">Aucun membre éligible trouvé.</p>
             <p class="text-xs text-gray-300 mt-1">Seuls les membres avec un plan payant apparaissent ici.</p>

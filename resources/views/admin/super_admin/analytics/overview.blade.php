@@ -18,12 +18,12 @@ document.addEventListener('DOMContentLoaded', function () {
             datasets: [{
                 label: 'Nouveaux membres',
                 data: {!! json_encode($userGrowth['monthly']) !!},
-                borderColor: '#14B8A6',
+                borderColor: '#3C55FD',
                 backgroundColor: 'rgba(20,184,166,0.08)',
                 borderWidth: 2.5,
                 fill: true,
                 tension: 0.4,
-                pointBackgroundColor: '#14B8A6',
+                pointBackgroundColor: '#3C55FD',
                 pointRadius: 3,
                 pointHoverRadius: 5,
             }, {
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function () {
     @php
     $distLabels = collect($subDistribution)->pluck('label')->toArray();
     $distData   = collect($subDistribution)->pluck('count')->toArray();
-    $colors     = ['#7C3AED','#14B8A6','#F59E0B','#3B82F6','#EF4444','#8B5CF6'];
+    $colors     = ['#7C3AED','#3C55FD','#F59E0B','#3B82F6','#EF4444','#8B5CF6'];
     @endphp
     new Chart(document.getElementById('chartSubDist'), {
         type: 'doughnut',
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <div class="grid grid-cols-5 gap-3 mb-5">
     @php
     $pulse = [
-        ['label' => 'Nouveaux membres', 'value' => $todayActivity['new_users'],       'color' => '#14B8A6', 'bg' => '#F0FDFA'],
+        ['label' => 'Nouveaux membres', 'value' => $todayActivity['new_users'],       'color' => '#3C55FD', 'bg' => '#F0FDFA'],
         ['label' => 'Leads créés',      'value' => $todayActivity['new_leads'],       'color' => '#3B82F6', 'bg' => '#EFF6FF'],
         ['label' => 'Connexions',       'value' => $todayActivity['new_connections'], 'color' => '#22C55E', 'bg' => '#F0FDF4'],
         ['label' => 'Événements',       'value' => $todayActivity['new_events'],      'color' => '#F97316', 'bg' => '#FFF7ED'],
@@ -158,20 +158,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 <p class="text-3xl font-bold text-slate-900 mt-1">{{ number_format($kpis['totalUsers']) }}</p>
             </div>
             <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:#F0FDFA;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14B8A6" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3C55FD" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </div>
         </div>
         <div class="grid grid-cols-3 gap-2 text-center">
             <div class="rounded-xl py-1.5 px-2" style="background:#F0FDFA;">
-                <p class="text-lg font-bold" style="color:#14B8A6;">{{ $kpis['newToday'] }}</p>
+                <p class="text-lg font-bold" style="color:#3C55FD;">{{ $kpis['newToday'] }}</p>
                 <p class="text-[9px] font-semibold text-slate-400 uppercase">Aujourd'hui</p>
             </div>
             <div class="rounded-xl py-1.5 px-2" style="background:#F0FDFA;">
-                <p class="text-lg font-bold" style="color:#14B8A6;">{{ $kpis['newWeek'] }}</p>
+                <p class="text-lg font-bold" style="color:#3C55FD;">{{ $kpis['newWeek'] }}</p>
                 <p class="text-[9px] font-semibold text-slate-400 uppercase">Semaine</p>
             </div>
             <div class="rounded-xl py-1.5 px-2" style="background:#F0FDFA;">
-                <p class="text-lg font-bold" style="color:#14B8A6;">{{ $kpis['newMonth'] }}</p>
+                <p class="text-lg font-bold" style="color:#3C55FD;">{{ $kpis['newMonth'] }}</p>
                 <p class="text-[9px] font-semibold text-slate-400 uppercase">Mois</p>
             </div>
         </div>
@@ -328,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <div class="relative w-14 h-14 flex-shrink-0">
                 <svg viewBox="0 0 36 36" class="w-14 h-14 -rotate-90">
                     <circle cx="18" cy="18" r="15.9" fill="none" stroke="#F1F5F9" stroke-width="3"/>
-                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="#14B8A6" stroke-width="3"
+                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="#3C55FD" stroke-width="3"
                         stroke-dasharray="{{ $profileCompletion['average'] }} {{ 100 - $profileCompletion['average'] }}"
                         stroke-linecap="round"/>
                 </svg>

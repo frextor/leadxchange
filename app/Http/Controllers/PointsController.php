@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PointsHistory;
+use App\Models\PointsPayment;
 use App\Models\SystemSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -80,6 +81,8 @@ class PointsController extends Controller
             'metadata'    => [
                 'user_id'       => (string) $user->id,
                 'points_to_add' => (string) $quantity,
+                'amount_cents'  => (string) $totalCents,
+                'currency'      => $currency,
                 'type'          => 'points_free_purchase',
             ],
         ]);
@@ -95,6 +98,12 @@ class PointsController extends Controller
             return redirect()->route('points.index');
         }
 
+        // Idempotence : si ce paiement a déjà été traité (ex. page rafraîchie), ne pas recréditer.
+        if (PointsPayment::where('stripe_session_id', $sessionId)->exists()) {
+            return redirect()->route('points.index')
+                ->with('success', 'Ce paiement a déjà été traité.');
+        }
+
         $stripe  = new StripeClient(config('services.stripe.secret'));
         $session = $stripe->checkout->sessions->retrieve($sessionId);
 
@@ -106,6 +115,24 @@ class PointsController extends Controller
             $pointsToAdd = (int) ($session->metadata->points_to_add ?? 0);
 
             if ($userId && $pointsToAdd > 0) {
+                // Verrou d'unicité au niveau base : si deux requêtes arrivent en même temps
+                // (double clic, retour + webhook), une seule insertion réussira.
+                try {
+                    PointsPayment::create([
+                        'user_id'                  => $userId,
+                        'stripe_session_id'        => $sessionId,
+                        'stripe_payment_intent_id' => $session->payment_intent ?? null,
+                        'points_purchased'         => $pointsToAdd,
+                        'amount_cents'             => (int) ($session->metadata->amount_cents ?? $session->amount_total ?? 0),
+                        'currency'                 => $session->metadata->currency ?? $session->currency ?? 'eur',
+                        'source'                   => 'free_purchase',
+                    ]);
+                } catch (\Illuminate\Database\QueryException $e) {
+                    // Contrainte unique violée → déjà traité par une requête concurrente.
+                    return redirect()->route('points.index')
+                        ->with('success', 'Ce paiement a déjà été traité.');
+                }
+
                 $user = \App\Models\User::find($userId);
                 $user?->adjustPoints($pointsToAdd, 'points_purchased');
             }

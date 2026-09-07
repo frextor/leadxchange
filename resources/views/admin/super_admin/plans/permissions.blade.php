@@ -35,7 +35,7 @@
 $planThemes = [
     'basic'       => ['color' => '#64748B', 'light' => '#F1F5F9'],
     'premium'     => ['color' => '#6366F1', 'light' => '#EEF2FF'],
-    'consul'      => ['color' => '#0D9488', 'light' => '#F0FDFA'],
+    'consul'      => ['color' => '#2F44E0', 'light' => '#F0FDFA'],
     'ambassadeur' => ['color' => '#D97706', 'light' => '#FFFBEB'],
     'enterprise'  => ['color' => '#2563EB', 'light' => '#EFF6FF'],
 ];

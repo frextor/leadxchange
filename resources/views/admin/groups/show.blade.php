@@ -84,7 +84,7 @@
             @php
                 $roleCounts = $members->groupBy(fn($m) => $m->pivot->role);
             @endphp
-            @foreach(['owner' => ['Propriétaires', '#7C3AED'], 'admin' => ['Admins', '#D97706'], 'member' => ['Membres', '#1E8F88']] as $role => $cfg)
+            @foreach(['owner' => ['Propriétaires', '#7C3AED'], 'admin' => ['Admins', '#D97706'], 'member' => ['Membres', '#2F44E0']] as $role => $cfg)
             @if($roleCounts->has($role))
             <div class="flex items-center justify-between">
                 <span class="text-xs text-gray-400 pl-4">{{ $cfg[0] }}</span>
@@ -109,7 +109,7 @@
             <a href="{{ route('admin.users.show', $group->creator) }}"
                class="flex items-center gap-3 hover:bg-gray-50 rounded-xl p-2 -mx-2 transition">
                 <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-                     style="background:linear-gradient(135deg,#34d4bf,#1E8F88);">
+                     style="background:linear-gradient(135deg,#7181ED,#2F44E0);">
                     {{ strtoupper(substr($group->creator->first_name, 0, 1)) }}
                 </div>
                 <div class="min-w-0">

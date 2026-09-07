@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
             datasets: [{
                 label: 'Nouveaux / mois',
                 data: {!! json_encode($userGrowth['monthly']) !!},
-                borderColor: '#14B8A6', backgroundColor: 'rgba(20,184,166,0.1)',
+                borderColor: '#3C55FD', backgroundColor: 'rgba(20,184,166,0.1)',
                 borderWidth: 2.5, fill: true, tension: 0.4, pointRadius: 4, pointHoverRadius: 6,
             }, {
                 label: 'Total cumulé',
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 label: 'Utilisateurs',
                 data: {!! json_encode(collect($usersByRegion)->pluck('count')->toArray()) !!},
                 backgroundColor: 'rgba(20,184,166,0.2)',
-                borderColor: '#14B8A6',
+                borderColor: '#3C55FD',
                 borderWidth: 2,
                 borderRadius: 6,
             }]
@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <div class="grid grid-cols-5 gap-3 mb-5">
     @php
     $cards = [
-        ['label' => 'Total membres',  'value' => $kpis['totalUsers'],  'sub' => null,                    'color' => '#14B8A6', 'bg' => '#F0FDFA'],
+        ['label' => 'Total membres',  'value' => $kpis['totalUsers'],  'sub' => null,                    'color' => '#3C55FD', 'bg' => '#F0FDFA'],
         ['label' => 'Actifs (30j)',   'value' => $kpis['activeUsers'], 'sub' => $kpis['totalUsers'] > 0 ? round($kpis['activeUsers']/$kpis['totalUsers']*100,1).'%' : '—', 'color' => '#3B82F6', 'bg' => '#EFF6FF'],
         ['label' => 'Vérifiés',       'value' => $kpis['verified'],    'sub' => $kpis['totalUsers'] > 0 ? round($kpis['verified']/$kpis['totalUsers']*100,1).'%' : '—',    'color' => '#22C55E', 'bg' => '#F0FDF4'],
         ['label' => 'Non vérifiés',   'value' => $kpis['unverified'],  'sub' => 'Email en attente',       'color' => '#F59E0B', 'bg' => '#FFFBEB'],
@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
 {{-- ── Extra stats row ─────────────────────────────────────────────────── --}}
 <div class="grid grid-cols-3 gap-3 mb-5">
     <div class="bg-white rounded-2xl px-5 py-4 shadow-sm border border-gray-100 flex items-center gap-4">
-        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl font-bold flex-shrink-0" style="background:#F0FDFA; color:#14B8A6;">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl font-bold flex-shrink-0" style="background:#F0FDFA; color:#3C55FD;">
             {{ $kpis['newToday'] }}
         </div>
         <div><p class="text-sm font-bold text-slate-700">Inscriptions aujourd'hui</p><p class="text-xs text-slate-400">{{ now()->format('d/m/Y') }}</p></div>
@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <p class="text-xs text-slate-400">Sur {{ number_format($profileCompletion['total']) }} membres enregistrés</p>
         </div>
         <div class="flex items-center gap-2 px-4 py-2 rounded-xl" style="background:#F0FDFA;">
-            <span class="text-xl font-bold" style="color:#14B8A6;">{{ $profileCompletion['average'] }}%</span>
+            <span class="text-xl font-bold" style="color:#3C55FD;">{{ $profileCompletion['average'] }}%</span>
             <span class="text-xs text-slate-500 font-medium">complétion moyenne</span>
         </div>
     </div>

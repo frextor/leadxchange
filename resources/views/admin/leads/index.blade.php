@@ -8,7 +8,7 @@
 
 {{-- KPI --}}
 <div class="grid grid-cols-4 gap-4 mb-6">
-    @foreach([['Total', $counts['total'], '#1E8F88'],['En attente', $counts['pending'], '#D97706'],['Convertis', $counts['converted'], '#059669'],['Fraudes', $counts['fraud'], '#DC2626']] as [$label,$val,$color])
+    @foreach([['Total', $counts['total'], '#2F44E0'],['En attente', $counts['pending'], '#D97706'],['Convertis', $counts['converted'], '#059669'],['Fraudes', $counts['fraud'], '#DC2626']] as [$label,$val,$color])
     <div class="bg-white rounded-xl border border-gray-200 px-5 py-4">
         <p class="text-xs font-medium text-gray-400">{{ $label }}</p>
         <p class="text-2xl font-bold mt-1" style="color:{{ $color }};">{{ $val }}</p>
@@ -55,7 +55,7 @@
         <label for="fraud" class="text-sm font-medium text-red-600">Fraudes only</label>
     </div>
     <div class="flex gap-2">
-        <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:#1E8F88;">Filtrer</button>
+        <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:#2F44E0;">Filtrer</button>
         @if(request()->hasAny(['search','status','qualification','sector_id','fraud']))
         <a href="{{ route('admin.leads.index') }}" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-500 border border-gray-200 hover:bg-gray-50">Reset</a>
         @endif

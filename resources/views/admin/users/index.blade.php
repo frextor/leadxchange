@@ -126,7 +126,7 @@
         <div class="flex items-end gap-2 ml-auto">
             <button type="submit"
                     class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
-                    style="background:#0D9488;">
+                    style="background:#2F44E0;">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                 Filtrer
             </button>
@@ -194,7 +194,7 @@
                 <td class="px-5 py-3">
                     <div class="flex items-center gap-3">
                         <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ring-2 ring-white"
-                             style="background:linear-gradient(135deg,#2DD4BF,#0D9488);">
+                             style="background:linear-gradient(135deg,#7181ED,#2F44E0);">
                             {{ strtoupper(substr($u->first_name,0,1).substr($u->last_name,0,1)) }}
                         </div>
                         <div class="min-w-0">
@@ -244,7 +244,7 @@
                             </div>
                             <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden w-20">
                                 <div class="h-full rounded-full transition-all"
-                                     style="width:{{ $pct }}%; background:{{ $pct === 100 ? '#0D9488' : ($pct >= 60 ? '#F59E0B' : '#EF4444') }};"></div>
+                                     style="width:{{ $pct }}%; background:{{ $pct === 100 ? '#2F44E0' : ($pct >= 60 ? '#F59E0B' : '#EF4444') }};"></div>
                             </div>
                         </div>
                         {{-- Info manquants --}}
@@ -273,7 +273,7 @@
                         </div>
                         @else
                         <span class="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
-                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="3"><path d="m5 12 5 5L20 7"/></svg>
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2F44E0" stroke-width="3"><path d="m5 12 5 5L20 7"/></svg>
                         </span>
                         @endif
                     </div>
@@ -382,7 +382,7 @@
             {{-- Pages --}}
             @foreach($users->getUrlRange(max(1, $users->currentPage()-2), min($users->lastPage(), $users->currentPage()+2)) as $page => $url)
             @if($page == $users->currentPage())
-            <span class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white" style="background:#0D9488;">{{ $page }}</span>
+            <span class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white" style="background:#2F44E0;">{{ $page }}</span>
             @else
             <a href="{{ $url }}" class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium text-gray-500 hover:bg-gray-100 transition">{{ $page }}</a>
             @endif

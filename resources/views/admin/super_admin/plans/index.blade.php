@@ -42,7 +42,7 @@
     </div>
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2F44E0" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         </div>
         <div><p class="text-2xl font-bold text-gray-900 leading-none">{{ $stats['subscribers'] }}</p><p class="text-xs text-gray-400 mt-0.5">Abonnés actifs</p></div>
     </div>
@@ -59,7 +59,7 @@
 $planThemes = [
     'basic'       => ['color'=>'#64748B','light'=>'#F8FAFC','badge'=>'#E2E8F0','badgeTxt'=>'#475569','border'=>'#94A3B8','icon'=>'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>'],
     'premium'     => ['color'=>'#6366F1','light'=>'#EEF2FF','badge'=>'#E0E7FF','badgeTxt'=>'#4338CA','border'=>'#818CF8','icon'=>'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'],
-    'consul'      => ['color'=>'#0D9488','light'=>'#F0FDFA','badge'=>'#CCFBF1','badgeTxt'=>'#0F766E','border'=>'#2DD4BF','icon'=>'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'],
+    'consul'      => ['color'=>'#2F44E0','light'=>'#F0FDFA','badge'=>'#E0E7FF','badgeTxt'=>'#23339E','border'=>'#7181ED','icon'=>'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'],
     'ambassadeur' => ['color'=>'#D97706','light'=>'#FFFBEB','badge'=>'#FDE68A','badgeTxt'=>'#92400E','border'=>'#FBBF24','icon'=>'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'],
     'enterprise'  => ['color'=>'#2563EB','light'=>'#EFF6FF','badge'=>'#BFDBFE','badgeTxt'=>'#1E40AF','border'=>'#60A5FA','icon'=>'<path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9h.01M9 13h.01M9 17h.01M15 13h.01M15 17h.01"/>'],
 ];
