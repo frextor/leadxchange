@@ -210,7 +210,9 @@
             <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Aperçu</p>
             <div class="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
                 <div class="px-4 py-5 text-center" style="background:linear-gradient(135deg,#0f2027,#1a3a4a,#2F44E0);">
-                    <div class="w-10 h-10 mx-auto mb-2 rounded-xl flex items-center justify-center bg-white/15 font-bold text-white text-sm">LX</div>
+                    <div class="w-10 h-10 mx-auto mb-2 rounded-xl flex items-center justify-center overflow-hidden">
+                        <img src="{{ asset('images/brand/logo-mark.svg') }}" alt="LeadXchange" class="w-full h-full">
+                    </div>
                     <p class="text-white text-xs font-bold leading-snug" id="preview-title">{{ $s('about_title', 'À propos de LeadXchange') }}</p>
                     <p class="text-white/60 text-[10px] mt-1 leading-snug" id="preview-tagline">{{ Str::limit($s('about_tagline', ''), 60) }}</p>
                 </div>

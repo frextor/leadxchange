@@ -121,8 +121,9 @@
 
         {{-- Logo --}}
         <a href="{{ route('home') }}" class="flex items-center gap-2.5">
-            <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-sm"
-                 style="background:linear-gradient(135deg,#1E8F88,#34d4bf);">LX</div>
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden">
+                <img src="{{ asset('images/brand/logo-mark.svg') }}" alt="LeadXchange" class="w-full h-full">
+            </div>
             <span class="font-bold text-[17px] text-gray-900 hidden sm:block">LeadXchange</span>
         </a>
 
@@ -221,7 +222,9 @@
                         {{-- Mini header --}}
                         <div class="flex items-center justify-between mb-5">
                             <div class="flex items-center gap-2">
-                                <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-xs" style="background:linear-gradient(135deg,#1E8F88,#34d4bf);">LX</div>
+                                <div class="w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden">
+                                    <img src="{{ asset('images/brand/logo-mark.svg') }}" alt="LeadXchange" class="w-full h-full">
+                                </div>
                                 <span class="font-semibold text-sm text-gray-900">Dashboard</span>
                             </div>
                             <div class="flex items-center gap-1.5">

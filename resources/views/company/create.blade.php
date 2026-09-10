@@ -54,8 +54,9 @@
     {{-- Logo --}}
     <div class="text-center mb-8">
         <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-3">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl text-white text-lg font-bold"
-                 style="background:linear-gradient(135deg,#2BB6A3,#1E8F88);">LX</div>
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl overflow-hidden">
+                <img src="{{ asset('images/brand/logo-mark.svg') }}" alt="LeadXchange" class="w-full h-full">
+            </div>
             <span class="text-xl font-semibold text-gray-800">LeadXchange</span>
         </a>
     </div>

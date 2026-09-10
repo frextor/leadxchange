@@ -22,7 +22,7 @@
     {{-- Header --}}
     <div class="sa-header">
         <div class="sa-brand">
-            <div class="sa-brand__mark">LX</div>
+            <div class="sa-brand__mark"><img src="{{ asset('images/brand/logo-mark.svg') }}" alt="LeadXchange"></div>
             <div class="sa-brand__text">
                 <span class="sa-brand__name">LeadXchange</span>
                 <span class="sa-brand__sub">Console Admin</span>

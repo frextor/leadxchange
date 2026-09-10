@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('images/brand/logo-mark.svg') }}">
     <title>@yield('title', config('app.name'))</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -95,8 +96,9 @@
 
             <!-- Logo -->
             <a href="{{ route('dashboard') }}" class="flex items-center gap-2.5 flex-shrink-0 py-4">
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-                     style="background: linear-gradient(135deg, #34d4bf, #1E8F88);">LX</div>
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    <img src="{{ asset('images/brand/logo-mark.svg') }}" alt="LeadXchange" class="w-full h-full">
+                </div>
                 <span class="font-semibold text-[15px] text-gray-900 hidden sm:block">LeadXchange</span>
             </a>
 

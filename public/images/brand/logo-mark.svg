@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="576" height="576" viewBox="0 0 576 576" fill="none">
+  <defs>
+    <radialGradient id="lx-mark-bg" cx="0%" cy="100%" r="110%">
+      <stop offset="0%" stop-color="#2F44E0"/>
+      <stop offset="35%" stop-color="#1E2A99"/>
+      <stop offset="70%" stop-color="#0A0A0F"/>
+      <stop offset="100%" stop-color="#050507"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="576" height="576" rx="64" fill="url(#lx-mark-bg)"/>
+
+  <!-- "L" mark -->
+  <path d="M164 200a12 12 0 0 1 12-12h56a12 12 0 0 1 12 12v152h84a12 12 0 0 1 12 12v56a12 12 0 0 1-12 12H176a12 12 0 0 1-12-12V200Z" fill="#FFFFFF"/>
+
+  <!-- Accent block, lower -->
+  <path d="M258 234a10 10 0 0 1 10-10h56a10 10 0 0 1 10 10v56a10 10 0 0 1-10 10h-30v-30a10 10 0 0 0-10-10h-16a10 10 0 0 1-10-10v-16Z" fill="#3750FF"/>
+
+  <!-- Accent block, upper (L-shaped, mirrored) -->
+  <path d="M338 154a10 10 0 0 1 10-10h56a10 10 0 0 1 10 10v56a10 10 0 0 1-10 10h-30v-30a10 10 0 0 0-10-10h-16a10 10 0 0 1-10-10v-16Z" fill="#3750FF"/>
+</svg>

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('images/brand/logo-mark.svg') }}">
     <title>@yield('title', 'Admin') — LeadXchange</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -87,8 +88,9 @@
         {{-- Logo --}}
         <div class="px-5 pt-5 pb-4" style="border-bottom:1px solid #F1F5F9;">
             <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm"
-                     style="background:linear-gradient(135deg,#7181ED,#3C55FD);">LX</div>
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden">
+                    <img src="{{ asset('images/brand/logo-mark.svg') }}" alt="LeadXchange" class="w-full h-full">
+                </div>
                 <div>
                     <p class="text-sm font-bold text-slate-800 leading-none">LeadXchange</p>
                     <p class="text-[10px] font-semibold tracking-widest uppercase mt-0.5 text-slate-400">
