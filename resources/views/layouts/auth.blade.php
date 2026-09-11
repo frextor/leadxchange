@@ -29,9 +29,8 @@
         <img src="{{ asset('images/auth/bg-ellipse.svg') }}" alt="" class="lx-auth-bg-ellipse" aria-hidden="true">
 
         {{-- Logo --}}
-        <a href="{{ route('login') }}" class="lx-auth-logo lx-auth-logo-word">
-            <img src="{{ asset('images/brand/logo-mark.svg') }}" alt="" class="lx-auth-logo-icon">
-            <span>Lead</span><span class="lx-logo-plus">+</span><span>change</span>
+        <a href="{{ route('login') }}" class="lx-auth-logo">
+            <img src="{{ asset('images/brand/logo-mark.svg') }}" alt="LeadXchange" class="lx-auth-logo-icon">
         </a>
 
         {{-- Form (centered vertically) --}}
