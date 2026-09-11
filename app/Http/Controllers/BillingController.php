@@ -17,7 +17,11 @@ class BillingController extends Controller
     {
         $user         = $request->user();
         $subscription = $user->subscription()->with('plan')->first();
-        $plans        = Plan::where('is_active', true)->orderBy('sort_order')->get();
+        // Consul et Ambassadeur sont des badges/rôles attribués par l'admin ou sur demande,
+        // pas des plans achetables — on les exclut, comme sur la page /upgrade.
+        $plans        = Plan::where('is_active', true)
+            ->whereNotIn('name', ['consul', 'ambassadeur'])
+            ->orderBy('sort_order')->get();
         $invoices     = $this->fetchStripeInvoices($user);
 
         return view('account.billing', compact('user', 'subscription', 'plans', 'invoices'));
