@@ -106,11 +106,17 @@
 
 /* Wordmark logo: "Lead+change" */
 .lx-auth-logo-word {
-  gap: 0;
+  gap: 8px;
   font-size: 22px;
   font-weight: 700;
   color: var(--lx-text);
   letter-spacing: -0.02em;
+}
+.lx-auth-logo-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  flex-shrink: 0;
 }
 .lx-logo-plus { color: var(--lx-teal); font-weight: 800; padding: 0 1px; }
 

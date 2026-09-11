@@ -30,6 +30,7 @@
 
         {{-- Logo --}}
         <a href="{{ route('login') }}" class="lx-auth-logo lx-auth-logo-word">
+            <img src="{{ asset('images/brand/logo-mark.svg') }}" alt="" class="lx-auth-logo-icon">
             <span>Lead</span><span class="lx-logo-plus">+</span><span>change</span>
         </a>
 
