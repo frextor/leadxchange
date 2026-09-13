@@ -267,6 +267,19 @@
                     </form>
                     @endif
                     @endif
+                    @if(!in_array($quote->status, ['closed', 'converted']))
+                    <form method="POST" action="{{ route('admin.super.enterprise.quotes.update', $quote) }}" class="inline"
+                          onsubmit="return confirm('Annuler la demande Pack Entreprise de {{ addslashes($quote->company_name) }} ? Le client sera notifié par email.')">
+                        @csrf @method('PATCH')
+                        <input type="hidden" name="status" value="closed">
+                        <input type="hidden" name="admin_notes" value="{{ $quote->admin_notes }}">
+                        <button type="submit"
+                                class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                            Annuler la demande
+                        </button>
+                    </form>
+                    @endif
                     <button type="button" onclick="toggleEdit({{ $quote->id }})"
                             class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
                         Modifier
