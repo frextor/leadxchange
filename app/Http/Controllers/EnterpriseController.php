@@ -377,15 +377,20 @@ class EnterpriseController extends Controller
         if ($wasAvailable) {
             $request->validate([
                 'email'      => ['required', 'email', 'max:255'],
-                'first_name' => ['required', 'string', 'max:80'],
-                'last_name'  => ['required', 'string', 'max:80'],
-                'password'   => ['required', 'string', 'min:8', 'confirmed'],
+                'password'   => ['required', 'string'],
             ]);
 
             $email      = strtolower(trim($request->email));
             $targetUser = User::where('email', $email)->first();
 
             if (! $targetUser) {
+                // New account — first/last name required, password becomes the account password.
+                $request->validate([
+                    'first_name' => ['required', 'string', 'max:80'],
+                    'last_name'  => ['required', 'string', 'max:80'],
+                    'password'   => ['min:8', 'confirmed'],
+                ]);
+
                 $targetUser = User::create([
                     'first_name'        => $request->first_name,
                     'last_name'         => $request->last_name,
@@ -397,11 +402,24 @@ class EnterpriseController extends Controller
                     'email_verified_at' => now(),
                 ]);
             } else {
-                $targetUser->update([
-                    'first_name' => $request->first_name,
-                    'last_name'  => $request->last_name,
-                    'password'   => Hash::make($request->password),
-                ]);
+                // Existing account with this email — must prove ownership before attaching
+                // the licence. Never overwrite name/password of an account we don't own.
+                $alreadyAuthenticated = auth()->check() && auth()->id() === $targetUser->id;
+
+                if (! $alreadyAuthenticated) {
+                    try {
+                        $valid = Auth::guard()->validate(['email' => $targetUser->email, 'password' => $request->password]);
+                    } catch (\RuntimeException $e) {
+                        Log::error('Enterprise join hash format error', ['user_id' => $targetUser->id, 'error' => $e->getMessage()]);
+                        $valid = false;
+                    }
+
+                    if (! $valid) {
+                        return back()->withErrors([
+                            'password' => 'Un compte existe déjà avec cet email. Saisissez le mot de passe de ce compte pour continuer.',
+                        ])->withInput();
+                    }
+                }
             }
 
             $invitation->update([
