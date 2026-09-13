@@ -159,7 +159,7 @@
                     </div>
 
                     <div>
-                        <label class="lx-label">Quels secteurs vous intéressent ?</label>
+                        <label class="lx-label">Dans quels secteurs recherchez vous des leads ?</label>
                         <select name="looking_for[]" multiple class="lx-input lx-multiselect">
                             @foreach($sectors as $sector)
                                 <option value="{{ $sector->id }}" {{ in_array($sector->id, $user->profile?->looking_for ?? []) ? 'selected' : '' }}>{{ $sector->name }}</option>
@@ -168,7 +168,7 @@
                     </div>
 
                     <div>
-                        <label class="lx-label">Quels secteurs pouvez-vous adresser ?</label>
+                        <label class="lx-label">Dans quels secteurs pouvez vous fournir vous des leads ?</label>
                         <select name="services_offered[]" multiple class="lx-input lx-multiselect">
                             @foreach($sectors as $sector)
                                 <option value="{{ $sector->id }}" {{ in_array($sector->id, $user->profile?->services_offered ?? []) ? 'selected' : '' }}>{{ $sector->name }}</option>
