@@ -71,7 +71,13 @@ class OnboardingController extends Controller
         if (!empty($data['company_id'])) {
             $user->update(['company_id' => $data['company_id']]);
         } elseif (!empty($data['company_name'])) {
-            $company = \App\Models\Company::create(['name' => $data['company_name']]);
+            // Le SIRET n'est pas demandé à cette étape (nom libre) mais la colonne est
+            // NOT NULL + UNIQUE en base — on génère un placeholder unique, à compléter
+            // plus tard depuis la fiche entreprise.
+            $company = \App\Models\Company::create([
+                'name'  => $data['company_name'],
+                'siret' => $this->generatePlaceholderSiret(),
+            ]);
             $user->update(['company_id' => $company->id]);
         }
 
@@ -115,5 +121,18 @@ class OnboardingController extends Controller
         $request->user()->update(['onboarding_completed' => true]);
 
         return redirect()->route('dashboard');
+    }
+
+    /**
+     * Génère un SIRET placeholder unique (14 caractères) pour les entreprises
+     * créées à la volée depuis l'onboarding, où le vrai numéro n'est pas demandé.
+     */
+    private function generatePlaceholderSiret(): string
+    {
+        do {
+            $siret = 'TMP' . strtoupper(\Illuminate\Support\Str::random(11));
+        } while (\App\Models\Company::where('siret', $siret)->exists());
+
+        return $siret;
     }
 }
