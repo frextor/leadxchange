@@ -426,6 +426,13 @@
             @endswitch
             @endforeach
 
+            <a href="{{ route('admin.super.settings.launch') }}" class="nav-item sa {{ request()->routeIs('admin.super.settings.launch*') ? 'active' : '' }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>
+                Lancement
+                @php $launchedRow = \App\Models\SystemSetting::where('key','platform_launched')->first(); $isLaunched = $launchedRow ? filter_var($launchedRow->value, FILTER_VALIDATE_BOOLEAN) : true; @endphp
+                @if(!$isLaunched)<span class="nav-badge text-white" style="background:#D97706;">PRÉ</span>@endif
+            </a>
+
             <a href="{{ route('admin.super.email-logs.index') }}" class="nav-item sa {{ request()->routeIs('admin.super.email-logs*') ? 'active' : '' }}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/><path d="M2 4l7.5 7.5"/></svg>
                 Journal des emails

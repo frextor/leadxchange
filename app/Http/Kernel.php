@@ -19,6 +19,7 @@ class Kernel extends HttpKernel
         \Illuminate\Http\Middleware\HandleCors::class,
         \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
         \App\Http\Middleware\MaintenanceMode::class,
+        \App\Http\Middleware\PreLaunchGate::class,
         \App\Http\Middleware\GeoBlock::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,

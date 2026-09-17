@@ -258,6 +258,9 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::get('settings/geo-block',          [SettingsController::class, 'geoBlockSettings'])->name('settings.geo-block');
     Route::put('settings/geo-block',          [SettingsController::class, 'updateGeoBlockSettings'])->name('settings.geo-block.update');
 
+    Route::get('settings/launch',               [SettingsController::class, 'launch'])->name('settings.launch');
+    Route::put('settings/launch',               [SettingsController::class, 'updateLaunch'])->name('settings.launch.update');
+
     Route::get('settings/maintenance',         [SettingsController::class, 'maintenance'])->name('settings.maintenance');
     Route::put('settings/maintenance',         [SettingsController::class, 'updateMaintenance'])->name('settings.maintenance.update');
     Route::get('settings/maintenance/preview', fn() => response()->view('errors.503', ['message' => 'Quelques minutes (démonstration)']))->name('settings.maintenance.preview');

@@ -246,6 +246,40 @@ class SettingsController extends Controller
         return back()->with('success', 'Paramètres enregistrés.');
     }
 
+    // ── Lancement officiel de la plateforme ─────────────────────────────────
+
+    public function launch(): View
+    {
+        $launchedRow = SystemSetting::where('key', 'platform_launched')->first();
+        $messageRow  = SystemSetting::where('key', 'prelaunch_message')->first();
+
+        $launched = $launchedRow ? filter_var($launchedRow->value, FILTER_VALIDATE_BOOLEAN) : true;
+        $message  = $messageRow?->value ?: 'Votre inscription est confirmée. Nous vous préviendrons par email dès l\'ouverture officielle de la plateforme.';
+
+        $pendingCount = \App\Models\User::where('role', 'user')->count();
+
+        return view('admin.super_admin.settings.launch', compact('launched', 'message', 'pendingCount'));
+    }
+
+    public function updateLaunch(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'platform_launched' => ['nullable', 'boolean'],
+            'prelaunch_message' => ['required', 'string', 'max:300'],
+        ]);
+
+        $launched = $request->boolean('platform_launched');
+
+        SystemSetting::updateOrCreate(['key' => 'platform_launched'], ['value' => $launched ? '1' : '0', 'group' => 'launch', 'type' => 'bool']);
+        SystemSetting::updateOrCreate(['key' => 'prelaunch_message'], ['value' => $request->prelaunch_message, 'group' => 'launch', 'type' => 'string']);
+        Cache::forget('system_settings');
+
+        $status = $launched ? 'La plateforme est officiellement lancée — tous les inscrits ont maintenant accès complet.' : 'Mode pré-lancement réactivé — seule la page d\'inscription reste accessible.';
+        ActivityLogger::log('admin.settings.updated', 'Lancement plateforme : ' . ($launched ? 'activé' : 'désactivé'));
+
+        return back()->with('success', $status);
+    }
+
     // ── §5.3 Maintenance ──────────────────────────────────────────────────
 
     public function maintenance(): View

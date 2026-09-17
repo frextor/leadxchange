@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\SystemSetting;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
@@ -51,6 +52,18 @@ class VerificationController extends Controller
      */
     private function deepLinkResponse(Request $request)
     {
+        // Mode pré-lancement : pas de redirection vers l'app/le dashboard, la
+        // plateforme n'est pas encore ouverte. On confirme juste l'inscription.
+        $row      = SystemSetting::where('key', 'platform_launched')->first();
+        $launched = $row ? filter_var($row->value, FILTER_VALIDATE_BOOLEAN) : true;
+
+        if (!$launched) {
+            $msgRow  = SystemSetting::where('key', 'prelaunch_message')->first();
+            $message = $msgRow?->value ?: 'Nous vous préviendrons par email dès l\'ouverture officielle de la plateforme.';
+
+            return view('auth.email-verified-prelaunch', compact('message'));
+        }
+
         $ua = $request->header('User-Agent', '');
         $isMobile = str_contains($ua, 'iPhone')
                  || str_contains($ua, 'iPad')
