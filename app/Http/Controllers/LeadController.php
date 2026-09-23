@@ -17,48 +17,76 @@ class LeadController extends Controller
 
     public function __construct(private LeadService $leadService) {}
 
+    /**
+     * Liste des leads (maquette lx2 : liste + détail côte à côte).
+     * Sans lead sélectionné, le détail affiche le premier lead de l'onglet (vue « no-sel » sur mobile).
+     */
     public function index(Request $request)
     {
-        $user  = $request->user();
-        $leads = $this->leadService->getUserLeads($user);
+        $box = $request->query('box') === 'sent' ? 'sent' : 'received';
 
-        $connectionIds = $user->connectionIds();
-
-        $connections = User::whereIn('id', $connectionIds)
-            ->select('id', 'first_name', 'last_name', 'points_balance')
-            ->orderBy('first_name')
-            ->get();
-
-        $sectors = Sector::orderBy('name')->get(['id', 'name']);
-
-        return view('leads.index', [
-            'received'      => $leads['received'],
-            'sent'          => $leads['sent'],
-            'connections'   => $connections,
-            'sectors'       => $sectors,
-            'statusConfig'  => Lead::$statusConfig,
-            'qualConfig'    => Lead::$qualificationConfig,
-            'currentUser'   => $user,
-        ]);
+        return $this->renderList($request, $box, null);
     }
 
+    /** Détail d'un lead : même écran, avec ce lead sélectionné (vue « sel » sur mobile). */
     public function show(Request $request, int $id)
     {
         $user = $request->user();
-        $lead = Lead::with([
-            'sender:id,first_name,last_name,points_balance,badge_level',
-            'receiver:id,first_name,last_name,points_balance,badge_level',
-            'ratings',
-            'sector:id,name',
-        ])->findOrFail($id);
+        $lead = Lead::findOrFail($id);
 
         if ($lead->sender_id !== $user->id && $lead->receiver_id !== $user->id) {
             abort(403);
         }
 
-        $isSent = $lead->sender_id === $user->id;
+        return $this->renderList($request, $lead->sender_id === $user->id ? 'sent' : 'received', $lead->id);
+    }
 
-        return view('leads.show', compact('lead', 'user', 'isSent'));
+    /** Formulaire « Envoyer un lead » (écran dédié de la maquette). */
+    public function create(Request $request)
+    {
+        if ($redirect = $this->requirePermission('can_send_leads')) {
+            return $redirect;
+        }
+
+        $user        = $request->user();
+        $connections = User::with('profile')
+            ->whereIn('id', $user->connectionIds())
+            ->select('id', 'first_name', 'last_name', 'points_balance')
+            ->orderBy('first_name')
+            ->get();
+
+        return view('leads.create', [
+            'connections'    => $connections,
+            'ratings'        => $this->leadService->averageRatingsForSenders($connections->pluck('id')),
+            'sectors'        => Sector::orderBy('name')->get(['id', 'name']),
+            'preselectedId'  => (int) $request->query('to', 0) ?: null,
+            'pointsOnAccept' => \App\Services\PointsService::SEND_CREDIT,
+        ]);
+    }
+
+    private function renderList(Request $request, string $box, ?int $selectedId)
+    {
+        $user  = $request->user();
+        $leads = $this->leadService->getUserLeads($user);
+        $list  = $box === 'sent' ? $leads['sent'] : $leads['received'];
+
+        $selected = $selectedId ? $list->firstWhere('id', $selectedId) : $list->first();
+
+        if ($selected) {
+            $selected->loadMissing(['sender.profile', 'receiver.profile', 'sender.company', 'receiver.company']);
+        }
+
+        $other = $selected ? ($box === 'sent' ? $selected->receiver : $selected->sender) : null;
+
+        return view('leads.index', [
+            'box'          => $box,
+            'leads'        => $list,
+            'counts'       => ['received' => $leads['received']->count(), 'sent' => $leads['sent']->count()],
+            'selected'     => $selected,
+            'isSelected'   => $selectedId !== null,
+            'otherRating'  => $other ? $this->leadService->averageRatingsForSenders([$other->id])->get($other->id) : null,
+            'currentUser'  => $user,
+        ]);
     }
 
     public function store(StoreLeadRequest $request)
@@ -86,7 +114,7 @@ class LeadController extends Controller
         try {
             $this->leadService->createLead($user, $request->validated());
 
-            return redirect()->route('leads.index')
+            return redirect()->route('leads.index', ['box' => 'sent'])
                 ->with('success', 'Lead envoyé avec succès !');
         } catch (\Exception $e) {
             return back()->withInput()->withErrors(['error' => $e->getMessage()]);

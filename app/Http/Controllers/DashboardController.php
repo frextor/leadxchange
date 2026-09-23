@@ -8,7 +8,6 @@ use App\Models\EnterpriseQuoteRequest;
 use App\Models\Event;
 use App\Models\Group;
 use App\Models\Lead;
-use App\Models\LeadRating;
 use App\Models\Plan;
 use App\Models\PointsHistory;
 use App\Models\SystemSetting;
@@ -158,12 +157,7 @@ class DashboardController extends Controller
         }
 
         // Note moyenne reçue par chaque membre suggéré (moyenne des notes des leads qu'il a envoyés)
-        $suggestionRatings = $suggestions->isEmpty() ? collect() : LeadRating::query()
-            ->join('leads', 'leads.id', '=', 'lead_ratings.lead_id')
-            ->whereIn('leads.sender_id', $suggestions->pluck('id'))
-            ->groupBy('leads.sender_id')
-            ->selectRaw('leads.sender_id, AVG(lead_ratings.average_note) AS avg_note')
-            ->pluck('avg_note', 'leads.sender_id');
+        $suggestionRatings = $this->leadService->averageRatingsForSenders($suggestions->pluck('id'));
 
         // Points gagnés (cumul des crédits de points, hors débits)
         $pointsEarned = (int) PointsHistory::where('user_id', $user->id)->where('delta', '>', 0)->sum('delta');

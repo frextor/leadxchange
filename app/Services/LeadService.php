@@ -459,6 +459,26 @@ class LeadService
     // Read helpers
     // ─────────────────────────────────────────────────────────────────────────
 
+    /**
+     * Note moyenne reçue par des membres en tant qu'expéditeurs de leads
+     * (moyenne des notes des leads qu'ils ont envoyés). Retourne [user_id => moyenne].
+     */
+    public function averageRatingsForSenders(iterable $userIds): \Illuminate\Support\Collection
+    {
+        $ids = collect($userIds)->filter()->unique()->values();
+        if ($ids->isEmpty()) {
+            return collect();
+        }
+
+        return \App\Models\LeadRating::query()
+            ->join('leads', 'leads.id', '=', 'lead_ratings.lead_id')
+            ->whereIn('leads.sender_id', $ids)
+            ->groupBy('leads.sender_id')
+            ->selectRaw('leads.sender_id, AVG(lead_ratings.average_note) AS avg_note')
+            ->pluck('avg_note', 'leads.sender_id')
+            ->map(fn($v) => (float) $v);
+    }
+
     public function getUserLeads(User $user): array
     {
         $with = ['sender:id,first_name,last_name', 'sender.profile:user_id,avatar', 'receiver:id,first_name,last_name', 'receiver.profile:user_id,avatar', 'ratings', 'sector:id,name'];

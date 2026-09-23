@@ -51,7 +51,7 @@
             </a>
             @endforeach
         </nav>
-        <a class="send-cta" href="{{ route('leads.index') }}" title="Envoyer un lead">
+        <a class="send-cta" href="{{ route('leads.create') }}" title="Envoyer un lead">
             <span class="lbl">Envoyer un lead</span>
             <span class="bub"><x-lx2-icon name="arrow-up-right" /></span>
         </a>
@@ -84,7 +84,7 @@
 <nav class="bnav" aria-label="Navigation principale">
     <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'on' : '' }}"><x-lx2-icon name="house" />Accueil</a>
     <a href="{{ route('leads.index') }}" class="{{ request()->routeIs('leads.*') ? 'on' : '' }}"><x-lx2-icon name="file-text" />Leads</a>
-    <a href="{{ route('leads.index') }}" class="mid" aria-label="Envoyer un lead"><span><x-lx2-icon name="lx-send" /></span></a>
+    <a href="{{ route('leads.create') }}" class="mid" aria-label="Envoyer un lead"><span><x-lx2-icon name="lx-send" /></span></a>
     <a href="{{ route('events.index') }}" class="{{ request()->routeIs('events.*') ? 'on' : '' }}"><x-lx2-icon name="calendar-days" />Événements</a>
     <a href="{{ route('connections.index') }}" class="{{ request()->routeIs('connections.*') ? 'on' : '' }}"><x-lx2-icon name="users-round" />Réseau</a>
 </nav>

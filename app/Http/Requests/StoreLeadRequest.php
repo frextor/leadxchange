@@ -11,6 +11,26 @@ class StoreLeadRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Le formulaire lx2 (maquette) saisit le nom et le prénom séparément, et l'indicatif
+     * téléphonique à part : on les recompose dans les champs existants (contact_name, contact_phone).
+     */
+    protected function prepareForValidation(): void
+    {
+        if (! $this->filled('contact_name') && ($this->filled('contact_first_name') || $this->filled('contact_last_name'))) {
+            $this->merge([
+                'contact_name' => trim($this->input('contact_first_name', '') . ' ' . $this->input('contact_last_name', '')),
+            ]);
+        }
+
+        if ($this->filled('contact_phone') && $this->filled('contact_phone_prefix')) {
+            $phone = trim($this->input('contact_phone'));
+            if (! str_starts_with($phone, '+')) {
+                $this->merge(['contact_phone' => $this->input('contact_phone_prefix') . ' ' . ltrim($phone, '0')]);
+            }
+        }
+    }
+
     public function rules(): array
     {
         return [
@@ -27,6 +47,9 @@ class StoreLeadRequest extends FormRequest
             'contact_email'    => ['required', 'email', 'max:150'],
             'contact_phone'    => ['required', 'string', 'max:30'],
             'contact_position' => ['nullable', 'string', 'max:100'],
+            'contact_first_name'   => ['nullable', 'string', 'max:60'],
+            'contact_last_name'    => ['nullable', 'string', 'max:60'],
+            'contact_phone_prefix' => ['nullable', 'string', 'max:6'],
             'deadline'         => ['required', 'date', 'after:today'],
             'qualification'    => ['required', 'in:chaud,tiede,froid'],
             'sector_id'        => ['required', 'integer', 'exists:sectors,id'],

@@ -107,8 +107,23 @@ async function lx2SendInvite(e) {
         btn.disabled = false;
     }
 }
+/* Fenêtres génériques (.overlay[data-dialog]) : lx2Dialog('id') ouvre, [data-close] / clic extérieur / Échap ferment */
+window.lx2Dialog = function (id) {
+    const d = document.getElementById(id);
+    if (!d) return;
+    d.classList.remove('hidden');
+    document.getElementById('userPanel')?.classList.add('hidden');
+    document.getElementById('notifPanel')?.classList.add('hidden');
+    setTimeout(() => d.querySelector('input:not([type=hidden]),button[type=submit]')?.focus(), 30);
+};
+document.addEventListener('click', (e) => {
+    const d = e.target.closest('[data-dialog]');
+    if (!d) return;
+    if (e.target === d || e.target.closest('[data-close]')) d.classList.add('hidden');
+});
 document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+    document.querySelectorAll('[data-dialog]').forEach(d => d.classList.add('hidden'));
     lx2CloseInvite();
     if (typeof closeNotifDetail === 'function') closeNotifDetail();
     document.getElementById('userPanel')?.classList.add('hidden');

@@ -363,7 +363,8 @@ Route::middleware(['auth', 'user', 'email.verified', 'cgu'])->group(function () 
 
     // Leads (Exchanges)
     Route::get('/leads',                  [LeadController::class, 'index'])->name('leads.index');
-    Route::get('/leads/{id}',             [LeadController::class, 'show'])->name('leads.show');
+    Route::get('/leads/nouveau',          [LeadController::class, 'create'])->name('leads.create');
+    Route::get('/leads/{id}',             [LeadController::class, 'show'])->whereNumber('id')->name('leads.show');
     Route::post('/leads',                 [LeadController::class, 'store'])->name('leads.store');
     Route::post('/leads/{id}/accept',     [LeadController::class, 'accept'])->name('leads.accept');
     Route::post('/leads/{id}/reject',     [LeadController::class, 'reject'])->name('leads.reject');
