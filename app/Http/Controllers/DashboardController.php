@@ -129,6 +129,40 @@ class DashboardController extends Controller
             }
         }
 
+        // ── Suggestions de contacts (section de la page) ─────────────────────
+        // Indépendantes du popup de bienvenue : toujours calculées, même si le popup est désactivé.
+        // On évite les membres avec qui une demande est déjà en cours (dans un sens ou l'autre).
+        $pendingWithIds = Connection::where(function ($q) use ($user) {
+            $q->where('sender_id', $user->id)->orWhere('receiver_id', $user->id);
+        })->pending()->get()->map(
+            fn($c) => $c->sender_id === $user->id ? $c->receiver_id : $c->sender_id
+        );
+
+        $suggestions = $baseQuery()
+            ->whereNotIn('id', $pendingWithIds->toArray())
+            ->inRandomOrder()
+            ->limit(6)
+            ->get();
+
+        if ($suggestions->isEmpty() && $selectedCityId) {
+            // Aucun membre dans la ville choisie : on élargit à toutes les villes
+            $suggestions = User::with(['profile', 'company', 'city'])
+                ->where('role', 'user')
+                ->where('id', '!=', $user->id)
+                ->whereNotIn('id', $connectedIds->merge($pendingWithIds)->toArray())
+                ->inRandomOrder()
+                ->limit(6)
+                ->get();
+        }
+
+        // ── Demandes de connexion reçues en attente ──────────────────────────
+        $pendingRequests = Connection::with(['sender.profile', 'sender.company'])
+            ->where('receiver_id', $user->id)
+            ->pending()
+            ->latest()
+            ->limit(3)
+            ->get();
+
         $plans = Plan::orderBy('price')->get();
 
         // ── Sélecteur de région ──────────────────────────────────────────────
@@ -187,7 +221,7 @@ class DashboardController extends Controller
             'completion', 'missing', 'prospects', 'plans',
             'featuredGroups', 'memberGroupIds',
             'upcomingEvents', 'attendingEventIds',
-            'leadStats', 'pendingLeads',
+            'leadStats', 'pendingLeads', 'pendingRequests', 'suggestions',
             'popupEnabled', 'popupFrequency',
             'popupTitle', 'popupSubtitle', 'popupBtnLater', 'popupBtnCta',
             'negativeBalancePopup', 'pointsNeeded', 'pointsPricePerUnit',

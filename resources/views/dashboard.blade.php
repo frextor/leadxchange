@@ -32,14 +32,12 @@
 
 {{-- ── WELCOME MODAL ── --}}
 @if($popupEnabled && $prospects->isNotEmpty())
-<div id="welcomeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);">
+<div id="welcomeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);" onclick="if(event.target===this) closeWelcomeModal()">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" style="animation:slideUp .3s ease;">
         <div class="relative px-7 pt-8 pb-5 text-center" style="background:linear-gradient(135deg,#1E2A99,#4154F4);">
             <div class="absolute inset-0 opacity-10" style="background-image:radial-gradient(circle at 80% 20%,white 1px,transparent 1px);background-size:22px 22px;"></div>
             <div class="relative z-10">
-                <div class="w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center" style="background:rgba(255,255,255,0.15);">
-                    <x-lx2-icon name="users-round" class="i" />
-                </div>
+                <div class="welcome-ico"><x-lx2-icon name="users-round" /></div>
                 @php
                     $firstName    = auth()->user()->first_name;
                     $displayTitle = $popupTitle ? str_replace(':prenom', $firstName, $popupTitle) : "Bienvenue sur LeadXchange, {$firstName} !";
@@ -59,7 +57,7 @@
                     @else
                         <div class="w-full h-full flex items-center justify-center text-white font-semibold text-sm"
                              style="background:linear-gradient(135deg,hsl({{ $hue }} 60% 55%),hsl({{ $hue2 }} 55% 45%));">
-                            {{ strtoupper(substr($prospect->first_name,0,1).substr($prospect->last_name,0,1)) }}
+                            {{ member_name($prospect, true) }}
                         </div>
                     @endif
                 </div>
@@ -132,14 +130,30 @@
      HEADER — greeting + top icons
 ════════════════════════════════════════════════════════════════ --}}
 @php
-    $lx2Stars = round($completion / 20);
+    // Même compteur que le badge "Leads" de la barre latérale (statut "new")
+    $pendingLeadsCount = \App\Support\NavCounts::forCurrentUser()['pendingLeadsCount'];
 @endphp
 <div class="ph">
     <div class="t">
         <div class="sub" style="margin:0 0 2px">{{ now()->locale('fr')->isoFormat('dddd D MMMM') }}</div>
         <h1 style="font-size:28px;font-weight:500;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             Bonjour, {{ auth()->user()->first_name }}
-            <span class="badge b-plain" style="font-size:11px">{{ $selectedCity?->name ?? 'Toutes les villes' }} <x-lx2-icon name="chevron-down" /></span>
+            <span class="city-dd" id="cityDd">
+                <button type="button" class="badge b-plain" style="font-size:11px" onclick="toggleCityDd(event)" aria-haspopup="true" aria-expanded="false">
+                    <x-lx2-icon name="map-pin" /> {{ $selectedCity?->name ?? 'Toutes les villes' }} <x-lx2-icon name="chevron-down" />
+                </button>
+                <form method="POST" action="{{ route('region.select') }}" class="hidden pop menu city-pop" id="cityPop">
+                    @csrf
+                    <input type="hidden" name="redirect" value="dashboard">
+                    <button type="submit" name="city_id" value="" class="{{ $selectedCityId ? '' : 'on' }}">Toutes les villes @unless($selectedCityId)<x-lx2-icon name="check" />@endunless</button>
+                    <hr class="sep">
+                    @foreach($cities as $city)
+                    <button type="submit" name="city_id" value="{{ $city->id }}" class="{{ (int) $selectedCityId === $city->id ? 'on' : '' }}">
+                        {{ $city->name }} @if((int) $selectedCityId === $city->id)<x-lx2-icon name="check" />@endif
+                    </button>
+                    @endforeach
+                </form>
+            </span>
         </h1>
     </div>
 </div>
@@ -180,7 +194,8 @@
     @endforeach
 </div>
 
-{{-- ── Banner complétion profil ── --}}
+{{-- ── Banner complétion profil (masquée quand le profil est complet) ── --}}
+@if($completion < 100)
 <div class="banner">
     <span class="ring" style="background:conic-gradient(#fff 0 {{ $completion }}%,rgba(255,255,255,.3) 0)">
         <span>{{ $completion }}%</span>
@@ -188,9 +203,77 @@
     <div class="tx">
         <b>Complétez votre profil commercial</b>
         <small>Un profil complet génère 3× plus de leads entrants.</small>
+        @if(count($missing) > 0)
+        <div class="miss">
+            @foreach(array_slice($missing, 0, 4) as $field)<span>{{ $field['label'] }}</span>@endforeach
+            @if(count($missing) > 4)<span>+{{ count($missing) - 4 }}</span>@endif
+        </div>
+        @endif
     </div>
     <a class="btn" href="{{ route('profile.me') }}">Compléter mon profil</a>
 </div>
+@endif
+
+{{-- ══════════════════════════════════════════════════════════════
+     À TRAITER — demandes de connexion + leads reçus en attente
+════════════════════════════════════════════════════════════════ --}}
+@if($pendingRequests->isNotEmpty() || $pendingLeads->isNotEmpty())
+<div class="sh"><h2>À traiter</h2></div>
+<div class="todo">
+    @if($pendingRequests->isNotEmpty())
+    <div class="card">
+        <div class="hd">
+            <b><x-lx2-icon name="user-plus" /> Demandes de connexion <span class="badge b-soft" id="pendingReqCount">{{ $pendingCount }}</span></b>
+            <a class="link" href="{{ route('connections.index') }}">Voir tout</a>
+        </div>
+        <div id="dashReqList">
+        @foreach($pendingRequests as $req)
+        @php $snd = $req->sender; $hue = ($snd->id * 47) % 360; $hue2 = ($hue + 40) % 360; @endphp
+        <div class="row" id="dash-req-{{ $req->id }}">
+            <a href="{{ route('profile.show', $snd->id) }}">
+                @if($snd->profile?->avatar)
+                    <img class="av" src="{{ $snd->profile->avatar_url }}" alt="" style="width:36px;height:36px;">
+                @else
+                    <span class="av-fb" style="width:36px;height:36px;font-size:12px;background:linear-gradient(135deg,hsl({{ $hue }} 60% 55%),hsl({{ $hue2 }} 55% 45%));color:#fff;">{{ member_name($snd, true) }}</span>
+                @endif
+            </a>
+            <div class="who">
+                <a class="nm" href="{{ route('profile.show', $snd->id) }}">{{ member_name($snd) }}</a>
+                <div class="role">{{ $snd->profile?->job_title ?? 'Membre LeadXchange' }}@if($snd->company) · {{ $snd->company->name }}@endif · {{ $req->created_at->locale('fr')->diffForHumans() }}</div>
+            </div>
+            <div class="acts">
+                <button type="button" class="btn btn-primary btn-sm" onclick="dashRespond({{ $req->id }}, 'accept', this)">Accepter</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="dashRespond({{ $req->id }}, 'reject', this)" aria-label="Refuser"><x-lx2-icon name="x" /></button>
+            </div>
+        </div>
+        @endforeach
+        </div>
+    </div>
+    @endif
+
+    @if($pendingLeads->isNotEmpty())
+    <div class="card">
+        <div class="hd">
+            <b><x-lx2-icon name="inbox" /> Leads reçus à traiter <span class="badge b-warm">{{ $pendingLeadsCount }}</span></b>
+            <a class="link" href="{{ route('leads.index') }}">Voir tout</a>
+        </div>
+        @foreach($pendingLeads as $lead)
+        <a class="row" href="{{ route('leads.show', $lead->id) }}">
+            <span class="av-fb" style="width:36px;height:36px;"><x-lx2-icon name="file-text" /></span>
+            <div class="who">
+                <div class="nm">{{ $lead->company_name ?: ($lead->contact_name ?: 'Lead #' . $lead->id) }}</div>
+                <div class="role">
+                    @if($lead->sender)De {{ member_name($lead->sender) }} · @endif{{ $lead->created_at->locale('fr')->diffForHumans() }}
+                    @if($lead->deadline) · échéance {{ $lead->deadline->format('d/m') }}@endif
+                </div>
+            </div>
+            <x-lx2-icon name="chevron-right" />
+        </a>
+        @endforeach
+    </div>
+    @endif
+</div>
+@endif
 
 {{-- ══════════════════════════════════════════════════════════════
      ACTIONS RAPIDES
@@ -198,7 +281,7 @@
 <div class="sh"><h2>Actions rapides</h2></div>
 <div class="qa">
     <a class="card hi" href="{{ route('leads.index') }}"><span class="tile"><x-lx2-icon name="lx-send" /></span>Envoyer un lead<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
-    <a class="card" href="{{ route('leads.index') }}"><span class="tile" style="background:var(--primary)"><x-lx2-icon name="inbox" /></span>Mes leads reçus<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
+    <a class="card" href="{{ route('leads.index') }}"><span class="tile" style="background:var(--primary)"><x-lx2-icon name="inbox" /></span>Mes leads reçus @if($pendingLeadsCount > 0)<span class="pill">{{ $pendingLeadsCount > 9 ? '9+' : $pendingLeadsCount }}</span>@endif<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
     <a class="card" href="{{ route('connections.index') }}"><span class="tile" style="background:var(--green)"><x-lx2-icon name="contact" /></span>Mes connexions<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
     <a class="card" href="{{ route('connections.index') }}"><span class="tile" style="background:var(--purple)"><x-lx2-icon name="users-round" /></span>Réseauter<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
 </div>
@@ -207,16 +290,16 @@
      SUGGESTIONS DE CONTACTS
 ════════════════════════════════════════════════════════════════ --}}
 <div class="sh"><h2>Suggestions de contacts</h2><a class="link" href="{{ route('connections.index') }}">Voir tout</a></div>
-@if($prospects->isNotEmpty())
+@if($suggestions->isNotEmpty())
 <div class="grid-2">
-    @foreach($prospects->take(6) as $prospect)
+    @foreach($suggestions as $prospect)
     @php $hue = ($prospect->id * 47) % 360; $hue2 = ($hue + 40) % 360; @endphp
     <div class="card mrow">
         <a href="{{ route('profile.show', $prospect->id) }}">
             @if($prospect->profile?->avatar)
                 <img class="av" src="{{ $prospect->profile->avatar_url }}" alt="" style="width:40px;height:40px;">
             @else
-                <span class="av-fb" style="width:40px;height:40px;background:linear-gradient(135deg,hsl({{ $hue }} 60% 55%),hsl({{ $hue2 }} 55% 45%));color:#fff;">{{ strtoupper(substr($prospect->first_name,0,1).substr($prospect->last_name,0,1)) }}</span>
+                <span class="av-fb" style="width:40px;height:40px;background:linear-gradient(135deg,hsl({{ $hue }} 60% 55%),hsl({{ $hue2 }} 55% 45%));color:#fff;">{{ member_name($prospect, true) }}</span>
             @endif
         </a>
         <div class="who">
@@ -413,43 +496,131 @@
 
 @push('scripts')
 <script>
+/* Appels API : même authentification que le reste de l'app (session + jeton web-spa) */
+async function lxApi(url, method = 'GET', body = null) {
+    const res = await fetch(url, {
+        method,
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Authorization': 'Bearer ' + (window.API_TOKEN || ''),
+        },
+        credentials: 'same-origin',
+        body: body ? JSON.stringify(body) : null,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || 'Une erreur est survenue. Réessayez.');
+    return data;
+}
+
+/* ── Popup de bienvenue : respecte la fréquence réglée dans l'admin (once / session / always) ── */
+@if($popupEnabled && $prospects->isNotEmpty())
+(function () {
+    const uid       = '{{ auth()->id() }}';
+    const frequency = @json($popupFrequency);
+    const LS_KEY    = 'lx_welcome_shown_' + uid;
+    const SS_KEY    = 'lx_welcome_session_' + uid;
+
+    let shouldShow = false;
+    try {
+        if (frequency === 'always') {
+            shouldShow = true;
+        } else if (frequency === 'session') {
+            if (!sessionStorage.getItem(SS_KEY)) { shouldShow = true; sessionStorage.setItem(SS_KEY, '1'); }
+        } else if (!localStorage.getItem(LS_KEY)) {  // "once" (défaut)
+            shouldShow = true; localStorage.setItem(LS_KEY, '1');
+        }
+    } catch (e) {
+        shouldShow = frequency === 'always';  // stockage bloqué (navigation privée) : on n'insiste pas
+    }
+
+    if (shouldShow) {
+        document.addEventListener('DOMContentLoaded', () => document.getElementById('welcomeModal').classList.remove('hidden'));
+    }
+})();
+@endif
+
 function closeWelcomeModal() {
     const m = document.getElementById('welcomeModal');
-    if (m) m.style.display = 'none';
+    if (m) m.classList.add('hidden');
 }
-document.addEventListener('DOMContentLoaded', function () {
-    const m = document.getElementById('welcomeModal');
-    if (m) m.classList.remove('hidden');
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeWelcomeModal(); closeCityDd(); }
 });
 
 async function welcomeConnect(userId, btn) {
     btn.disabled = true;
-    btn.textContent = '...';
+    btn.textContent = '…';
     try {
-        const res = await fetch('/api/connections', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Authorization': 'Bearer ' + (window.API_TOKEN || '') },
-            credentials: 'same-origin',
-            body: JSON.stringify({ receiver_id: userId }),
-        });
-        if (res.ok) { btn.textContent = 'Envoyé ✓'; btn.style.background = '#22C55E'; }
-        else { btn.disabled = false; btn.textContent = 'Se connecter'; }
-    } catch (e) { btn.disabled = false; btn.textContent = 'Se connecter'; }
+        await lxApi('/api/connections', 'POST', { receiver_id: userId });
+        btn.textContent = 'Envoyé ✓';
+        btn.style.background = 'var(--green)';
+    } catch (e) {
+        btn.disabled = false;
+        btn.textContent = 'Se connecter';
+        if (typeof toast === 'function') toast(e.message, 'error');
+    }
 }
 
 async function sendConnect(userId, btn) {
     btn.disabled = true;
     try {
-        const res = await fetch('/api/connections', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Authorization': 'Bearer ' + (window.API_TOKEN || '') },
-            credentials: 'same-origin',
-            body: JSON.stringify({ receiver_id: userId }),
-        });
-        if (res.ok) { btn.innerHTML = '✓'; btn.style.color = '#22C55E'; }
-        else { btn.disabled = false; }
-    } catch (e) { btn.disabled = false; }
+        await lxApi('/api/connections', 'POST', { receiver_id: userId });
+        btn.innerHTML = '✓';
+        btn.style.color = 'var(--green)';
+        btn.title = 'Demande envoyée';
+        if (typeof toast === 'function') toast('Demande de connexion envoyée', 'success');
+    } catch (e) {
+        btn.disabled = false;
+        if (typeof toast === 'function') toast(e.message, 'error');
+    }
 }
+
+/* ── Accepter / refuser une demande depuis la carte "À traiter" ── */
+async function dashRespond(id, action, btn) {
+    const row = document.getElementById('dash-req-' + id);
+    row.querySelectorAll('button').forEach(b => b.disabled = true);
+    row.style.opacity = '.5';
+    try {
+        await lxApi(`/api/connections/${id}/${action}`, 'POST');
+        row.remove();
+        if (typeof toast === 'function') toast(action === 'accept' ? 'Connexion acceptée 🎉' : 'Demande refusée', action === 'accept' ? 'success' : 'info');
+
+        const counter = document.getElementById('pendingReqCount');
+        const left = Math.max(0, parseInt(counter.textContent || '0', 10) - 1);
+        counter.textContent = left;
+        const badge = document.getElementById('membersBadge');
+        if (badge) { badge.textContent = left; badge.style.display = left > 0 ? 'flex' : 'none'; }
+        if (!document.querySelector('#dashReqList .row')) {
+            document.getElementById('dashReqList').innerHTML =
+                left > 0
+                    ? '<a class="row link" href="{{ route('connections.index') }}">Voir les ' + left + ' autre(s) demande(s)</a>'
+                    : '<div class="empty" style="padding:24px">Vous êtes à jour ✓</div>';
+        }
+    } catch (e) {
+        row.style.opacity = '1';
+        row.querySelectorAll('button').forEach(b => b.disabled = false);
+        if (typeof toast === 'function') toast(e.message, 'error');
+    }
+}
+
+/* ── Sélecteur de ville ── */
+function toggleCityDd(e) {
+    e.stopPropagation();
+    const pop = document.getElementById('cityPop');
+    const open = pop.classList.toggle('hidden') === false;
+    e.currentTarget.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+function closeCityDd() {
+    const pop = document.getElementById('cityPop');
+    if (pop) pop.classList.add('hidden');
+}
+document.addEventListener('click', (e) => {
+    const dd = document.getElementById('cityDd');
+    if (dd && !dd.contains(e.target)) closeCityDd();
+});
 
 function lx2SetBilling(period, btn) {
     document.querySelectorAll('#lx2PlanTabs button').forEach(b => b.classList.remove('on'));
