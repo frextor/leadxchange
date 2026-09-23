@@ -61,6 +61,13 @@
         <span class="pill"><span class="dot"></span>Inscription confirmée</span>
 
         <h1>LeadXchange arrive bientôt</h1>
+
+        @if(session('success'))
+        <div class="message-box" style="background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.35);color:#34D399;font-weight:600;margin-bottom:16px;">
+            ✅ {{ session('success') }}
+        </div>
+        @endif
+
         <p class="subtitle">La plateforme n'est pas encore ouverte au public. Votre compte est bien créé — vous serez parmi les premiers avertis dès l'ouverture officielle.</p>
 
         <div class="message-box">{{ $message }}</div>
