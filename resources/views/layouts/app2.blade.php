@@ -62,7 +62,6 @@
     </aside>
 
     <main class="main">
-        @include('layouts.partials.lx2-topbar')
         @include('layouts.partials.banners')
 
         <div class="page">
@@ -78,15 +77,6 @@
 
             @yield('content')
 
-            <footer class="lx2-foot">
-                <span>© {{ date('Y') }} X-tensia SAS — LeadXchange</span>
-                <nav>
-                    <a href="{{ url('/legal/cgu') }}" target="_blank">CGU</a>
-                    <a href="{{ url('/legal/privacy') }}" target="_blank">Confidentialité</a>
-                    <a href="{{ route('support.index') }}">Support</a>
-                    <a href="mailto:contact@leadxchange.com">Contact</a>
-                </nav>
-            </footer>
         </div>
     </main>
 </div>
@@ -106,6 +96,9 @@
 @include('layouts.partials.firebase')
 @include('layouts.partials.upgrade-modal')
 @include('layouts.partials.sweetalert')
+
+{{-- Après nav-scripts : remplace toast() et le rendu des notifications par la version lx2 --}}
+@include('layouts.partials.lx2-overlays')
 
 @stack('scripts')
 </body>

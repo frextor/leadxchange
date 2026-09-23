@@ -7,7 +7,8 @@
 
         function toggleMembers() {
             const panel = document.getElementById('notificationPanel');
-            document.getElementById('userPanel').classList.add('hidden');
+            document.getElementById('userPanel')?.classList.add('hidden');
+            document.getElementById('notifPanel')?.classList.add('hidden');
             if (panel.classList.contains('hidden')) {
                 panel.classList.remove('hidden');
                 if (!notifLoaded) { loadRequests(); notifLoaded = true; }
@@ -15,7 +16,8 @@
         }
 
         function toggleUserMenu() {
-            document.getElementById('notificationPanel').classList.add('hidden');
+            document.getElementById('notificationPanel')?.classList.add('hidden');
+            document.getElementById('notifPanel')?.classList.add('hidden');
             document.getElementById('userPanel').classList.toggle('hidden');
         }
 
@@ -23,9 +25,9 @@
             const mi  = document.getElementById('membersNavItem');
             const ud  = document.getElementById('userDropdown');
             const nb  = document.getElementById('notifBellWrap');
-            if (mi && !mi.contains(e.target)) document.getElementById('notificationPanel').classList.add('hidden');
-            if (ud && !ud.contains(e.target)) document.getElementById('userPanel').classList.add('hidden');
-            if (nb && !nb.contains(e.target)) document.getElementById('notifPanel').classList.add('hidden');
+            if (mi && !mi.contains(e.target)) document.getElementById('notificationPanel')?.classList.add('hidden');
+            if (ud && !ud.contains(e.target)) document.getElementById('userPanel')?.classList.add('hidden');
+            if (nb && !nb.contains(e.target)) document.getElementById('notifPanel')?.classList.add('hidden');
         });
 
         async function loadRequests() {
@@ -97,6 +99,7 @@
 
         function incrementBadge() {
             const b=document.getElementById('membersBadge');
+            if (!b) return;
             b.textContent=parseInt(b.textContent||0)+1; b.style.display='flex';
         }
 
@@ -117,8 +120,8 @@
 
         window.toggleNotifPanel = function() {
             const panel = document.getElementById('notifPanel');
-            document.getElementById('userPanel').classList.add('hidden');
-            document.getElementById('notificationPanel').classList.add('hidden');
+            document.getElementById('userPanel')?.classList.add('hidden');
+            document.getElementById('notificationPanel')?.classList.add('hidden');
             if (panel.classList.contains('hidden')) {
                 panel.classList.remove('hidden');
                 if (!notifPanelLoaded) { loadNotifications(); notifPanelLoaded = true; }
@@ -153,6 +156,8 @@
             window._notifCache = window._notifCache || {};
             items.forEach(n => window._notifCache[n.id] = n);
 
+            // Un layout peut fournir son propre rendu de ligne (ex. design lx2 : window.lxNotifRow)
+            if (typeof window.lxNotifRow === 'function') { list.innerHTML = items.map(window.lxNotifRow).join(''); return; }
             list.innerHTML = items.map(n => `
                 <div class="flex items-start gap-3 px-5 py-3.5 border-b border-gray-50 hover:bg-gray-50 transition cursor-pointer ${n.is_read ? 'opacity-70' : ''}"
                      id="notif-${n.id}" onclick="openNotifDetail(${n.id})">
@@ -172,7 +177,7 @@
             const badge = document.getElementById('notifBadge');
             if (!badge) return;
             if (count > 0) {
-                badge.textContent = count > 9 ? '9+' : count;
+                if (!badge.classList.contains('dot')) badge.textContent = count > 9 ? '9+' : count;
                 badge.classList.remove('hidden');
                 badge.style.display = 'flex';
             } else {
@@ -233,7 +238,7 @@
             if (!n.is_read) {
                 n.is_read = true;
                 const el = document.getElementById('notif-' + id);
-                if (el) { el.classList.add('opacity-70'); el.querySelector('.bg-teal-500')?.classList.replace('bg-teal-500','bg-gray-200'); }
+                if (el) { el.classList.add('opacity-70'); el.querySelector('.bg-teal-500')?.classList.replace('bg-teal-500','bg-gray-200'); el.querySelector('.unread')?.remove(); }
                 try {
                     await fetch('/api/notifications/' + id + '/read', { method:'POST', headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF,'Authorization':'Bearer '+window.API_TOKEN}, credentials:'same-origin' });
                 } catch {}
@@ -260,7 +265,7 @@
         // ── Refresh badge every 60s ──────────────────────────────────
         window.addEventListener('DOMContentLoaded', () => {
             fetch('/api/connections?type=received&status=pending', { headers:{'Accept':'application/json','Authorization':'Bearer '+window.API_TOKEN}, credentials:'same-origin' })
-                .then(r=>r.json()).then(d=>{ const n=(d.data||[]).length; if(n>0){const b=document.getElementById('membersBadge'); b.textContent=n; b.style.display='flex';} }).catch(()=>{});
+                .then(r=>r.json()).then(d=>{ const n=(d.data||[]).length; if(n>0){const b=document.getElementById('membersBadge'); if(b){b.textContent=n; b.style.display='flex';}} }).catch(()=>{});
             setInterval(()=>{ if(notifLoaded) loadRequests(); }, 30000);
             setInterval(async()=>{
                 try {

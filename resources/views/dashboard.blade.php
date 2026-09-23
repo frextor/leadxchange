@@ -127,20 +127,24 @@
 @endif
 
 {{-- ══════════════════════════════════════════════════════════════
-     HEADER — greeting + top icons
+     EN-TÊTE — maquette « LeadXchange WEB » › pageAccueil()
+     (couronne Premium · date · Bonjour + ville · icônes)
 ════════════════════════════════════════════════════════════════ --}}
 @php
-    // Même compteur que le badge "Leads" de la barre latérale (statut "new")
-    $pendingLeadsCount = \App\Support\NavCounts::forCurrentUser()['pendingLeadsCount'];
+    $effectivePlan = $user->effectivePlan();
+    $isPaidPlan    = $effectivePlan && in_array($effectivePlan->name, ['premium', 'enterprise'], true);
 @endphp
 <div class="ph">
+    @if($isPaidPlan)
+    <img src="{{ asset('images/brand/crown.jpg') }}" alt="{{ $effectivePlan->label }}" style="width:62px;height:66px;object-fit:contain;mix-blend-mode:multiply" class="hide-m">
+    @endif
     <div class="t">
-        <div class="sub" style="margin:0 0 2px">{{ now()->locale('fr')->isoFormat('dddd D MMMM') }}</div>
-        <h1 style="font-size:28px;font-weight:500;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            Bonjour, {{ auth()->user()->first_name }}
+        <div class="sub" style="margin:0 0 2px">{{ ucfirst(now()->locale('fr')->isoFormat('dddd, D MMMM')) }}</div>
+        <h1 style="font-size:30px;font-weight:500;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            Bonjour, {{ $user->first_name }}
             <span class="city-dd" id="cityDd">
                 <button type="button" class="badge b-plain" style="font-size:11px" onclick="toggleCityDd(event)" aria-haspopup="true" aria-expanded="false">
-                    <x-lx2-icon name="map-pin" /> {{ $selectedCity?->name ?? 'Toutes les villes' }} <x-lx2-icon name="chevron-down" />
+                    {{ $selectedCity?->name ?? 'Toutes les villes' }} <x-lx2-icon name="chevron-down" />
                 </button>
                 <form method="POST" action="{{ route('region.select') }}" class="hidden pop menu city-pop" id="cityPop">
                     @csrf
@@ -156,6 +160,7 @@
             </span>
         </h1>
     </div>
+    @include('layouts.partials.lx2-header-icons')
 </div>
 
 {{-- ── PROPOSITION ENTERPRISE EN ATTENTE ── --}}
@@ -182,96 +187,21 @@
 ════════════════════════════════════════════════════════════════ --}}
 <div class="kpis">
     @foreach([
-        ['lx-send', $leadStats['sent'] ?? 0,      'Leads envoyés'],
-        ['check',   $leadStats['converted'] ?? 0, 'Leads convertis'],
-        ['wallet',  (int) ($user->points_balance ?? 0), 'Solde de points'],
-        ['users-round', $connectionCount, 'Connexions'],
+        ['lx-send', $leadStats['sent'] ?? 0,              'Leads envoyés'],
+        ['check',   $leadStats['converted'] ?? 0,         'Leads convertis'],
+        ['wallet',  (int) ($user->points_balance ?? 0),   'Solde du compte'],
+        ['star',    $pointsEarned,                        'Points gagnés'],
     ] as [$icon, $value, $label])
-    <div class="card kpi">
-        <span class="ico"><x-lx2-icon :name="$icon" /></span>
-        <div><div class="v num">{{ $value }}</div><div class="l">{{ $label }}</div></div>
-    </div>
+    <div class="card kpi"><span class="ico"><x-lx2-icon :name="$icon" /></span><div><div class="v num">{{ $value }}</div><div class="l">{{ $label }}</div></div></div>
     @endforeach
 </div>
 
-{{-- ── Banner complétion profil (masquée quand le profil est complet) ── --}}
+{{-- ── Complétion du profil (masquée quand le profil est complet) ── --}}
 @if($completion < 100)
 <div class="banner">
-    <span class="ring" style="background:conic-gradient(#fff 0 {{ $completion }}%,rgba(255,255,255,.3) 0)">
-        <span>{{ $completion }}%</span>
-    </span>
-    <div class="tx">
-        <b>Complétez votre profil commercial</b>
-        <small>Un profil complet génère 3× plus de leads entrants.</small>
-        @if(count($missing) > 0)
-        <div class="miss">
-            @foreach(array_slice($missing, 0, 4) as $field)<span>{{ $field['label'] }}</span>@endforeach
-            @if(count($missing) > 4)<span>+{{ count($missing) - 4 }}</span>@endif
-        </div>
-        @endif
-    </div>
+    <span class="ring" style="background:conic-gradient(#fff 0 {{ $completion }}%,rgba(255,255,255,.3) 0)"><span>{{ $completion }}%</span></span>
+    <div class="tx"><b>Complétez votre profil commercial</b><small>Un profil complet génère 3× plus de leads entrants.</small></div>
     <a class="btn" href="{{ route('profile.me') }}">Compléter mon profil</a>
-</div>
-@endif
-
-{{-- ══════════════════════════════════════════════════════════════
-     À TRAITER — demandes de connexion + leads reçus en attente
-════════════════════════════════════════════════════════════════ --}}
-@if($pendingRequests->isNotEmpty() || $pendingLeads->isNotEmpty())
-<div class="sh"><h2>À traiter</h2></div>
-<div class="todo">
-    @if($pendingRequests->isNotEmpty())
-    <div class="card">
-        <div class="hd">
-            <b><x-lx2-icon name="user-plus" /> Demandes de connexion <span class="badge b-soft" id="pendingReqCount">{{ $pendingCount }}</span></b>
-            <a class="link" href="{{ route('connections.index') }}">Voir tout</a>
-        </div>
-        <div id="dashReqList">
-        @foreach($pendingRequests as $req)
-        @php $snd = $req->sender; $hue = ($snd->id * 47) % 360; $hue2 = ($hue + 40) % 360; @endphp
-        <div class="row" id="dash-req-{{ $req->id }}">
-            <a href="{{ route('profile.show', $snd->id) }}">
-                @if($snd->profile?->avatar)
-                    <img class="av" src="{{ $snd->profile->avatar_url }}" alt="" style="width:36px;height:36px;">
-                @else
-                    <span class="av-fb" style="width:36px;height:36px;font-size:12px;background:linear-gradient(135deg,hsl({{ $hue }} 60% 55%),hsl({{ $hue2 }} 55% 45%));color:#fff;">{{ member_name($snd, true) }}</span>
-                @endif
-            </a>
-            <div class="who">
-                <a class="nm" href="{{ route('profile.show', $snd->id) }}">{{ member_name($snd) }}</a>
-                <div class="role">{{ $snd->profile?->job_title ?? 'Membre LeadXchange' }}@if($snd->company) · {{ $snd->company->name }}@endif · {{ $req->created_at->locale('fr')->diffForHumans() }}</div>
-            </div>
-            <div class="acts">
-                <button type="button" class="btn btn-primary btn-sm" onclick="dashRespond({{ $req->id }}, 'accept', this)">Accepter</button>
-                <button type="button" class="btn btn-outline btn-sm" onclick="dashRespond({{ $req->id }}, 'reject', this)" aria-label="Refuser"><x-lx2-icon name="x" /></button>
-            </div>
-        </div>
-        @endforeach
-        </div>
-    </div>
-    @endif
-
-    @if($pendingLeads->isNotEmpty())
-    <div class="card">
-        <div class="hd">
-            <b><x-lx2-icon name="inbox" /> Leads reçus à traiter <span class="badge b-warm">{{ $pendingLeadsCount }}</span></b>
-            <a class="link" href="{{ route('leads.index') }}">Voir tout</a>
-        </div>
-        @foreach($pendingLeads as $lead)
-        <a class="row" href="{{ route('leads.show', $lead->id) }}">
-            <span class="av-fb" style="width:36px;height:36px;"><x-lx2-icon name="file-text" /></span>
-            <div class="who">
-                <div class="nm">{{ $lead->company_name ?: ($lead->contact_name ?: 'Lead #' . $lead->id) }}</div>
-                <div class="role">
-                    @if($lead->sender)De {{ member_name($lead->sender) }} · @endif{{ $lead->created_at->locale('fr')->diffForHumans() }}
-                    @if($lead->deadline) · échéance {{ $lead->deadline->format('d/m') }}@endif
-                </div>
-            </div>
-            <x-lx2-icon name="chevron-right" />
-        </a>
-        @endforeach
-    </div>
-    @endif
 </div>
 @endif
 
@@ -281,35 +211,31 @@
 <div class="sh"><h2>Actions rapides</h2></div>
 <div class="qa">
     <a class="card hi" href="{{ route('leads.index') }}"><span class="tile"><x-lx2-icon name="lx-send" /></span>Envoyer un lead<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
-    <a class="card" href="{{ route('leads.index') }}"><span class="tile" style="background:var(--primary)"><x-lx2-icon name="inbox" /></span>Mes leads reçus @if($pendingLeadsCount > 0)<span class="pill">{{ $pendingLeadsCount > 9 ? '9+' : $pendingLeadsCount }}</span>@endif<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
+    <a class="card" href="{{ route('leads.index') }}"><span class="tile" style="background:var(--primary)"><x-lx2-icon name="inbox" /></span>Mes leads reçus<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
     <a class="card" href="{{ route('connections.index') }}"><span class="tile" style="background:var(--green)"><x-lx2-icon name="contact" /></span>Mes connexions<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
     <a class="card" href="{{ route('connections.index') }}"><span class="tile" style="background:var(--purple)"><x-lx2-icon name="users-round" /></span>Réseauter<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
 </div>
 
 {{-- ══════════════════════════════════════════════════════════════
-     SUGGESTIONS DE CONTACTS
+     SUGGESTIONS DE CONTACTS — maquette › memberRow(id, 'Pour toi')
 ════════════════════════════════════════════════════════════════ --}}
 <div class="sh"><h2>Suggestions de contacts</h2><a class="link" href="{{ route('connections.index') }}">Voir tout</a></div>
 @if($suggestions->isNotEmpty())
 <div class="grid-2">
-    @foreach($suggestions as $prospect)
-    @php $hue = ($prospect->id * 47) % 360; $hue2 = ($hue + 40) % 360; @endphp
+    @foreach($suggestions as $member)
+    @php $note = $suggestionRatings[$member->id] ?? null; @endphp
     <div class="card mrow">
-        <a href="{{ route('profile.show', $prospect->id) }}">
-            @if($prospect->profile?->avatar)
-                <img class="av" src="{{ $prospect->profile->avatar_url }}" alt="" style="width:40px;height:40px;">
-            @else
-                <span class="av-fb" style="width:40px;height:40px;background:linear-gradient(135deg,hsl({{ $hue }} 60% 55%),hsl({{ $hue2 }} 55% 45%));color:#fff;">{{ member_name($prospect, true) }}</span>
-            @endif
-        </a>
+        <a href="{{ route('profile.show', $member->id) }}"><x-lx2-avatar :user="$member" :size="40" /></a>
         <div class="who">
-            <a class="nm" href="{{ route('profile.show', $prospect->id) }}">{{ member_name($prospect) }}</a>
-            <div class="role">{{ $prospect->profile?->job_title ?? 'Membre LeadXchange' }}@if($prospect->city) · {{ $prospect->city->name }} @endif</div>
+            <a class="nm" href="{{ route('profile.show', $member->id) }}">{{ member_name($member) }}
+                @if($note)<span class="stars"><x-lx2-icon name="star" />{{ round($note) }}</span>@endif
+            </a>
+            <div class="role">{{ $member->profile?->job_title ?? 'Membre LeadXchange' }}</div>
         </div>
         @if(auth()->user()->canFeature('can_send_invitations'))
-        <button onclick="sendConnect({{ $prospect->id }}, this)" class="circle-act" aria-label="Se connecter"><x-lx2-icon name="user-plus" /></button>
+        <button type="button" onclick="sendConnect({{ $member->id }}, this)" class="circle-act" aria-label="Se connecter avec {{ member_name($member) }}"><x-lx2-icon name="user-plus" /></button>
         @else
-        <button type="button" onclick="openUpgradeModal('can_send_invitations')" class="circle-act" style="color:var(--muted-fg)" aria-label="Upgrade requis"><x-lx2-icon name="user-plus" /></button>
+        <button type="button" onclick="openUpgradeModal('can_send_invitations')" class="circle-act" aria-label="Se connecter avec {{ member_name($member) }}"><x-lx2-icon name="user-plus" /></button>
         @endif
     </div>
     @endforeach
@@ -319,15 +245,21 @@
 @endif
 
 {{-- ══════════════════════════════════════════════════════════════
-     ÉVÉNEMENTS À VENIR
+     ÉVÉNEMENTS À VENIR — maquette › eventCard(e)
 ════════════════════════════════════════════════════════════════ --}}
 <div class="sh"><h2>Événements à venir</h2><a class="link" href="{{ route('events.index') }}">Voir tout</a></div>
 @if($upcomingEvents->isNotEmpty())
+@php
+    $modeLabels     = ['virtual' => 'Virtuel', 'in_person' => 'En personne', 'hybrid' => 'Hybride'];
+    $categoryLabels = \App\Models\Event::categoryLabels();
+@endphp
 <div class="grid-3">
     @foreach($upcomingEvents as $event)
     @php
-        $typeLabels = ['virtual' => 'Virtuel', 'in_person' => 'Présentiel', 'hybrid' => 'Hybride'];
         $isAttending = in_array($event->id, $attendingEventIds);
+        $isFull      = $event->max_attendees !== null && $event->attendees_count >= $event->max_attendees;
+        $isLimited   = ! $isFull && $event->max_attendees !== null && ($event->max_attendees - $event->attendees_count) <= 5;
+        $more        = max(0, (int) $event->attendees_count - $event->previewPeople->count());
     @endphp
     <article class="card ecard">
         <a class="cover" href="{{ route('events.show', $event->id) }}">
@@ -337,19 +269,31 @@
                 <div style="width:100%;height:100%;background:linear-gradient(135deg,{{ $event->cover_color }},{{ $event->cover_color }}99);"></div>
             @endif
             <span class="tl">
-                <span class="badge b-plain">{{ $typeLabels[$event->type] ?? $event->type }}</span>
+                <span class="badge b-plain">{{ $categoryLabels[$event->category] ?? ucfirst(str_replace('_', ' ', (string) $event->category)) ?: 'Événement' }}</span>
                 <span class="badge {{ $event->is_free ? 'b-ok' : 'b-soft' }}">{{ $event->is_free ? 'Gratuit' : currency_format($event->price) }}</span>
+                @if($isLimited)<span class="badge b-orange">Places limitées</span>@endif
             </span>
         </a>
         <div class="body">
             <a href="{{ route('events.show', $event->id) }}"><h3>{{ $event->title }}</h3></a>
-            <div class="when">{{ $event->starts_at->isoFormat('ddd, D MMM · H:mm') }}</div>
-            <div class="meta"><span>{{ $event->sector?->name ?? 'Networking' }}</span></div>
+            <div class="when">{{ ucfirst($event->starts_at->locale('fr')->isoFormat('MMMM D, YYYY [à] H:mm')) }}</div>
+            <div class="meta">
+                @if($event->previewPeople->isNotEmpty())
+                <span class="stack">@foreach($event->previewPeople as $p)<x-lx2-avatar :user="$p" :size="26" />@endforeach @if($more > 0)<span class="more">+{{ $more }}</span>@endif</span>
+                @endif
+                <span>Participants · <span class="mode">{{ $modeLabels[$event->type] ?? $event->type }}</span></span>
+            </div>
             <div class="actions">
                 @if($isAttending)
-                <span class="btn btn-soft" style="flex:1;text-align:center;">Inscrit ✓</span>
+                    <form method="POST" action="{{ route('events.leave', $event->id) }}" style="flex:1;display:flex">@csrf @method('DELETE')
+                        <button type="submit" class="btn btn-danger-soft" style="flex:1">Quitter</button></form>
+                @elseif($isFull)
+                    <button class="btn btn-soft" disabled>Complet</button>
+                @elseif($event->is_free)
+                    <form method="POST" action="{{ route('events.join', $event->id) }}" style="flex:1;display:flex">@csrf
+                        <button type="submit" class="btn btn-primary" style="flex:1">Rejoindre</button></form>
                 @else
-                <a class="btn btn-primary" style="flex:1;text-align:center;" href="{{ route('events.show', $event->id) }}">Rejoindre</a>
+                    <a class="btn btn-primary" href="{{ route('events.show', $event->id) }}">Rejoindre</a>
                 @endif
             </div>
         </div>
@@ -361,13 +305,16 @@
 @endif
 
 {{-- ══════════════════════════════════════════════════════════════
-     GROUPES POPULAIRES
+     GROUPES POPULAIRES — maquette › groupCard(g)
 ════════════════════════════════════════════════════════════════ --}}
 <div class="sh"><h2>Groupes populaires</h2><a class="link" href="{{ route('groups.index') }}">Voir tout</a></div>
 @if($featuredGroups->isNotEmpty())
 <div class="grid-3">
     @foreach($featuredGroups as $group)
-    @php $isMember = in_array($group->id, $memberGroupIds); @endphp
+    @php
+        $isMember = in_array($group->id, $memberGroupIds);
+        $more     = max(0, (int) $group->members_count - $group->previewPeople->count());
+    @endphp
     <article class="card ecard">
         <a class="cover" href="{{ route('groups.show', $group->id) }}">
             @if($group->cover_photo)
@@ -380,12 +327,19 @@
         <div class="body">
             <a href="{{ route('groups.show', $group->id) }}"><h3>{{ $group->name }}</h3></a>
             <div class="desc">{{ $group->description ? \Illuminate\Support\Str::limit($group->description, 60) : ($group->sector?->name ?? 'Groupe LeadXchange') }}</div>
-            <div class="meta"><span>{{ $group->members_count }} membre{{ $group->members_count > 1 ? 's' : '' }}</span></div>
+            <div class="meta">
+                @if($group->previewPeople->isNotEmpty())
+                <span class="stack">@foreach($group->previewPeople as $p)<x-lx2-avatar :user="$p" :size="26" />@endforeach @if($more > 0)<span class="more">+{{ $more }}</span>@endif</span>
+                @endif
+                <span>Membres</span>
+            </div>
             <div class="actions">
                 @if($isMember)
-                <span class="btn btn-soft" style="flex:1;text-align:center;">Membre ✓</span>
+                    <form method="POST" action="{{ route('groups.leave', $group->id) }}" style="flex:1;display:flex">@csrf @method('DELETE')
+                        <button type="submit" class="btn btn-danger-soft" style="flex:1">Quitter</button></form>
                 @else
-                <a class="btn btn-primary" style="flex:1;text-align:center;" href="{{ route('groups.show', $group->id) }}">Rejoindre</a>
+                    <form method="POST" action="{{ route('groups.join', $group->id) }}" style="flex:1;display:flex">@csrf
+                        <button type="submit" class="btn btn-primary" style="flex:1">Rejoindre</button></form>
                 @endif
             </div>
         </div>
@@ -401,14 +355,14 @@
 @php $elic = auth()->user()->enterpriseLicense()->withCount(['invitations as active_count' => fn($q) => $q->where('status','active')])->first(); @endphp
 @if($elic)
 <div class="card" style="margin-top:28px;border:1.5px solid #BFDBFE;overflow:hidden;">
-    <div class="h-1.5" style="height:6px;background:linear-gradient(90deg,#1D4ED8,#2563EB);"></div>
-    <div class="px-6 py-5 flex items-center gap-5 flex-wrap" style="display:flex;">
-        <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background:#EFF6FF;width:48px;height:48px;">
+    <div style="height:6px;background:linear-gradient(90deg,#1D4ED8,#2563EB);"></div>
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:20px 24px;">
+        <div style="background:#EFF6FF;width:48px;height:48px;border-radius:12px;display:grid;place-items:center;flex:none;">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="1.8"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
         </div>
-        <div class="flex-1 min-w-0" style="flex:1;min-width:0;">
-            <p class="text-xs font-bold uppercase tracking-widest mb-0.5" style="color:#1D4ED8;font-size:11px;font-weight:700;">Pack Entreprise</p>
-            <p style="font-weight:700;">{{ $elic->company_name }}</p>
+        <div style="flex:1;min-width:0;">
+            <p style="margin:0 0 2px;color:#1D4ED8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;">Pack Entreprise</p>
+            <p style="margin:0;font-weight:700;">{{ $elic->company_name }}</p>
             <div style="display:flex;align-items:center;gap:16px;margin-top:6px;">
                 <span style="font-weight:800;font-size:18px;">{{ $elic->seats_used }}<span style="font-size:12px;color:var(--muted-fg);font-weight:500;"> / {{ $elic->seats_total }} licences</span></span>
                 @if($elic->seatsAvailable() > 0)
@@ -423,68 +377,105 @@
 @endif
 
 {{-- ══════════════════════════════════════════════════════════════
-     PLANS & FONCTIONNALITÉS — logique métier inchangée (checkout Stripe,
-     annuel/mensuel, permissions), restylée en cartes lx2.
+     NOS OFFRES D'ABONNEMENT — maquette › plansHTML()
+     Logique métier inchangée (checkout Stripe, annuel/mensuel, pas de downgrade).
 ════════════════════════════════════════════════════════════════ --}}
 @if($plans->isNotEmpty() && !$user->isConsul() && !$user->isAmbassador())
 @php
-    $currentPlanId = $user->subscription?->plan_id;
-    $currentPlan   = $user->subscription?->plan;
+    $currentPlan      = $effectivePlan;
+    $currentPlanId    = $currentPlan?->id;
     $purchasablePlans = ['basic', 'premium', 'enterprise'];
-    $sortedPlans      = $plans->sortBy('sort_order')->values();
     $currentSortOrder = $currentPlan?->sort_order ?? 0;
-    $visiblePlans = $sortedPlans->filter(
+    $visiblePlans = $plans->sortBy('sort_order')->values()->filter(
         fn($p) => in_array($p->name, $purchasablePlans) && $p->sort_order >= $currentSortOrder
     )->values();
     $hasAnnualPlans = $visiblePlans->contains(fn($p) => !empty($p->annual_price));
+
+    // Fonctionnalités affichées sur les cartes (même liste que la maquette)
+    $keyPerms = [
+        'can_view_member_name'         => 'Voir le nom complet des membres',
+        'can_send_invitations'         => 'Envoyer des invitations de connexion',
+        'can_send_mail'                => 'Messagerie <b>illimitée</b>',
+        'can_send_sql'                 => '<b>Leads SQL & SP</b>',
+        'can_join_pole'                => 'Rejoindre des groupes',
+        'can_create_events'            => '<b>Créer des événements</b>',
+        'can_organize_regional_events' => 'Événements régionaux',
+        'max_leads_per_month'          => 'Leads par mois',
+        'can_create_pole'              => 'Créer des groupes',
+    ];
 @endphp
 @if($visiblePlans->isNotEmpty())
 <div class="sh">
     <h2>Nos offres d'abonnement</h2>
     @if($hasAnnualPlans)
     <div class="tabs" id="lx2PlanTabs">
-        <button type="button" class="on" data-v="Mensuelle" onclick="lx2SetBilling('monthly', this)">Mensuelle</button>
-        <button type="button" data-v="Annuel" onclick="lx2SetBilling('annual', this)">Annuel</button>
+        <button type="button" class="on" onclick="lx2SetBilling('monthly', this)">Mensuelle</button>
+        <button type="button" onclick="lx2SetBilling('annual', this)">Annuel</button>
     </div>
     @endif
 </div>
 <div class="plans">
     @foreach($visiblePlans as $plan)
     @php
-        $isCurrent = $plan->id === $currentPlanId;
+        $isCurrent     = $plan->id === $currentPlanId;
+        $isPremium     = $plan->name === 'premium';
+        $isEnterprise  = $plan->is_enterprise || $plan->name === 'enterprise';
         $annualMonthly = $plan->annual_price ? round($plan->annual_price / 12, 0) : null;
-        $isPremium = $plan->name === 'premium';
+        $perms         = is_array($plan->permissions) ? $plan->permissions : [];
     @endphp
     <div class="{{ $isPremium ? 'plan-pop' : 'card' }}">
         @if($isPremium)<div class="hd">Le plus populaire</div>@endif
-        <div class="plan">
-            <div class="pn" style="{{ $isPremium ? 'color:var(--primary)' : '' }}">
+        <div class="{{ $isPremium ? 'plan' : 'plan' }}">
+            <div class="pn" @if($isPremium) style="color:var(--primary)" @endif>
                 {{ $plan->label }}
-                @if($isCurrent)<span class="badge b-plain">Plan actuel</span>
+                @if($isCurrent)<span class="badge b-plain" style="font-weight:500">Plan actuel</span>
                 @elseif($isPremium)<span class="badge b-primary">Recommandé</span>@endif
             </div>
-            @if((float)$plan->price === 0.0)
-            <div class="price">Gratuit</div>
+
+            @if($isEnterprise)
+                <div class="price">Sur devis</div>
+            @elseif((float) $plan->price === 0.0)
+                <div class="price">Gratuit</div>
             @else
-            <div class="price price-monthly-block">{{ currency_format($plan->price) }} <small>/mois</small></div>
-            @if($plan->annual_price)
-            <div class="price price-annual-block" style="display:none">{{ currency_format($annualMonthly) }} <small>/mois<br><span style="font-weight:400">facturation annuelle</span></small></div>
+                <div class="price price-monthly-block">{{ currency_format($plan->price) }} <small>/mois<br><span style="font-weight:400">facturation mensuelle</span></small></div>
+                @if($annualMonthly)
+                <div class="price price-annual-block" style="display:none">{{ currency_format($annualMonthly) }} <small>/mois<br><span style="font-weight:400">facturation annuelle</span></small></div>
+                @endif
             @endif
-            @endif
+
             <p>{{ $plan->description ?: 'Plan LeadXchange' }}</p>
+
             @if($isCurrent)
-            <button class="btn btn-secondary btn-block" disabled>Votre plan actuel</button>
-            @elseif($plan->name === 'enterprise')
-            <a href="{{ route('upgrade') }}#contact" class="btn btn-outline-primary btn-block">Nous contacter</a>
+                @if($isEnterprise && $user->isEnterpriseHolder())
+                <a href="{{ route('enterprise.team') }}" class="btn btn-primary btn-block">Gérer mon équipe</a>
+                @else
+                <button class="btn btn-secondary btn-block" disabled>Votre plan actuel</button>
+                @endif
+            @elseif($isEnterprise)
+                <a href="{{ route('upgrade') }}#contact" class="btn btn-primary btn-block">Passer à l'offre {{ \Illuminate\Support\Str::lower($plan->label) }}</a>
             @elseif($plan->stripe_price_id)
-            <form method="POST" action="{{ route('checkout', $plan) }}" class="lx2-checkout-form" data-has-annual="{{ $plan->stripe_annual_price_id ? '1' : '0' }}">
-                @csrf
-                <input type="hidden" name="billing_period" value="monthly" class="lx2-billing-period-input">
-                <button type="submit" class="btn {{ $isPremium ? 'btn-primary' : 'btn-outline' }} btn-block">Passer au {{ $plan->label }}</button>
-            </form>
+                <form method="POST" action="{{ route('checkout', $plan) }}" class="lx2-checkout-form" data-has-annual="{{ $plan->stripe_annual_price_id ? '1' : '0' }}">
+                    @csrf
+                    <input type="hidden" name="billing_period" value="monthly" class="lx2-billing-period-input">
+                    <button type="submit" class="btn btn-primary btn-block">Passer au {{ \Illuminate\Support\Str::lower($plan->label) }}</button>
+                </form>
             @else
-            <a href="{{ route('upgrade') }}" class="btn btn-outline btn-block">Voir l'offre</a>
+                <a href="{{ route('upgrade') }}" class="btn btn-outline btn-block">Voir l'offre</a>
             @endif
+
+            <ul>
+                @foreach($keyPerms as $permKey => $permLabel)
+                @php
+                    // null = illimité (autorisé) ; clé absente = non inclus — même règle que User::canFeature()
+                    $val     = array_key_exists($permKey, $perms) ? $perms[$permKey] : false;
+                    $enabled = is_bool($val) ? $val : ($val === null ? true : ($val > 0));
+                @endphp
+                <li class="{{ $enabled ? '' : 'no' }}">
+                    <x-lx2-icon :name="$enabled ? 'check' : 'x'" />
+                    <span>{!! $permLabel !!}@if(is_int($val) && $val > 0) <b class="num">({{ $val }})</b>@endif</span>
+                </li>
+                @endforeach
+            </ul>
         </div>
     </div>
     @endforeach
@@ -574,34 +565,6 @@ async function sendConnect(userId, btn) {
         if (typeof toast === 'function') toast('Demande de connexion envoyée', 'success');
     } catch (e) {
         btn.disabled = false;
-        if (typeof toast === 'function') toast(e.message, 'error');
-    }
-}
-
-/* ── Accepter / refuser une demande depuis la carte "À traiter" ── */
-async function dashRespond(id, action, btn) {
-    const row = document.getElementById('dash-req-' + id);
-    row.querySelectorAll('button').forEach(b => b.disabled = true);
-    row.style.opacity = '.5';
-    try {
-        await lxApi(`/api/connections/${id}/${action}`, 'POST');
-        row.remove();
-        if (typeof toast === 'function') toast(action === 'accept' ? 'Connexion acceptée 🎉' : 'Demande refusée', action === 'accept' ? 'success' : 'info');
-
-        const counter = document.getElementById('pendingReqCount');
-        const left = Math.max(0, parseInt(counter.textContent || '0', 10) - 1);
-        counter.textContent = left;
-        const badge = document.getElementById('membersBadge');
-        if (badge) { badge.textContent = left; badge.style.display = left > 0 ? 'flex' : 'none'; }
-        if (!document.querySelector('#dashReqList .row')) {
-            document.getElementById('dashReqList').innerHTML =
-                left > 0
-                    ? '<a class="row link" href="{{ route('connections.index') }}">Voir les ' + left + ' autre(s) demande(s)</a>'
-                    : '<div class="empty" style="padding:24px">Vous êtes à jour ✓</div>';
-        }
-    } catch (e) {
-        row.style.opacity = '1';
-        row.querySelectorAll('button').forEach(b => b.disabled = false);
         if (typeof toast === 'function') toast(e.message, 'error');
     }
 }

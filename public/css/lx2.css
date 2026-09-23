@@ -411,63 +411,30 @@ table.t .r{text-align:right}
 /* Bottom nav (mobile) */
 .bnav{display:none}
 
-/* ===== Topbar (demandes, notifications, compte) ===== */
-.lx2-top{position:sticky;top:0;z-index:35;display:flex;align-items:center;gap:12px;height:60px;padding:0 32px;background:rgba(238,239,243,.88);backdrop-filter:saturate(1.4) blur(8px);-webkit-backdrop-filter:saturate(1.4) blur(8px)}
-.lx2-top .spacer{flex:1}
-.lx2-top .brand-m{display:none;align-items:center;gap:8px;font-weight:700;font-size:15px}
-.lx2-top .brand-m img{width:26px;height:26px;border-radius:6px}
-.icon-btn .cnt{position:absolute;top:-5px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--destructive);color:#fff;font-size:10px;font-weight:600;line-height:1;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg-top)}
-.icon-btn .cnt.hidden{display:none!important}
+/* ===== En-tête : icônes, popovers, fenêtres (layouts/partials/lx2-header-icons + lx2-overlays) ===== */
 .lx2-dd{position:relative}
 .lx2-dd-pop{right:0;top:calc(100% + 8px)}
-.lx2-dd-pop.hidden{display:none}
-.lx2-dd-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)}
-.lx2-dd-head b{display:block;font-weight:600;font-size:14px}
-.lx2-dd-head small{display:block;color:var(--muted-fg);font-size:12px;margin-top:1px}
-.lx2-dd-head button.link{border:0;background:none;padding:0;font-size:13px}
-.lx2-dd-list{max-height:340px;overflow-y:auto}
-.lx2-dd-state{padding:32px 16px;text-align:center;color:var(--muted-fg);font-size:13px}
-.lx2-dd-state svg{width:24px;height:24px;margin:0 auto 6px}
-.lx2-dd-state p{margin:0}
+.pop.hidden,.overlay.hidden,.icon-btn .dot.hidden{display:none}
+.lx2-dd-state{padding:28px 16px;text-align:center;color:var(--muted-fg);font-size:13px}
 .lx2-spin{display:inline-block;width:22px;height:22px;border-radius:999px;border:2px solid var(--primary-soft-2);border-top-color:var(--primary);animation:lx2spin .8s linear infinite}
 @keyframes lx2spin{to{transform:rotate(360deg)}}
-.lx2-user-head{padding:10px 10px 8px;display:flex;flex-direction:column;min-width:0}
-.lx2-user-head b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lx2-user-head small{color:var(--muted-fg);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lx2-user-head .badge{align-self:flex-start}
+.lx2-linkbtn{border:0;background:none;padding:0;font-size:12.5px}
+.lx2-menu-meta{margin-left:auto;font-size:12px;color:var(--muted-fg)}
 .menu form{margin:0}
-.lx2-modal{position:fixed;inset:0;z-index:999;background:rgba(9,9,11,.45);display:flex;align-items:center;justify-content:center;padding:16px}
-.lx2-modal.hidden{display:none}
-.lx2-modal-box{width:100%;max-width:380px;overflow:hidden;box-shadow:var(--shadow-md)}
+.notif-pop .notif:hover{background:var(--muted)}
+#notifDetailActions a,#notifDetailActions button{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 14px;border-radius:var(--radius);font-weight:500;font-size:13.5px;flex:none!important}
+#notifDetailActions a{background:var(--primary)!important;color:#fff}
+#notifDetailActions button{background:#fff;border:1px solid var(--border);color:var(--fg)}
 .lx2-flash{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-radius:var(--radius);margin-bottom:16px;font-size:13.5px;font-weight:500}
 .lx2-flash button{border:0;background:none;color:inherit;opacity:.7;display:grid;place-items:center;padding:2px}
 .lx2-flash button:hover{opacity:1}
-.lx2-foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:40px;padding-top:16px;border-top:1px solid var(--border);color:var(--muted-fg);font-size:12px}
-.lx2-foot nav{display:flex;gap:16px}
-.lx2-foot a:hover{color:var(--fg)}
 
-/* ===== Accueil : à traiter, sélecteur de ville ===== */
+/* ===== Accueil : sélecteur de ville ===== */
 .city-dd{position:relative;display:inline-flex}
 .city-dd > button{cursor:pointer}
-.city-pop{left:0;top:calc(100% + 6px);max-height:320px;overflow-y:auto;font-size:13.5px;font-weight:400}
-.city-pop.hidden{display:none}
+.city-pop{left:0;top:calc(100% + 6px);max-height:320px;overflow-y:auto;font-size:13.5px;font-weight:400;letter-spacing:0}
 .city-pop button.on{color:var(--primary);font-weight:500}
-.todo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.todo .card{overflow:hidden}
-.todo .hd{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border)}
-.todo .hd b{display:flex;align-items:center;gap:8px;font-weight:600}
-.todo .row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);transition:opacity .2s}
-.todo .row:last-child{border-bottom:0}
-.todo .row .who{flex:1;min-width:0}
-.todo .row .nm{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.todo .row .role{font-size:12px;color:var(--muted-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.todo .row .acts{display:flex;gap:6px;flex:none}
-.qa .card{position:relative}
-.qa .pill{position:absolute;top:10px;right:38px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--destructive);color:#fff;font-size:11px;font-weight:600;display:grid;place-items:center}
-.banner .miss{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.banner .miss span{font-size:11.5px;background:rgba(255,255,255,.18);border-radius:999px;padding:2px 8px}
-.welcome-ico{width:56px;height:56px;border-radius:16px;margin:0 auto 12px;display:grid;place-items:center;background:rgba(255,255,255,.15);color:#fff}
-.welcome-ico svg{width:26px;height:26px}
+.city-pop button.on svg{margin-left:auto}
 
 /* ===== Responsive ===== */
 @media (max-width:1180px){
@@ -501,10 +468,6 @@ table.t .r{text-align:right}
 }
 @media (max-width:760px){
   .app{grid-template-columns:minmax(0,1fr)}
-  .lx2-top{padding:0 16px}
-  .lx2-top .brand-m{display:flex}
-  .todo{grid-template-columns:minmax(0,1fr)}
-  .lx2-foot{margin-bottom:8px}
   .sidebar{display:none}
   .page{padding:16px 16px 110px}
   .grid-3,.grid-2,.plans,.fgrid,.kv{grid-template-columns:minmax(0,1fr)}

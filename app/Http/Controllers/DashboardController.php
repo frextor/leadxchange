@@ -8,7 +8,9 @@ use App\Models\EnterpriseQuoteRequest;
 use App\Models\Event;
 use App\Models\Group;
 use App\Models\Lead;
+use App\Models\LeadRating;
 use App\Models\Plan;
+use App\Models\PointsHistory;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\LeadService;
@@ -155,13 +157,16 @@ class DashboardController extends Controller
                 ->get();
         }
 
-        // ── Demandes de connexion reçues en attente ──────────────────────────
-        $pendingRequests = Connection::with(['sender.profile', 'sender.company'])
-            ->where('receiver_id', $user->id)
-            ->pending()
-            ->latest()
-            ->limit(3)
-            ->get();
+        // Note moyenne reçue par chaque membre suggéré (moyenne des notes des leads qu'il a envoyés)
+        $suggestionRatings = $suggestions->isEmpty() ? collect() : LeadRating::query()
+            ->join('leads', 'leads.id', '=', 'lead_ratings.lead_id')
+            ->whereIn('leads.sender_id', $suggestions->pluck('id'))
+            ->groupBy('leads.sender_id')
+            ->selectRaw('leads.sender_id, AVG(lead_ratings.average_note) AS avg_note')
+            ->pluck('avg_note', 'leads.sender_id');
+
+        // Points gagnés (cumul des crédits de points, hors débits)
+        $pointsEarned = (int) PointsHistory::where('user_id', $user->id)->where('delta', '>', 0)->sum('delta');
 
         $plans = Plan::orderBy('price')->get();
 
@@ -186,6 +191,11 @@ class DashboardController extends Controller
             ->limit(3)
             ->get();
         $attendingEventIds = $user->events()->pluck('events.id')->toArray();
+
+        // 3 avatars par carte (pile d'avatars de la maquette) — requête par carte :
+        // en Laravel 10, un limit() dans un eager-load s'appliquerait à toutes les cartes à la fois.
+        $upcomingEvents->each(fn($e) => $e->setRelation('previewPeople', $e->attendees()->with('profile')->limit(3)->get()));
+        $featuredGroups->each(fn($g) => $g->setRelation('previewPeople', $g->members()->with('profile')->limit(3)->get()));
 
         $leadStats         = $this->leadService->getDashboardStats($user);
         $pendingLeads      = Lead::with(['sender:id,first_name,last_name'])
@@ -221,7 +231,7 @@ class DashboardController extends Controller
             'completion', 'missing', 'prospects', 'plans',
             'featuredGroups', 'memberGroupIds',
             'upcomingEvents', 'attendingEventIds',
-            'leadStats', 'pendingLeads', 'pendingRequests', 'suggestions',
+            'leadStats', 'pendingLeads', 'suggestions', 'suggestionRatings', 'pointsEarned',
             'popupEnabled', 'popupFrequency',
             'popupTitle', 'popupSubtitle', 'popupBtnLater', 'popupBtnCta',
             'negativeBalancePopup', 'pointsNeeded', 'pointsPricePerUnit',
