@@ -12,6 +12,7 @@ use App\Models\Plan;
 use App\Models\PointsHistory;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Services\EventService;
 use App\Services\LeadService;
 use App\Services\ProfileService;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class DashboardController extends Controller
     public function __construct(
         private ProfileService $profileService,
         private LeadService    $leadService,
+        private EventService   $eventService,
     ) {}
 
     public function index(Request $request)
@@ -186,10 +188,9 @@ class DashboardController extends Controller
             ->get();
         $attendingEventIds = $user->events()->pluck('events.id')->toArray();
 
-        // 3 avatars par carte (pile d'avatars de la maquette) — requête par carte :
-        // en Laravel 10, un limit() dans un eager-load s'appliquerait à toutes les cartes à la fois.
-        $upcomingEvents->each(fn($e) => $e->setRelation('previewPeople', $e->attendees()->with('profile')->limit(3)->get()));
-        $featuredGroups->each(fn($g) => $g->setRelation('previewPeople', $g->members()->with('profile')->limit(3)->get()));
+        // 3 avatars par carte (pile d'avatars de la maquette) — 2 requêtes pour toutes les cartes
+        $this->eventService->attachPreviewAttendees($upcomingEvents);
+        $this->eventService->attachPreviewMembers($featuredGroups);
 
         $leadStats         = $this->leadService->getDashboardStats($user);
         $pendingLeads      = Lead::with(['sender:id,first_name,last_name'])

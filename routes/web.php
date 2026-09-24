@@ -236,7 +236,8 @@ Route::middleware(['auth', 'user', 'email.verified', 'cgu'])->group(function () 
     Route::post('/events',                                      [EventController::class, 'store'])->name('events.store');
     Route::post('/events/invitations/{invId}/accept',           [EventController::class, 'acceptInvitation'])->name('events.invitations.accept');
     Route::post('/events/invitations/{invId}/decline',          [EventController::class, 'declineInvitation'])->name('events.invitations.decline');
-    Route::get('/events/{id}',                                  [EventController::class, 'show'])->name('events.show');
+    Route::get('/events/nouveau',                               [EventController::class, 'create'])->name('events.create');
+    Route::get('/events/{id}',                                  [EventController::class, 'show'])->whereNumber('id')->name('events.show');
     Route::post('/events/{id}/join',                            [EventController::class, 'join'])->name('events.join');
     Route::delete('/events/{id}/leave',                         [EventController::class, 'leave'])->name('events.leave');
     Route::post('/events/{id}/invite',                          [EventController::class, 'invite'])->name('events.invite');

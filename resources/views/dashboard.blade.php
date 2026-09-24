@@ -249,55 +249,9 @@
 ════════════════════════════════════════════════════════════════ --}}
 <div class="sh"><h2>Événements à venir</h2><a class="link" href="{{ route('events.index') }}">Voir tout</a></div>
 @if($upcomingEvents->isNotEmpty())
-@php
-    $modeLabels     = ['virtual' => 'Virtuel', 'in_person' => 'En personne', 'hybrid' => 'Hybride'];
-    $categoryLabels = \App\Models\Event::categoryLabels();
-@endphp
 <div class="grid-3">
     @foreach($upcomingEvents as $event)
-    @php
-        $isAttending = in_array($event->id, $attendingEventIds);
-        $isFull      = $event->max_attendees !== null && $event->attendees_count >= $event->max_attendees;
-        $isLimited   = ! $isFull && $event->max_attendees !== null && ($event->max_attendees - $event->attendees_count) <= 5;
-        $more        = max(0, (int) $event->attendees_count - $event->previewPeople->count());
-    @endphp
-    <article class="card ecard">
-        <a class="cover" href="{{ route('events.show', $event->id) }}">
-            @if($event->cover_image)
-                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($event->cover_image) }}" alt="">
-            @else
-                <div style="width:100%;height:100%;background:linear-gradient(135deg,{{ $event->cover_color }},{{ $event->cover_color }}99);"></div>
-            @endif
-            <span class="tl">
-                <span class="badge b-plain">{{ $categoryLabels[$event->category] ?? ucfirst(str_replace('_', ' ', (string) $event->category)) ?: 'Événement' }}</span>
-                <span class="badge {{ $event->is_free ? 'b-ok' : 'b-soft' }}">{{ $event->is_free ? 'Gratuit' : currency_format($event->price) }}</span>
-                @if($isLimited)<span class="badge b-orange">Places limitées</span>@endif
-            </span>
-        </a>
-        <div class="body">
-            <a href="{{ route('events.show', $event->id) }}"><h3>{{ $event->title }}</h3></a>
-            <div class="when">{{ ucfirst($event->starts_at->locale('fr')->isoFormat('MMMM D, YYYY [à] H:mm')) }}</div>
-            <div class="meta">
-                @if($event->previewPeople->isNotEmpty())
-                <span class="stack">@foreach($event->previewPeople as $p)<x-lx2-avatar :user="$p" :size="26" />@endforeach @if($more > 0)<span class="more">+{{ $more }}</span>@endif</span>
-                @endif
-                <span>Participants · <span class="mode">{{ $modeLabels[$event->type] ?? $event->type }}</span></span>
-            </div>
-            <div class="actions">
-                @if($isAttending)
-                    <form method="POST" action="{{ route('events.leave', $event->id) }}" style="flex:1;display:flex">@csrf @method('DELETE')
-                        <button type="submit" class="btn btn-danger-soft" style="flex:1">Quitter</button></form>
-                @elseif($isFull)
-                    <button class="btn btn-soft" disabled>Complet</button>
-                @elseif($event->is_free)
-                    <form method="POST" action="{{ route('events.join', $event->id) }}" style="flex:1;display:flex">@csrf
-                        <button type="submit" class="btn btn-primary" style="flex:1">Rejoindre</button></form>
-                @else
-                    <a class="btn btn-primary" href="{{ route('events.show', $event->id) }}">Rejoindre</a>
-                @endif
-            </div>
-        </div>
-    </article>
+        @include('events._card', ['event' => $event, 'attendingIds' => $attendingEventIds])
     @endforeach
 </div>
 @else

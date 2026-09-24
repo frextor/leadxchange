@@ -17,6 +17,7 @@
   color-scheme:light;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%}
 body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px;line-height:1.45;color:var(--fg);background:var(--bg);-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -452,6 +453,17 @@ table.t .r{text-align:right}
 .input.is-err,.select.is-err,.textarea.is-err{border-color:var(--destructive)}
 input[type=date].input{color:var(--fg)}
 .phone select.select{appearance:none;-webkit-appearance:none;padding:0 8px;color:var(--fg);cursor:pointer}
+
+/* ===== Événements ===== */
+.lx2-bar{height:6px;border-radius:999px;background:var(--muted);overflow:hidden;margin-top:6px}
+.lx2-bar i{display:block;height:100%;background:var(--primary);border-radius:999px}
+.hero-cover:not(:has(img)){min-height:200px}
+.drop svg{display:inline;vertical-align:-3px;margin:0 4px 0 0}
+.swatches .sw svg{width:16px;height:16px}
+.info-list > div > svg{flex:none}
+.plist form{margin:0}
+.phone > *{min-width:0}
+.toggle button{white-space:nowrap}
 
 /* ===== Accueil : sélecteur de ville ===== */
 .city-dd{position:relative;display:inline-flex}

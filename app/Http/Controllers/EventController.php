@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Jobs\NotifyUsersNewEventJob;
 use App\Services\ActivityLogger;
+use App\Services\EventService;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\EventInvitation;
@@ -14,6 +15,14 @@ use Illuminate\Support\Facades\Storage;
 
 class EventController extends Controller
 {
+    public function __construct(private EventService $eventService) {}
+
+    /** Onglets de la maquette : Prochains événements · En présentiel · En distanciel */
+    private const MODES = [
+        'presentiel' => ['in_person', 'hybrid'],
+        'distanciel' => ['virtual', 'hybrid'],
+    ];
+
     public function index(Request $request)
     {
         $user = $request->user();
@@ -25,8 +34,6 @@ class EventController extends Controller
             $user->profile?->sector_ids       ?? [],
         ));
 
-        $sectors      = Sector::orderBy('name')->get();
-        $cities       = City::active()->orderBy('name')->get();
         $attendingIds = $user->events()->pluck('events.id')->toArray();
 
         // ── Pending invitations ──────────────────────────────────
@@ -96,21 +103,24 @@ class EventController extends Controller
             ->limit(6)
             ->get();
 
-        // Connections for invite modal (organizer only needs it)
-        $eventConnections = User::whereIn('id', $user->connectionIds())
-            ->with('profile:id,user_id,job_title')
-            ->orderBy('first_name')
-            ->get()
-            ->map(fn($u) => [
-                'id'        => $u->id,
-                'name'      => $u->first_name . ' ' . $u->last_name,
-                'job_title' => $u->profile?->job_title,
-            ]);
+        // ── Design lx2 (maquette) : onglet de mode + 3 blocs ─────────────
+        $mode      = array_key_exists($request->query('mode'), self::MODES) ? $request->query('mode') : null;
+        $byMode    = fn($c) => $mode ? $c->filter(fn($e) => in_array($e->type, self::MODES[$mode]))->values() : $c;
+        $invitedIds = $pendingInvitations->pluck('event_id')->all();
+
+        $myEvents    = $byMode($myEvents->reject(fn($e) => in_array($e->id, $invitedIds) && ! in_array($e->id, $attendingIds))->values());
+        $suggested   = $byMode($nearby->concat($recommended)->concat($others)->values());
+        $pastEvents  = $byMode($pastEvents);
+        $pendingInvitations = $mode
+            ? $pendingInvitations->filter(fn($i) => in_array($i->event->type, self::MODES[$mode]))->values()
+            : $pendingInvitations;
+
+        $this->eventService->attachPreviewAttendees(
+            $myEvents->concat($suggested)->concat($pastEvents)->concat($pendingInvitations->pluck('event'))
+        );
 
         return view('events.index', compact(
-            'sectors', 'cities',
-            'pendingInvitations', 'myEvents', 'nearby', 'recommended', 'others', 'pastEvents',
-            'attendingIds', 'userSectorIds', 'eventConnections'
+            'mode', 'pendingInvitations', 'myEvents', 'suggested', 'pastEvents', 'attendingIds'
         ));
     }
 
@@ -159,12 +169,46 @@ class EventController extends Controller
         // Group with exact same name as event (pre-selection hint for private events)
         $matchingGroup = $organizerGroups->firstWhere('name', $event->title);
 
-        return view('events.show', compact('event', 'attendees', 'isAttending', 'isOrganizer', 'eventConnections', 'organizerGroups', 'matchingGroup'));
+        $pendingInvitation = $isAttending ? null : EventInvitation::where('event_id', $event->id)
+            ->where('user_id', $user->id)->where('status', 'pending')->first();
+        $connectedIds = $user->connectionIds();
+
+        return view('events.show', compact(
+            'event', 'attendees', 'isAttending', 'isOrganizer', 'eventConnections', 'organizerGroups', 'matchingGroup',
+            'pendingInvitation', 'connectedIds'
+        ));
+    }
+
+    /** Écran « Créer un événement » (maquette › pageCreateEvent). */
+    public function create(Request $request)
+    {
+        $user = $request->user();
+
+        if (! $user->canFeature('can_organize_group_events')) {
+            return back()->with('upgrade_feature', 'can_organize_group_events');
+        }
+
+        return view('events.create', [
+            'sectors'        => Sector::orderBy('name')->get(['id', 'name']),
+            'cities'         => City::active()->orderBy('name')->get(['id', 'name']),
+            'categoryLabels' => Event::categoryLabels(),
+            'user'           => $user->loadMissing('city'),
+        ]);
     }
 
     public function store(Request $request)
     {
         $user = $request->user();
+
+        // Formulaire lx2 : date et heure saisies séparément ; tarif « Gratuit » → pas de prix
+        foreach (['starts_at', 'ends_at'] as $f) {
+            if (! $request->filled($f) && $request->filled($f . '_date')) {
+                $request->merge([$f => $request->input($f . '_date') . ' ' . ($request->input($f . '_time') ?: '00:00')]);
+            }
+        }
+        if ($request->input('pricing') === 'free') {
+            $request->merge(['price' => null]);
+        }
 
         if (! $user->canFeature('can_organize_group_events')) {
             return back()->with('upgrade_feature', 'can_organize_group_events');
@@ -285,11 +329,11 @@ class EventController extends Controller
         $user  = $request->user();
 
         if ($event->isAttending($user->id)) {
-            return back()->with('info', 'You are already registered for this event.');
+            return back()->with('info', 'Vous êtes déjà inscrit à cet événement.');
         }
 
         if ($event->max_attendees !== null && $event->attendees_count >= $event->max_attendees) {
-            return back()->with('error', 'This event is at full capacity.');
+            return back()->with('error', 'Cet événement est complet.');
         }
 
         $event->attendees()->attach($user->id, ['role' => 'attendee']);
@@ -300,7 +344,7 @@ class EventController extends Controller
             ->where('status', 'pending')
             ->update(['status' => 'accepted']);
 
-        return back()->with('success', 'You have registered for "' . $event->title . '".');
+        return back()->with('success', 'Vous êtes inscrit à « ' . $event->title . ' ».');
     }
 
     public function leave(Request $request, int $id)
@@ -309,7 +353,7 @@ class EventController extends Controller
         $user  = $request->user();
 
         if ($event->created_by === $user->id) {
-            return back()->with('error', 'The organizer cannot leave the event.');
+            return back()->with('error', 'L\'organisateur ne peut pas quitter son événement.');
         }
 
         if ($event->isAttending($user->id)) {
@@ -317,7 +361,7 @@ class EventController extends Controller
             $event->decrement('attendees_count');
         }
 
-        return back()->with('success', 'You have cancelled your registration.');
+        return back()->with('success', 'Votre inscription a été annulée.');
     }
 
     public function destroy(Request $request, int $id)
@@ -332,7 +376,7 @@ class EventController extends Controller
         $event->delete();
 
         return redirect()->route('events.index')
-            ->with('success', 'Event "' . $event->title . '" has been deleted.');
+            ->with('success', 'L\'événement « ' . $event->title . ' » a été supprimé.');
     }
 
     public function removeAttendee(Request $request, int $id, int $userId)
@@ -346,7 +390,7 @@ class EventController extends Controller
             $event->decrement('attendees_count');
         }
 
-        return back()->with('success', 'Attendee removed.');
+        return back()->with('success', 'Participant retiré.');
     }
 
     // ── Invitations ──────────────────────────────────────────────
@@ -405,7 +449,7 @@ class EventController extends Controller
         $targetId = (int) $request->user_id;
 
         if ($event->isAttending($targetId)) {
-            return back()->with('info', 'This user is already attending the event.');
+            return back()->with('info', 'Ce membre participe déjà à l\'événement.');
         }
 
         EventInvitation::updateOrCreate(
@@ -413,7 +457,7 @@ class EventController extends Controller
             ['invited_by' => $user->id, 'status' => 'pending']
         );
 
-        return back()->with('success', 'Invitation sent.');
+        return back()->with('success', 'Invitation envoyée.');
     }
 
     public function acceptInvitation(Request $request, int $invId)
@@ -431,7 +475,7 @@ class EventController extends Controller
         if (!$event->isAttending($invitation->user_id)) {
             if ($event->max_attendees !== null && $event->attendees_count >= $event->max_attendees) {
                 $invitation->update(['status' => 'declined']);
-                return back()->with('error', 'This event is at full capacity.');
+                return back()->with('error', 'Cet événement est complet.');
             }
             $event->attendees()->attach($invitation->user_id, ['role' => 'attendee']);
             $event->increment('attendees_count');
@@ -440,7 +484,7 @@ class EventController extends Controller
         $invitation->update(['status' => 'accepted']);
 
         return redirect()->route('events.show', $event->id)
-            ->with('success', 'You are now registered for "' . $event->title . '".');
+            ->with('success', 'Vous êtes inscrit à « ' . $event->title . ' ».');
     }
 
     public function declineInvitation(Request $request, int $invId)
@@ -451,6 +495,6 @@ class EventController extends Controller
 
         $invitation->update(['status' => 'declined']);
 
-        return back()->with('success', 'Invitation declined.');
+        return back()->with('success', 'Invitation déclinée.');
     }
 }
