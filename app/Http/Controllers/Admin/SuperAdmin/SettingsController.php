@@ -280,6 +280,45 @@ class SettingsController extends Controller
         return back()->with('success', $status);
     }
 
+    // ── Essai « Full Access » (accès Enterprise offert depuis l'inscription) ────
+
+    public function trial(): View
+    {
+        $enabled = (bool) SystemSetting::get('trial.enabled', false);
+        $months  = (int) SystemSetting::get('trial.duration_months', 3);
+
+        $eligible = fn () => \App\Models\User::where('role', 'user')
+            ->where(fn ($q) => $q->whereNull('ambassador_status')->orWhere('ambassador_status', '!=', 'approved'))
+            ->where(fn ($q) => $q->whereNull('consul_status')->orWhere('consul_status', '!=', 'approved'))
+            ->whereDoesntHave('subscription', fn ($q) => $q->whereHas('plan', fn ($p) => $p->where('name', '!=', 'basic')));
+
+        $activeTrialCount = $eligible()->whereRaw('DATE_ADD(created_at, INTERVAL ? MONTH) > NOW()', [max($months, 0)])->count();
+        $lapsedTrialCount = $eligible()->whereRaw('DATE_ADD(created_at, INTERVAL ? MONTH) <= NOW()', [max($months, 0)])->count();
+
+        return view('admin.super_admin.settings.trial', compact('enabled', 'months', 'activeTrialCount', 'lapsedTrialCount'));
+    }
+
+    public function updateTrial(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'trial_enabled'         => ['nullable', 'boolean'],
+            'trial_duration_months' => ['required', 'integer', 'min:1', 'max:24'],
+        ]);
+
+        $enabled = $request->boolean('trial_enabled');
+        $months  = (int) $request->trial_duration_months;
+
+        SystemSetting::updateOrCreate(['key' => 'trial.enabled'], ['value' => $enabled ? '1' : '0', 'group' => 'trial', 'type' => 'bool']);
+        SystemSetting::updateOrCreate(['key' => 'trial.duration_months'], ['value' => (string) $months, 'group' => 'trial', 'type' => 'int']);
+        Cache::forget('system_settings');
+
+        ActivityLogger::log('admin.settings.updated', 'Essai Full Access : ' . ($enabled ? "activé ({$months} mois)" : 'désactivé'));
+
+        return back()->with('success', $enabled
+            ? "Essai Full Access activé — {$months} mois depuis la date d'inscription, calculé rétroactivement pour tous les membres concernés."
+            : 'Essai Full Access désactivé — les membres actuellement en essai repassent au plan Basic.');
+    }
+
     // ── §5.3 Maintenance ──────────────────────────────────────────────────
 
     public function maintenance(): View

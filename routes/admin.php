@@ -261,6 +261,9 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::get('settings/launch',               [SettingsController::class, 'launch'])->name('settings.launch');
     Route::put('settings/launch',               [SettingsController::class, 'updateLaunch'])->name('settings.launch.update');
 
+    Route::get('settings/trial',                [SettingsController::class, 'trial'])->name('settings.trial');
+    Route::put('settings/trial',                [SettingsController::class, 'updateTrial'])->name('settings.trial.update');
+
     Route::get('settings/maintenance',         [SettingsController::class, 'maintenance'])->name('settings.maintenance');
     Route::put('settings/maintenance',         [SettingsController::class, 'updateMaintenance'])->name('settings.maintenance.update');
     Route::get('settings/maintenance/preview', fn() => response()->view('errors.503', ['message' => 'Quelques minutes (démonstration)']))->name('settings.maintenance.preview');

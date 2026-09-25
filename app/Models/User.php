@@ -185,9 +185,37 @@ class User extends Authenticatable implements MustVerifyEmail
             $plan = \App\Models\Plan::where('name', 'consul')->first();
         } else {
             $plan = $this->subscription?->plan ?? \App\Models\Plan::where('name', 'basic')->first();
+
+            // Essai « Full Access » (accès Enterprise) : uniquement tant que l'utilisateur
+            // n'a pas souscrit un plan payant (reste sur Basic) et que l'essai court encore.
+            if ($plan?->name === 'basic' && $this->isOnFullAccessTrial()) {
+                $plan = \App\Models\Plan::where('name', 'enterprise')->first() ?? $plan;
+            }
         }
 
         return $cache[$cacheKey] = $plan;
+    }
+
+    /**
+     * Date de fin de l'essai « Full Access » (accès Enterprise offert depuis l'inscription),
+     * ou null si la promotion est désactivée ou sans durée configurée.
+     */
+    public function fullAccessTrialEndsAt(): ?\Carbon\Carbon
+    {
+        if (! $this->created_at) return null;
+        if (! \App\Models\SystemSetting::get('trial.enabled', false)) return null;
+
+        $months = (int) \App\Models\SystemSetting::get('trial.duration_months', 3);
+        if ($months <= 0) return null;
+
+        return $this->created_at->copy()->addMonths($months);
+    }
+
+    /** True tant que l'essai « Full Access » de cet utilisateur court encore. */
+    public function isOnFullAccessTrial(): bool
+    {
+        $endsAt = $this->fullAccessTrialEndsAt();
+        return $endsAt !== null && now()->lt($endsAt);
     }
 
     // Hierarchy: Basic → Premium → Consul (admin appoints) → Ambassadeur (consul requests, admin approves)

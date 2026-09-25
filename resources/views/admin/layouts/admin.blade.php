@@ -433,6 +433,12 @@
                 @if(!$isLaunched)<span class="nav-badge text-white" style="background:#D97706;">PRÉ</span>@endif
             </a>
 
+            <a href="{{ route('admin.super.settings.trial') }}" class="nav-item sa {{ request()->routeIs('admin.super.settings.trial*') ? 'active' : '' }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+                Essai Full Access
+                @if(\App\Models\SystemSetting::get('trial.enabled', false))<span class="nav-badge text-white" style="background:#059669;">ON</span>@endif
+            </a>
+
             <a href="{{ route('admin.super.email-logs.index') }}" class="nav-item sa {{ request()->routeIs('admin.super.email-logs*') ? 'active' : '' }}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/><path d="M2 4l7.5 7.5"/></svg>
                 Journal des emails
