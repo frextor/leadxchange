@@ -184,8 +184,8 @@ class EventController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->canFeature('can_organize_group_events')) {
-            return back()->with('upgrade_feature', 'can_organize_group_events');
+        if (! $user->canFeature('can_create_events')) {
+            return back()->with('upgrade_feature', 'can_create_events');
         }
 
         return view('events.create', [
@@ -210,8 +210,8 @@ class EventController extends Controller
             $request->merge(['price' => null]);
         }
 
-        if (! $user->canFeature('can_organize_group_events')) {
-            return back()->with('upgrade_feature', 'can_organize_group_events');
+        if (! $user->canFeature('can_create_events')) {
+            return back()->with('upgrade_feature', 'can_create_events');
         }
 
         $validated = $request->validate([

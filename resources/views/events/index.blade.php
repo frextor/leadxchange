@@ -6,7 +6,7 @@
 
 @php
     $tabs = [null => 'Prochains événements', 'presentiel' => 'En présentiel', 'distanciel' => 'En distanciel'];
-    $canCreate = auth()->user()->canFeature('can_organize_group_events');
+    $canCreate = auth()->user()->canFeature('can_create_events');
 @endphp
 
 @section('content')
@@ -22,7 +22,7 @@
     @if($canCreate)
         <a class="btn btn-primary" href="{{ route('events.create') }}"><x-lx2-icon name="plus" /><span class="lbl-m">Créer un événement</span></a>
     @else
-        <button type="button" class="btn btn-primary" onclick="openUpgradeModal('can_organize_group_events')"><x-lx2-icon name="plus" /><span class="lbl-m">Créer un événement</span></button>
+        <button type="button" class="btn btn-primary" onclick="openUpgradeModal('can_create_events')"><x-lx2-icon name="plus" /><span class="lbl-m">Créer un événement</span></button>
     @endif
 </div>
 
