@@ -1,778 +1,454 @@
-@extends('layouts.app')
+@extends('layouts.app2')
 
 @section('title', $group->name . ' — LeadXchange')
 
-@push('styles')
-<style>
-    .post-card {
-        background: #fff;
-        border: 1px solid #E5E7EB;
-        border-radius: 1rem;
-        overflow: hidden;
-    }
-    .avatar-circle {
-        width: 38px; height: 38px; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-weight: 700; font-size: 13px; color: #fff; flex-shrink: 0;
-        background: linear-gradient(135deg, #34d4bf, #1E8F88);
-    }
-    .comment-form textarea { resize: none; transition: height .15s; }
-    .comment-form textarea:focus { outline: none; }
-    .role-badge-owner  { background:#FEF3C7;color:#92400E; }
-    .role-badge-admin  { background:#E6F7F4;color:#1E8F88; }
-    .activity-card     { background:#FFFBEB;border-left:4px solid #F59E0B; }
-</style>
-@endpush
+{{--
+    Écran « Groupe » — maquette LeadXchange WEB › pageGroupDetail(invite) + groupAbout(member) + wallHTML()
+    Mur (publications, activités, sondages) à gauche, « À propos » + membres à droite.
+    Groupe privé avec invitation en attente : mur verrouillé + Décliner / Accepter.
+--}}
+
+@php
+    $me          = auth()->user();
+    $roleLabels  = ['owner' => 'Propriétaire', 'admin' => 'Admin'];
+    $shownMembers = $members->take(15);
+    $dayLabel = function ($d) {
+        if ($d->isToday()) return "Aujourd'hui";
+        if ($d->isYesterday()) return 'Hier';
+        return ucfirst($d->locale('fr')->isoFormat('dddd D MMMM'));
+    };
+    $lastDay = null;
+@endphp
 
 @section('content')
-<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<x-lx2-header :title="$group->name" :tag="$group->is_public ? 'Public' : 'Privé'" :tag-class="$group->is_public ? 'b-ok' : 'b-orange'" :back="route('groups.index')" />
 
-    {{-- ── HERO ── --}}
-    <div class="rounded-2xl overflow-hidden mb-6 shadow-sm border border-gray-200">
-        <div class="h-36 relative"
-             @unless($group->cover_photo) style="background:linear-gradient(135deg,{{ $group->cover_color }},{{ $group->cover_color }}cc);" @endunless>
-            @if($group->cover_photo)
-                <img src="{{ str_starts_with($group->cover_photo, 'http') ? $group->cover_photo : Storage::disk('public')->url($group->cover_photo) }}" alt="" class="absolute inset-0 w-full h-full object-cover">
-                <div class="absolute inset-0 bg-black/40"></div>
-            @endif
-        </div>
+@if($errors->any())
+<div class="lx2-flash b-hot" role="alert"><span>{{ $errors->first() }}</span></div>
+@endif
 
-        <div class="bg-white px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
-            <div class="flex items-center gap-4">
-                <div class="w-14 h-14 rounded-2xl -mt-8 border-4 border-white shadow-md flex items-center justify-center text-white text-xl font-bold flex-shrink-0"
-                     style="background:linear-gradient(135deg,{{ $group->cover_color }},{{ $group->cover_color }}bb);">
-                    {{ strtoupper(substr($group->name, 0, 1)) }}
-                </div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-xl font-bold text-gray-900 leading-tight">{{ $group->name }}</h1>
-                        @if($isOwner)
-                            <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold role-badge-owner">Propriétaire</span>
-                        @elseif($isAdmin)
-                            <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold role-badge-admin">Admin</span>
-                        @endif
-                    </div>
-                    <div class="flex flex-wrap items-center gap-2 mt-0.5 text-xs text-gray-400">
-                        @if($group->sector)
-                        <span class="px-2 py-0.5 rounded-full font-medium" style="background:#E6F7F4;color:#1E8F88;">{{ $group->sector->name }}</span>
-                        @endif
-                        <span class="flex items-center gap-1">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                            {{ number_format($group->members_count) }} membres
-                        </span>
-                        <span>· Créé par {{ $group->creator?->first_name }} {{ $group->creator?->last_name }}</span>
-                    </div>
-                </div>
-            </div>
+<div class="group-layout">
+    {{-- ── Mur ─────────────────────────────────────────────── --}}
+    <div class="card chat {{ $locked ? 'locked' : '' }}">
+        <div class="card-h"><h3>Mur</h3><span style="font-size:12.5px;color:var(--muted-fg)" class="num">{{ $group->members_count }} membre{{ $group->members_count > 1 ? 's' : '' }}</span></div>
 
-            <div class="flex items-center gap-2 flex-shrink-0">
-                <a href="{{ route('groups.index') }}"
-                   class="px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
-                    ← Groupes
-                </a>
-
-                @if($isOwner)
-                    {{-- Owner: activity button + delete --}}
-                    <button onclick="document.getElementById('activityModal').classList.remove('hidden')"
-                        class="px-4 py-2 rounded-xl text-sm font-semibold border transition"
-                        style="border-color:#F59E0B;color:#F59E0B;"
-                        onmouseover="this.style.background='#FFFBEB'" onmouseout="this.style.background='transparent'">
-                        + Activité
-                    </button>
-                    <form method="POST" action="{{ route('groups.destroy', $group->id) }}"
-                          onsubmit="return confirm('Supprimer ce groupe définitivement ?')">
-                        @csrf @method('DELETE')
-                        <button type="submit"
-                            class="px-4 py-2 rounded-xl text-sm font-semibold text-red-500 border border-red-200 hover:bg-red-50 transition">
-                            Supprimer
-                        </button>
-                    </form>
-                @elseif($isAdmin)
-                    {{-- Admin: activity button + leave --}}
-                    <button onclick="document.getElementById('activityModal').classList.remove('hidden')"
-                        class="px-4 py-2 rounded-xl text-sm font-semibold border transition"
-                        style="border-color:#F59E0B;color:#F59E0B;"
-                        onmouseover="this.style.background='#FFFBEB'" onmouseout="this.style.background='transparent'">
-                        + Activité
-                    </button>
-                    <form method="POST" action="{{ route('groups.leave', $group->id) }}">
-                        @csrf @method('DELETE')
-                        <button type="submit"
-                            class="px-4 py-2 rounded-xl text-sm font-semibold border transition"
-                            style="border-color:#1E8F88;color:#1E8F88;"
-                            onmouseover="this.style.background='#E6F7F4'" onmouseout="this.style.background='transparent'">
-                            Quitter
-                        </button>
-                    </form>
-                @elseif($isMember)
-                    <form method="POST" action="{{ route('groups.leave', $group->id) }}">
-                        @csrf @method('DELETE')
-                        <button type="submit"
-                            class="px-4 py-2 rounded-xl text-sm font-semibold border transition"
-                            style="border-color:#1E8F88;color:#1E8F88;"
-                            onmouseover="this.style.background='#E6F7F4'" onmouseout="this.style.background='transparent'">
-                            Quitter le groupe
-                        </button>
-                    </form>
-                @else
-                @if($hasPendingRequest)
-                    <span class="px-4 py-2 rounded-xl text-sm font-semibold border border-amber-200 text-amber-600 bg-amber-50 inline-flex items-center gap-1.5">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        Demande en attente…
-                    </span>
-                @elseif(auth()->user()->canFeature('can_join_pole'))
-                    <form method="POST" action="{{ route('groups.join', $group->id) }}">
-                        @csrf
-                        <button type="submit"
-                            class="px-4 py-2 rounded-xl text-sm font-semibold text-white transition shadow-sm"
-                            style="background:#1E8F88;"
-                            onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
-                            Demander à rejoindre
-                        </button>
-                    </form>
-                @else
-                    <button type="button" onclick="openUpgradeModal('can_join_pole')"
-                            class="px-4 py-2 rounded-xl text-sm font-semibold border border-dashed transition inline-flex items-center gap-1.5 cursor-pointer"
-                            style="border-color:#6366F1;color:#6366F1;background:transparent;">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        Upgrade pour rejoindre
-                    </button>
-                @endif
-                @endif
-            </div>
-        </div>
-    </div>
-
-    @if($group->description)
-    <p class="text-sm text-gray-500 mb-6 px-1">{{ $group->description }}</p>
-    @endif
-
-    {{-- ── Pending join requests (admin/owner only) ─────────────────────────── --}}
-    @if($isAdmin && $pendingRequests->isNotEmpty())
-    <div class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 overflow-hidden">
-        <div class="flex items-center gap-2 px-5 py-3 border-b border-amber-100">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span class="text-sm font-semibold text-amber-800">Demandes d'adhésion en attente ({{ $pendingRequests->count() }})</span>
-        </div>
-        <div class="divide-y divide-amber-100">
-            @foreach($pendingRequests as $req)
-            <div class="flex items-center gap-3 px-5 py-3">
-                @if($req->user?->profile?->avatar)
-                    <img src="{{ $req->user->profile->avatar_url }}" class="w-9 h-9 rounded-full object-cover flex-shrink-0">
-                @else
-                    <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                         style="background:#D97706;">
-                        {{ strtoupper(substr($req->user?->first_name ?? '?', 0, 1) . substr($req->user?->last_name ?? '', 0, 1)) }}
-                    </div>
-                @endif
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-gray-800 truncate">
-                        {{ $req->user?->first_name }} {{ $req->user?->last_name }}
-                    </p>
-                    @if($req->user?->profile?->job_title)
-                    <p class="text-xs text-gray-500 truncate">{{ $req->user->profile->job_title }}</p>
-                    @endif
-                </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    <form method="POST" action="{{ route('groups.requests.approve', [$group->id, $req->user_id]) }}">
-                        @csrf
-                        <button type="submit"
-                            class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition"
-                            style="background:#1E8F88;"
-                            onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
-                            Accepter
-                        </button>
-                    </form>
-                    <form method="POST" action="{{ route('groups.requests.reject', [$group->id, $req->user_id]) }}">
-                        @csrf
-                        <button type="submit"
-                            class="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition">
-                            Refuser
-                        </button>
-                    </form>
-                </div>
-            </div>
-            @endforeach
-        </div>
-    </div>
-    @endif
-
-    {{-- Flash messages --}}
-    @foreach(['success' => 'emerald', 'error' => 'red', 'info' => 'blue'] as $type => $color)
-    @if(session($type))
-    <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium"
-         style="background:{{ $color === 'emerald' ? '#ECFDF5' : ($color === 'red' ? '#FEF2F2' : '#EFF6FF') }};
-                color:{{ $color === 'emerald' ? '#065F46' : ($color === 'red' ? '#991B1B' : '#1E40AF') }};">
-        {{ session($type) }}
-    </div>
-    @endif
-    @endforeach
-
-    {{-- ── BODY ── --}}
-    <div class="grid gap-6 lg:grid-cols-[1fr_300px] items-start">
-
-        {{-- ── FIL D'ÉCHANGE ── --}}
-        <div class="space-y-4">
-
-            {{-- Post form --}}
-            @if($isMember)
-            <div class="post-card p-4">
-                <form method="POST" action="{{ route('groups.posts.store', $group->id) }}" enctype="multipart/form-data">
-                    @csrf
-                    <div class="flex gap-3">
-                        @if(auth()->user()->profile?->avatar)
-                            <img src="{{ auth()->user()->profile->avatar_url }}"
-                                 class="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-white shadow-sm">
-                        @else
-                            <div class="avatar-circle" style="width:40px;height:40px;font-size:14px;">
-                                {{ strtoupper(substr(auth()->user()->first_name,0,1).substr(auth()->user()->last_name,0,1)) }}
-                            </div>
-                        @endif
-                        <div class="flex-1">
-                            <textarea name="body" rows="2"
-                                placeholder="Partagez quelque chose avec le groupe…"
-                                class="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-4 py-3 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 resize-none outline-none transition"
-                                oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">{{ old('body') }}</textarea>
-                            @error('body')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
-
-                            {{-- Photo upload --}}
-                            <div class="mt-2 flex items-center justify-between gap-3">
-                                <label class="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer hover:text-teal-600 transition">
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                    Photo
-                                    <input type="file" name="photo" accept="image/*" class="sr-only"
-                                           onchange="previewPostPhoto(this)">
-                                </label>
-                                <button type="submit"
-                                    class="px-5 py-2 rounded-xl text-sm font-semibold text-white transition"
-                                    style="background:#1E8F88;"
-                                    onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
-                                    Publier
-                                </button>
-                            </div>
-                            <img id="postPhotoPreview" src="" alt="" class="hidden mt-2 rounded-xl max-h-40 object-cover border border-gray-100">
-                        </div>
-                    </div>
-                </form>
-            </div>
+        <div class="chat-scroll" id="chatScroll">
+            @if($locked)
+                {{-- Aperçu flouté (aucun contenu réel n'est chargé pour un non-membre) --}}
+                @foreach([['', 'Bienvenue dans le groupe !'], ['me', 'Merci, ravi de rejoindre la communauté.'], ['', 'Prochaine rencontre le mois prochain.']] as [$cls, $txt])
+                <div class="msg {{ $cls }}"><span class="av-fb" style="width:30px;height:30px"></span><div><div class="bubble">{{ $txt }}</div></div></div>
+                @endforeach
             @else
-            <div class="post-card p-5 text-center text-sm text-gray-400">
-                <svg class="w-8 h-8 mx-auto mb-2 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                Rejoignez le groupe pour participer aux échanges.
-            </div>
-            @endif
+                @if($posts->hasMorePages())
+                    <a class="day-sep" href="{{ $posts->nextPageUrl() }}">Messages plus anciens</a>
+                @endif
+                @forelse($wall as $entry)
+                    @php $item = $entry['item']; $day = $dayLabel($entry['at']); @endphp
+                    @if($day !== $lastDay)<div class="day-sep">{{ $day }}</div>@php $lastDay = $day; @endphp @endif
 
-            {{-- Posts --}}
-            @forelse($posts as $post)
-            <div class="post-card {{ $post->type === 'activity' ? 'activity-card' : '' }}" id="post-{{ $post->id }}">
-                <div class="flex items-start gap-3 p-4 pb-3">
-                    @if($post->author?->profile?->avatar)
-                        <img src="{{ $post->author->profile->avatar_url }}"
-                             class="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-gray-100">
+                    @if($entry['kind'] === 'poll')
+                        @php
+                            $mine  = $item->user_id === $me->id;
+                            $total = max(1, (int) $item->votes_count);
+                            $voted = $myVotes[$item->id] ?? null;
+                        @endphp
+                        <div class="msg {{ $mine ? 'me' : '' }}">
+                            <x-lx2-avatar :user="$item->user" :size="30" />
+                            <div><div class="bubble poll" data-poll="{{ $item->id }}">
+                                @unless($mine)<div class="n">{{ $item->user ? member_name($item->user) : 'Membre' }}</div>@endunless
+                                <b style="font-size:13px">Sondage · {{ $item->question }}</b>
+                                @foreach($item->options as $opt)
+                                @php $pct = round($opt->votes_count / $total * 100); @endphp
+                                <button type="button" class="opt" data-option="{{ $opt->id }}" @disabled(! $isMember)>
+                                    <span class="r"><span class="ring {{ $voted === $opt->id ? 'on' : '' }}"></span>{{ $opt->text }}<span class="v num" data-count>{{ $opt->votes_count }}</span></span>
+                                    <span class="bar"><i style="width:{{ $item->votes_count ? $pct : 0 }}%"></i></span>
+                                </button>
+                                @endforeach
+                                <div class="time">{{ $item->created_at->format('H:i') }} · <span data-total>{{ $item->votes_count }}</span> vote{{ $item->votes_count > 1 ? 's' : '' }}</div>
+                            </div></div>
+                        </div>
                     @else
-                        <div class="avatar-circle">
-                            {{ strtoupper(substr($post->author?->first_name ?? '?', 0, 1) . substr($post->author?->last_name ?? '', 0, 1)) }}
+                        @php $mine = $item->user_id === $me->id; @endphp
+                        <div class="msg {{ $mine ? 'me' : '' }}" id="post-{{ $item->id }}">
+                            <a href="{{ $item->author ? route('profile.show', $item->author->id) : '#' }}"><x-lx2-avatar :user="$item->author" :size="30" /></a>
+                            <div style="min-width:0">
+                                <div class="bubble {{ $item->type === 'activity' ? 'activity' : '' }}" @if($item->photo_path && ! $item->body) style="padding:6px" @endif>
+                                    @unless($mine)<div class="n" @if($item->photo_path && ! $item->body) style="padding:2px 6px 6px" @endif>{{ $item->author ? member_name($item->author) : 'Membre supprimé' }}</div>@endunless
+                                    @if($item->type === 'activity')
+                                        <div class="act-h"><x-lx2-icon name="calendar" /><b>{{ $item->activity_title }}</b></div>
+                                        @if($item->activity_date)<div class="act-d">{{ ucfirst($item->activity_date->locale('fr')->isoFormat('dddd D MMMM [à] HH:mm')) }}</div>@endif
+                                    @endif
+                                    @if($item->body)<div style="white-space:pre-line">{{ $item->body }}</div>@endif
+                                    @if($item->photo_path)<a class="imgb" href="{{ $item->photo_url }}" target="_blank" rel="noopener" @if($item->body) style="margin-top:6px;display:block" @endif><img src="{{ $item->photo_url }}" alt="Photo partagée"></a>@endif
+                                    <div class="time" @if($item->photo_path && ! $item->body) style="padding:0 6px" @endif>{{ $item->created_at->format('H:i') }}</div>
+                                </div>
+                                <div class="msg-tools">
+                                    @if($isMember)<button type="button" class="link lx2-linkbtn" data-reply="{{ $item->id }}">Répondre{{ $item->comments->isNotEmpty() ? ' · ' . $item->comments->count() : '' }}</button>@endif
+                                    @if($mine || $isAdmin)
+                                    <form method="POST" action="{{ route('groups.posts.destroy', [$group->id, $item->id]) }}" onsubmit="return confirm('Supprimer cette publication ?')">
+                                        @csrf @method('DELETE')<button type="submit" class="lx2-linkbtn" style="color:var(--muted-fg)">Supprimer</button>
+                                    </form>
+                                    @endif
+                                </div>
+                                @if($item->comments->isNotEmpty())
+                                <div class="replies">
+                                    @foreach($item->comments as $c)
+                                    <div class="reply"><x-lx2-avatar :user="$c->author" :size="22" /><div><b>{{ $c->user_id === $me->id ? 'Vous' : ($c->author ? member_name($c->author) : 'Membre') }}</b> {{ $c->body }}<small>{{ $c->created_at->locale('fr')->diffForHumans() }}</small></div></div>
+                                    @endforeach
+                                </div>
+                                @endif
+                                @if($isMember)
+                                <form method="POST" action="{{ route('groups.comments.store', [$group->id, $item->id]) }}" class="reply-form" id="reply-{{ $item->id }}" hidden>
+                                    @csrf
+                                    <input class="input" name="body" maxlength="1000" required placeholder="Votre réponse…">
+                                    <button type="submit" class="btn btn-primary btn-sm">Envoyer</button>
+                                </form>
+                                @endif
+                            </div>
                         </div>
                     @endif
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-start justify-between gap-2">
-                            <div>
-                                @if($post->type === 'activity')
-                                    <span class="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 mb-1">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                        Activité
-                                    </span>
-                                    <p class="text-sm font-bold text-gray-900 leading-tight">{{ $post->activity_title }}</p>
-                                    <p class="text-xs text-amber-700 font-medium mt-0.5">
-                                        📅 {{ $post->activity_date->isoFormat('ddd D MMM YYYY à HH:mm') }}
-                                    </p>
-                                @endif
-                                <div class="flex items-center gap-2 {{ $post->type === 'activity' ? 'mt-1' : '' }}">
-                                    @if($post->author)
-                                    <a href="{{ route('profile.show', $post->author->id) }}"
-                                       class="text-sm font-semibold text-gray-900 hover:underline">
-                                        {{ $post->author->first_name }} {{ $post->author->last_name }}
-                                    </a>
-                                    @else
-                                    <span class="text-sm font-semibold text-gray-400">Membre supprimé</span>
-                                    @endif
-                                    <span class="text-xs text-gray-400">{{ $post->created_at->diffForHumans() }}</span>
-                                </div>
-                            </div>
-                            {{-- Delete: own post or admin --}}
-                            @if($post->user_id === auth()->id() || $isAdmin)
-                            <form method="POST" action="{{ route('groups.posts.destroy', [$group->id, $post->id]) }}"
-                                  onsubmit="return confirm('Supprimer cette publication ?')">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="text-gray-300 hover:text-red-400 transition p-1" title="Supprimer">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
-                                </button>
-                            </form>
-                            @endif
-                        </div>
-
-                        @if($post->body)
-                        <p class="text-sm text-gray-800 mt-2 leading-relaxed whitespace-pre-line">{{ $post->body }}</p>
-                        @endif
-
-                        @if($post->photo_path)
-                        <img src="{{ $post->photo_url }}" alt="" class="mt-3 rounded-xl max-h-80 w-full object-cover border border-gray-100">
-                        @endif
-                    </div>
-                </div>
-
-                {{-- Comments --}}
-                @if($post->comments->isNotEmpty())
-                <div class="border-t border-gray-100 divide-y divide-gray-50 bg-gray-50/50">
-                    @foreach($post->comments as $comment)
-                    <div class="flex gap-3 px-4 py-3">
-                        @if($comment->author?->profile?->avatar)
-                            <img src="{{ $comment->author->profile->avatar_url }}"
-                                 class="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-gray-100">
-                        @else
-                            <div class="avatar-circle" style="width:32px;height:32px;font-size:11px;">
-                                {{ strtoupper(substr($comment->author?->first_name ?? '?', 0, 1) . substr($comment->author?->last_name ?? '', 0, 1)) }}
-                            </div>
-                        @endif
-                        <div class="flex-1 min-w-0">
-                            <div class="bg-white rounded-xl px-3 py-2 border border-gray-100 text-sm">
-                                @if($comment->author)
-                                <a href="{{ route('profile.show', $comment->author->id) }}"
-                                   class="font-semibold text-gray-900 hover:underline text-xs">
-                                    {{ $comment->author->first_name }} {{ $comment->author->last_name }}
-                                </a>
-                                @else
-                                <span class="font-semibold text-gray-400 text-xs">Membre supprimé</span>
-                                @endif
-                                <p class="text-gray-700 mt-0.5 leading-snug whitespace-pre-line">{{ $comment->body }}</p>
-                            </div>
-                            <span class="text-[11px] text-gray-400 mt-0.5 ml-1">{{ $comment->created_at->diffForHumans() }}</span>
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-                @endif
-
-                {{-- Comment form --}}
-                @if($isMember)
-                <div class="px-4 py-3 border-t border-gray-100 comment-form">
-                    <form method="POST" action="{{ route('groups.comments.store', [$group->id, $post->id]) }}"
-                          class="flex gap-2 items-end">
-                        @csrf
-                        @if(auth()->user()->profile?->avatar)
-                            <img src="{{ auth()->user()->profile->avatar_url }}"
-                                 class="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-gray-100">
-                        @else
-                            <div class="avatar-circle" style="width:32px;height:32px;font-size:11px;">
-                                {{ strtoupper(substr(auth()->user()->first_name,0,1).substr(auth()->user()->last_name,0,1)) }}
-                            </div>
-                        @endif
-                        <div class="flex-1 flex items-end gap-2 bg-gray-50 rounded-xl border border-gray-200 px-3 py-2 focus-within:border-teal-400 focus-within:ring-2 focus-within:ring-teal-100 transition">
-                            <textarea name="body" rows="1"
-                                placeholder="Écrire un commentaire…"
-                                class="flex-1 text-sm text-gray-800 bg-transparent resize-none outline-none leading-snug"
-                                style="max-height:120px;"
-                                oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-                                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.closest('form').submit();}"></textarea>
-                            <button type="submit" class="flex-shrink-0 text-teal-600 hover:text-teal-800 transition pb-0.5">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                @endif
-            </div>
-            @empty
-            <div class="post-card p-10 text-center text-gray-400">
-                <svg class="w-10 h-10 mx-auto mb-3 text-gray-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <p class="text-sm font-medium text-gray-400">Aucune publication pour le moment.</p>
-                @if($isMember)
-                <p class="text-xs mt-1">Soyez le premier à partager quelque chose !</p>
-                @endif
-            </div>
-            @endforelse
-
-            @if($posts->hasPages())
-            <div class="flex justify-center">{{ $posts->links() }}</div>
+                @empty
+                    <div class="empty" style="margin:auto">Aucun message pour le moment.@if($isMember) Lancez la conversation !@endif</div>
+                @endforelse
             @endif
         </div>
 
-        {{-- ── SIDEBAR ── --}}
-        <aside class="space-y-4 lg:sticky lg:top-24">
-
-            {{-- Invite button (admin/owner only) --}}
-            @if($isAdmin)
-            <button onclick="document.getElementById('inviteModal').classList.remove('hidden')"
-                class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition shadow-sm"
-                style="background:#1E8F88;"
-                onmouseover="this.style.background='#197a74'" onmouseout="this.style.background='#1E8F88'">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-                Inviter un membre
-            </button>
-
-            @if(auth()->user()->isAmbassador())
-            {{-- Bouton réservé ambassadeur : invite toute la région --}}
-            <form method="POST" action="{{ route('groups.invite-region', $group->id) }}"
-                  onsubmit="return confirm('Inviter tous les membres de votre région dans ce groupe ?')">
-                @csrf
-                <button type="submit"
-                    class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition shadow-sm"
-                    style="background:#D97706;"
-                    onmouseover="this.style.background='#B45309'" onmouseout="this.style.background='#D97706'">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    Inviter toute ma région
-                </button>
-            </form>
-            @endif
-            @endif
-
-            {{-- Group info --}}
-            <div class="bg-white rounded-2xl border border-gray-200 p-5">
-                <h3 class="text-sm font-semibold text-gray-700 mb-3">À propos du groupe</h3>
-                <div class="space-y-2 text-sm text-gray-500">
-                    <div class="flex items-center gap-2">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E8F88" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        <span><strong class="text-gray-800">{{ number_format($group->members_count) }}</strong> membres</span>
-                    </div>
-                    @if($group->sector)
-                    <div class="flex items-center gap-2">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E8F88" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                        <span>{{ $group->sector->name }}</span>
-                    </div>
-                    @endif
-                    @if($group->city)
-                    <div class="flex items-center gap-2">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E8F88" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                        <span>{{ $group->city->name }}</span>
-                    </div>
-                    @endif
-                    <div class="flex items-center gap-2">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E8F88" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        <span>Créé le {{ $group->created_at->format('d/m/Y') }}</span>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Members list --}}
-            <div class="bg-white rounded-2xl border border-gray-200 p-5">
-                <h3 class="text-sm font-semibold text-gray-700 mb-4">
-                    Membres
-                    <span class="ml-1 text-xs font-normal text-gray-400">({{ $members->count() }})</span>
-                </h3>
-                <div class="space-y-3">
-                    @foreach($members->take(15) as $member)
-                    <div class="flex items-center gap-3 group/member">
-                        <a href="{{ route('profile.show', $member->id) }}"
-                           class="flex items-center gap-3 flex-1 min-w-0 hover:bg-gray-50 rounded-xl p-1.5 -mx-1.5 transition">
-                            @if($member->profile?->avatar)
-                                <img src="{{ $member->profile->avatar_url }}"
-                                     class="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-gray-100">
-                            @else
-                                <div class="avatar-circle" style="width:36px;height:36px;font-size:12px;">
-                                    {{ strtoupper(substr($member->first_name,0,1).substr($member->last_name,0,1)) }}
-                                </div>
-                            @endif
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-semibold text-gray-900 truncate leading-tight">
-                                    {{ $member->first_name }} {{ $member->last_name }}
-                                    @if($member->pivot->role === 'owner')
-                                        <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-semibold role-badge-owner">Propriétaire</span>
-                                    @elseif($member->pivot->role === 'admin')
-                                        <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium role-badge-admin">Admin</span>
-                                    @endif
-                                </p>
-                                @if($member->profile?->job_title)
-                                <p class="text-xs text-gray-400 truncate">{{ $member->profile->job_title }}</p>
-                                @elseif($member->company)
-                                <p class="text-xs text-gray-400 truncate">{{ $member->company->name }}</p>
-                                @endif
-                            </div>
-                        </a>
-
-                        {{-- Admin actions (owner only for promote/demote, admin for remove) --}}
-                        @if($isAdmin && $member->id !== auth()->id() && $member->pivot->role !== 'owner')
-                        <div class="flex-shrink-0 hidden group-hover/member:flex items-center gap-1">
-                            @if($isOwner)
-                                @if($member->pivot->role === 'admin')
-                                <form method="POST" action="{{ route('groups.members.demote', [$group->id, $member->id]) }}">
-                                    @csrf
-                                    <button type="submit" title="Rétrograder en membre"
-                                        class="text-xs px-2 py-1 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 transition">
-                                        ↓
-                                    </button>
-                                </form>
-                                @else
-                                <form method="POST" action="{{ route('groups.members.promote', [$group->id, $member->id]) }}">
-                                    @csrf
-                                    <button type="submit" title="Promouvoir admin"
-                                        class="text-xs px-2 py-1 rounded-lg border text-teal-600 hover:bg-teal-50 transition" style="border-color:#1E8F88;">
-                                        ↑
-                                    </button>
-                                </form>
-                                @endif
-                            @endif
-                            @if($isOwner || $member->pivot->role === 'member')
-                            <form method="POST" action="{{ route('groups.members.destroy', [$group->id, $member->id]) }}"
-                                  onsubmit="return confirm('Retirer {{ $member->first_name }} du groupe ?')">
-                                @csrf @method('DELETE')
-                                <button type="submit" title="Retirer du groupe"
-                                    class="text-xs px-2 py-1 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 transition">
-                                    ✕
-                                </button>
-                            </form>
-                            @endif
-                        </div>
-                        @endif
-                    </div>
-                    @endforeach
-                    @if($members->count() > 15)
-                    <p class="text-xs text-center text-gray-400 pt-1">+ {{ $members->count() - 15 }} autres membres</p>
-                    @endif
-                </div>
-            </div>
-
-        </aside>
-    </div>
-</div>
-
-{{-- ── INVITE MODAL ── --}}
-@if($isAdmin)
-<div id="inviteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.4);">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-            <h2 class="font-semibold text-gray-900">Inviter un membre</h2>
-            <button type="button" onclick="document.getElementById('inviteModal').classList.add('hidden')"
-                class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-        </div>
-        <form method="POST" action="{{ route('groups.invite', $group->id) }}" class="px-6 py-5" id="groupInviteForm">
-            @csrf
-            <input type="hidden" name="user_id" id="groupInviteUserId">
-
-            @if($canInviteAll)
-            {{-- Consul/Ambassador: search all subscribers --}}
-            <div class="mb-3">
-                <p class="text-xs text-indigo-600 font-semibold mb-2 flex items-center gap-1">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    Consul · Vous pouvez inviter n'importe quel abonné
+        @if($locked)
+            <div class="lock-over"><div class="card">
+                <div style="width:44px;height:44px;border-radius:999px;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center;margin:0 auto 10px"><x-lx2-icon name="lock" /></div>
+                <b style="font-size:15px">Groupe privé</b>
+                <p style="color:var(--muted-fg);font-size:13px;margin:6px 0 16px">
+                    {{ $pendingInvitation?->inviter ? member_name($pendingInvitation->inviter) : "L'administrateur" }} vous invite à rejoindre ce groupe. Acceptez pour voir le mur et participer aux échanges.
                 </p>
-                <div class="relative">
-                    <input type="text" id="consulInviteSearch"
-                        placeholder="Rechercher un abonné…"
-                        autocomplete="off"
-                        oninput="searchAllUsers(this.value)"
-                        class="w-full h-10 px-4 rounded-xl border border-indigo-200 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition">
+                <div style="display:flex;gap:10px">
+                    <form method="POST" action="{{ route('groups.invitations.decline', $pendingInvitation->id) }}" style="flex:1">@csrf<button type="submit" class="btn btn-secondary btn-block">Décliner</button></form>
+                    @if($me->canFeature('can_join_pole'))
+                    <form method="POST" action="{{ route('groups.invitations.accept', $pendingInvitation->id) }}" style="flex:1">@csrf<button type="submit" class="btn btn-primary btn-block">Accepter</button></form>
+                    @else
+                    <button type="button" class="btn btn-primary" style="flex:1" onclick="openUpgradeModal('can_join_pole')">Accepter</button>
+                    @endif
                 </div>
-                <div id="consulSearchResults" class="mt-1 border border-gray-100 rounded-xl overflow-hidden max-h-48 overflow-y-auto hidden"></div>
-                <div id="consulSelected" class="hidden mt-2 px-3 py-2 rounded-xl text-sm font-medium bg-indigo-50 text-indigo-700 flex items-center justify-between">
-                    <span id="consulSelectedName"></span>
-                    <button type="button" onclick="clearConsulSelection()" class="text-indigo-400 hover:text-indigo-600">×</button>
-                </div>
-            </div>
-            <div class="border-t border-gray-100 pt-3 mb-3">
-                <p class="text-xs text-gray-400 mb-2">— ou parmi vos connexions —</p>
-            </div>
-            @endif
-
-            <div class="mb-4">
-                <input type="text" id="inviteSearch" placeholder="Rechercher une connexion…"
-                    class="w-full h-10 px-4 rounded-xl border border-gray-200 text-sm focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none transition">
-            </div>
-            <div class="space-y-1 max-h-48 overflow-y-auto" id="connectionsList">
-                @foreach($connections as $conn)
-                <label class="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-gray-50 transition connection-item"
-                       data-name="{{ strtolower($conn->first_name . ' ' . $conn->last_name) }}"
-                       onclick="selectConnection({{ $conn->id }})">
-                    <input type="radio" name="_conn_radio" value="{{ $conn->id }}" class="sr-only peer">
-                    <div class="w-4 h-4 rounded-full border-2 border-gray-200 peer-checked:border-teal-500 peer-checked:bg-teal-500 flex-shrink-0 transition"></div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-gray-900">{{ $conn->first_name }} {{ $conn->last_name }}</p>
+            </div></div>
+        @elseif($isMember)
+            <form class="composer" method="POST" action="{{ route('groups.posts.store', $group->id) }}" enctype="multipart/form-data" id="composer">
+                @csrf
+                <div style="position:relative">
+                    <button type="button" class="icon-btn" id="attachBtn" aria-label="Ajouter"><x-lx2-icon name="plus" /></button>
+                    <div class="pop menu hidden" id="attachPop" style="left:0;bottom:calc(100% + 8px)">
+                        <button type="button" id="pickPhoto"><x-lx2-icon name="image-plus" />Photo</button>
+                        <button type="button" onclick="lx2Dialog('pollDialog')"><x-lx2-icon name="check" />Sondage</button>
+                        @if($isAdmin)<button type="button" onclick="lx2Dialog('activityDialog')"><x-lx2-icon name="calendar" />Activité</button>@endif
                     </div>
-                </label>
+                </div>
+                <input type="file" name="photo" id="postPhoto" accept="image/jpeg,image/png,image/webp" hidden>
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+                    <span class="badge b-soft" id="photoChip" hidden style="align-self:flex-start"></span>
+                    <input class="input" name="body" id="wallMsg" maxlength="2000" placeholder="Envoyer un message…" autocomplete="off">
+                </div>
+                <button class="send-btn" type="submit" aria-label="Envoyer"><x-lx2-icon name="arrow-up-right" /></button>
+            </form>
+        @else
+            <div class="composer" style="justify-content:space-between">
+                <span style="font-size:13px;color:var(--muted-fg)">Rejoignez le groupe pour participer aux échanges.</span>
+                @if($hasPendingRequest)
+                    <button class="btn btn-soft btn-sm" disabled>Demande envoyée</button>
+                @elseif($me->canFeature('can_join_pole'))
+                    <form method="POST" action="{{ route('groups.join', $group->id) }}">@csrf<button type="submit" class="btn btn-primary btn-sm">Rejoindre</button></form>
+                @else
+                    <button type="button" class="btn btn-primary btn-sm" onclick="openUpgradeModal('can_join_pole')">Rejoindre</button>
+                @endif
+            </div>
+        @endif
+    </div>
+
+    {{-- ── À propos ────────────────────────────────────────── --}}
+    <aside style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        @if($isAdmin && $pendingRequests->isNotEmpty())
+        <div class="card">
+            <div class="card-h"><h3>Demandes d'adhésion <span class="badge b-warm" style="margin-left:4px">{{ $pendingRequests->count() }}</span></h3></div>
+            <div class="plist" style="padding:4px 18px">
+                @foreach($pendingRequests as $req)
+                    @if(! $loop->first)<hr class="sep">@endif
+                    <div class="mrow" style="padding:10px 0">
+                        <x-lx2-avatar :user="$req->user" :size="32" />
+                        <div class="who"><div class="nm" style="font-size:13px">{{ $req->user ? member_name($req->user) : '—' }}</div><div class="role">{{ $req->user?->profile?->job_title ?? 'Membre LeadXchange' }}</div></div>
+                        <form method="POST" action="{{ route('groups.requests.reject', [$group->id, $req->user_id]) }}">@csrf<button type="submit" class="circle-act" aria-label="Refuser"><x-lx2-icon name="x" /></button></form>
+                        <form method="POST" action="{{ route('groups.requests.approve', [$group->id, $req->user_id]) }}">@csrf<button type="submit" class="btn btn-primary btn-sm">Accepter</button></form>
+                    </div>
                 @endforeach
             </div>
-            @if($connections->isEmpty())
-            <p class="text-sm text-gray-400 text-center py-2">{{ $canInviteAll ? 'Toutes vos connexions sont déjà membres.' : 'Toutes vos connexions sont déjà membres.' }}</p>
-            @endif
-
-            <div class="flex gap-3 pt-4">
-                <button type="button" onclick="document.getElementById('inviteModal').classList.add('hidden')"
-                    class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">
-                    Annuler
-                </button>
-                <button type="submit" id="groupInviteSubmit" disabled
-                    class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition opacity-50 cursor-not-allowed"
-                    style="background:#1E8F88;">
-                    Inviter
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-@endif
-
-{{-- ── ACTIVITY MODAL ── --}}
-@if($isAdmin)
-<div id="activityModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.4);">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-            <h2 class="font-semibold text-gray-900">Créer une activité</h2>
-            <button type="button" onclick="document.getElementById('activityModal').classList.add('hidden')"
-                class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
         </div>
-        <form method="POST" action="{{ route('groups.activities.store', $group->id) }}" class="px-6 py-5 space-y-4">
-            @csrf
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">Titre <span class="text-red-400">*</span></label>
-                <input type="text" name="activity_title" value="{{ old('activity_title') }}"
-                    placeholder="Ex: Réunion mensuelle du réseau"
-                    required maxlength="150"
-                    class="w-full h-10 px-4 rounded-xl border border-gray-200 text-sm focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition">
-                @error('activity_title') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+        @endif
+
+        <div class="card">
+            <div style="padding:12px 12px 0">
+                @if($group->cover_url)
+                    <img src="{{ $group->cover_url }}" alt="" style="border-radius:6px;aspect-ratio:16/9;object-fit:cover;width:100%">
+                @else
+                    <div style="border-radius:6px;aspect-ratio:16/9;background:linear-gradient(135deg,{{ $group->cover_color }},{{ $group->cover_color }}99)"></div>
+                @endif
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
-                <textarea name="body" rows="3" placeholder="Détails de l'activité…" maxlength="1000"
-                    class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none resize-none transition">{{ old('body') }}</textarea>
+            <div class="card-pad" style="display:flex;flex-direction:column;gap:14px">
+                <div>
+                    <h3 style="margin:0 0 6px;font-size:14px;font-weight:600">À propos</h3>
+                    <p class="prose" style="margin:0;font-size:13px;white-space:pre-line">{{ $group->description ?: 'Aucune description pour le moment.' }}</p>
+                    @if($group->sector)<div style="margin-top:8px"><span class="badge b-outline">{{ $group->sector->name }}</span></div>@endif
+                </div>
+
+                @if($group->creator)
+                <div>
+                    <h3 style="margin:0 0 8px;font-size:13px;font-weight:600">Créé par</h3>
+                    <a class="mrow" style="padding:0" href="{{ route('profile.show', $group->creator->id) }}">
+                        <x-lx2-avatar :user="$group->creator" :size="32" />
+                        <div class="who"><div class="nm" style="font-size:13px">{{ $group->creator->id === $me->id ? 'Vous' : member_name($group->creator) }}</div><div class="role">{{ $group->creator->profile?->job_title ?? 'Membre LeadXchange' }}</div></div>
+                    </a>
+                </div>
+                @endif
+
+                <div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 8px">
+                        <h3 style="margin:0;font-size:13px;font-weight:600">Membres du groupe ({{ $group->members_count }})</h3>
+                        @if($isAdmin)<button type="button" class="btn btn-outline-primary btn-sm" onclick="lx2Dialog('inviteGrpDialog')"><x-lx2-icon name="plus" />Inviter</button>@endif
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:10px">
+                        @foreach($shownMembers as $m)
+                        @php $r = $m->pivot->role; @endphp
+                        <div class="mrow" style="padding:0;position:relative">
+                            <a href="{{ route('profile.show', $m->id) }}"><x-lx2-avatar :user="$m" :size="32" /></a>
+                            <div class="who">
+                                <a class="nm" style="font-size:13px" href="{{ route('profile.show', $m->id) }}">{{ $m->id === $me->id ? 'Vous' : member_name($m) }}
+                                    @if(isset($roleLabels[$r]))<span class="badge b-primary" style="height:18px;font-size:10.5px">{{ $roleLabels[$r] }}</span>@endif
+                                </a>
+                                <div class="role">{{ $m->profile?->job_title ?? 'Membre LeadXchange' }}</div>
+                            </div>
+                            @if($isAdmin && $m->id !== $me->id && $r !== 'owner' && ($isOwner || $r === 'member'))
+                            <button type="button" class="circle-act" data-member-menu="{{ $m->id }}" aria-label="Gérer {{ member_name($m) }}" style="width:28px;height:28px"><x-lx2-icon name="ellipsis-vertical" /></button>
+                            <div class="pop menu hidden member-pop" id="mm-{{ $m->id }}" style="right:0;top:calc(100% + 4px)">
+                                @if($isOwner)
+                                    @if($r === 'admin')
+                                    <form method="POST" action="{{ route('groups.members.demote', [$group->id, $m->id]) }}">@csrf<button type="submit"><x-lx2-icon name="user" />Retirer les droits admin</button></form>
+                                    @else
+                                    <form method="POST" action="{{ route('groups.members.promote', [$group->id, $m->id]) }}">@csrf<button type="submit"><x-lx2-icon name="star" />Nommer admin</button></form>
+                                    @endif
+                                @endif
+                                <form method="POST" action="{{ route('groups.members.destroy', [$group->id, $m->id]) }}" onsubmit="return confirm('Retirer ce membre du groupe ?')">@csrf @method('DELETE')<button type="submit"><x-lx2-icon name="x" />Retirer du groupe</button></form>
+                                <form method="POST" action="{{ route('groups.members.block', [$group->id, $m->id]) }}" onsubmit="return confirm('Bloquer ce membre ? Il ne pourra plus rejoindre le groupe.')">@csrf<button type="submit" style="color:var(--destructive)"><x-lx2-icon name="shield" />Bloquer</button></form>
+                            </div>
+                            @endif
+                        </div>
+                        @endforeach
+                        @if($members->count() > 15)<div class="help" style="margin:0">+ {{ $members->count() - 15 }} autres membres</div>@endif
+                    </div>
+                </div>
+
+                <div style="font-size:12px;color:var(--muted-fg)">Créé le {{ $group->created_at->format('d/m/Y') }}@if($group->city) à {{ $group->city->name }}@endif</div>
+
+                @if($isOwner)
+                    <button type="button" class="btn btn-danger btn-block" onclick="lx2Dialog('deleteGrpDialog')"><x-lx2-icon name="trash-2" />Supprimer le groupe</button>
+                @elseif($isMember)
+                    <form method="POST" action="{{ route('groups.leave', $group->id) }}" onsubmit="return confirm('Quitter ce groupe ?')">@csrf @method('DELETE')
+                        <button type="submit" class="btn btn-danger-soft btn-block">Quitter</button></form>
+                @endif
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">Date et heure <span class="text-red-400">*</span></label>
-                <input type="datetime-local" name="activity_date" value="{{ old('activity_date') }}"
-                    required min="{{ now()->addHour()->format('Y-m-d\TH:i') }}"
-                    class="w-full h-10 px-4 rounded-xl border border-gray-200 text-sm focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition">
-                @error('activity_date') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+        </div>
+    </aside>
+</div>
+
+{{-- ── Fenêtres ─────────────────────────────────────────────── --}}
+@if($isMember)
+<div class="overlay hidden" id="pollDialog" data-dialog>
+    <form class="dialog" id="pollForm">
+        <div class="dh">
+            <div><h3>Créer un sondage</h3><p>Visible par tous les membres du groupe</p></div>
+            <button type="button" class="x" data-close aria-label="Fermer"><x-lx2-icon name="x" /></button>
+        </div>
+        <div class="db" style="display:flex;flex-direction:column;gap:14px">
+            <div class="field"><label class="label" for="pollQ">Question</label><input class="input" id="pollQ" maxlength="500" required placeholder="Posez votre question"></div>
+            <div class="field"><span class="label">Options <span style="color:var(--muted-fg);font-weight:400">(2 à 4)</span></span>
+                <div id="pollOpts" style="display:flex;flex-direction:column;gap:8px">
+                    @for($i = 1; $i <= 4; $i++)<input class="input" maxlength="200" placeholder="Option {{ $i }}{{ $i > 2 ? ' (facultatif)' : '' }}" @if($i <= 2) required @endif>@endfor
+                </div>
             </div>
-            <div class="flex gap-3 pt-2">
-                <button type="button" onclick="document.getElementById('activityModal').classList.add('hidden')"
-                    class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition">
-                    Annuler
-                </button>
-                <button type="submit"
-                    class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition"
-                    style="background:#F59E0B;"
-                    onmouseover="this.style.background='#D97706'" onmouseout="this.style.background='#F59E0B'">
-                    Créer
-                </button>
+        </div>
+        <div class="df">
+            <button type="button" class="btn btn-outline" data-close>Annuler</button>
+            <button type="submit" class="btn btn-primary">Publier le sondage</button>
+        </div>
+    </form>
+</div>
+@endif
+
+@if($isAdmin)
+<div class="overlay hidden" id="activityDialog" data-dialog>
+    <form class="dialog" method="POST" action="{{ route('groups.activities.store', $group->id) }}">
+        @csrf
+        <div class="dh">
+            <div><h3>Planifier une activité</h3><p>Elle apparaîtra sur le mur du groupe.</p></div>
+            <button type="button" class="x" data-close aria-label="Fermer"><x-lx2-icon name="x" /></button>
+        </div>
+        <div class="db" style="display:flex;flex-direction:column;gap:14px">
+            <div class="field"><label class="label" for="actTitle">Titre</label><input class="input" id="actTitle" name="activity_title" value="{{ old('activity_title') }}" maxlength="150" required placeholder="Ex. Petit-déjeuner du réseau"></div>
+            <div class="field"><label class="label" for="actDate">Date et heure</label><input class="input" id="actDate" name="activity_date" type="datetime-local" value="{{ old('activity_date') }}" min="{{ now()->format('Y-m-d\TH:i') }}" required></div>
+            <div class="field"><label class="label" for="actBody">Description</label><textarea class="textarea" id="actBody" name="body" maxlength="1000" placeholder="Détails, lieu, programme…">{{ old('body') }}</textarea></div>
+        </div>
+        <div class="df">
+            <button type="button" class="btn btn-outline" data-close>Annuler</button>
+            <button type="submit" class="btn btn-primary">Créer l'activité</button>
+        </div>
+    </form>
+</div>
+
+<div class="overlay hidden" id="inviteGrpDialog" data-dialog>
+    <div class="dialog">
+        <div class="dh">
+            <div><h3>Inviter au groupe</h3><p>{{ $group->name }}</p></div>
+            <button type="button" class="x" data-close aria-label="Fermer"><x-lx2-icon name="x" /></button>
+        </div>
+        <div class="db">
+            <div class="input-wrap" style="margin-bottom:6px"><x-lx2-icon name="search" /><input class="input" id="gInvQ" placeholder="{{ $canInviteAll ? 'Rechercher un membre (nom ou email)' : 'Rechercher une connexion' }}" autocomplete="off"></div>
+            <div id="gInvList">
+                @forelse($connections as $c)
+                <div class="mrow inv-row" style="padding:8px 0" data-search="{{ mb_strtolower($c->first_name . ' ' . $c->last_name) }}">
+                    <x-lx2-avatar :user="$c" :size="34" />
+                    <div class="who"><div class="nm">{{ member_name($c) }}</div><div class="role">{{ $c->profile?->job_title ?? 'Membre LeadXchange' }}</div></div>
+                    <button type="button" class="btn btn-primary btn-sm" data-ginv="{{ $c->id }}">Inviter</button>
+                </div>
+                @empty
+                <div class="lx2-dd-state" id="gInvEmpty">{{ $canInviteAll ? 'Recherchez un membre par son nom ou son email.' : "Toutes vos connexions sont déjà membres, ou vous n'avez pas encore de connexion." }}</div>
+                @endforelse
             </div>
+            <div id="gInvSearchRes"></div>
+        </div>
+        @if($me->isAmbassador())
+        <form class="df" method="POST" action="{{ route('groups.invite-region', $group->id) }}" onsubmit="return confirm('Inviter tous les membres de votre région ?')">
+            @csrf <button type="submit" class="btn btn-outline btn-block"><x-lx2-icon name="users" />Inviter toute ma région</button>
         </form>
+        @endif
     </div>
 </div>
 @endif
 
+@if($isOwner)
+<div class="overlay hidden" id="deleteGrpDialog" data-dialog>
+    <form class="dialog" method="POST" action="{{ route('groups.destroy', $group->id) }}">
+        @csrf @method('DELETE')
+        <div class="dh">
+            <div><h3>Supprimer le groupe ?</h3><p>Les publications et l'historique du groupe seront supprimés. Cette action est définitive.</p></div>
+            <button type="button" class="x" data-close aria-label="Fermer"><x-lx2-icon name="x" /></button>
+        </div>
+        <div class="df">
+            <button type="button" class="btn btn-outline" data-close>Annuler</button>
+            <button type="submit" class="btn btn-danger">Supprimer</button>
+        </div>
+    </form>
+</div>
+@endif
 @endsection
 
 @push('scripts')
 <script>
-    function previewPostPhoto(input) {
-        const preview = document.getElementById('postPhotoPreview');
-        if (input.files && input.files[0]) {
-            preview.src = URL.createObjectURL(input.files[0]);
-            preview.classList.remove('hidden');
-        }
+(function () {
+    const $ = (id) => document.getElementById(id);
+    const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+    const GROUP_ID = {{ $group->id }};
+
+    // Mur : afficher les messages les plus récents
+    const scroll = $('chatScroll');
+    if (scroll) scroll.scrollTop = scroll.scrollHeight;
+
+    async function api(url, method, body) {
+        const res = await fetch(url, { method, credentials: 'same-origin',
+            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Authorization': 'Bearer ' + (window.API_TOKEN || '') },
+            body: body ? JSON.stringify(body) : null });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Une erreur est survenue.');
+        return data;
     }
 
-    // Invite search filter
-    const inviteSearch = document.getElementById('inviteSearch');
-    if (inviteSearch) {
-        inviteSearch.addEventListener('input', function() {
-            const q = this.value.toLowerCase();
-            document.querySelectorAll('.connection-item').forEach(item => {
-                item.style.display = item.dataset.name.includes(q) ? '' : 'none';
-            });
-        });
-    }
-
-    // Close modals on backdrop click
-    ['inviteModal', 'activityModal'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('click', e => { if (e.target === el) el.classList.add('hidden'); });
+    // Répondre à une publication
+    document.addEventListener('click', (e) => {
+        const r = e.target.closest('[data-reply]');
+        if (r) { const f = $('reply-' + r.dataset.reply); f.hidden = !f.hidden; if (!f.hidden) f.querySelector('input').focus(); }
+        const mm = e.target.closest('[data-member-menu]');
+        document.querySelectorAll('.member-pop').forEach(p => { if (!mm || p.id !== 'mm-' + mm.dataset.memberMenu) p.classList.add('hidden'); });
+        if (mm) $('mm-' + mm.dataset.memberMenu).classList.toggle('hidden');
+        const pop = $('attachPop');
+        if (pop && !e.target.closest('#attachBtn') && !e.target.closest('#attachPop')) pop.classList.add('hidden');
     });
 
-    // ── Group invite modal JS ──────────────────────────────────────
-    @if($isAdmin)
-    const GROUP_ID = {{ $group->id }};
-    const SEARCH_URL = '{{ route('groups.users.search') }}';
-    const CSRF_TOKEN = document.querySelector('meta[name=csrf-token]').content;
-    let consulSearchTimeout = null;
+    // Composer : menu +, photo
+    $('attachBtn')?.addEventListener('click', () => $('attachPop').classList.toggle('hidden'));
+    $('pickPhoto')?.addEventListener('click', () => { $('attachPop').classList.add('hidden'); $('postPhoto').click(); });
+    $('postPhoto')?.addEventListener('change', (e) => {
+        const f = e.target.files[0];
+        if (f && f.size > 3 * 1024 * 1024) { toast('Image trop lourde (3 Mo maximum).', 'error'); e.target.value = ''; return; }
+        $('photoChip').hidden = !f; $('photoChip').textContent = f ? '📷 ' + f.name : '';
+    });
+    $('composer')?.addEventListener('submit', (e) => {
+        if (!$('wallMsg').value.trim() && !$('postPhoto').files.length) { e.preventDefault(); $('wallMsg').focus(); }
+    });
 
-    function selectConnection(id) {
-        document.getElementById('groupInviteUserId').value = id;
-        @if($canInviteAll)
-        // Clear consul selection when a connection is picked
-        document.getElementById('consulInviteSearch').value = '';
-        document.getElementById('consulSearchResults').classList.add('hidden');
-        document.getElementById('consulSelected').classList.add('hidden');
-        @endif
-        const btn = document.getElementById('groupInviteSubmit');
-        btn.disabled = false;
-        btn.classList.remove('opacity-50', 'cursor-not-allowed');
-    }
+    // Sondages (API existante /api/groups/{group}/polls)
+    document.querySelectorAll('[data-poll]').forEach(poll => poll.addEventListener('click', async (e) => {
+        const opt = e.target.closest('[data-option]');
+        if (!opt || opt.disabled) return;
+        try {
+            const { data } = await api(`/api/groups/${GROUP_ID}/polls/${poll.dataset.poll}/vote`, 'POST', { option_id: +opt.dataset.option });
+            const total = Math.max(1, data.total_votes);
+            data.options.forEach(o => {
+                const b = poll.querySelector(`[data-option="${o.id}"]`);
+                b.querySelector('[data-count]').textContent = o.votes_count;
+                b.querySelector('.bar i').style.width = Math.round(o.votes_count / total * 100) + '%';
+                b.querySelector('.ring').classList.toggle('on', o.id === data.user_vote_option_id);
+            });
+            poll.querySelector('[data-total]').textContent = data.total_votes;
+        } catch (err) { toast(err.message, 'error'); }
+    }));
+    $('pollForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const options = [...$('pollOpts').querySelectorAll('input')].map(i => i.value.trim()).filter(Boolean);
+        if (options.length < 2) { toast('Ajoutez au moins 2 options.', 'error'); return; }
+        try {
+            await api(`/api/groups/${GROUP_ID}/polls`, 'POST', { question: $('pollQ').value.trim(), options });
+            location.reload();
+        } catch (err) { toast(err.message, 'error'); }
+    });
 
-    @if($canInviteAll)
-    function searchAllUsers(query) {
-        clearTimeout(consulSearchTimeout);
-        const resultsEl = document.getElementById('consulSearchResults');
-        if (!query || query.length < 2) {
-            resultsEl.classList.add('hidden');
-            resultsEl.innerHTML = '';
-            return;
-        }
-        consulSearchTimeout = setTimeout(async () => {
-            try {
-                const res = await fetch(`${SEARCH_URL}?q=${encodeURIComponent(query)}&group_id=${GROUP_ID}`, {
-                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN },
-                    credentials: 'same-origin',
-                });
-                const users = await res.json();
-                if (!users.length) {
-                    resultsEl.innerHTML = '<p class="text-xs text-gray-400 text-center py-3">Aucun abonné trouvé</p>';
-                } else {
-                    resultsEl.innerHTML = users.map(u => `
-                        <button type="button" onclick="consulSelectUser(${u.id},'${u.name.replace(/'/g,"\\'")}')"
-                            class="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-indigo-50 transition text-left border-b border-gray-50 last:border-0">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                                 style="background:linear-gradient(135deg,#818CF8,#6366F1);">${u.name.charAt(0).toUpperCase()}</div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-gray-900 truncate">${u.name}</p>
-                                ${u.job_title ? `<p class="text-xs text-gray-400 truncate">${u.job_title}</p>` : ''}
-                            </div>
-                        </button>
-                    `).join('');
-                }
-                resultsEl.classList.remove('hidden');
-            } catch (e) {
-                resultsEl.innerHTML = '<p class="text-xs text-red-400 text-center py-3">Erreur de recherche</p>';
-                resultsEl.classList.remove('hidden');
-            }
-        }, 300);
-    }
-
-    function consulSelectUser(id, name) {
-        document.getElementById('groupInviteUserId').value = id;
-        document.getElementById('consulInviteSearch').value = name;
-        document.getElementById('consulSearchResults').classList.add('hidden');
-        document.getElementById('consulSelectedName').textContent = '✓ ' + name;
-        document.getElementById('consulSelected').classList.remove('hidden');
-        // Deselect connections
-        document.querySelectorAll('input[name="_conn_radio"]').forEach(r => r.checked = false);
-        const btn = document.getElementById('groupInviteSubmit');
-        btn.disabled = false;
-        btn.classList.remove('opacity-50', 'cursor-not-allowed');
-    }
-
-    function clearConsulSelection() {
-        document.getElementById('groupInviteUserId').value = '';
-        document.getElementById('consulInviteSearch').value = '';
-        document.getElementById('consulSelected').classList.add('hidden');
-        document.getElementById('consulSearchResults').classList.add('hidden');
-        const btn = document.getElementById('groupInviteSubmit');
+    // Inviter au groupe (formulaire existant groups.invite)
+    async function invite(btn) {
+        if (btn.dataset.done) return;
         btn.disabled = true;
-        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        try {
+            const res = await fetch(@json(route('groups.invite', $group->id)), { method: 'POST', credentials: 'same-origin', headers: { 'Accept': 'text/html' },
+                body: new URLSearchParams({ _token: CSRF, user_id: btn.dataset.ginv }) });
+            if (!res.ok) throw new Error();
+            btn.dataset.done = 1; btn.className = 'btn btn-soft btn-sm'; btn.textContent = 'Envoyé';
+        } catch { btn.disabled = false; toast('Invitation impossible. Réessayez.', 'error'); }
     }
+    document.getElementById('inviteGrpDialog')?.addEventListener('click', (e) => { const b = e.target.closest('[data-ginv]'); if (b) invite(b); });
+
+    @if($isAdmin && $canInviteAll)
+    // Consuls / ambassadeurs : recherche parmi tous les membres
+    let t;
+    $('gInvQ')?.addEventListener('input', (e) => {
+        const q = e.target.value.trim();
+        document.querySelectorAll('#gInvList .inv-row').forEach(r => r.hidden = q && !r.dataset.search.includes(q.toLowerCase()));
+        clearTimeout(t);
+        if (q.length < 2) { $('gInvSearchRes').innerHTML = ''; return; }
+        t = setTimeout(async () => {
+            try {
+                const res = await fetch(@json(route('groups.users.search')) + `?q=${encodeURIComponent(q)}&group_id=${GROUP_ID}`, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
+                const users = await res.json();
+                $('gInvSearchRes').innerHTML = users.length ? '<div class="help">Tous les membres</div>' + users.map(u => `<div class="mrow" style="padding:8px 0"><span class="av-fb" style="width:34px;height:34px">${escapeHtml(u.name[0] || '?')}</span><div class="who"><div class="nm">${escapeHtml(u.name)}</div><div class="role">${escapeHtml(u.email)}</div></div><button type="button" class="btn btn-primary btn-sm" data-ginv="${u.id}">Inviter</button></div>`).join('') : '';
+            } catch {}
+        }, 300);
+    });
+    @elseif($isAdmin)
+    $('gInvQ')?.addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase().trim();
+        document.querySelectorAll('#gInvList .inv-row').forEach(r => r.hidden = q && !r.dataset.search.includes(q));
+    });
     @endif
-    @endif
+})();
 </script>
 @endpush

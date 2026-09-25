@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\EnforcePlanLimits;
 use App\Jobs\NotifyUsersNewGroupJob;
 use App\Services\ActivityLogger;
+use App\Services\EventService;
 use App\Models\City;
 use App\Models\Group;
 use App\Models\GroupInvitation;
@@ -19,6 +20,8 @@ use Illuminate\Support\Facades\Storage;
 class GroupController extends Controller
 {
     use EnforcePlanLimits;
+
+    public function __construct(private EventService $previews) {}
 
     public function index(Request $request)
     {
@@ -76,26 +79,29 @@ class GroupController extends Controller
         $others      = $publicGroups->filter(fn($g) => !in_array($g->sector_id, $userSectorIds)
             && (!$activeCityId || $g->city_id !== $activeCityId))->values();
 
-        // Used only for sidebar sector counts
-        $groups = $publicGroups->merge($myGroups);
+        // ── Design lx2 (maquette) : Invitations · Mes groupes · Découvrir ──
+        // Les demandes d'adhésion envoyées par l'utilisateur ne sont pas des invitations.
+        $invitations  = $pendingInvitations->where('type', GroupInvitation::TYPE_INVITATION)->values();
+        $requestedIds = $pendingInvitations->where('type', GroupInvitation::TYPE_REQUEST)->pluck('group_id')->all();
+        $discover     = $nearby->concat($recommended)->concat($others)->values();
 
-        // Connections list for the invite modal (admin/owner only needs it)
-        $groupConnections = User::whereIn('id', $user->connectionIds())
-            ->with('profile:id,user_id,job_title')
-            ->orderBy('first_name')
-            ->get()
-            ->map(fn($u) => [
-                'id'        => $u->id,
-                'name'      => $u->first_name . ' ' . $u->last_name,
-                'job_title' => $u->profile?->job_title,
-            ]);
+        $this->previews->attachPreviewMembers($myGroups->concat($discover)->concat($invitations->pluck('group')->filter()));
 
-        return view('groups.index', compact(
-            'groups', 'sectors', 'cities',
-            'myGroups', 'userRoles', 'memberGroupIds',
-            'nearby', 'recommended', 'others',
-            'userSectorIds', 'pendingInvitations', 'groupConnections'
-        ));
+        $tab = $request->query('tab');
+        if (! in_array($tab, ['invitations', 'mine', 'discover'], true)) {
+            $tab = $invitations->isNotEmpty() ? 'invitations' : ($myGroups->isNotEmpty() ? 'mine' : 'discover');
+        }
+
+        return view('groups.index', [
+            'tab'          => $tab,
+            'invitations'  => $invitations,
+            'myGroups'     => $myGroups,
+            'discover'     => $discover,
+            'userRoles'    => $userRoles,
+            'requestedIds' => $requestedIds,
+            'sectors'      => $sectors,
+            'cities'       => $cities,
+        ]);
     }
 
     public function show(Request $request, int $id)
@@ -105,7 +111,14 @@ class GroupController extends Controller
             ->withCount('members')
             ->findOrFail($id);
 
-        abort_if(!$group->is_public && !$group->isMember($user->id), 403);
+        // Invitation en attente : un groupe privé reste visible (mur verrouillé) pour pouvoir accepter / décliner
+        $pendingInvitation = GroupInvitation::where('group_id', $id)
+            ->where('user_id', $user->id)
+            ->where('type', GroupInvitation::TYPE_INVITATION)
+            ->where('status', 'pending')
+            ->first();
+
+        abort_if(!$group->is_public && !$group->isMember($user->id) && !$pendingInvitation, 403);
 
         $userRole = $group->userRole($user->id);
         $isMember = $userRole !== null;
@@ -144,9 +157,26 @@ class GroupController extends Controller
                 ->get()
             : collect();
 
+        // Mur (design lx2) : publications + sondages, du plus ancien au plus récent (format conversation).
+        // Un groupe privé non rejoint (invitation) n'affiche aucun contenu.
+        $locked = ! $isMember && ! $group->is_public;
+        $polls  = $isMember
+            ? \App\Models\Poll::with(['options' => fn($q) => $q->withCount('votes'), 'user.profile'])
+                ->withCount('votes')
+                ->where('group_id', $id)
+                ->latest()->limit(20)->get()
+            : collect();
+        $myVotes = $polls->isEmpty() ? collect() : \App\Models\PollVote::where('user_id', $user->id)
+            ->whereIn('poll_id', $polls->pluck('id'))->pluck('poll_option_id', 'poll_id');
+
+        $wall = $locked ? collect() : collect($posts->items())->map(fn($p) => ['kind' => 'post', 'at' => $p->created_at, 'item' => $p])
+            ->concat($polls->map(fn($p) => ['kind' => 'poll', 'at' => $p->created_at, 'item' => $p]))
+            ->sortBy('at')->values();
+
         return view('groups.show', compact(
             'group', 'members', 'posts', 'isMember', 'isAdmin', 'isOwner', 'userRole',
-            'connections', 'canInviteAll', 'hasPendingRequest', 'pendingRequests'
+            'connections', 'canInviteAll', 'hasPendingRequest', 'pendingRequests',
+            'pendingInvitation', 'locked', 'wall', 'myVotes'
         ));
     }
 
@@ -432,7 +462,8 @@ class GroupController extends Controller
 
         $invitation->update(['status' => 'declined']);
 
-        return back()->with('success', 'Invitation refusée.');
+        // Retour à la liste : un groupe privé n'est plus visible après refus
+        return redirect()->route('groups.index')->with('success', 'Invitation refusée.');
     }
 
     // ── Member management ────────────────────────────────────

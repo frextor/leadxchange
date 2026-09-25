@@ -265,39 +265,7 @@
 @if($featuredGroups->isNotEmpty())
 <div class="grid-3">
     @foreach($featuredGroups as $group)
-    @php
-        $isMember = in_array($group->id, $memberGroupIds);
-        $more     = max(0, (int) $group->members_count - $group->previewPeople->count());
-    @endphp
-    <article class="card ecard">
-        <a class="cover" href="{{ route('groups.show', $group->id) }}">
-            @if($group->cover_photo)
-                <img src="{{ str_starts_with($group->cover_photo, 'http') ? $group->cover_photo : \Illuminate\Support\Facades\Storage::disk('public')->url($group->cover_photo) }}" alt="">
-            @else
-                <div style="width:100%;height:100%;background:linear-gradient(135deg,{{ $group->cover_color }},{{ $group->cover_color }}99);"></div>
-            @endif
-            <span class="tl"><span class="badge {{ $group->is_public ? 'b-ok' : 'b-orange' }}">{{ $group->is_public ? 'Public' : 'Privé' }}</span></span>
-        </a>
-        <div class="body">
-            <a href="{{ route('groups.show', $group->id) }}"><h3>{{ $group->name }}</h3></a>
-            <div class="desc">{{ $group->description ? \Illuminate\Support\Str::limit($group->description, 60) : ($group->sector?->name ?? 'Groupe LeadXchange') }}</div>
-            <div class="meta">
-                @if($group->previewPeople->isNotEmpty())
-                <span class="stack">@foreach($group->previewPeople as $p)<x-lx2-avatar :user="$p" :size="26" />@endforeach @if($more > 0)<span class="more">+{{ $more }}</span>@endif</span>
-                @endif
-                <span>Membres</span>
-            </div>
-            <div class="actions">
-                @if($isMember)
-                    <form method="POST" action="{{ route('groups.leave', $group->id) }}" style="flex:1;display:flex">@csrf @method('DELETE')
-                        <button type="submit" class="btn btn-danger-soft" style="flex:1">Quitter</button></form>
-                @else
-                    <form method="POST" action="{{ route('groups.join', $group->id) }}" style="flex:1;display:flex">@csrf
-                        <button type="submit" class="btn btn-primary" style="flex:1">Rejoindre</button></form>
-                @endif
-            </div>
-        </div>
-    </article>
+        @include('groups._card', ['group' => $group, 'role' => in_array($group->id, $memberGroupIds) ? 'member' : null])
     @endforeach
 </div>
 @else

@@ -16,6 +16,15 @@ class Group extends Model
 
     protected $casts = ['is_public' => 'boolean'];
 
+    /** URL de la couverture (fichier stocké ou URL externe). */
+    public function getCoverUrlAttribute(): ?string
+    {
+        if (! $this->cover_photo) return null;
+        return str_starts_with($this->cover_photo, 'http')
+            ? $this->cover_photo
+            : \Illuminate\Support\Facades\Storage::disk('public')->url($this->cover_photo);
+    }
+
     public function sector(): BelongsTo
     {
         return $this->belongsTo(Sector::class);
