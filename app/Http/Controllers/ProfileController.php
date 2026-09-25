@@ -54,6 +54,25 @@ class ProfileController extends Controller
             }
         }
 
+        // Profil d'un autre membre : écran lx2 de la maquette (pageMember). Le profil personnel
+        // garde l'écran actuel (il sera migré avec la section « Profil & Paramètres »).
+        if ($id !== $currentUserId) {
+            $me = $request->user();
+
+            return view('profile.member', [
+                'user'        => $user,
+                'target'      => $targetUser->loadMissing(['city', 'company.sector']),
+                'profile'     => $targetUser->profile,
+                'interests'   => $targetUser->interests,
+                'sectors'     => Sector::orderBy('name')->get(['id', 'name'])->keyBy('id'),
+                'markets'     => Market::orderBy('name')->get(['id', 'name'])->keyBy('id'),
+                'canViewFull' => $me->canFeature('can_view_member_name'),
+                'canInvite'   => $me->canFeature('can_send_invitations'),
+                'canSendLead' => $me->canFeature('can_send_leads'),
+                'reasons'     => \App\Models\UserReport::REASONS,
+            ]);
+        }
+
         $videoFlash = session('video_status');
 
         $markets = Market::orderBy('name')->get();

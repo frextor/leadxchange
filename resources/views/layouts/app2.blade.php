@@ -29,7 +29,7 @@
         ['dashboard',         'Accueil',    'house',          'dashboard',     0],
         ['leads.index',       'Leads',      'file-text',      'leads.*',       $pendingLeadsCount],
         ['events.index',      'Événements', 'calendar-days',  'events.*',      0],
-        ['connections.index', 'Réseau',     'users-round',    'connections.*', 0],
+        ['connections.index', 'Réseau',     'users-round',    ['connections.*', 'profile.show'], 0],
         ['groups.index',      'Groupes',    'users',          'groups.*',      0],
         ['chat.index',        'Chat',       'message-circle', 'chat.*',        $unreadChatCount],
     ];
@@ -44,7 +44,7 @@
         <div class="nav-label">Platform</div>
         <nav class="nav">
             @foreach($lx2Nav as [$routeName, $label, $icon, $pattern, $count])
-            <a href="{{ route($routeName) }}" class="{{ request()->routeIs($pattern) ? 'on' : '' }}" title="{{ $label }}">
+            <a href="{{ route($routeName) }}" class="{{ request()->routeIs(...(array) $pattern) ? 'on' : '' }}" title="{{ $label }}">
                 <x-lx2-icon :name="$icon" />
                 <span class="lbl">{{ $label }}</span>
                 @if($count > 0)<span class="count">{{ $count > 9 ? '9+' : $count }}</span>@endif
@@ -86,7 +86,7 @@
     <a href="{{ route('leads.index') }}" class="{{ request()->routeIs('leads.*') ? 'on' : '' }}"><x-lx2-icon name="file-text" />Leads</a>
     <a href="{{ route('leads.create') }}" class="mid" aria-label="Envoyer un lead"><span><x-lx2-icon name="lx-send" /></span></a>
     <a href="{{ route('events.index') }}" class="{{ request()->routeIs('events.*') ? 'on' : '' }}"><x-lx2-icon name="calendar-days" />Événements</a>
-    <a href="{{ route('connections.index') }}" class="{{ request()->routeIs('connections.*') ? 'on' : '' }}"><x-lx2-icon name="users-round" />Réseau</a>
+    <a href="{{ route('connections.index') }}" class="{{ request()->routeIs('connections.*', 'profile.show') ? 'on' : '' }}"><x-lx2-icon name="users-round" />Réseau</a>
 </nav>
 
 {{-- Scripts partagés avec layouts/app.blade.php --}}

@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\City;
-use App\Models\Interest;
 use App\Models\ProfileVisitor;
 use App\Services\UserService;
 use Illuminate\Http\Request;
@@ -35,13 +33,17 @@ class MemberController extends Controller
     {
         $user = $request->user();
 
+        // Design lx2 (maquette) : Pour toi · Contacts · Visiteurs — l'ancien onglet « search » ouvre « Pour toi »
+        $tab = $request->get('tab', 'recommendations');
+        $tab = in_array($tab, ['recommendations', 'contacts', 'visitors'], true) ? $tab : 'recommendations';
+
         return view('members.index', [
-            'interests'      => Interest::orderBy('name')->get(),
-            'userInterests'  => $user->interests()->pluck('interests.id')->toArray(),
-            'cities'         => City::with('country:id,name')->orderBy('name')->get(),
-            'newVisitorCount'=> ProfileVisitor::where('profile_user_id', $user->id)
+            'sectors'         => \App\Models\Sector::orderBy('name')->get(['id', 'name']),
+            'newVisitorCount' => ProfileVisitor::where('profile_user_id', $user->id)
                                     ->where('is_new', true)->count(),
-            'initialTab'     => $request->get('tab', 'recommendations'),
+            'initialTab'      => $tab,
+            'canViewName'     => $user->canFeature('can_view_member_name'),
+            'canInvite'       => $user->canFeature('can_send_invitations'),
         ]);
     }
 

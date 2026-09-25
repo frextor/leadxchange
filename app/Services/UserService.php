@@ -80,7 +80,7 @@ class UserService
                     $q->orWhereHas('profile', fn ($p) => $p->whereExists(
                         fn ($sub) => $sub->selectRaw('1')
                             ->from('sectors')
-                            ->whereRaw('JSON_CONTAINS(profiles.services_offered, CAST(sectors.id AS JSON))')
+                            ->whereRaw('JSON_CONTAINS(profiles.services_offered, CAST(sectors.id AS CHAR))')
                             ->where('sectors.name', 'LIKE', $like)
                     ));
                 }
@@ -88,7 +88,7 @@ class UserService
                     $q->orWhereHas('profile', fn ($p) => $p->whereExists(
                         fn ($sub) => $sub->selectRaw('1')
                             ->from('sectors')
-                            ->whereRaw('JSON_CONTAINS(profiles.looking_for, CAST(sectors.id AS JSON))')
+                            ->whereRaw('JSON_CONTAINS(profiles.looking_for, CAST(sectors.id AS CHAR))')
                             ->where('sectors.name', 'LIKE', $like)
                     ));
                 }

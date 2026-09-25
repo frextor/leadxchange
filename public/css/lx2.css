@@ -462,6 +462,10 @@ input[type=date].input{color:var(--fg)}
 .swatches .sw svg{width:16px;height:16px}
 .info-list > div > svg{flex:none}
 .plist form{margin:0}
+.two-col.member-layout{grid-template-columns:340px minmax(0,1fr)}
+@media (max-width:1024px){.two-col.member-layout{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.tags-block{grid-template-columns:minmax(0,1fr)!important}}
+.pcard .contacts a:hover{color:var(--primary)}
 .phone > *{min-width:0}
 .toggle button{white-space:nowrap}
 
