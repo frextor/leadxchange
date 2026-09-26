@@ -1,603 +1,342 @@
-@extends('layouts.app')
-@section('title', 'Messages — LeadXchange')
+@extends('layouts.app2')
 
-@push('styles')
-<link rel="stylesheet" href="{{ asset('css/chat-lx.css') }}">
-@endpush
+@section('title', 'Chat — LeadXchange')
+
+{{-- Écran « Chat » — maquette LeadXchange WEB › pageChat(id) --}}
+
+@php
+    $me = auth()->user();
+
+    // Libellé d'heure façon maquette : 13:04 · Hier · Lun. · 12/09
+    $when = function ($d) {
+        if (! $d) return '';
+        if ($d->isToday())     return $d->format('H:i');
+        if ($d->isYesterday()) return 'Hier';
+        if ($d->gt(now()->subDays(6)->startOfDay())) return ucfirst(rtrim($d->locale('fr')->isoFormat('ddd'), '.')) . '.';
+        return $d->format('d/m');
+    };
+    $preview = function ($m) use ($me) {
+        if (! $m) return 'Aucun message';
+        $txt = match ($m->type ?? 'text') {
+            'image' => 'Photo',
+            'file'  => $m->filename ?: 'Fichier',
+            default => $m->body,
+        };
+        return ($m->sender_id === $me->id ? 'Vous: ' : '') . \Illuminate\Support\Str::limit($txt, 60);
+    };
+    $role = fn ($u) => collect([$u->profile?->job_title, $u->company?->name])->filter()->implode(' · ');
+    $dayLabel = fn ($d) => $d->isToday() ? "Aujourd'hui" : ($d->isYesterday() ? 'Hier' : ucfirst($d->locale('fr')->isoFormat('dddd D MMMM YYYY')));
+@endphp
+
+@section('content')
+<x-lx2-header title="Chat" sub="Vos conversations privées" />
+
+<div class="card convs {{ $selected ? 'sel' : 'no-sel' }} {{ $canChat ? '' : 'locked' }}" id="convs">
+    <div class="conv-list">
+        <div style="padding:12px"><div class="input-wrap"><x-lx2-icon name="search" /><input class="input" id="convSearch" type="search" placeholder="Rechercher" autocomplete="off"></div></div>
+        <div class="items" id="convItems">
+            @foreach($conversations as $item)
+                @php $other = $item['other']; $conv = $item['conv']; @endphp
+                <a class="conv {{ $otherUser && $otherUser->id === $other->id ? 'on' : '' }}" href="{{ route('chat.index', ['with' => $other->id]) }}"
+                   data-uid="{{ $other->id }}" data-search="{{ mb_strtolower(member_name($other)) }}">
+                    <x-lx2-avatar :user="$other" :size="40" />
+                    <div class="who">
+                        <div class="nm">{{ member_name($other) }}<small>{{ $when($conv->last_message_at) }}</small></div>
+                        <div class="pv">{{ $preview($conv->lastMessage) }}</div>
+                    </div>
+                    @if($item['unread'] > 0)<span class="unread" title="{{ $item['unread'] }} non lu{{ $item['unread'] > 1 ? 's' : '' }}"></span>@endif
+                </a>
+            @endforeach
+
+            {{-- Connexions sans conversation : visibles uniquement pendant une recherche --}}
+            @if($connections->isNotEmpty())
+            <div class="conv-sep" data-contacts hidden>Démarrer une conversation</div>
+            @foreach($connections as $c)
+                <a class="conv" href="{{ route('chat.index', ['with' => $c->id]) }}" data-contact data-search="{{ mb_strtolower(member_name($c)) }}" hidden>
+                    <x-lx2-avatar :user="$c" :size="40" />
+                    <div class="who">
+                        <div class="nm">{{ member_name($c) }}</div>
+                        <div class="pv">{{ $role($c) ?: 'Nouvelle conversation' }}</div>
+                    </div>
+                </a>
+            @endforeach
+            @endif
+
+            @if($conversations->isEmpty())
+            <div class="empty" id="convEmpty" style="padding:28px 18px;text-align:center;color:var(--muted-fg);font-size:13px">
+                Aucune conversation.@if($connections->isNotEmpty()) Recherchez une connexion pour lui écrire.@else <a class="link" href="{{ route('connections.index') }}">Développez votre réseau</a>@endif
+            </div>
+            @endif
+            <div class="empty" id="convNoMatch" hidden style="padding:28px 18px;text-align:center;color:var(--muted-fg);font-size:13px">Aucun résultat.</div>
+        </div>
+    </div>
+
+    <div class="conv-view">
+        @if($otherUser)
+        <div class="card-h">
+            <div style="display:flex;align-items:center;gap:10px;min-width:0">
+                <a class="back" href="{{ route('chat.index') }}" data-mobile-back aria-label="Retour"><x-lx2-icon name="arrow-left" /></a>
+                <x-lx2-avatar :user="$otherUser" :size="34" />
+                <div style="min-width:0">
+                    <div style="font-weight:600;font-size:14px">{{ member_name($otherUser) }}</div>
+                    <div style="font-size:12px;color:var(--muted-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                        <span id="chatRole">{{ $role($otherUser) ?: 'Membre LeadXchange' }}</span><span id="chatTyping" hidden style="color:var(--primary)">est en train d'écrire…</span>
+                    </div>
+                </div>
+            </div>
+            <a class="btn btn-outline btn-sm" href="{{ route('profile.show', $otherUser->id) }}">Voir le profil</a>
+        </div>
+
+        <div class="chat-scroll" id="chatScroll">
+            @php $prevDay = null; @endphp
+            @forelse($messages as $msg)
+                @php $day = $msg->created_at->toDateString(); @endphp
+                @if($day !== $prevDay)
+                    <div class="day-sep" data-day="{{ $day }}">{{ $dayLabel($msg->created_at) }}</div>
+                    @php $prevDay = $day; @endphp
+                @endif
+                @php $mine = $msg->sender_id === $me->id; $type = $msg->type ?? 'text'; @endphp
+                <div class="msg {{ $mine ? 'me' : '' }}" id="msg-{{ $msg->id }}">
+                    <x-lx2-avatar :user="$mine ? $me : $otherUser" :size="30" />
+                    <div>
+                        @if($type === 'image' && $msg->media_url)
+                            <a class="imgb" href="{{ $msg->media_url }}" target="_blank" rel="noopener" style="display:block"><img src="{{ $msg->media_url }}" alt="Image" style="display:block;max-width:100%"></a>
+                            @if($msg->body)<div class="bubble" style="margin-top:6px">{{ $msg->body }}</div>@endif
+                            <div class="time" style="color:var(--muted-fg)">{{ $msg->created_at->format('H:i') }}</div>
+                        @else
+                            <div class="bubble">
+                                @if($type === 'file' && $msg->media_url)
+                                    <a class="file-link" href="{{ $msg->media_url }}" target="_blank" rel="noopener"><x-lx2-icon name="file-text" />{{ $msg->filename ?: 'Fichier' }}</a>
+                                    @if($msg->body)<div style="margin-top:4px">{{ $msg->body }}</div>@endif
+                                @else
+                                    {!! nl2br(e($msg->body)) !!}
+                                @endif
+                                <div class="time">{{ $msg->created_at->format('H:i') }}</div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @empty
+                <div class="empty" id="chatEmpty" style="margin:auto;text-align:center;color:var(--muted-fg);font-size:13.5px">
+                    <b style="display:block;color:var(--fg);font-size:14px;margin-bottom:4px">Dites bonjour à {{ $otherUser->first_name }} !</b>
+                    Envoyez votre premier message pour démarrer la conversation.
+                </div>
+            @endforelse
+        </div>
+
+        <div class="attach-prev" id="attachPrev" hidden>
+            <img id="attachImg" alt="" hidden>
+            <span id="attachName"></span>
+            <button type="button" class="icon-btn" id="attachCancel" aria-label="Retirer la pièce jointe"><x-lx2-icon name="x" /></button>
+        </div>
+        <form class="composer" id="chatForm" autocomplete="off">
+            <input type="file" id="chatFile" accept="image/*,.pdf,.doc,.docx" hidden>
+            <button type="button" class="icon-btn" id="chatAttach" aria-label="Joindre un fichier"><x-lx2-icon name="plus" /></button>
+            <input class="input" id="chatMsg" placeholder="Envoyer un message…" maxlength="3000" @disabled(! $canChat)>
+            <button type="submit" class="send-btn" id="chatSend" aria-label="Envoyer"><x-lx2-icon name="arrow-up-right" /></button>
+        </form>
+        @else
+        <div class="empty" style="margin:auto;text-align:center;color:var(--muted-fg);font-size:13.5px;padding:24px">
+            <b style="display:block;color:var(--fg);font-size:15px;margin-bottom:4px">Vos messages</b>
+            Sélectionnez une conversation ou recherchez une connexion pour lui écrire.
+        </div>
+        @endif
+    </div>
+
+    @unless($canChat)
+    <div class="lock-over"><div class="card">
+        <span class="ico" style="margin:0 auto 10px"><x-lx2-icon name="lock" /></span>
+        <b style="display:block;font-size:15px">Messagerie non disponible</b>
+        <p style="color:var(--muted-fg);font-size:13px;margin:6px 0 14px">La messagerie instantanée n'est pas incluse dans votre plan actuel.</p>
+        <button type="button" class="btn btn-primary" onclick="openUpgradeModal('can_receive_mail')">Voir les plans</button>
+    </div></div>
+    @endunless
+</div>
+@endsection
 
 @push('scripts')
 <script>
-// ── cxChat Alpine component ───────────────────────────────────────────────
-const CX_CSRF   = '{{ csrf_token() }}';
-const CX_UID    = {{ $otherUser?->id ?? 'null' }};
-let   CX_LASTID = {{ $messages->last()?->id ?? 0 }};
+(function () {
+    const $ = (id) => document.getElementById(id);
+    const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+    const UID  = @json($otherUser?->id);
+    const CAN  = @json((bool) $canChat);
+    const ME_AV    = @json(view('components.lx2-avatar', ['user' => $me, 'size' => 30])->render());
+    const OTHER_AV = @json($otherUser ? view('components.lx2-avatar', ['user' => $otherUser, 'size' => 30])->render() : '');
+    const ICON_FILE = @json(\App\Support\Lx2Icons::svg('file-text'));
+    let lastId = @json($messages->last()?->id ?? 0);
+    const esc = (s) => (s ?? '').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const hhmm = (d) => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    const ymd  = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 
-function cxChat() {
-    return {
-        contactOpen: true,
-        sending: false,
-        mediaUrl: null,
-        mediaType: null,
-        mediaFilename: null,
+    /* ── Recherche : conversations + connexions sans conversation ───────── */
+    $('convSearch').addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase().trim();
+        let shown = 0, contacts = 0;
+        document.querySelectorAll('#convItems .conv').forEach(a => {
+            const match = a.dataset.search.includes(q);
+            const ok = a.hasAttribute('data-contact') ? (q && match) : (!q || match);
+            a.hidden = !ok;
+            if (ok) { shown++; if (a.hasAttribute('data-contact')) contacts++; }
+        });
+        const sep = document.querySelector('[data-contacts]');
+        if (sep) sep.hidden = contacts === 0;
+        if ($('convEmpty')) $('convEmpty').hidden = !!q;
+        $('convNoMatch').hidden = !q || shown > 0;
+    });
 
-        init() {
-            this.$nextTick(() => {
-                const t = document.getElementById('cx-msgs');
-                if (t) t.scrollTop = t.scrollHeight;
+    if (!UID) return;
+    const box = $('chatScroll');
+    const scrollDown = () => { box.scrollTop = box.scrollHeight; };
+    scrollDown();
+    window.addEventListener('load', scrollDown);
+    box.querySelectorAll('img').forEach(i => i.addEventListener('load', scrollDown, { once: true }));
+    // Passage liste ↔ fil (mobile) ou rotation : on reste en bas si on y était
+    let atBottom = true;
+    box.addEventListener('scroll', () => { atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40; });
+    window.addEventListener('resize', () => { if (atBottom) scrollDown(); });
+
+    /* ── Rendu d'un message (même structure que le rendu Blade) ─────────── */
+    function append(m) {
+        if (document.getElementById('msg-' + m.id)) return;
+        $('chatEmpty')?.remove();
+        const d = new Date(m.created_at);
+        const days = box.querySelectorAll('.day-sep');
+        if (!days.length || days[days.length - 1].dataset.day !== ymd(d)) {
+            const sep = document.createElement('div');
+            sep.className = 'day-sep'; sep.dataset.day = ymd(d); sep.textContent = "Aujourd'hui";
+            box.appendChild(sep);
+        }
+        let inner;
+        if (m.type === 'image' && m.media_url) {
+            inner = `<a class="imgb" href="${esc(m.media_url)}" target="_blank" rel="noopener" style="display:block"><img src="${esc(m.media_url)}" alt="Image" style="display:block;max-width:100%"></a>`
+                  + (m.body ? `<div class="bubble" style="margin-top:6px">${esc(m.body)}</div>` : '')
+                  + `<div class="time" style="color:var(--muted-fg)">${hhmm(d)}</div>`;
+        } else {
+            const content = (m.type === 'file' && m.media_url)
+                ? `<a class="file-link" href="${esc(m.media_url)}" target="_blank" rel="noopener">${ICON_FILE}${esc(m.filename || 'Fichier')}</a>` + (m.body ? `<div style="margin-top:4px">${esc(m.body)}</div>` : '')
+                : esc(m.body).replace(/\n/g, '<br>');
+            inner = `<div class="bubble">${content}<div class="time">${hhmm(d)}</div></div>`;
+        }
+        const row = document.createElement('div');
+        row.className = 'msg' + (m.is_mine ? ' me' : '');
+        row.id = 'msg-' + m.id;
+        row.innerHTML = (m.is_mine ? ME_AV : OTHER_AV) + `<div>${inner}</div>`;
+        box.appendChild(row);
+        box.querySelectorAll('img').forEach(i => i.addEventListener('load', scrollDown, { once: true }));
+        scrollDown();
+    }
+
+    /* ── Pièce jointe (POST /chat/{id}/media) ───────────────────────────── */
+    let media = null;
+    const clearMedia = () => { media = null; $('attachPrev').hidden = true; $('attachImg').hidden = true; $('attachName').textContent = ''; };
+    $('chatAttach').addEventListener('click', () => CAN && $('chatFile').click());
+    $('attachCancel').addEventListener('click', clearMedia);
+    $('chatFile').addEventListener('change', async (e) => {
+        const f = e.target.files[0];
+        e.target.value = '';
+        if (!f) return;
+        if (f.size > 10 * 1024 * 1024) { toast('Fichier trop lourd (10 Mo maximum).', 'error'); return; }
+        const fd = new FormData(); fd.append('file', f);
+        $('attachPrev').hidden = false; $('attachName').textContent = 'Envoi de ' + f.name + '…';
+        try {
+            const r = await fetch('/chat/' + UID + '/media', { method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }, body: fd });
+            const d = await r.json();
+            if (!r.ok || !d.url) throw new Error(d.message || d.error || 'Envoi impossible');
+            media = { url: d.url, type: d.type, filename: d.filename || f.name };
+            if (d.type === 'image') { $('attachImg').src = d.url; $('attachImg').hidden = false; $('attachName').textContent = ''; }
+            else { $('attachName').textContent = media.filename; }
+            $('chatMsg').focus();
+        } catch (err) { clearMedia(); toast(err.message || 'Envoi impossible', 'error'); }
+    });
+
+    /* ── Envoi (POST /chat/{id}) ────────────────────────────────────────── */
+    let sending = false;
+    $('chatForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const input = $('chatMsg');
+        const body = input.value.trim();
+        if (!CAN || sending || (!body && !media)) return;
+        sending = true; $('chatSend').disabled = true;
+        try {
+            const r = await fetch('/chat/' + UID, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ body: body || null, type: media ? media.type : 'text', media_url: media?.url ?? null, filename: media?.filename ?? null }),
             });
-            if (CX_UID) {
-                setInterval(() => cxPoll(this), 1000);
+            const m = await r.json();
+            if (!r.ok || !m.id) throw new Error(m.message || m.error || 'Message non envoyé');
+            append(m);
+            lastId = Math.max(lastId, m.id);
+            input.value = ''; clearMedia();
+            updateRow(UID, m);
+        } catch (err) { toast(err.message || 'Message non envoyé', 'error'); }
+        finally { sending = false; $('chatSend').disabled = false; input.focus(); }
+    });
+
+    /* ── Indicateur « en train d'écrire » ───────────────────────────────── */
+    let typingSent = 0;
+    $('chatMsg').addEventListener('input', () => {
+        if (Date.now() - typingSent < 3000) return;
+        typingSent = Date.now();
+        fetch('/chat/' + UID + '/typing', { method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } }).catch(() => {});
+    });
+
+    /* ── Nouveaux messages (GET /chat/{id}/poll/{lastId}) ───────────────── */
+    let polling = false;
+    async function poll() {
+        if (polling || document.hidden) return;
+        polling = true;
+        try {
+            const r = await fetch('/chat/' + UID + '/poll/' + lastId, { credentials: 'same-origin', headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!r.ok) return;
+            const d = await r.json();
+            (d.messages || []).forEach(m => { append(m); lastId = Math.max(lastId, m.id); updateRow(UID, m); });
+            $('chatTyping').hidden = !d.other_typing;
+            $('chatRole').hidden = !!d.other_typing;
+        } catch (e) { /* réseau */ }
+        finally { polling = false; }
+    }
+    setInterval(poll, 1500);
+
+    /* ── Liste : aperçu du dernier message + non-lus des autres conversations ── */
+    function updateRow(uid, m) {
+        const a = document.querySelector(`#convItems .conv[data-uid="${uid}"]`);
+        if (!a) return;
+        const txt = m.type === 'image' ? 'Photo' : (m.type === 'file' ? (m.filename || 'Fichier') : (m.body || ''));
+        a.querySelector('.pv').textContent = (m.is_mine ? 'Vous: ' : '') + txt;
+        a.querySelector('.nm small').textContent = hhmm(new Date(m.created_at));
+        a.parentNode.insertBefore(a, a.parentNode.firstChild);
+    }
+    const known = new Map();
+    document.querySelectorAll('#convItems .conv[data-uid]').forEach(a => known.set(a.dataset.uid, null));
+    async function checkInbox() {
+        if (document.hidden) return;
+        try {
+            const r = await fetch('/chat/inbox/check', { credentials: 'same-origin', headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!r.ok) return;
+            const d = await r.json();
+            let reload = false;
+            for (const c of d.conversations) {
+                const id = String(c.other_id);
+                if (id === String(UID)) continue;
+                if (!known.has(id)) { reload = true; continue; }
+                if (known.get(id) === null) { known.set(id, c.last_msg_id); continue; }
+                if (c.last_msg_id > known.get(id)) { known.set(id, c.last_msg_id); reload = true; }
             }
-        },
-
-        toggleContact() { this.contactOpen = !this.contactOpen; },
-
-        autoGrow(el) {
-            el.style.height = 'auto';
-            el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-        },
-
-        onKey(e) {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                e.preventDefault();
-                this.send();
-                return;
-            }
-            if (CX_UID) {
-                fetch('/chat/' + CX_UID + '/typing', {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': CX_CSRF, 'Content-Type': 'application/json' },
-                }).catch(() => {});
-            }
-        },
-
-        async send() {
-            if (!CX_UID) return;
-            const ta   = this.$refs.composer;
-            const body = ta?.value?.trim();
-            if (!body && !this.mediaUrl) return;
-            if (this.sending) return;
-            this.sending = true;
-            try {
-                const res = await fetch('/chat/' + CX_UID, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': CX_CSRF,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        body,
-                        type: this.mediaType || 'text',
-                        media_url: this.mediaUrl,
-                        filename: this.mediaFilename,
-                    }),
-                });
-                const msg = await res.json();
-                if (msg.id) {
-                    cxAppendMsg(msg);
-                    CX_LASTID = msg.id;
-                    if (ta) { ta.value = ''; ta.style.height = 'auto'; }
-                    this.mediaUrl = null;
-                    this.mediaType = null;
-                    this.mediaFilename = null;
-                    document.getElementById('cx-mprev').style.display = 'none';
+            if (reload) {
+                const html = await (await fetch(location.href, { credentials: 'same-origin', headers: { 'Accept': 'text/html' } })).text();
+                const fresh = new DOMParser().parseFromString(html, 'text/html').getElementById('convItems');
+                if (fresh) {
+                    $('convItems').innerHTML = fresh.innerHTML;
+                    fresh.querySelectorAll('.conv[data-uid]').forEach(a => { if (!known.has(a.dataset.uid)) known.set(a.dataset.uid, null); });
+                    $('convSearch').dispatchEvent(new Event('input'));
                 }
-            } finally {
-                this.sending = false;
             }
-        },
-    };
-}
-
-// ── Append message to thread ─────────────────────────────────────────────
-function cxAppendMsg(msg) {
-    const t = document.getElementById('cx-msgs');
-    if (!t) return;
-    document.getElementById('cx-empty')?.remove();
-
-    const row = document.createElement('div');
-    row.id        = 'msg-' + msg.id;
-    row.className = 'cx-msg-row' + (msg.is_mine ? ' mine' : '');
-
-    const bub     = document.createElement('div');
-    bub.className = 'cx-bubble ' + (msg.is_mine ? 'mine' : 'theirs');
-
-    if (msg.type === 'image' && msg.media_url) {
-        const img  = document.createElement('img');
-        img.src    = msg.media_url;
-        img.style.cssText = 'max-width:220px;border-radius:10px;display:block;cursor:pointer';
-        img.onclick = () => window.open(msg.media_url, '_blank');
-        bub.appendChild(img);
-        if (msg.body) {
-            const cap = document.createElement('div');
-            cap.style.cssText = 'padding:4px 0 0;font-size:13px';
-            cap.textContent = msg.body;
-            bub.appendChild(cap);
-        }
-    } else if (msg.type === 'file' && msg.media_url) {
-        const a    = document.createElement('a');
-        a.href     = msg.media_url;
-        a.target   = '_blank';
-        a.rel      = 'noopener';
-        a.className = 'cx-bubble-file';
-        a.textContent = msg.filename || 'Fichier';
-        bub.appendChild(a);
-    } else {
-        const txt = document.createElement('div');
-        txt.textContent = msg.body || '';
-        bub.appendChild(txt);
+        } catch (e) { /* réseau */ }
     }
-
-    const d    = new Date(msg.created_at);
-    const time = document.createElement('div');
-    time.className = 'cx-bubble-time lx-num';
-    time.textContent = d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
-    if (msg.is_mine) {
-        const tick = document.createElement('span');
-        tick.className = 'cx-tick';
-        tick.textContent = ' ✓✓';
-        time.appendChild(tick);
-    }
-    bub.appendChild(time);
-    row.appendChild(bub);
-    t.appendChild(row);
-    t.scrollTop = t.scrollHeight;
-}
-
-// ── Poll for new messages ─────────────────────────────────────────────────
-let CX_POLLING = false;
-
-async function cxPoll(alpine) {
-    if (!CX_UID || CX_POLLING) return;
-    CX_POLLING = true;
-    try {
-        const r = await fetch('/chat/' + CX_UID + '/poll/' + CX_LASTID, {
-            credentials: 'same-origin',
-            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        });
-        if (!r.ok) return;
-        const d = await r.json();
-        if (d.messages?.length) {
-            d.messages.forEach(m => { cxAppendMsg(m); CX_LASTID = m.id; });
-        }
-        const ti = document.getElementById('cx-typing');
-        if (ti) ti.style.display = d.other_typing ? 'flex' : 'none';
-    } catch (e) {
-        console.warn('[cxPoll]', e);
-    } finally {
-        CX_POLLING = false;
-    }
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────
-function cxFilter(val, listId) {
-    document.querySelectorAll('#' + listId + ' [data-name]').forEach(el => {
-        el.style.display = el.dataset.name.includes(val.toLowerCase()) ? '' : 'none';
-    });
-}
-
-async function cxFile(input, uid) {
-    const file = input.files[0];
-    if (!file) return;
-    const fd = new FormData();
-    fd.append('file', file);
-    const r = await fetch('/chat/' + uid + '/media', {
-        method: 'POST',
-        headers: { 'X-CSRF-TOKEN': CX_CSRF },
-        body: fd,
-    });
-    const d = await r.json();
-    if (!d.url) return;
-
-    const alpine = document.querySelector('.cx-wrap')?._x_dataStack?.[0];
-    if (alpine) { alpine.mediaUrl = d.url; alpine.mediaType = d.type; alpine.mediaFilename = file.name; }
-
-    const w = document.getElementById('cx-mprev');
-    w.style.display = 'flex';
-    if (d.type === 'image') {
-        const img   = document.getElementById('cx-pi');
-        img.src     = d.url;
-        img.style.display = 'block';
-        document.getElementById('cx-pn').textContent = '';
-    } else {
-        document.getElementById('cx-pi').style.display = 'none';
-        document.getElementById('cx-pn').textContent = file.name;
-    }
-    input.value = '';
-}
-
-function cxCancelMedia() {
-    const alpine = document.querySelector('.cx-wrap')?._x_dataStack?.[0];
-    if (alpine) { alpine.mediaUrl = null; alpine.mediaType = null; alpine.mediaFilename = null; }
-    document.getElementById('cx-mprev').style.display = 'none';
-}
-
-document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') document.getElementById('cx-modal')?.classList.remove('open');
-});
-
-// ── Inbox check — détecte les nouvelles conversations ────────────────────
-let CX_KNOWN_CONVS = new Map(); // conv_id → last_msg_id
-
-// Init avec les conversations actuellement affichées
-document.querySelectorAll('#cx-conv-list .cx-conv-item').forEach(el => {
-    const uid = el.href?.split('with=')[1];
-    if (uid) CX_KNOWN_CONVS.set(uid, 0);
-});
-
-async function cxCheckInbox() {
-    try {
-        const r = await fetch('/chat/inbox/check', {
-            credentials: 'same-origin',
-            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        });
-        if (!r.ok) return;
-        const d = await r.json();
-
-        let hasNew = false;
-        for (const c of d.conversations) {
-            const otherId = String(c.other_id);
-            if (!CX_KNOWN_CONVS.has(otherId)) {
-                // Nouvelle conversation inconnue → reload
-                hasNew = true;
-                break;
-            }
-            const prev = CX_KNOWN_CONVS.get(otherId);
-            if (c.last_msg_id > prev && c.other_id != CX_UID) {
-                // Nouveau message dans une autre conversation → badge ou reload
-                hasNew = true;
-                CX_KNOWN_CONVS.set(otherId, c.last_msg_id);
-            }
-        }
-
-        if (hasNew) {
-            // Mettre à jour le badge d'unread dans la nav si disponible
-            const badge = document.querySelector('[data-unread-badge]');
-            if (badge) badge.textContent = d.total_unread > 0 ? d.total_unread : '';
-
-            // Recharger la sidebar en douceur
-            cxReloadSidebar();
-        }
-    } catch {}
-}
-
-async function cxReloadSidebar() {
-    try {
-        const r = await fetch(window.location.href, {
-            credentials: 'same-origin',
-            headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' },
-        });
-        const html = await r.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const newList = doc.getElementById('cx-conv-list');
-        const curList = document.getElementById('cx-conv-list');
-        if (newList && curList) {
-            curList.innerHTML = newList.innerHTML;
-            // Re-init known convs
-            CX_KNOWN_CONVS = new Map();
-            curList.querySelectorAll('.cx-conv-item').forEach(el => {
-                const uid = el.href?.split('with=')[1];
-                if (uid) CX_KNOWN_CONVS.set(uid, 0);
-            });
-        }
-    } catch {}
-}
-
-// Poll inbox toutes les 4 secondes
-setInterval(cxCheckInbox, 4000);
+    setInterval(checkInbox, 5000);
+    checkInbox();
+})();
 </script>
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 @endpush
-
-@section('content')
-
-@if(!$canChat)
-<x-upgrade-gate feature="chat" :full-page="true"
-    title="Messagerie non disponible"
-    description="La messagerie instantanée n'est pas incluse dans votre plan actuel." />
-@else
-
-@php
-  $me      = auth()->user();
-  $palette = ['#14A98C','#6C7BE0','#C58A1B','#C9442E','#8B5CF6','#0891B2'];
-  $aColor  = fn($u) => $palette[$u->id % count($palette)];
-  $aInit   = fn($u) => strtoupper(mb_substr($u->first_name,0,1).mb_substr($u->last_name,0,1));
-@endphp
-
-<div class="cx-wrap" x-data="cxChat()" x-init="init()">
-
-{{-- ── LEFT: Conversations ─────────────────────────────────────────── --}}
-<aside class="cx-sidebar">
-    <div class="cx-sidebar__head">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span class="cx-sidebar__title">Messages</span>
-            <button class="cx-btn-new" onclick="document.getElementById('cx-modal').classList.add('open')">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Nouveau
-            </button>
-        </div>
-        <div class="cx-search">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <input type="text" placeholder="Rechercher…" oninput="cxFilter(this.value,'cx-conv-list')">
-        </div>
-    </div>
-
-    <div class="cx-conv-list cx-scroll" id="cx-conv-list">
-        @forelse($conversations as $item)
-        @php
-            $other   = $item['other'];
-            $conv    = $item['conv'];
-            $unread  = $item['unread'];
-            $preview = $conv->lastMessage?->body ?? 'Aucun message';
-            $isMe    = $conv->lastMessage?->sender_id === $me->id;
-            $active  = $otherUser && $otherUser->id == $other->id;
-        @endphp
-        <a href="{{ route('chat.index', ['with' => $other->id]) }}"
-           class="cx-conv-item {{ $active ? 'active' : '' }}"
-           data-name="{{ strtolower($other->full_name ?? $other->first_name) }}">
-            <div class="cx-avatar">
-                <div class="cx-avatar__img" style="background:{{ $aColor($other) }};">
-                    @if($other->profile?->avatar)<img src="{{ $other->profile->avatar_url }}" alt="">
-                    @else{{ $aInit($other) }}@endif
-                </div>
-                <span class="cx-avatar__presence"></span>
-            </div>
-            <div class="cx-conv-body">
-                <div class="cx-conv-row1">
-                    <span class="cx-conv-name {{ $unread > 0 ? 'unread' : '' }}">{{ $other->full_name ?? $other->first_name }}</span>
-                    @if($conv->last_message_at)
-                    <span class="cx-conv-time lx-num">{{ $conv->last_message_at->diffForHumans(null,true) }}</span>
-                    @endif
-                </div>
-                <div class="cx-conv-row2">
-                    <span class="cx-conv-preview {{ $unread > 0 ? 'unread' : '' }}">
-                        {{ $isMe ? 'Vous : ' : '' }}{{ mb_strimwidth($preview, 0, 48, '…') }}
-                    </span>
-                    @if($unread > 0)
-                    <span class="cx-unread-badge lx-num">{{ $unread }}</span>
-                    @elseif($isMe)
-                    <span class="cx-read-tick">✓✓</span>
-                    @endif
-                </div>
-            </div>
-        </a>
-        @empty
-        <div style="padding:40px 20px;text-align:center;color:var(--ink-faint);">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 12px;display:block;opacity:.3"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <div style="font-size:13px;font-weight:500;color:var(--ink-dim);">Aucune conversation</div>
-        </div>
-        @endforelse
-    </div>
-</aside>
-
-{{-- ── CENTER: Thread ──────────────────────────────────────────────── --}}
-@if($otherUser)
-@php $oc = $aColor($otherUser); $oi = $aInit($otherUser); @endphp
-<main class="cx-thread">
-
-    {{-- Header --}}
-    <header class="cx-thread-head">
-        <div class="cx-avatar" style="flex-shrink:0;">
-            <div class="cx-avatar__img" style="background:{{ $oc }};width:40px;height:40px;font-size:14px;">
-                @if($otherUser->profile?->avatar)<img src="{{ $otherUser->profile->avatar_url }}" alt="">
-                @else{{ $oi }}@endif
-            </div>
-            <span class="cx-avatar__presence"></span>
-        </div>
-        <div class="cx-thread-head__info">
-            <div class="cx-thread-head__name">{{ $otherUser->full_name }}</div>
-            @php $sub = collect([$otherUser->profile?->job_title, $otherUser->company?->name])->filter()->implode(' · '); @endphp
-            @if($sub)<div class="cx-thread-head__sub">{{ $sub }}</div>@endif
-        </div>
-        <button class="cx-btn-lead">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            Lead
-        </button>
-        <button class="cx-head-btn" :class="{ active: contactOpen }" @click="toggleContact()" title="Informations contact">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        </button>
-    </header>
-
-    {{-- Messages --}}
-    <div id="cx-msgs" class="cx-messages cx-scroll">
-
-        @forelse($messages as $i => $msg)
-        @php
-            $isMine  = $msg->sender_id === $me->id;
-            $msgType = $msg->type ?? 'text';
-            $prev    = $messages[$i-1] ?? null;
-            $next    = $messages[$i+1] ?? null;
-            $newDay  = !$prev || !$prev->created_at->isSameDay($msg->created_at);
-            $grouped = $prev && $prev->sender_id===$msg->sender_id && $prev->created_at->diffInMinutes($msg->created_at)<3;
-            $isLast  = !$next || $next->sender_id!==$msg->sender_id;
-        @endphp
-
-        @if($newDay)
-        <div class="cx-day-sep">
-            <span>{{ $msg->created_at->isToday() ? "Aujourd'hui" : ($msg->created_at->isYesterday() ? 'Hier' : $msg->created_at->isoFormat('D MMMM YYYY')) }}</span>
-        </div>
-        @endif
-
-        <div id="msg-{{ $msg->id }}" class="cx-msg-row {{ $isMine ? 'mine' : '' }} {{ $grouped ? 'grouped' : '' }}">
-            @if(!$isMine)
-            <div class="cx-msg-avatar {{ !$isLast ? 'hidden' : '' }}" style="background:{{ $oc }};">{{ $oi }}</div>
-            @endif
-            <div class="cx-bubble {{ $isMine ? 'mine' : 'theirs' }}">
-                @if($msgType === 'image' && $msg->media_url)
-                    <img src="{{ $msg->media_url }}" alt="image" style="max-width:220px;border-radius:10px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')">
-                    @if($msg->body)<div style="font-size:13px;padding:4px 0 0;">{{ $msg->body }}</div>@endif
-                @elseif($msgType === 'file' && $msg->media_url)
-                    <a href="{{ $msg->media_url }}" target="_blank" rel="noopener" class="cx-bubble-file">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                        {{ $msg->filename ?? 'Fichier' }}
-                    </a>
-                @else
-                    <div>{{ $msg->body }}</div>
-                @endif
-                <div class="cx-bubble-time lx-num">
-                    {{ $msg->created_at->format('H:i') }}
-                    @if($isMine)<span class="cx-tick {{ $msg->read_at ? 'read' : '' }}">✓✓</span>@endif
-                </div>
-            </div>
-        </div>
-        @empty
-        <div id="cx-empty" class="cx-empty" style="flex:1;min-height:200px;">
-            <div class="cx-empty__icon">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            </div>
-            <div class="cx-empty__title">Dites bonjour à {{ $otherUser->first_name }} !</div>
-            <div class="cx-empty__sub">Envoyez votre premier message pour démarrer la conversation.</div>
-        </div>
-        @endforelse
-
-        <div id="cx-typing" class="cx-msg-row" style="display:none;margin-top:4px;">
-            <div class="cx-msg-avatar" style="background:{{ $oc }};">{{ $oi }}</div>
-            <div class="cx-typing"><span class="cx-typing-dot"></span><span class="cx-typing-dot"></span><span class="cx-typing-dot"></span></div>
-        </div>
-    </div>
-
-    {{-- Composer --}}
-    <div class="cx-composer">
-        <div id="cx-mprev" class="cx-media-preview" style="display:none;">
-            <img id="cx-pi" src="" style="display:none;">
-            <span id="cx-pn" style="font-size:12px;color:var(--accent-ink);"></span>
-            <button type="button" onclick="cxCancelMedia()" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:18px;margin-left:auto;">×</button>
-        </div>
-        <div class="cx-composer-card">
-            <textarea x-ref="composer" class="cx-composer-textarea" placeholder="Écrivez un message…" rows="1"
-                      @input="autoGrow($el)" @keydown="onKey($event)"></textarea>
-            <div class="cx-composer-bar">
-                <input type="file" id="cx-fi" accept="image/*,.pdf,.doc,.docx" style="display:none;" onchange="cxFile(this,{{ $otherUser->id }})">
-                <button type="button" class="cx-composer-action" onclick="document.getElementById('cx-fi').click()" title="Pièce jointe">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                </button>
-                <span class="cx-hint">Envoyer <kbd>⌘↵</kbd></span>
-                <button type="button" class="cx-send-btn" :disabled="sending" @click="send()">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg>
-                </button>
-            </div>
-        </div>
-    </div>
-</main>
-
-{{-- ── RIGHT: Contact panel ─────────────────────────────────────────── --}}
-<aside class="cx-contact" x-show="contactOpen">
-    <div class="cx-contact__head">
-        <div class="cx-contact__avatar" style="background:{{ $oc }};">
-            @if($otherUser->profile?->avatar)
-                <img src="{{ $otherUser->profile->avatar_url }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
-            @else{{ $oi }}@endif
-            <span class="cx-avatar__presence"></span>
-        </div>
-        <div class="cx-contact__name">{{ $otherUser->full_name }}</div>
-        @if($sub ?? '')<div class="cx-contact__sub">{{ $sub }}</div>@endif
-        @if($otherUser->subscription?->plan)
-        <div class="cx-tier lx-num">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            {{ $otherUser->subscription->plan->label }}
-        </div>
-        @endif
-    </div>
-
-    <div class="cx-contact__actions">
-        <button class="cx-contact-btn primary">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            Envoyer un lead
-        </button>
-        <a href="{{ route('profile.show', $otherUser->id) }}" class="cx-contact-btn ghost">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            Profil
-        </a>
-    </div>
-
-    <div class="cx-contact-section">
-        <div class="cx-section-title">Statistiques</div>
-        @php
-            $ex = \App\Models\Lead::where(fn($q)=>$q
-                ->where(fn($q2)=>$q2->where('sender_id',$me->id)->where('receiver_id',$otherUser->id))
-                ->orWhere(fn($q2)=>$q2->where('sender_id',$otherUser->id)->where('receiver_id',$me->id))
-            )->count();
-        @endphp
-        <div class="cx-stat-row">
-            <span class="cx-stat-label">Leads échangés</span>
-            <span class="cx-stat-val lx-num">{{ $ex }}</span>
-        </div>
-        <div class="cx-stat-row">
-            <span class="cx-stat-label">Score</span>
-            <span class="cx-stat-val lx-num">{{ $otherUser->points_balance ?? 0 }} pts</span>
-        </div>
-        <div class="cx-stat-row">
-            <span class="cx-stat-label">Badge</span>
-            <span class="cx-stat-val" style="font-size:12px;">{{ ucfirst($otherUser->badge_level ?? 'neutre') }}</span>
-        </div>
-    </div>
-
-    @if($otherUser->city)
-    <div class="cx-contact-section">
-        <div class="cx-section-title">Localisation</div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-dim);">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-            {{ $otherUser->city->name }}
-        </div>
-    </div>
-    @endif
-</aside>
-
-@else
-<div class="cx-empty" style="flex:1;">
-    <div class="cx-empty__icon">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    </div>
-    <div class="cx-empty__title">Vos messages</div>
-    <div class="cx-empty__sub">Sélectionnez une conversation ou démarrez-en une nouvelle.</div>
-    <button class="cx-btn-new" onclick="document.getElementById('cx-modal').classList.add('open')">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Nouveau message
-    </button>
-</div>
-@endif
-
-</div>{{-- cx-wrap --}}
-
-{{-- ── Modal nouvelle conversation ─────────────────────────────────── --}}
-<div id="cx-modal" class="cx-modal-backdrop" onclick="if(event.target===this)this.classList.remove('open')">
-    <div class="cx-modal">
-        <div class="cx-modal-head">
-            <span class="cx-modal-title">Nouveau message</span>
-            <button class="cx-modal-close" onclick="document.getElementById('cx-modal').classList.remove('open')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-        </div>
-        <div style="padding:11px 14px;border-bottom:1px solid var(--line);">
-            <div class="cx-search">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                <input type="text" placeholder="Rechercher une connexion…" oninput="cxFilter(this.value,'cx-clist')">
-            </div>
-        </div>
-        <div id="cx-clist" class="cx-scroll" style="max-height:300px;">
-            @forelse($connections as $c)
-            @php $cc=$aColor($c); $ci=$aInit($c); @endphp
-            <a href="{{ route('chat.index', ['with' => $c->id]) }}"
-               data-name="{{ strtolower($c->full_name ?? $c->first_name) }}"
-               style="display:flex;align-items:center;gap:11px;padding:10px 16px;text-decoration:none;border-bottom:1px solid var(--line-soft);transition:background .12s;"
-               onmouseover="this.style.background='var(--card-2)'" onmouseout="this.style.background=''">
-                <div style="width:38px;height:38px;border-radius:50%;background:{{ $cc }};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0;">{{ $ci }}</div>
-                <div>
-                    <div style="font-size:13.5px;font-weight:600;color:var(--ink-on);">{{ $c->full_name ?? $c->first_name }}</div>
-                    @if($c->company)<div style="font-size:12px;color:var(--ink-dim);">{{ $c->company->name }}</div>@endif
-                </div>
-            </a>
-            @empty
-            <div style="padding:28px;text-align:center;color:var(--ink-faint);font-size:13px;">Aucune connexion.</div>
-            @endforelse
-        </div>
-    </div>
-</div>
-
-@endif
-
-{{-- scripts already pushed at top --}}
-
-@endsection

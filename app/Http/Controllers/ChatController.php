@@ -15,11 +15,20 @@ class ChatController extends Controller
     {
         $user       = $request->user();
         $withUserId = (int) $request->query('with', 0);
+        $canChat    = $user->canFeature('can_receive_mail');
+
+        // Plan sans messagerie : écran verrouillé, aucune conversation chargée
+        if (! $canChat) {
+            return view('chat.index', [
+                'conversations' => collect(), 'otherUser' => null, 'messages' => collect(),
+                'conversation'  => null, 'connections' => collect(), 'canChat' => false, 'selected' => false,
+            ]);
+        }
 
         // Only show conversations with accepted connections
         $connectedIds = $user->connectionIds();
 
-        $conversations = Conversation::with(['user1', 'user2', 'lastMessage'])
+        $conversations = Conversation::with(['user1.profile', 'user2.profile', 'lastMessage'])
             ->where(function ($q) use ($user, $connectedIds) {
                 $q->where('user1_id', $user->id)->whereIn('user2_id', $connectedIds);
             })
@@ -37,6 +46,13 @@ class ChatController extends Controller
         $otherUser    = null;
         $messages     = collect();
         $conversation = null;
+        // « sel » : une conversation est explicitement ouverte (mobile → affiche le fil, sinon la liste)
+        $selected     = $withUserId > 0;
+
+        if (! $withUserId && $conversations->isNotEmpty()) {
+            // Bureau : la première conversation est affichée à côté de la liste (maquette)
+            $withUserId = $conversations->first()['other']->id;
+        }
 
         if ($withUserId) {
             abort_unless($user->isConnectedWith($withUserId), 403, 'You must be connected to start a conversation.');
@@ -51,20 +67,19 @@ class ChatController extends Controller
                 ->whereNull('read_at')
                 ->update(['read_at' => now()]);
 
-        } elseif ($conversations->isNotEmpty()) {
-            return redirect()->route('chat.index', ['with' => $conversations->first()['other']->id]);
+            // Le compteur de la conversation ouverte est désormais à zéro
+            $conversations = $conversations->map(fn ($c) => $c['other']->id === $withUserId ? array_merge($c, ['unread' => 0]) : $c);
         }
 
-        $connectionIds = $user->connectionIds();
-        $connections   = User::with('company')
-            ->whereIn('id', $connectionIds)
-            ->select('id', 'first_name', 'last_name', 'company_id')
+        // Connexions sans conversation : proposées dans la recherche pour démarrer un échange
+        $withConvIds = $conversations->pluck('other.id')->all();
+        $connections = User::with(['company', 'profile'])
+            ->whereIn('id', $connectedIds)
+            ->whereNotIn('id', $withConvIds)
             ->orderBy('first_name')
             ->get();
 
-        $canChat = $user->canFeature('can_receive_mail');
-
-        return view('chat.index', compact('conversations', 'otherUser', 'messages', 'conversation', 'connections', 'canChat'));
+        return view('chat.index', compact('conversations', 'otherUser', 'messages', 'conversation', 'connections', 'canChat', 'selected'));
     }
 
     public function store(Request $request, int $userId)
