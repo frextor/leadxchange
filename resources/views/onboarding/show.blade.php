@@ -133,9 +133,24 @@
                         <span class="flex-1 h-px bg-gray-200"></span> OU <span class="flex-1 h-px bg-gray-200"></span>
                     </div>
 
-                    <div>
+                    <div class="relative">
                         <label class="lx-label">Le nom de votre entreprise n'existe pas encore ?</label>
-                        <input type="text" name="company_name" x-model="companyName" class="lx-input" placeholder="Nom de l'entreprise">
+                        <input type="text" name="company_name" class="lx-input" placeholder="Nom de l'entreprise ou SIRET"
+                               x-model="companyName" @input="companySiret = null" @input.debounce.300ms="searchExternalCompany()">
+                        <input type="hidden" name="company_siret" x-model="companySiret">
+                        <p class="text-xs text-gray-400 mt-1" x-show="companySiret" x-cloak>
+                            SIRET confirmé : <span x-text="companySiret"></span>
+                        </p>
+                        <div x-show="externalResults.length" x-cloak
+                             class="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto">
+                            <template x-for="c in externalResults" :key="c.siret">
+                                <button type="button" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50" @click="selectExternalCompany(c)">
+                                    <span x-text="c.name"></span>
+                                    <span class="text-gray-400" x-text="c.city ? ' · ' + c.city : ''"></span>
+                                    <span class="text-red-400" x-show="!c.active"> · fermée</span>
+                                </button>
+                            </template>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -268,6 +283,8 @@ function onboarding() {
         companyName: '',
         companyId: {{ $user->company_id ?? 'null' }},
         companyResults: [],
+        companySiret: null,
+        externalResults: [],
 
         previewAvatar(e) {
             const file = e.target.files[0];
@@ -287,6 +304,20 @@ function onboarding() {
             this.companyId = c.id;
             this.companySearch = c.name;
             this.companyResults = [];
+        },
+
+        searchExternalCompany() {
+            if (this.companyName.length < 3) { this.externalResults = []; return; }
+            fetch('{{ route('company.search-external') }}?q=' + encodeURIComponent(this.companyName))
+                .then(r => r.json())
+                .then(data => { this.externalResults = data; })
+                .catch(() => { this.externalResults = []; });
+        },
+
+        selectExternalCompany(c) {
+            this.companyName = c.name;
+            this.companySiret = c.siret;
+            this.externalResults = [];
         },
 
         skip() {

@@ -46,6 +46,7 @@ class OnboardingController extends Controller
             'avatar'                => ['nullable', 'image', 'max:4096'],
             'company_id'            => ['nullable', 'integer', 'exists:companies,id'],
             'company_name'          => ['nullable', 'string', 'max:255'],
+            'company_siret'         => ['nullable', 'digits:14'],
             'region_id'             => ['nullable', 'integer', 'exists:cities,id'],
             'looking_for'           => ['nullable', 'array'],
             'looking_for.*'         => ['integer', 'exists:sectors,id'],
@@ -71,13 +72,24 @@ class OnboardingController extends Controller
         if (!empty($data['company_id'])) {
             $user->update(['company_id' => $data['company_id']]);
         } elseif (!empty($data['company_name'])) {
-            // Le SIRET n'est pas demandé à cette étape (nom libre) mais la colonne est
-            // NOT NULL + UNIQUE en base — on génère un placeholder unique, à compléter
-            // plus tard depuis la fiche entreprise.
-            $company = \App\Models\Company::create([
-                'name'  => $data['company_name'],
-                'siret' => $this->generatePlaceholderSiret(),
-            ]);
+            // Un vrai SIRET a été confirmé via la recherche externe (API gouvernementale) :
+            // on réutilise la fiche si elle existe déjà localement (créée entre-temps par
+            // un autre collègue de la même entreprise), sinon on la crée avec ce vrai SIRET.
+            $company = !empty($data['company_siret'])
+                ? \App\Models\Company::firstWhere('siret', $data['company_siret'])
+                : null;
+
+            if (!$company) {
+                $company = \App\Models\Company::create([
+                    'name'  => $data['company_name'],
+                    // Le SIRET n'est pas toujours confirmé à cette étape (nom libre possible)
+                    // mais la colonne est NOT NULL + UNIQUE en base — on utilise le vrai SIRET
+                    // sélectionné via la recherche externe, sinon un placeholder unique à
+                    // compléter plus tard depuis la fiche entreprise.
+                    'siret' => $data['company_siret'] ?? $this->generatePlaceholderSiret(),
+                ]);
+            }
+
             $user->update(['company_id' => $company->id]);
         }
 

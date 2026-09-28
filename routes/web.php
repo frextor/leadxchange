@@ -199,6 +199,7 @@ Route::middleware(['auth', 'user', 'email.verified', 'cgu'])->group(function () 
     // Company Routes
     Route::get('/company/create', [CompanyController::class, 'create'])->name('company.create');
     Route::get('/company/search', [CompanyController::class, 'search'])->name('company.search');
+    Route::get('/company/search-external', [CompanyController::class, 'searchExternal'])->name('company.search-external');
     Route::get('/company/siret-lookup', [CompanyController::class, 'siretLookup'])->name('company.siret-lookup');
     Route::post('/company', [CompanyController::class, 'store'])->name('company.store');
 

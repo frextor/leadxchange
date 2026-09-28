@@ -112,6 +112,53 @@ class CompanyController extends Controller
     }
 
     /**
+     * GET /company/search-external?q=xxx
+     * Recherche par nom OU SIRET/SIREN via l'API officielle et gratuite du gouvernement
+     * (recherche-entreprises.api.gouv.fr — pas de clé requise), pour les entreprises
+     * absentes de notre base locale.
+     */
+    public function searchExternal(Request $request): JsonResponse
+    {
+        $query = trim($request->get('q', ''));
+
+        if (mb_strlen($query) < 3) {
+            return response()->json([]);
+        }
+
+        try {
+            $response = Http::timeout(6)->get('https://recherche-entreprises.api.gouv.fr/search', [
+                'q'        => $query,
+                'per_page' => 8,
+            ]);
+
+            if (!$response->successful()) {
+                return response()->json([]);
+            }
+
+            $results = $response->json('results') ?? [];
+
+            $companies = collect($results)->map(function ($r) {
+                $siege   = $r['siege'] ?? [];
+                $nafCode = $siege['activite_principale'] ?? $r['activite_principale'] ?? null;
+
+                return [
+                    'siret'             => $siege['siret'] ?? null,
+                    'siren'             => $r['siren'] ?? null,
+                    'name'              => $r['nom_complet'] ?? $r['nom_raison_sociale'] ?? null,
+                    'city'              => $siege['libelle_commune'] ?? null,
+                    'active'            => ($r['etat_administratif'] ?? 'F') === 'A',
+                    'sector_suggestion' => $this->nafToSector($nafCode),
+                ];
+            })->filter(fn ($c) => $c['siret'] && $c['name'])->values();
+
+            return response()->json($companies);
+        } catch (\Exception $e) {
+            Log::error('Recherche entreprises API exception', ['message' => $e->getMessage(), 'query' => $query]);
+            return response()->json([]);
+        }
+    }
+
+    /**
      * POST /company  — create new or join existing company.
      */
     public function store(Request $request)
