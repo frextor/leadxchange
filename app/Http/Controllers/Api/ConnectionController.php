@@ -262,6 +262,7 @@ class ConnectionController extends Controller
                     'job_title'  => $otherUser->profile?->job_title,
                     'city'       => $otherUser->city ? ['id' => $otherUser->city->id, 'name' => $otherUser->city->name] : null,
                     'company'    => $otherUser->company ? ['id' => $otherUser->company->id, 'name' => $otherUser->company->name] : null,
+                    'interest_ids' => $otherUser->interests->pluck('id')->all(),
                     'badge'      => $this->userService->badgePayload($otherUser->badge_level ?? 'neutre'),
                     'rating'     => $this->userService->ratingPayload($otherUser),
                     'rank'       => $this->userService->rankPayload($otherUser),

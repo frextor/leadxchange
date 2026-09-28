@@ -51,7 +51,7 @@ class UserService
         $query = User::query()
             ->regular()
             ->where('id', '!=', $currentUserId)
-            ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status,website,linkedin,market_addressed_id,market_target_id', 'city:id,name', 'consulRequests', 'subscription.plan:id,name,label'])
+            ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status,website,linkedin,market_addressed_id,market_target_id', 'city:id,name', 'consulRequests', 'subscription.plan:id,name,label', 'interests:id'])
             ->select(['id', 'first_name', 'last_name', 'email', 'phone', 'phone_country_code', 'city_id', 'birthday', 'gender', 'company_id', 'points_balance', 'badge_level', 'ambassador_status', 'consul_status']);
 
         // Search — scoped to requested fields (or all fields if none specified)
@@ -225,7 +225,7 @@ class UserService
                 {$interestSql} as rec_score
             ", $scoreBindings)
             ->leftJoin('profiles', 'profiles.user_id', '=', 'users.id')
-            ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'city:id,name', 'consulRequests', 'subscription.plan:id,name,label'])
+            ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'city:id,name', 'consulRequests', 'subscription.plan:id,name,label', 'interests:id'])
             ->tap($applyWhere)
             ->orderBy('rec_score', 'desc')
             ->orderBy('users.created_at', 'desc')
@@ -276,6 +276,7 @@ class UserService
             'job_title'        => $user->profile?->job_title,
             'bio'              => $user->profile?->bio,
             'sector_ids'       => $theirSectorIds,
+            'interest_ids'     => $user->relationLoaded('interests') ? $user->interests->pluck('id')->all() : $user->interests()->pluck('interests.id')->all(),
             'services_offered' => $user->profile?->services_offered ?? [],
             'looking_for'      => $user->profile?->looking_for ?? [],
             'website'          => $user->profile?->website,

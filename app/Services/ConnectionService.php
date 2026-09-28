@@ -291,6 +291,7 @@ class ConnectionService
             'company:id,name',
             'city:id,name',
             'subscription.plan:id,name,label',
+            'interests:id',
         ];
 
         $asSender = Connection::where('sender_id', $user->id)

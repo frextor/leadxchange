@@ -32,6 +32,7 @@ class ProfileVisitorController extends Controller
                 'visitor.profile:id,user_id,job_title,avatar,open_to_network',
                 'visitor.city:id,name',
                 'visitor.subscription.plan:id,name,label',
+                'visitor.interests:id',
             ])
             ->whereHas('visitor', fn($q) => $q->regular())
             ->where('profile_user_id', $me->id)
@@ -70,6 +71,7 @@ class ProfileVisitorController extends Controller
                 'avatar'           => $u->profile?->avatar_url,
                 'job_title'        => $u->profile?->job_title,
                 'company'          => $u->company ? ['id' => $u->company->id, 'name' => $u->company->name, 'sector' => $u->company->sector ? ['id' => $u->company->sector->id, 'name' => $u->company->sector->name] : null] : null,
+                'interest_ids'     => $u->interests->pluck('id')->all(),
                 'badge'             => $this->userService->badgePayload($u->badge_level ?? 'neutre'),
                 'rating'            => $this->userService->ratingPayload($u),
                 'rank'              => $this->userService->rankPayload($u),

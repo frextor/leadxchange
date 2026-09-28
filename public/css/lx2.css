@@ -443,6 +443,7 @@ table.t .r{text-align:right}
 .rate-stars .x.on{color:var(--primary)}
 .rate-stars .x.on svg{fill:currentColor}
 .dest-pop{left:0;right:0;top:calc(100% + 6px);max-height:280px;overflow:auto;padding:4px}
+.filters-pop{right:0;top:calc(100% + 6px);width:300px;padding:0}
 .dest-pop .search{padding:4px 4px 6px}
 .dest-opt{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;padding:7px 8px;border-radius:6px;text-align:left;font-size:13.5px}
 .dest-opt:hover{background:var(--muted)}
