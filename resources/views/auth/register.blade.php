@@ -175,49 +175,6 @@
                 @error('phone') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
 
-            {{-- Nationality — custom dropdown (emoji flags safe on Windows) --}}
-            <div x-data="{
-                open: false,
-                selected: {{ old('nationality_id') ? (int)old('nationality_id') : 'null' }},
-                search: '',
-                nats: {{ json_encode($nationalities->map(fn($n) => ['id'=>$n->id,'flag'=>$n->flag,'country'=>$n->country,'name'=>$n->name])->values()) }},
-                get filtered() {
-                    if (!this.search) return this.nats;
-                    const s = this.search.toLowerCase();
-                    return this.nats.filter(n => n.country.toLowerCase().includes(s) || n.name.toLowerCase().includes(s));
-                },
-                get selectedItem() { return this.nats.find(n => n.id === this.selected) ?? null; },
-                select(n) { this.selected = n.id; this.open = false; this.search = ''; }
-            }" @click.outside="open = false" class="relative">
-                <input type="hidden" name="nationality_id" :value="selected">
-                <button type="button" @click="open = !open"
-                        class="lx-input px-4 py-3.5 w-full text-left flex items-center gap-2 @error('nationality_id') lx-error @enderror"
-                        :class="{ 'text-gray-400': !selected, 'text-gray-900': selected }">
-                    <span x-text="selectedItem ? selectedItem.flag : ''" class="text-lg leading-none flex-shrink-0"></span>
-                    <span x-text="selectedItem ? selectedItem.country : 'Nationalité'" class="flex-1 truncate text-sm"></span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="flex-shrink-0 text-gray-400"><polyline points="6 9 12 15 18 9"/></svg>
-                </button>
-                <div x-show="open" x-cloak
-                     class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
-                    <div class="p-2 border-b border-gray-100">
-                        <input type="text" x-model="search" placeholder="Rechercher une nationalité…"
-                               class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-teal-400" @click.stop>
-                    </div>
-                    <ul class="max-h-52 overflow-y-auto py-1">
-                        <template x-for="n in filtered" :key="n.id">
-                            <li @click="select(n)"
-                                class="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-teal-50 transition-colors"
-                                :class="{ 'bg-teal-50': n.id === selected }">
-                                <span x-text="n.flag" class="text-lg leading-none flex-shrink-0"></span>
-                                <span x-text="n.country" class="text-sm text-gray-700 flex-1"></span>
-                            </li>
-                        </template>
-                        <li x-show="filtered.length === 0" class="px-3 py-3 text-sm text-gray-400 text-center">Aucun résultat</li>
-                    </ul>
-                </div>
-                @error('nationality_id') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
-            </div>
-
             {{-- City of Living (searchable + IP auto-detect) --}}
             <div class="relative">
                 <div class="relative">
@@ -254,7 +211,7 @@
                         onchange="this.dataset.manuallySet='1'"
                         class="lx-input px-4 py-3.5 @error('region_id') lx-error @enderror">
                     <option value="">— Région (optionnelle) —</option>
-                    @foreach($cities->groupBy(fn($c) => $c->country ?? '') as $country => $group)
+                    @foreach($cities->groupBy(fn($c) => $c->country->name ?? '') as $country => $group)
                         <optgroup label="{{ $country }}">
                             @foreach($group as $city)
                                 <option value="{{ $city->id }}" {{ old('region_id') == $city->id ? 'selected' : '' }}>
@@ -524,7 +481,7 @@
     // Auto-jump to step 2 on server-side validation errors
     if (window._registerErrors && window._registerErrors.length) {
         document.addEventListener('DOMContentLoaded', function () {
-            const step2Fields = ['phone', 'gender', 'nationality_id', 'city_id', 'birthday', 'sector_id', 'job_title', 'legal_capacity', 'is_professional', 'terms'];
+            const step2Fields = ['phone', 'gender', 'city_id', 'birthday', 'sector_id', 'job_title', 'legal_capacity', 'is_professional', 'terms'];
             const hasStep2Errors = step2Fields.some(f => window._registerErrors.includes(f));
             const hasStep1Errors = ['first_name', 'last_name', 'email', 'password'].some(f => window._registerErrors.includes(f));
             if (hasStep2Errors && !hasStep1Errors) goToStep2();

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\City;
-use App\Models\Nationality;
 use App\Models\Referral;
 use App\Models\Sector;
 use App\Services\ActivityLogger;
@@ -36,7 +35,6 @@ class RegisterController extends Controller
     public function showRegistrationForm()
     {
         return view('auth.register', [
-            'nationalities' => Nationality::orderBy('country')->get(),
             'cities'        => City::active()->with('country:id,name')->orderBy('name')->get(['id', 'name', 'country_id']),
             'sectors'       => Sector::orderBy('name')->get(['id', 'name']),  // §4.1
         ]);
@@ -61,7 +59,6 @@ class RegisterController extends Controller
             // Step 2: Profile Information
             'phone'          => ['nullable', 'string', 'max:30', 'unique:users,phone'],
             'gender'         => ['required', 'in:male,female,other'],
-            'nationality_id' => ['required', 'integer', 'exists:nationalities,id'],
             'city_id'   => ['required', 'integer', 'exists:cities,id'],
             'region_id' => ['nullable', 'integer', 'exists:cities,id'],
             'birthday'       => ['required', 'date', 'before:-18 years'],  // §3.2 : ≥ 18 ans
@@ -81,8 +78,6 @@ class RegisterController extends Controller
             'password.min'            => 'Le mot de passe doit contenir au moins 8 caractères.',
             'phone.unique'            => 'Ce numéro de téléphone est déjà utilisé.',
             'gender.required'         => 'Veuillez sélectionner votre sexe.',
-            'nationality_id.required' => 'Veuillez sélectionner votre nationalité.',
-            'nationality_id.exists'   => 'Nationalité invalide.',
             'city_id.required' => 'Veuillez sélectionner votre ville de résidence.',
             'city_id.exists'   => 'Ville invalide.',
             'birthday.required'          => 'La date de naissance est requise.',
@@ -104,7 +99,6 @@ class RegisterController extends Controller
                 'phone'              => $validated['phone'] ?? null,
                 'phone_country_code' => $validated['phone_country_code'] ?? null,
                 'gender'             => $validated['gender'],
-                'nationality_id'     => $validated['nationality_id'],
                 'city_id'            => $validated['city_id'],
                 'region_id'          => $validated['region_id'] ?? $validated['city_id'],
                 'birthday'           => $validated['birthday'],
