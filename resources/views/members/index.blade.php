@@ -44,13 +44,6 @@
                     <input class="input" id="filterCompany" type="text" placeholder="Nom de l'entreprise" autocomplete="off">
                 </div>
                 <div class="field">
-                    <label class="label" for="filterCity">Ville</label>
-                    <select class="select filled" id="filterCity">
-                        <option value="">Toutes les villes</option>
-                        @foreach($cities as $city)<option value="{{ $city->id }}">{{ $city->name }}</option>@endforeach
-                    </select>
-                </div>
-                <div class="field">
                     <span class="label">Centres d'intérêt</span>
                     <div style="display:flex;flex-direction:column;gap:8px;max-height:220px;overflow:auto">
                         @foreach($interests as $interest)
@@ -146,14 +139,16 @@
     const searchOk = (m) => { const q = $('memberSearch').value.toLowerCase().trim(); if (!q || tab === 'recommendations') return true;
         return [name(m), m.job_title, m.company && m.company.name, typeof m.city === 'object' && m.city ? m.city.name : m.city].join(' ').toLowerCase().includes(q); };
 
-    /* ── Filtres (panneau « Filtres ») : Entreprise, Ville, Centres d'intérêt ── */
+    /* ── Ville (sélecteur global, en-tête commun à tout le site) ── */
     const CITY_NAMES = @json($cities->pluck('name', 'id'));
-    const companyOk = (m) => { const q = $('filterCompany').value.toLowerCase().trim(); if (!q) return true;
-        return !!(m.company && m.company.name && m.company.name.toLowerCase().includes(q)); };
-    const cityOk = (m) => { const cid = $('filterCity').value; if (!cid) return true;
+    const cityOk = (m) => { const cid = window.SELECTED_CITY_ID; if (!cid) return true;
         const mCity = typeof m.city === 'object' && m.city ? m.city : (m.city ? { name: m.city } : null);
         if (!mCity) return false;
         return (mCity.id != null && String(mCity.id) === String(cid)) || mCity.name === CITY_NAMES[cid]; };
+
+    /* ── Filtres (panneau « Filtres ») : Entreprise, Centres d'intérêt ── */
+    const companyOk = (m) => { const q = $('filterCompany').value.toLowerCase().trim(); if (!q) return true;
+        return !!(m.company && m.company.name && m.company.name.toLowerCase().includes(q)); };
     const interestsOk = (m) => { const wanted = selectedInterests(); if (!wanted.length) return true;
         const mine = (m.interest_ids || []).map(String);
         return wanted.some(id => mine.includes(id)); };
@@ -161,7 +156,7 @@
         return Array.from(document.querySelectorAll('.filter-interest:checked')).map(el => el.value);
     }
     function updateFiltersCount() {
-        const n = (($('filterCompany').value.trim()) ? 1 : 0) + (($('filterCity').value) ? 1 : 0) + selectedInterests().length;
+        const n = (($('filterCompany').value.trim()) ? 1 : 0) + selectedInterests().length;
         $('filtersCount').hidden = n === 0;
         $('filtersCount').textContent = n;
     }
@@ -230,21 +225,19 @@
     });
     $('netMore').addEventListener('click', () => { page++; load(false); });
 
-    /* ── Panneau « Filtres » (Entreprise, Ville, Centres d'intérêt) ── */
+    /* ── Panneau « Filtres » (Entreprise, Centres d'intérêt) ── */
     const filtersBtn = $('filtersBtn'), filtersPop = $('filtersPop');
     const toggleFilters = (open) => { filtersPop.classList.toggle('hidden', !open); filtersBtn.setAttribute('aria-expanded', open); };
     filtersBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFilters(filtersPop.classList.contains('hidden')); });
     document.addEventListener('click', (e) => { if (!$('filtersDd').contains(e.target)) toggleFilters(false); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') toggleFilters(false); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { toggleFilters(false); closeCityDd(); } });
 
     let filterTimer;
     const onFilterChange = () => { updateFiltersCount(); clearTimeout(filterTimer); filterTimer = setTimeout(render, 150); };
     $('filterCompany').addEventListener('input', onFilterChange);
-    $('filterCity').addEventListener('change', () => { $('filterCity').classList.toggle('filled', !!$('filterCity').value); onFilterChange(); });
     document.querySelectorAll('.filter-interest').forEach(el => el.addEventListener('change', onFilterChange));
     $('filtersReset').addEventListener('click', () => {
         $('filterCompany').value = '';
-        $('filterCity').value = ''; $('filterCity').classList.remove('filled');
         document.querySelectorAll('.filter-interest:checked').forEach(el => el.checked = false);
         updateFiltersCount(); render();
     });

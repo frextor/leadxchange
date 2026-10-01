@@ -41,6 +41,7 @@ class MemberController extends Controller
 
         return view('members.index', [
             'sectors'         => \App\Models\Sector::orderBy('name')->get(['id', 'name']),
+            // Noms de villes utilisés en JS (cityOk) pour matcher le sélecteur global (header lx2-header-icons).
             'cities'          => City::with('country:id,name')->orderBy('name')->get(['id', 'name', 'country_id']),
             'interests'       => Interest::orderBy('name')->get(['id', 'name']),
             'newVisitorCount' => ProfileVisitor::where('profile_user_id', $user->id)

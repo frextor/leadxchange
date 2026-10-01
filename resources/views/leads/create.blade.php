@@ -7,7 +7,7 @@
 @php
     $oldReceiver = (int) old('receiver_id', $preselectedId);
     $selectedDest = $connections->firstWhere('id', $oldReceiver);
-    if ($selectedDest && $selectedDest->points_balance < 1) { $selectedDest = null; }
+    if ($selectedDest && $selectedDest->points_balance < 0) { $selectedDest = null; }
     $qual = old('qualification', 'tiede');
     $qualLabels = ['chaud' => 'Chaud', 'tiede' => 'Tiède', 'froid' => 'Froid'];
     $prefixes = ['+33' => '🇫🇷 +33', '+32' => '🇧🇪 +32', '+41' => '🇨🇭 +41', '+352' => '🇱🇺 +352', '+212' => '🇲🇦 +212', '+216' => '🇹🇳 +216', '+213' => '🇩🇿 +213', '+1' => '🇨🇦 +1'];
@@ -43,7 +43,7 @@
                         @else
                             <div class="search"><input class="input" id="destSearch" placeholder="Rechercher une connexion" autocomplete="off"></div>
                             @foreach($connections as $c)
-                            @php $blocked = $c->points_balance < 1; $r = $ratings[$c->id] ?? null; @endphp
+                            @php $blocked = $c->points_balance < 0; $r = $ratings[$c->id] ?? null; @endphp
                             <button type="button" class="dest-opt" role="option"
                                     data-id="{{ $c->id }}" data-name="{{ member_name($c) }}" data-role="{{ $c->profile?->job_title ?? 'Membre LeadXchange' }}"
                                     data-stars="{{ $r ? round($r) : '' }}" data-search="{{ mb_strtolower(member_name($c)) }}"

@@ -30,6 +30,23 @@
             if (nb && !nb.contains(e.target)) document.getElementById('notifPanel')?.classList.add('hidden');
         });
 
+        // ── Sélecteur de ville (en-tête, commun à tout le site — voir lx2-header-icons) ──
+        window.toggleCityDd = function (e) {
+            e.stopPropagation();
+            const pop = document.getElementById('cityPop');
+            if (!pop) return;
+            const open = pop.classList.toggle('hidden') === false;
+            e.currentTarget.setAttribute('aria-expanded', open ? 'true' : 'false');
+        };
+        window.closeCityDd = function () {
+            const pop = document.getElementById('cityPop');
+            if (pop) pop.classList.add('hidden');
+        };
+        document.addEventListener('click', function (e) {
+            const dd = document.getElementById('cityDd');
+            if (dd && !dd.contains(e.target)) closeCityDd();
+        });
+
         async function loadRequests() {
             const loading = document.getElementById('loadingState');
             const list    = document.getElementById('requestsList');

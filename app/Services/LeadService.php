@@ -34,6 +34,16 @@ class LeadService
             throw new \Exception("Vous ne pouvez envoyer des leads qu'à vos connexions.");
         }
 
+        // Sender blocked if their own balance is negative (0 est autorisé, achat de points requis sinon)
+        if (!$this->points->canSend($sender)) {
+            throw new \Exception(
+                "Vous ne pouvez pas envoyer de leads pour le moment " .
+                "(solde de points insuffisant — actuellement {$sender->points_balance} pt" .
+                (abs($sender->points_balance) > 1 ? 's' : '') . '). ' .
+                'Achetez des points pour continuer à envoyer des leads.'
+            );
+        }
+
         // Receiver plan: can they receive leads at all?
         if (!$receiver->canFeature('can_receive_leads')) {
             throw new \Exception(

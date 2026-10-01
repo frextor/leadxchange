@@ -10,7 +10,8 @@ class RegionSelectorController extends Controller
 {
     /**
      * Stocke la ville/région choisie en session et redirige vers la page précédente.
-     * La clé de session `selected_city_id` est lue par EventController et GroupController.
+     * La clé de session `selected_city_id` est lue par EventController, GroupController,
+     * DashboardController et MemberController.
      */
     public function select(Request $request): RedirectResponse
     {
@@ -27,9 +28,9 @@ class RegionSelectorController extends Controller
             $request->session()->forget('selected_city_id');
         }
 
-        // Redirect to the intended page (events, groups, dashboard…)
+        // Redirect to the intended page (events, groups, dashboard, connections…)
         $redirect = $request->input('redirect');
-        if ($redirect && in_array($redirect, ['events', 'groups', 'dashboard'])) {
+        if ($redirect && in_array($redirect, ['events', 'groups', 'dashboard', 'connections'])) {
             return redirect()->route($redirect . ($redirect === 'dashboard' ? '' : '.index'));
         }
 
