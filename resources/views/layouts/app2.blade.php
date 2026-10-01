@@ -13,6 +13,8 @@
     @if(config('firebase.api_key'))
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     @endif
     <link rel="stylesheet" href="{{ asset('css/lx2.css') }}">
     @stack('styles')
@@ -44,10 +46,10 @@
         <div class="nav-label">Platform</div>
         <nav class="nav">
             @foreach($lx2Nav as [$routeName, $label, $icon, $pattern, $count])
-            <a href="{{ route($routeName) }}" class="{{ request()->routeIs(...(array) $pattern) ? 'on' : '' }}" title="{{ $label }}">
+            <a href="{{ route($routeName) }}" data-nav="{{ $routeName }}" class="{{ request()->routeIs(...(array) $pattern) ? 'on' : '' }}" title="{{ $label }}">
                 <x-lx2-icon :name="$icon" />
                 <span class="lbl">{{ $label }}</span>
-                @if($count > 0)<span class="count">{{ $count > 9 ? '9+' : $count }}</span>@endif
+                <span class="count" @if($count <= 0) hidden @endif>{{ $count > 9 ? '9+' : $count }}</span>
             </a>
             @endforeach
         </nav>

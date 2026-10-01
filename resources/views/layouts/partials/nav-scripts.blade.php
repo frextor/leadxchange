@@ -292,5 +292,28 @@
                     if (notifPanelLoaded) { notifPanelLoaded = false; loadNotifications(); notifPanelLoaded = true; }
                 } catch {}
             }, 60000);
+
+            // ── Messages non lus : pastille + compteur mis à jour en direct, même hors de /chat ──
+            let lastUnreadChat = null;
+            async function pollChatInbox() {
+                try {
+                    const r = await fetch('/chat/inbox/check', { headers:{'Accept':'application/json'}, credentials:'same-origin' });
+                    const d = await r.json();
+                    const n = d.total_unread || 0;
+
+                    const dot = document.getElementById('lx2ChatDot');
+                    if (dot) dot.classList.toggle('hidden', n === 0);
+
+                    const navCount = document.querySelector('[data-nav="chat.index"] .count');
+                    if (navCount) { navCount.textContent = n > 9 ? '9+' : n; navCount.hidden = n === 0; }
+
+                    if (lastUnreadChat !== null && n > lastUnreadChat && typeof toast === 'function') {
+                        toast('💬 Nouveau message reçu');
+                    }
+                    lastUnreadChat = n;
+                } catch {}
+            }
+            pollChatInbox();
+            setInterval(pollChatInbox, 20000);
         });
     </script>

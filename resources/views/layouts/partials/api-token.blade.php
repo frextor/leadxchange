@@ -10,4 +10,5 @@
     <script>
         window.API_TOKEN = '{{ session("web_api_token", "") }}';
         window.CSRF      = '{{ csrf_token() }}';
+        window.AUTH_USER_ID = {{ auth()->id() ?? 'null' }};
     </script>

@@ -40,7 +40,7 @@
 
     <a class="icon-btn" href="{{ route('chat.index') }}" title="Messages" aria-label="Messages">
         <x-lx2-icon name="message-circle" />
-        @if($lx2Counts['unreadChatCount'] > 0)<span class="dot"></span>@endif
+        <span id="lx2ChatDot" class="dot {{ $lx2Counts['unreadChatCount'] > 0 ? '' : 'hidden' }}"></span>
     </a>
 
     <div class="lx2-dd" id="notifBellWrap">
