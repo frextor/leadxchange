@@ -9,29 +9,7 @@
     $lx2User     = auth()->user();
     $lx2Counts   = \App\Support\NavCounts::forCurrentUser();
     $lx2Initials = strtoupper(mb_substr($lx2User->first_name ?? '?', 0, 1) . mb_substr($lx2User->last_name ?? '', 0, 1));
-
-    // Ville active (sélecteur global, partagé par toutes les pages — voir page d'accueil) : stockée en session.
-    $lx2Cities         = \App\Models\City::orderBy('name')->get(['id', 'name']);
-    $lx2SelectedCityId = session('selected_city_id', $lx2User->city_id);
-    $lx2SelectedCity   = $lx2SelectedCityId ? $lx2Cities->firstWhere('id', $lx2SelectedCityId) : null;
 @endphp
-
-<span class="city-dd" id="cityDd">
-    <button type="button" class="badge b-plain" onclick="toggleCityDd(event)" aria-haspopup="true" aria-expanded="false">
-        {{ $lx2SelectedCity?->name ?? 'Toutes les villes' }} <x-lx2-icon name="chevron-down" />
-    </button>
-    <form method="POST" action="{{ route('region.select') }}" class="hidden pop menu city-pop" id="cityPop">
-        @csrf
-        <button type="submit" name="city_id" value="" class="{{ $lx2SelectedCityId ? '' : 'on' }}">Toutes les villes @unless($lx2SelectedCityId)<x-lx2-icon name="check" />@endunless</button>
-        <hr class="sep">
-        @foreach($lx2Cities as $city)
-        <button type="submit" name="city_id" value="{{ $city->id }}" class="{{ (int) $lx2SelectedCityId === $city->id ? 'on' : '' }}">
-            {{ $city->name }} @if((int) $lx2SelectedCityId === $city->id)<x-lx2-icon name="check" />@endif
-        </button>
-        @endforeach
-    </form>
-</span>
-<script>window.SELECTED_CITY_ID = @json($lx2SelectedCityId);</script>
 
 <div class="icons">
     <button type="button" class="icon-btn" onclick="lx2OpenInvite()" title="Inviter un ami" aria-label="Inviter un ami">

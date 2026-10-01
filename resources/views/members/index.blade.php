@@ -139,13 +139,6 @@
     const searchOk = (m) => { const q = $('memberSearch').value.toLowerCase().trim(); if (!q || tab === 'recommendations') return true;
         return [name(m), m.job_title, m.company && m.company.name, typeof m.city === 'object' && m.city ? m.city.name : m.city].join(' ').toLowerCase().includes(q); };
 
-    /* ── Ville (sélecteur global, en-tête commun à tout le site) ── */
-    const CITY_NAMES = @json($cities->pluck('name', 'id'));
-    const cityOk = (m) => { const cid = window.SELECTED_CITY_ID; if (!cid) return true;
-        const mCity = typeof m.city === 'object' && m.city ? m.city : (m.city ? { name: m.city } : null);
-        if (!mCity) return false;
-        return (mCity.id != null && String(mCity.id) === String(cid)) || mCity.name === CITY_NAMES[cid]; };
-
     /* ── Filtres (panneau « Filtres ») : Entreprise, Centres d'intérêt ── */
     const companyOk = (m) => { const q = $('filterCompany').value.toLowerCase().trim(); if (!q) return true;
         return !!(m.company && m.company.name && m.company.name.toLowerCase().includes(q)); };
@@ -162,7 +155,7 @@
     }
 
     function render() {
-        const list = items.filter(m => sectorOk(m) && searchOk(m) && companyOk(m) && cityOk(m) && interestsOk(m));
+        const list = items.filter(m => sectorOk(m) && searchOk(m) && companyOk(m) && interestsOk(m));
         $('netList').innerHTML = list.map(row).join('');
         const q = $('memberSearch').value.trim();
         const total = tab === 'recommendations' ? null : list.length;

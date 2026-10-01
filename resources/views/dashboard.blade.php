@@ -142,6 +142,22 @@
         <div class="sub" style="margin:0 0 2px">{{ ucfirst(now()->locale('fr')->isoFormat('dddd, D MMMM')) }}</div>
         <h1 style="font-size:30px;font-weight:500;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             Bonjour, {{ $user->first_name }}
+            <span class="city-dd" id="cityDd">
+                <button type="button" class="badge b-plain" style="font-size:11px" onclick="toggleCityDd(event)" aria-haspopup="true" aria-expanded="false">
+                    {{ $selectedCity?->name ?? 'Toutes les villes' }} <x-lx2-icon name="chevron-down" />
+                </button>
+                <form method="POST" action="{{ route('region.select') }}" class="hidden pop menu city-pop" id="cityPop">
+                    @csrf
+                    <input type="hidden" name="redirect" value="dashboard">
+                    <button type="submit" name="city_id" value="" class="{{ $selectedCityId ? '' : 'on' }}">Toutes les villes @unless($selectedCityId)<x-lx2-icon name="check" />@endunless</button>
+                    <hr class="sep">
+                    @foreach($cities as $city)
+                    <button type="submit" name="city_id" value="{{ $city->id }}" class="{{ (int) $selectedCityId === $city->id ? 'on' : '' }}">
+                        {{ $city->name }} @if((int) $selectedCityId === $city->id)<x-lx2-icon name="check" />@endif
+                    </button>
+                    @endforeach
+                </form>
+            </span>
         </h1>
     </div>
     @include('layouts.partials.lx2-header-icons')
