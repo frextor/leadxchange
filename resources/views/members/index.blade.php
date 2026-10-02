@@ -202,11 +202,13 @@
                 data = await api(`/api/profile/visitors?filter=all&page=${page}`);
                 list = data.data || []; lastPage = data.last_page || 1;
             } else if (q.length >= 3) {
+                const cityParam = SELECTED_CITY_ID ? `&city_id=${SELECTED_CITY_ID}` : '';
                 try { data = await api(`/api/users?page=${page}&search=${encodeURIComponent(q)}`); }
-                catch { data = await api(`/api/users/recommendations?page=${page}&include_pending=1&search=${encodeURIComponent(q)}`); }
+                catch { data = await api(`/api/users/recommendations?page=${page}&include_pending=1&search=${encodeURIComponent(q)}${cityParam}`); }
                 list = data.users || []; lastPage = data.last_page || 1;
             } else {
-                data = await api(`/api/users/recommendations?page=${page}&include_pending=1`);
+                const cityParam = SELECTED_CITY_ID ? `&city_id=${SELECTED_CITY_ID}` : '';
+                data = await api(`/api/users/recommendations?page=${page}&include_pending=1${cityParam}`);
                 list = data.users || []; lastPage = data.last_page || 1;
             }
             items = items.concat(list);
