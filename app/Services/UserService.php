@@ -163,7 +163,8 @@ class UserService
         int $perPage = 10,
         array $excludeConnectionStatuses = ['pending', 'accepted']
     ): LengthAwarePaginator {
-        $myCityId    = $currentUser->city_id;
+        // Ville effective : celle choisie à l'accueil (sélecteur global), sinon la ville du profil.
+        $myCityId    = session('selected_city_id', $currentUser->city_id);
         $mySectorIds = $currentUser->profile?->sector_ids ?? [];
         $myInterestIds = $mySectorIds; // kept for scoring SQL compatibility (unused now)
 
