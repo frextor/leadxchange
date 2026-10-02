@@ -67,7 +67,8 @@
 @endunless
 
 @if($selectedCityId)
-<div class="lx2-flash b-soft" role="note">
+{{-- Masqué sur « Pour toi » : ce filtre y est géré côté serveur, avec repli si la ville choisie n'a personne. --}}
+<div class="lx2-flash b-soft" role="note" id="cityFilterNotice" @if($initialTab === 'recommendations') hidden @endif>
     <span>Filtré sur la ville sélectionnée à l'accueil : <b>{{ $cities->firstWhere('id', $selectedCityId)?->name }}</b>. Seuls les membres de cette ville sont affichés.</span>
     <a class="link lx2-linkbtn" href="{{ route('dashboard') }}" style="opacity:1">Changer la ville</a>
 </div>
@@ -146,10 +147,12 @@
     const searchOk = (m) => { const q = $('memberSearch').value.toLowerCase().trim(); if (!q || tab === 'recommendations') return true;
         return [name(m), m.job_title, m.company && m.company.name, typeof m.city === 'object' && m.city ? m.city.name : m.city].join(' ').toLowerCase().includes(q); };
 
-    /* ── Ville (sélecteur global choisi sur l'accueil, appliqué ici automatiquement) ── */
+    /* ── Ville (sélecteur global choisi sur l'accueil) ──
+       « Pour toi » est déjà filtré/replié côté serveur (getRecommendedUsers) : ne pas re-filtrer ici,
+       sinon les résultats élargis par le repli (autres villes) seraient aussitôt exclus. ── */
     const SELECTED_CITY_ID = @json($selectedCityId);
     const CITY_NAMES = @json($cities->pluck('name', 'id'));
-    const cityOk = (m) => { if (!SELECTED_CITY_ID) return true;
+    const cityOk = (m) => { if (!SELECTED_CITY_ID || tab === 'recommendations') return true;
         const mCity = typeof m.city === 'object' && m.city ? m.city : (m.city ? { name: m.city } : null);
         if (!mCity) return false;
         return (mCity.id != null && String(mCity.id) === String(SELECTED_CITY_ID)) || mCity.name === CITY_NAMES[SELECTED_CITY_ID]; };
@@ -218,6 +221,8 @@
         tab = t;
         document.querySelectorAll('#netTabs .chip').forEach(c => c.classList.toggle('on', c.dataset.tab === t));
         $('memberSearch').placeholder = t === 'recommendations' ? 'Rechercher des membres' : (t === 'contacts' ? 'Rechercher un contact' : 'Rechercher un visiteur');
+        const cityNotice = document.getElementById('cityFilterNotice');
+        if (cityNotice) cityNotice.hidden = (t === 'recommendations');
         if (push) history.replaceState(null, '', t === 'recommendations' ? location.pathname : `?tab=${t}`);
         load();
     }
