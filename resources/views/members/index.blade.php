@@ -66,6 +66,13 @@
 </div>
 @endunless
 
+@if($selectedCityId)
+<div class="lx2-flash b-soft" role="note">
+    <span>Filtré sur la ville sélectionnée à l'accueil : <b>{{ $cities->firstWhere('id', $selectedCityId)?->name }}</b>. Seuls les membres de cette ville sont affichés.</span>
+    <a class="link lx2-linkbtn" href="{{ route('dashboard') }}" style="opacity:1">Changer la ville</a>
+</div>
+@endif
+
 <div class="sh"><h2 id="netTitle">Membres pour toi</h2></div>
 <div class="grid-2" id="netList"></div>
 <div id="netState" class="card empty" hidden></div>
@@ -139,6 +146,14 @@
     const searchOk = (m) => { const q = $('memberSearch').value.toLowerCase().trim(); if (!q || tab === 'recommendations') return true;
         return [name(m), m.job_title, m.company && m.company.name, typeof m.city === 'object' && m.city ? m.city.name : m.city].join(' ').toLowerCase().includes(q); };
 
+    /* ── Ville (sélecteur global choisi sur l'accueil, appliqué ici automatiquement) ── */
+    const SELECTED_CITY_ID = @json($selectedCityId);
+    const CITY_NAMES = @json($cities->pluck('name', 'id'));
+    const cityOk = (m) => { if (!SELECTED_CITY_ID) return true;
+        const mCity = typeof m.city === 'object' && m.city ? m.city : (m.city ? { name: m.city } : null);
+        if (!mCity) return false;
+        return (mCity.id != null && String(mCity.id) === String(SELECTED_CITY_ID)) || mCity.name === CITY_NAMES[SELECTED_CITY_ID]; };
+
     /* ── Filtres (panneau « Filtres ») : Entreprise, Centres d'intérêt ── */
     const companyOk = (m) => { const q = $('filterCompany').value.toLowerCase().trim(); if (!q) return true;
         return !!(m.company && m.company.name && m.company.name.toLowerCase().includes(q)); };
@@ -155,7 +170,7 @@
     }
 
     function render() {
-        const list = items.filter(m => sectorOk(m) && searchOk(m) && companyOk(m) && interestsOk(m));
+        const list = items.filter(m => sectorOk(m) && searchOk(m) && companyOk(m) && cityOk(m) && interestsOk(m));
         $('netList').innerHTML = list.map(row).join('');
         const q = $('memberSearch').value.trim();
         const total = tab === 'recommendations' ? null : list.length;

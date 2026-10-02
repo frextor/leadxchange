@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\City;
 use App\Models\Interest;
 use App\Models\ProfileVisitor;
 use App\Services\UserService;
@@ -38,8 +39,14 @@ class MemberController extends Controller
         $tab = $request->get('tab', 'recommendations');
         $tab = in_array($tab, ['recommendations', 'contacts', 'visitors'], true) ? $tab : 'recommendations';
 
+        // Ville active (sélecteur global choisi sur l'accueil, même session que Dashboard/Événements/Groupes).
+        $cities = City::orderBy('name')->get(['id', 'name']);
+        $selectedCityId = session('selected_city_id', $user->city_id);
+
         return view('members.index', [
             'sectors'         => \App\Models\Sector::orderBy('name')->get(['id', 'name']),
+            'cities'          => $cities,
+            'selectedCityId'  => $selectedCityId,
             'interests'       => Interest::orderBy('name')->get(['id', 'name']),
             'newVisitorCount' => ProfileVisitor::where('profile_user_id', $user->id)
                                     ->where('is_new', true)->count(),
