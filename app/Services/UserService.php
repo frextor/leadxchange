@@ -164,7 +164,7 @@ class UserService
         array $excludeConnectionStatuses = ['pending', 'accepted']
     ): LengthAwarePaginator {
         // Ville effective : celle choisie à l'accueil (sélecteur global), sinon la ville du profil.
-        $myCityId    = session('selected_city_id', $currentUser->city_id);
+        $selectedCityId = session('selected_city_id', $currentUser->city_id);
         $mySectorIds = $currentUser->profile?->sector_ids ?? [];
         $myInterestIds = $mySectorIds; // kept for scoring SQL compatibility (unused now)
 
@@ -177,70 +177,84 @@ class UserService
             $interestBindings = $myInterestIds;
         }
 
-        // Closure applied to both count and data queries
-        $applyWhere = function ($q) use ($currentUser, $search, $excludeConnectionStatuses, $myCityId) {
-            $q->whereNotIn('users.role', ['admin', 'super_admin'])
-              ->where('users.id', '!=', $currentUser->id)
-              ->whereNotExists(function ($sub) use ($currentUser, $excludeConnectionStatuses) {
-                  $sub->from('connections')
-                      ->whereIn('status', $excludeConnectionStatuses)
-                      ->where(function ($c) use ($currentUser) {
-                          $c->where(function ($c2) use ($currentUser) {
-                              $c2->where('sender_id', $currentUser->id)
-                                 ->whereColumn('receiver_id', 'users.id');
-                          })->orWhere(function ($c2) use ($currentUser) {
-                              $c2->where('receiver_id', $currentUser->id)
-                                 ->whereColumn('sender_id', 'users.id');
+        $fetch = function (?int $myCityId) use (
+            $currentUser, $search, $excludeConnectionStatuses, $interestSql, $interestBindings, $mySectorIds, $page, $perPage
+        ) {
+            // Closure applied to both count and data queries
+            $applyWhere = function ($q) use ($currentUser, $search, $excludeConnectionStatuses, $myCityId) {
+                $q->whereNotIn('users.role', ['admin', 'super_admin'])
+                  ->where('users.id', '!=', $currentUser->id)
+                  ->whereNotExists(function ($sub) use ($currentUser, $excludeConnectionStatuses) {
+                      $sub->from('connections')
+                          ->whereIn('status', $excludeConnectionStatuses)
+                          ->where(function ($c) use ($currentUser) {
+                              $c->where(function ($c2) use ($currentUser) {
+                                  $c2->where('sender_id', $currentUser->id)
+                                     ->whereColumn('receiver_id', 'users.id');
+                              })->orWhere(function ($c2) use ($currentUser) {
+                                  $c2->where('receiver_id', $currentUser->id)
+                                     ->whereColumn('sender_id', 'users.id');
+                              });
                           });
-                      });
-              });
-            if ($myCityId !== null) {
-                $q->where('users.city_id', $myCityId);
-            }
-            if ($search) {
-                $like = "%{$search}%";
-                $q->where(function ($q2) use ($like) {
-                    $q2->where('users.first_name',   'LIKE', $like)
-                       ->orWhere('users.last_name',   'LIKE', $like)
-                       ->orWhere('profiles.job_title','LIKE', $like)
-                       ->orWhereExists(function ($sub) use ($like) {
-                           $sub->from('cities')
-                               ->whereColumn('cities.id', 'users.city_id')
-                               ->where('cities.name', 'LIKE', $like);
-                       });
-                });
-            }
+                  });
+                if ($myCityId !== null) {
+                    $q->where('users.city_id', $myCityId);
+                }
+                if ($search) {
+                    $like = "%{$search}%";
+                    $q->where(function ($q2) use ($like) {
+                        $q2->where('users.first_name',   'LIKE', $like)
+                           ->orWhere('users.last_name',   'LIKE', $like)
+                           ->orWhere('profiles.job_title','LIKE', $like)
+                           ->orWhereExists(function ($sub) use ($like) {
+                               $sub->from('cities')
+                                   ->whereColumn('cities.id', 'users.city_id')
+                                   ->where('cities.name', 'LIKE', $like);
+                           });
+                    });
+                }
+            };
+
+            // Count (no selectRaw needed)
+            $total = User::leftJoin('profiles', 'profiles.user_id', '=', 'users.id')
+                ->tap($applyWhere)
+                ->count('users.id');
+
+            // Data — scored and ordered
+            $scoreBindings = array_merge([$myCityId], $interestBindings);
+
+            $users = User::select('users.*')
+                ->selectRaw("
+                    (CASE WHEN users.city_id = ? AND users.city_id IS NOT NULL THEN 30 ELSE 0 END) +
+                    {$interestSql} as rec_score
+                ", $scoreBindings)
+                ->leftJoin('profiles', 'profiles.user_id', '=', 'users.id')
+                ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'city:id,name', 'consulRequests', 'subscription.plan:id,name,label', 'interests:id'])
+                ->tap($applyWhere)
+                ->orderBy('rec_score', 'desc')
+                ->orderBy('users.created_at', 'desc')
+                ->offset(($page - 1) * $perPage)
+                ->limit($perPage)
+                ->get();
+
+            $enriched = $users->map(fn ($u) => array_merge(
+                $this->enrichUserWithConnectionStatus($u, $currentUser->id, $mySectorIds),
+                [
+                    'same_city' => $myCityId !== null && $u->city_id === $myCityId,
+                    'rec_score' => (int) ($u->rec_score ?? 0),
+                ]
+            ));
+
+            return [$enriched, $total];
         };
 
-        // Count (no selectRaw needed)
-        $total = User::leftJoin('profiles', 'profiles.user_id', '=', 'users.id')
-            ->tap($applyWhere)
-            ->count('users.id');
+        [$enriched, $total] = $fetch($selectedCityId);
 
-        // Data — scored and ordered
-        $scoreBindings = array_merge([$myCityId], $interestBindings);
-
-        $users = User::select('users.*')
-            ->selectRaw("
-                (CASE WHEN users.city_id = ? AND users.city_id IS NOT NULL THEN 30 ELSE 0 END) +
-                {$interestSql} as rec_score
-            ", $scoreBindings)
-            ->leftJoin('profiles', 'profiles.user_id', '=', 'users.id')
-            ->with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status', 'city:id,name', 'consulRequests', 'subscription.plan:id,name,label', 'interests:id'])
-            ->tap($applyWhere)
-            ->orderBy('rec_score', 'desc')
-            ->orderBy('users.created_at', 'desc')
-            ->offset(($page - 1) * $perPage)
-            ->limit($perPage)
-            ->get();
-
-        $enriched = $users->map(fn ($u) => array_merge(
-            $this->enrichUserWithConnectionStatus($u, $currentUser->id, $mySectorIds),
-            [
-                'same_city' => $myCityId !== null && $u->city_id === $myCityId,
-                'rec_score' => (int) ($u->rec_score ?? 0),
-            ]
-        ));
+        // Repli : aucun candidat dans la ville choisie à l'accueil -> élargit à toutes les villes
+        // (même logique que les suggestions du Dashboard, pour éviter un onglet « Pour toi » vide).
+        if ($total === 0 && $selectedCityId !== null) {
+            [$enriched, $total] = $fetch(null);
+        }
 
         return new LengthAwarePaginator($enriched, $total, $perPage, $page, [
             'path' => \Illuminate\Support\Facades\Request::url(),
