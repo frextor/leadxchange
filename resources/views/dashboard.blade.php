@@ -220,6 +220,11 @@
      SUGGESTIONS DE CONTACTS — maquette › memberRow(id, 'Pour toi')
 ════════════════════════════════════════════════════════════════ --}}
 <div class="sh"><h2>Suggestions de contacts</h2><a class="link" href="{{ route('connections.index') }}">Voir tout</a></div>
+@if($suggestionsCityWidened)
+<div class="lx2-flash b-soft" role="note">
+    <span>Aucun membre disponible à <b>{{ $selectedCity?->name }}</b> pour le moment — suggestions élargies à toutes les villes.</span>
+</div>
+@endif
 @if($suggestions->isNotEmpty())
 <div class="grid-2">
     @foreach($suggestions as $member)

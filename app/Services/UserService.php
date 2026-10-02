@@ -15,6 +15,10 @@ class UserService
     /** Cache per-request so list endpoints don't repeat the same query N times. */
     private array $viewerPermissionCache = [];
 
+    /** Renseigné par getRecommendedUsers() : vrai si la ville choisie n'avait aucun candidat
+     *  et que la recherche a dû être élargie à toutes les villes. */
+    public bool $recommendationsWidenedToAllCities = false;
+
     private function viewerCanViewMemberName(int $currentUserId): bool
     {
         if (!isset($this->viewerPermissionCache[$currentUserId])) {
@@ -256,7 +260,9 @@ class UserService
 
         // Repli : aucun candidat dans la ville choisie à l'accueil -> élargit à toutes les villes
         // (même logique que les suggestions du Dashboard, pour éviter un onglet « Pour toi » vide).
+        $this->recommendationsWidenedToAllCities = false;
         if ($total === 0 && $selectedCityId !== null) {
+            $this->recommendationsWidenedToAllCities = true;
             [$enriched, $total] = $fetch(null);
         }
 

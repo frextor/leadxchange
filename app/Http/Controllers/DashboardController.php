@@ -147,8 +147,10 @@ class DashboardController extends Controller
             ->limit(6)
             ->get();
 
+        $suggestionsCityWidened = false;
         if ($suggestions->isEmpty() && $selectedCityId) {
             // Aucun membre dans la ville choisie : on élargit à toutes les villes
+            $suggestionsCityWidened = true;
             $suggestions = User::with(['profile', 'company', 'city'])
                 ->where('role', 'user')
                 ->where('id', '!=', $user->id)
@@ -226,7 +228,7 @@ class DashboardController extends Controller
             'completion', 'missing', 'prospects', 'plans',
             'featuredGroups', 'memberGroupIds',
             'upcomingEvents', 'attendingEventIds',
-            'leadStats', 'pendingLeads', 'suggestions', 'suggestionRatings', 'pointsEarned',
+            'leadStats', 'pendingLeads', 'suggestions', 'suggestionRatings', 'suggestionsCityWidened', 'pointsEarned',
             'popupEnabled', 'popupFrequency',
             'popupTitle', 'popupSubtitle', 'popupBtnLater', 'popupBtnCta',
             'negativeBalancePopup', 'pointsNeeded', 'pointsPricePerUnit',

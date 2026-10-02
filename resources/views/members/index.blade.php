@@ -72,6 +72,10 @@
     <span>Filtré sur la ville sélectionnée à l'accueil : <b>{{ $cities->firstWhere('id', $selectedCityId)?->name }}</b>. Seuls les membres de cette ville sont affichés.</span>
     <a class="link lx2-linkbtn" href="{{ route('dashboard') }}" style="opacity:1">Changer la ville</a>
 </div>
+{{-- Affiché uniquement sur « Pour toi » quand le serveur a dû élargir la recherche (aucun candidat dans la ville choisie). --}}
+<div class="lx2-flash b-soft" role="note" id="cityWidenedNotice" hidden>
+    <span>Aucun membre disponible à <b>{{ $cities->firstWhere('id', $selectedCityId)?->name }}</b> pour le moment — résultats élargis à toutes les villes.</span>
+</div>
 @endif
 
 <div class="sh"><h2 id="netTitle">Membres pour toi</h2></div>
@@ -211,6 +215,8 @@
                 data = await api(`/api/users/recommendations?page=${page}&include_pending=1${cityParam}`);
                 list = data.users || []; lastPage = data.last_page || 1;
             }
+            const widenedNotice = $('cityWidenedNotice');
+            if (widenedNotice) widenedNotice.hidden = !(tab === 'recommendations' && data && data.city_widened);
             items = items.concat(list);
         } catch (e) {
             toast(e.message, 'error');

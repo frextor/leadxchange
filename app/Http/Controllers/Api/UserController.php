@@ -109,6 +109,7 @@ class UserController extends Controller
                 'per_page'      => $users->perPage(),
                 'total'         => $users->total(),
                 'has_more_pages'=> $users->hasMorePages(),
+                'city_widened'  => $this->userService->recommendationsWidenedToAllCities,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to load recommendations', ['error' => $e->getMessage()]);
