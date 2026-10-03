@@ -8,7 +8,7 @@
     $me          = auth()->user();
     $fullName    = trim($user['first_name'] . ' ' . $user['last_name']);
     $initials    = mb_strtoupper(mb_substr($user['first_name'], 0, 1) . mb_substr($user['last_name'], 0, 1));
-    $roleLine    = collect([$profile?->job_title, $user['company']['name'] ?? null])->filter()->implode(' · ');
+    $headline    = collect([$profile?->job_title, $user['company']['name'] ?? null])->filter()->implode(' · ');
     $vStatus     = $profile?->presentation_video_status;
     $vPath       = $profile?->presentation_video;
     $vUrl        = $profile?->presentation_video_url;
@@ -29,8 +29,17 @@
     $currentServicesOffered = $profile?->services_offered ?? [];
     $marketAddressed = $profile?->market_addressed_id ? $markets->firstWhere('id', $profile->market_addressed_id) : null;
     $marketTarget    = $profile?->market_target_id    ? $markets->firstWhere('id', $profile->market_target_id)    : null;
+    $wantedSectors   = $sectors->whereIn('id', $currentLookingFor);
+    $offeredSectors  = $sectors->whereIn('id', $currentServicesOffered);
     $selectedInterestIds = $userInterests->pluck('id')->toArray();
-    $pointsClass = isset($pointsBalance) ? ($pointsBalance < 0 ? 'b-hot' : ($pointsBalance === 0 ? 'b-warm' : 'b-ok')) : 'b-muted';
+    $balance     = $pointsBalance ?? null;
+    $balanceColor = $balance === null ? 'var(--muted-fg)' : ($balance < 0 ? 'var(--destructive)' : ($balance === 0 ? 'var(--warm-fg)' : 'var(--ok-fg)'));
+    $balanceHelp  = $balance === null ? '' : ($balance < 0
+        ? 'Solde négatif : rechargez pour recevoir des leads.'
+        : ($balance === 0
+            ? 'Solde nul : envoyez des leads ou achetez des points.'
+            : 'Vous pouvez envoyer et recevoir des leads.'));
+    $showRoleCard = $me->isAmbassador() || $me->isConsul() || $me->hasPendingConsulPromotion() || $me->hasPaidPlan();
     $modalMap = [
         'avatar'      => 'avatar-input',
         'bio'         => 'modal-bio',
@@ -45,6 +54,77 @@
         'phone'       => 'modal-basic',
     ];
 @endphp
+
+@push('styles')
+<style>
+    /* Cartes et titres */
+    .pf-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .pf-h{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
+    .pf-cap{font-size:11.5px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-fg);margin-bottom:4px}
+    .pf-val{font-size:14px;color:var(--fg);line-height:1.5}
+    .pf-val.pf-none{color:var(--muted-fg)}
+    .pf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 28px}
+    .pf-grid .full{grid-column:1/-1}
+    .pf-empty{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border:1.5px dashed var(--border);border-radius:var(--radius-lg);padding:16px 18px;color:var(--muted-fg);font-size:13.5px}
+
+    /* En-tête : couverture + identité */
+    .pf-hero{padding:0;overflow:hidden}
+    .pf-cover{height:132px;background:var(--lx-accent-grad);position:relative;overflow:hidden}
+    .pf-cover::before,.pf-cover::after{content:"";position:absolute;border-radius:999px;background:rgba(255,255,255,.12)}
+    .pf-cover::before{width:320px;height:320px;right:-90px;top:-170px}
+    .pf-cover::after{width:200px;height:200px;right:200px;bottom:-130px}
+    .pf-identity{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;padding:0 24px 22px;margin-top:-52px;position:relative}
+    .pf-avatar-wrap{position:relative;flex:none}
+    .pf-avatar{width:104px;height:104px;border-radius:999px;border:4px solid #fff;box-shadow:var(--shadow-md);object-fit:cover;display:grid;place-items:center;font-size:32px;font-weight:600}
+    .pf-camera{position:absolute;right:-2px;bottom:2px;width:32px;height:32px;cursor:pointer;box-shadow:var(--shadow-sm)}
+    .pf-name-block{min-width:0;padding-bottom:4px;flex:1 1 280px}
+    .pf-name{margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
+    .pf-headline{margin-top:4px;font-size:14px;color:var(--fg-2)}
+    .pf-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:13px;color:var(--muted-fg);margin-top:10px}
+    .pf-meta span{display:inline-flex;align-items:center;gap:5px}
+    .pf-meta svg{width:14px;height:14px;flex:none}
+    .pf-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding-bottom:4px}
+
+    /* Corps */
+    .pf-body{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start;margin-top:20px}
+    .pf-col{display:flex;flex-direction:column;gap:18px;min-width:0}
+    .pf-motto{margin:0 0 10px;font-size:17px;font-weight:500;color:var(--fg);letter-spacing:-.01em;line-height:1.45}
+    .pf-bio{margin:0;font-size:14px;color:var(--fg-2);line-height:1.7;white-space:pre-line;max-width:72ch}
+
+    /* Vidéo */
+    .pf-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:30px 20px;text-align:center;cursor:pointer;border:1.5px dashed var(--border);border-radius:var(--radius-lg);background:var(--bg);color:var(--muted-fg);transition:border-color .15s,background .15s}
+    .pf-drop:hover{border-color:var(--primary);background:var(--primary-soft)}
+    .pf-drop-icon{width:44px;height:44px;border-radius:999px;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center}
+
+    /* Colonne droite */
+    .pf-todo{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:1px solid var(--border);background:#fff;border-radius:var(--radius);padding:9px 12px;font-size:13.5px;color:var(--fg-2);text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
+    .pf-todo:hover{border-color:var(--primary);background:var(--primary-soft);color:var(--primary)}
+    .pf-todo svg{width:14px;height:14px;flex:none;color:var(--muted-fg)}
+    .pf-todo:hover svg{color:var(--primary)}
+    .pf-progress{height:8px;border-radius:999px;background:var(--muted);overflow:hidden}
+    .pf-progress > span{display:block;height:100%;border-radius:999px;background:var(--lx-accent-grad)}
+    .pf-balance{font-size:32px;font-weight:600;letter-spacing:-.02em;line-height:1}
+    .pf-stats{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .pf-stat-n{font-size:22px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+    .pf-plan-img{background:var(--muted);height:116px;display:grid;place-items:center;position:relative}
+    .pf-plan-img img{max-height:96px;max-width:70%;object-fit:contain}
+
+    @media (max-width:1020px){
+        .pf-body{grid-template-columns:minmax(0,1fr)}
+    }
+    #videoSubmitBtn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+    .pf-meta span{overflow-wrap:anywhere;min-width:0}
+
+    @media (max-width:640px){
+        .pf-grid{grid-template-columns:1fr}
+        .pf-identity{flex-direction:column;align-items:flex-start;gap:12px;padding:0 18px 18px;margin-top:-44px}
+        .pf-avatar{width:88px;height:88px}
+        .pf-name-block{flex:none;width:100%}
+        .pf-actions{margin-left:0;width:100%}
+        .pf-actions .btn{flex:1}
+    }
+</style>
+@endpush
 
 @section('content')
 <x-lx2-header title="Mon profil" sub="Vos informations, visibles par les membres de votre réseau" />
@@ -63,220 +143,99 @@
 </div>
 @endif
 
-<div class="two-col" style="margin-top:0">
+{{-- ── En-tête : couverture, identité, actions ── --}}
+<section class="card pf-hero">
+    <div class="pf-cover"></div>
+    <div class="pf-identity">
+        <div class="pf-avatar-wrap">
+            @if ($profile?->avatar_url)
+                <img id="avatarImg" class="pf-avatar" src="{{ $profile->avatar_url }}" alt="">
+            @else
+                <span id="avatarImg" class="pf-avatar av-fb">{{ $initials }}</span>
+            @endif
+            <label for="avatarInput" class="icon-btn pf-camera" title="Changer la photo" aria-label="Changer la photo">
+                <x-lx2-icon name="image-plus" />
+            </label>
+            <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp" class="hidden">
+        </div>
 
-    {{-- ── Colonne gauche ── --}}
-    <aside class="aside-sticky">
-
-        <div class="card pcard">
-            <div style="position:relative">
-                @if ($profile?->avatar_url)
-                    <img id="avatarImg" class="av" src="{{ $profile->avatar_url }}" alt="" style="width:96px;height:96px">
-                @else
-                    <span id="avatarImg" class="av-fb" style="width:96px;height:96px;font-size:28px">{{ $initials }}</span>
-                @endif
-                <label for="avatarInput" class="icon-btn" title="Changer la photo" aria-label="Changer la photo"
-                       style="position:absolute;right:-4px;bottom:-4px;width:30px;height:30px;cursor:pointer">
-                    <x-lx2-icon name="image-plus" />
-                </label>
-                <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp" class="hidden">
-            </div>
-
-            <h2>{{ $fullName }}</h2>
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center">
+        <div class="pf-name-block">
+            <h1 class="pf-name">{{ $fullName }}</h1>
+            @if ($headline)<div class="pf-headline">{{ $headline }}</div>@endif
+            <div class="pf-meta">
                 <span class="badge b-muted">{{ $badgeLabel }}</span>
                 @if ($profile?->open_to_network)<span class="badge b-ok">Ouvert au réseau</span>@endif
-            </div>
-            @if ($roleLine)<div class="line">{{ $roleLine }}</div>@endif
-
-            <div class="contacts">
-                @if ($user['email'])<span><x-lx2-icon name="mail" />{{ $user['email'] }}</span>@endif
                 @if ($user['city']['name'] ?? null)<span><x-lx2-icon name="map-pin" />{{ $user['city']['name'] }}</span>@endif
                 @if ($user['member_since'])<span><x-lx2-icon name="clock" />Membre depuis {{ \Carbon\Carbon::parse('1 ' . $user['member_since'])->locale('fr')->isoFormat('MMMM YYYY') }}</span>@endif
+                <span><x-lx2-icon name="mail" />{{ $user['email'] }}</span>
             </div>
+        </div>
 
-            <button type="button" class="btn btn-primary btn-block" style="margin-top:8px" onclick="lx2Dialog('modal-basic')">
+        <div class="pf-actions">
+            <button type="button" class="btn btn-primary" onclick="lx2Dialog('modal-basic')">
                 <x-lx2-icon name="settings" />Modifier le profil
             </button>
-
-            @if (isset($pointsBalance))
-            <a class="btn btn-outline btn-block" href="{{ route('points.index') }}">
-                <x-lx2-icon name="wallet" />Mes points
-                <span class="badge {{ $pointsClass }}" style="margin-left:auto">{{ $pointsBalance > 0 ? '+' : '' }}{{ $pointsBalance }} pts</span>
-            </a>
-            @endif
-
-            {{-- Progression de rôle --}}
-            @if ($me->isAmbassador())
-                <span class="badge b-warm" style="height:28px"><x-lx2-icon name="star" />Ambassadeur ✓</span>
-            @elseif ($me->isConsul())
-                <span class="badge b-ok" style="height:28px"><x-lx2-icon name="shield" />Consul ✓</span>
-                @if ($me->hasPendingAmbassadorRequest())
-                    <span class="badge b-warm" style="height:28px">Demande Ambassadeur en attente…</span>
-                @else
-                    <form method="POST" action="{{ route('consul.request') }}" style="width:100%">
-                        @csrf
-                        <button type="submit" class="btn btn-outline btn-block"><x-lx2-icon name="star" />Demander le rôle Ambassadeur</button>
-                    </form>
-                @endif
-            @elseif ($me->hasPendingConsulPromotion())
-                <span class="badge b-soft" style="height:28px">Demande Consul en attente…</span>
-            @elseif ($me->hasPaidPlan())
-                <form method="POST" action="{{ route('consul.request-promote') }}" style="width:100%">
-                    @csrf
-                    <button type="submit" class="btn btn-outline btn-block"><x-lx2-icon name="shield" />Demander le rôle Consul</button>
-                </form>
-            @endif
         </div>
+    </div>
+</section>
 
-        {{-- Complétion (si profil incomplet) --}}
-        @if ($completion < 100)
-        <div class="card card-pad">
-            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
-                <span style="font-size:13px;font-weight:600">Complétion du profil</span>
-                <span style="font-size:15px;font-weight:600;color:var(--primary)">{{ $completion }}%</span>
-            </div>
-            <div style="height:6px;border-radius:999px;background:var(--muted);overflow:hidden">
-                <div style="height:100%;width:{{ $completion }}%;background:var(--primary)"></div>
-            </div>
-            <ul style="list-style:none;padding:0;margin:12px 0 0;display:flex;flex-direction:column;gap:6px">
-                @foreach ($missing as $item)
-                <li class="help" style="margin:0">○ {{ $item['label'] }}</li>
-                @endforeach
-            </ul>
-            <button type="button" class="btn btn-primary btn-block" style="margin-top:12px" onclick="lx2Dialog('modal-missing')">Compléter le profil</button>
-        </div>
-        @endif
-
-        {{-- Statistiques --}}
-        <div class="card card-pad">
-            <div class="help" style="margin:0 0 10px;text-transform:uppercase;letter-spacing:.04em;font-weight:600">Statistiques</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <div><div style="font-size:20px;font-weight:600">0</div><div class="help" style="margin:0">Échanges</div></div>
-                <div><div style="font-size:20px;font-weight:600">0</div><div class="help" style="margin:0">Leads reçus</div></div>
-                <div><div style="font-size:20px;font-weight:600">0</div><div class="help" style="margin:0">Connexions</div></div>
-                <div><div style="font-size:20px;font-weight:600">4.8</div><div class="help" style="margin:0">Score</div></div>
-            </div>
-        </div>
-
-        {{-- Plan et badge --}}
-        <div class="card" style="overflow:hidden">
-            <div style="background:var(--muted);position:relative">
-                <img src="{{ asset('images/plans/' . $planKey . '.jpg') }}" alt="{{ $planLabel }}"
-                     onerror="this.closest('div').style.display='none'"
-                     style="width:100%;height:112px;object-fit:contain;padding:8px 16px">
-                <span class="help" style="position:absolute;top:8px;left:12px;margin:0;text-transform:uppercase;letter-spacing:.06em">Plan</span>
-            </div>
-            <div style="border-top:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px">
-                <img src="{{ asset('images/badges/' . $badgeKey . '.jpg') }}" alt="{{ $badgeLabel }}"
-                     onerror="this.style.display='none'" style="width:56px;height:56px;object-fit:contain;flex:none">
-                <div>
-                    <div class="help" style="margin:0;text-transform:uppercase;letter-spacing:.06em">Badge score</div>
-                    <div style="font-size:14px;font-weight:600;margin-top:2px">{{ $badgeLabel }}</div>
-                    <div class="help" style="margin:0">{{ $user['balance'] ?? 0 }} points</div>
-                </div>
-            </div>
-        </div>
-
-    </aside>
+<div class="pf-body">
 
     {{-- ── Colonne principale ── --}}
-    <div style="display:flex;flex-direction:column;gap:18px;min-width:0">
+    <div class="pf-col">
 
         {{-- À propos --}}
-        <div class="card card-pad">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px">
-                <h3 style="margin:0;font-size:15px;font-weight:600">À propos de moi</h3>
+        <section class="card card-pad">
+            <div class="pf-head">
+                <h2 class="pf-h">À propos</h2>
                 <button type="button" class="btn btn-ghost btn-sm" onclick="lx2Dialog('modal-bio')">Modifier</button>
             </div>
-            @if ($profile?->motto)<p class="prose" style="margin:0 0 8px;font-style:italic">« {{ $profile->motto }} »</p>@endif
+            @if ($profile?->motto)<p class="pf-motto">« {{ $profile->motto }} »</p>@endif
             @if ($profile?->bio)
-                <p class="prose" style="margin:0;white-space:pre-line">{{ $profile->bio }}</p>
+                <p class="pf-bio">{{ $profile->bio }}</p>
             @elseif (! $profile?->motto)
-                <p class="help" style="margin:0">Partagez votre motto ou votre bio.
-                    <a class="link" href="#" onclick="event.preventDefault();lx2Dialog('modal-bio')">+ Ajouter</a></p>
+                <div class="pf-empty">
+                    <span>Présentez-vous en quelques lignes : les membres lisent votre bio avant de se connecter.</span>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="lx2Dialog('modal-bio')">Ajouter une bio</button>
+                </div>
             @endif
-        </div>
-
-        {{-- Profil professionnel --}}
-        <div class="card card-pad tags-block">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px">
-                <h3 style="margin:0;font-size:15px;font-weight:600">Profil professionnel</h3>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="lx2Dialog('modal-professional')">Modifier</button>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px">
-                <div><h4>Poste</h4><div class="val">{{ $profile?->job_title ?: '—' }}</div></div>
-                <div><h4>Secteur d'activité</h4><div class="val">{{ $profile?->sector ?: '—' }}</div></div>
-                <div><h4>Expérience</h4><div class="val">{{ $expLabels[$profile?->experience_level] ?? '—' }}</div></div>
-                <div><h4>Marché que j'adresse</h4><div class="val">{{ $marketAddressed?->name ?? '—' }}</div></div>
-                <div><h4>Marché que je souhaite développer</h4><div class="val">{{ $marketTarget?->name ?? '—' }}</div></div>
-                <div style="grid-column:1/-1"><h4>Les contacts que je recherche</h4>
-                    @php $wanted = $sectors->whereIn('id', $currentLookingFor); @endphp
-                    @if ($wanted->isNotEmpty())
-                        <div class="row">@foreach ($wanted as $s)<span class="badge b-outline">{{ $s->name }}</span>@endforeach</div>
-                    @else <div class="val">—</div> @endif
-                </div>
-                <div style="grid-column:1/-1"><h4>Les contacts que je peux proposer</h4>
-                    @php $offered = $sectors->whereIn('id', $currentServicesOffered); @endphp
-                    @if ($offered->isNotEmpty())
-                        <div class="row">@foreach ($offered as $s)<span class="badge b-muted">{{ $s->name }}</span>@endforeach</div>
-                    @else <div class="val">—</div> @endif
-                </div>
-            </div>
-        </div>
-
-        {{-- Centres d'intérêt --}}
-        <div class="card card-pad">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px">
-                <h3 style="margin:0;font-size:15px;font-weight:600">Centres d'intérêt</h3>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="lx2Dialog('modal-interests')">Modifier</button>
-            </div>
-            @if ($userInterests->isNotEmpty())
-                <div class="row" style="display:flex;flex-wrap:wrap;gap:6px">
-                    @foreach ($userInterests as $interest)
-                        <span class="badge b-soft">{{ $interest->icon }} {{ $interest->name }}</span>
-                    @endforeach
-                </div>
-            @else
-                <p class="help" style="margin:0">Aucun centre d'intérêt.
-                    <a class="link" href="#" onclick="event.preventDefault();lx2Dialog('modal-interests')">+ Ajouter</a></p>
-            @endif
-        </div>
+        </section>
 
         {{-- Vidéo de présentation --}}
-        <div class="card card-pad">
-            <h3 style="margin:0 0 12px;font-size:15px;font-weight:600">Vidéo de présentation</h3>
-
-            @if ($vPath)
-                <div class="video"><video controls preload="metadata" src="{{ $vUrl }}" style="width:100%;height:100%;object-fit:cover;background:#000"></video></div>
-                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px">
+        <section class="card card-pad">
+            <div class="pf-head">
+                <h2 class="pf-h">Vidéo de présentation</h2>
+                @if ($vPath)
                     @if ($vStatus === 'pending')
                         <span class="badge b-warm">En attente de validation</span>
                     @elseif ($vStatus === 'approved')
-                        <span class="badge b-ok">Approuvée · visible sur votre profil</span>
+                        <span class="badge b-ok">Approuvée · visible</span>
                     @elseif ($vStatus === 'rejected')
                         <span class="badge b-hot">Rejetée</span>
-                        @if ($profile->presentation_video_rejection_reason)
-                            <span class="help" style="margin:0">{{ $profile->presentation_video_rejection_reason }}</span>
-                        @endif
                     @endif
-                    <form method="POST" action="{{ route('profile.video.delete') }}" style="margin-left:auto"
-                          onsubmit="return confirm('Supprimer la vidéo de présentation ?')">
-                        @csrf @method('DELETE')
-                        <button type="submit" class="btn btn-danger-soft btn-sm"><x-lx2-icon name="trash-2" />Supprimer</button>
-                    </form>
-                </div>
+                @endif
+            </div>
+
+            @if ($vPath)
+                <div class="video" style="margin-top:0"><video controls preload="metadata" src="{{ $vUrl }}" style="width:100%;height:100%;object-fit:cover;background:#000"></video></div>
+                @if ($vStatus === 'rejected' && $profile->presentation_video_rejection_reason)
+                    <p class="help" style="color:var(--hot-fg)">Motif : {{ $profile->presentation_video_rejection_reason }}</p>
+                @endif
+                <form method="POST" action="{{ route('profile.video.delete') }}" style="margin-top:12px"
+                      onsubmit="return confirm('Supprimer la vidéo de présentation ?')">
+                    @csrf @method('DELETE')
+                    <button type="submit" class="btn btn-danger-soft btn-sm"><x-lx2-icon name="trash-2" />Supprimer la vidéo</button>
+                </form>
             @else
                 <form method="POST" action="{{ route('profile.video.upload') }}" enctype="multipart/form-data">
                     @csrf
-                    <label id="videoDropZone"
-                           style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:24px;text-align:center;cursor:pointer;border:1.5px dashed var(--border);border-radius:var(--radius);color:var(--muted-fg)">
+                    <label id="videoDropZone" class="pf-drop">
                         <input type="file" name="video" id="videoInput" accept="video/mp4,video/webm,video/quicktime,video/avi" class="hidden"
                                onchange="previewVideoFile(this)">
-                        <div id="videoPlaceholder" style="display:flex;flex-direction:column;align-items:center;gap:6px">
-                            <x-lx2-icon name="video" />
-                            <span style="font-size:13.5px;font-weight:500">Cliquez pour uploader votre vidéo de présentation</span>
-                            <span class="help" style="margin:0">MP4, WebM, MOV — max 100 Mo</span>
+                        <span class="pf-drop-icon"><x-lx2-icon name="video" /></span>
+                        <div id="videoPlaceholder" style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                            <span style="font-size:14px;font-weight:500;color:var(--fg-2)">Ajoutez une courte vidéo de présentation</span>
+                            <span class="help" style="margin:0">MP4, WebM, MOV — 100 Mo maximum · validée par notre équipe</span>
                         </div>
                         <div id="videoPreviewName" class="hidden" style="font-size:13.5px;font-weight:600;color:var(--primary)"></div>
                     </label>
@@ -284,44 +243,191 @@
                     <button type="submit" id="videoSubmitBtn" class="btn btn-primary" style="margin-top:12px" disabled>Envoyer pour validation</button>
                 </form>
             @endif
-        </div>
+        </section>
+
+        {{-- Profil professionnel --}}
+        <section class="card card-pad">
+            <div class="pf-head">
+                <h2 class="pf-h">Profil professionnel</h2>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="lx2Dialog('modal-professional')">Modifier</button>
+            </div>
+            <div class="pf-grid">
+                <div><div class="pf-cap">Poste</div><div class="pf-val {{ $profile?->job_title ? '' : 'pf-none' }}">{{ $profile?->job_title ?: 'Non renseigné' }}</div></div>
+                <div><div class="pf-cap">Secteur d'activité</div><div class="pf-val {{ $profile?->sector ? '' : 'pf-none' }}">{{ $profile?->sector ?: 'Non renseigné' }}</div></div>
+                <div><div class="pf-cap">Expérience</div><div class="pf-val {{ $profile?->experience_level ? '' : 'pf-none' }}">{{ $expLabels[$profile?->experience_level] ?? 'Non renseignée' }}</div></div>
+                <div><div class="pf-cap">Marché adressé aujourd'hui</div><div class="pf-val {{ $marketAddressed ? '' : 'pf-none' }}">{{ $marketAddressed?->name ?? 'Non renseigné' }}</div></div>
+                <div class="full"><div class="pf-cap">Marché à développer</div><div class="pf-val {{ $marketTarget ? '' : 'pf-none' }}">{{ $marketTarget?->name ?? 'Non renseigné' }}</div></div>
+                <div class="full">
+                    <div class="pf-cap">Contacts recherchés</div>
+                    @if ($wantedSectors->isNotEmpty())
+                        <div style="display:flex;flex-wrap:wrap;gap:6px">@foreach ($wantedSectors as $s)<span class="badge b-outline">{{ $s->name }}</span>@endforeach</div>
+                    @else <div class="pf-val pf-none">Aucun secteur choisi</div> @endif
+                </div>
+                <div class="full">
+                    <div class="pf-cap">Contacts que je peux proposer</div>
+                    @if ($offeredSectors->isNotEmpty())
+                        <div style="display:flex;flex-wrap:wrap;gap:6px">@foreach ($offeredSectors as $s)<span class="badge b-muted">{{ $s->name }}</span>@endforeach</div>
+                    @else <div class="pf-val pf-none">Aucun secteur choisi</div> @endif
+                </div>
+            </div>
+        </section>
+
+        {{-- Centres d'intérêt --}}
+        <section class="card card-pad">
+            <div class="pf-head">
+                <h2 class="pf-h">Centres d'intérêt</h2>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="lx2Dialog('modal-interests')">Modifier</button>
+            </div>
+            @if ($userInterests->isNotEmpty())
+                <div style="display:flex;flex-wrap:wrap;gap:8px">
+                    @foreach ($userInterests as $interest)
+                        <span class="badge b-soft" style="height:28px;padding:0 12px;font-size:13px">{{ $interest->icon }} {{ $interest->name }}</span>
+                    @endforeach
+                </div>
+            @else
+                <div class="pf-empty">
+                    <span>Ajoutez vos centres d'intérêt pour être suggéré aux bons membres.</span>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="lx2Dialog('modal-interests')">Ajouter</button>
+                </div>
+            @endif
+        </section>
 
         {{-- Entreprise --}}
-        <div class="card card-pad">
-            <h3 style="margin:0 0 10px;font-size:15px;font-weight:600">Entreprise</h3>
+        <section class="card card-pad">
+            <div class="pf-head"><h2 class="pf-h">Entreprise</h2></div>
             @if ($user['company'])
                 <div class="mrow" style="padding:0">
-                    <span class="av-fb" style="width:40px;height:40px;border-radius:10px">{{ mb_strtoupper(mb_substr($user['company']['name'], 0, 1)) }}</span>
+                    <span class="av-fb" style="width:48px;height:48px;border-radius:12px;font-size:16px">{{ mb_strtoupper(mb_substr($user['company']['name'], 0, 1)) }}</span>
                     <div class="who">
-                        <div class="nm">{{ $user['company']['name'] }}</div>
-                        <div class="role">{{ $user['company']['sector']['name'] ?? '' }}</div>
+                        <div class="nm" style="font-size:15px">{{ $user['company']['name'] }}</div>
+                        <div class="role">{{ $user['company']['sector']['name'] ?? 'Secteur non renseigné' }}</div>
                     </div>
                     @if ($user['company']['website'])
                         <a class="btn btn-outline btn-sm" href="{{ $user['company']['website'] }}" target="_blank" rel="noopener"><x-lx2-icon name="globe" />Site web</a>
                     @endif
                 </div>
             @else
-                <p class="help" style="margin:0">Aucune entreprise liée.
-                    <a class="link" href="{{ route('company.create') }}">+ Ajouter</a></p>
+                <div class="pf-empty">
+                    <span>Aucune entreprise liée à votre profil.</span>
+                    <a class="btn btn-outline btn-sm" href="{{ route('company.create') }}">Ajouter mon entreprise</a>
+                </div>
             @endif
-        </div>
+        </section>
 
         {{-- Informations personnelles --}}
-        <div class="card card-pad tags-block">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px">
-                <h3 style="margin:0;font-size:15px;font-weight:600">Informations</h3>
+        <section class="card card-pad">
+            <div class="pf-head">
+                <h2 class="pf-h">Informations</h2>
                 <button type="button" class="btn btn-ghost btn-sm" onclick="lx2Dialog('modal-basic')">Modifier</button>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px">
-                <div><h4>Email</h4><div class="val">{{ $user['email'] }}</div></div>
-                <div><h4>Ville actuelle</h4><div class="val">{{ $user['city']['name'] ?? '—' }}</div></div>
-                <div><h4>Genre</h4><div class="val">{{ $user['gender'] ? ['male' => 'Homme', 'female' => 'Femme', 'other' => 'Autre'][$user['gender']] ?? $user['gender'] : '—' }}</div></div>
-                <div><h4>Date de naissance</h4><div class="val">{{ $user['birthday'] ? \Carbon\Carbon::parse($user['birthday'])->locale('fr')->isoFormat('D MMMM YYYY') : '—' }}</div></div>
-                <div><h4>Téléphone</h4><div class="val">{{ $user['phone']['number'] ?? '—' }}</div></div>
+            <div class="pf-grid">
+                <div><div class="pf-cap">Email</div><div class="pf-val">{{ $user['email'] }}</div></div>
+                <div><div class="pf-cap">Ville actuelle</div><div class="pf-val {{ $user['city']['name'] ?? null ? '' : 'pf-none' }}">{{ $user['city']['name'] ?? 'Non renseignée' }}</div></div>
+                <div><div class="pf-cap">Genre</div><div class="pf-val {{ $user['gender'] ? '' : 'pf-none' }}">{{ $user['gender'] ? ['male' => 'Homme', 'female' => 'Femme', 'other' => 'Autre'][$user['gender']] ?? $user['gender'] : 'Non renseigné' }}</div></div>
+                <div><div class="pf-cap">Date de naissance</div><div class="pf-val {{ $user['birthday'] ? '' : 'pf-none' }}">{{ $user['birthday'] ? \Carbon\Carbon::parse($user['birthday'])->locale('fr')->isoFormat('D MMMM YYYY') : 'Non renseignée' }}</div></div>
+                <div class="full"><div class="pf-cap">Téléphone</div><div class="pf-val {{ $user['phone']['number'] ?? null ? '' : 'pf-none' }}">{{ $user['phone']['number'] ?? 'Non renseigné' }}</div></div>
             </div>
-        </div>
+        </section>
 
     </div>
+
+    {{-- ── Colonne latérale ── --}}
+    <aside class="pf-col">
+
+        {{-- Complétion : chaque élément manquant ouvre directement son éditeur --}}
+        @if ($completion < 100)
+        <section class="card card-pad">
+            <div class="pf-head" style="margin-bottom:10px">
+                <h2 class="pf-h">Complétez votre profil</h2>
+                <span style="font-size:18px;font-weight:600;color:var(--primary)">{{ $completion }}%</span>
+            </div>
+            <div class="pf-progress"><span style="width:{{ $completion }}%"></span></div>
+            @if ($missing)
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:14px">
+                @foreach ($missing as $item)
+                    @php $target = $modalMap[$item['key']] ?? null; @endphp
+                    <button type="button" class="pf-todo" onclick="missingGo(@js($target))">
+                        <span>{{ $item['label'] }}</span>
+                        <x-lx2-icon name="chevron-right" />
+                    </button>
+                @endforeach
+            </div>
+            @endif
+        </section>
+        @endif
+
+        {{-- Points --}}
+        @if ($balance !== null)
+        <section class="card card-pad">
+            <div class="pf-head" style="margin-bottom:12px">
+                <h2 class="pf-h">Mes points</h2>
+                <a class="link" href="{{ route('points.index') }}" style="font-size:13px">Historique</a>
+            </div>
+            <div class="pf-balance" style="color:{{ $balanceColor }}">{{ $balance > 0 ? '+' : '' }}{{ $balance }}<span style="font-size:14px;font-weight:500;color:var(--muted-fg);margin-left:6px">pts</span></div>
+            <p class="help" style="margin:10px 0 14px">{{ $balanceHelp }}</p>
+            <a class="btn btn-outline btn-block" href="{{ route('points.index') }}"><x-lx2-icon name="wallet" />Acheter des points</a>
+        </section>
+        @endif
+
+        {{-- Rôle --}}
+        @if ($showRoleCard)
+        <section class="card card-pad">
+            <h2 class="pf-h" style="margin-bottom:12px">Statut</h2>
+            <div style="display:flex;flex-direction:column;gap:8px">
+                @if ($me->isAmbassador())
+                    <span class="badge b-warm" style="height:28px;align-self:flex-start"><x-lx2-icon name="star" />Ambassadeur</span>
+                @elseif ($me->isConsul())
+                    <span class="badge b-ok" style="height:28px;align-self:flex-start"><x-lx2-icon name="shield" />Consul</span>
+                    @if ($me->hasPendingAmbassadorRequest())
+                        <span class="help" style="margin:0">Demande Ambassadeur en attente de validation.</span>
+                    @else
+                        <form method="POST" action="{{ route('consul.request') }}">
+                            @csrf
+                            <button type="submit" class="btn btn-outline btn-block"><x-lx2-icon name="star" />Demander le rôle Ambassadeur</button>
+                        </form>
+                    @endif
+                @elseif ($me->hasPendingConsulPromotion())
+                    <span class="help" style="margin:0">Demande Consul en attente de validation.</span>
+                @elseif ($me->hasPaidPlan())
+                    <form method="POST" action="{{ route('consul.request-promote') }}">
+                        @csrf
+                        <button type="submit" class="btn btn-outline btn-block"><x-lx2-icon name="shield" />Demander le rôle Consul</button>
+                    </form>
+                @endif
+            </div>
+        </section>
+        @endif
+
+        {{-- Plan et badge --}}
+        <section class="card" style="overflow:hidden">
+            <div class="pf-plan-img">
+                <img src="{{ asset('images/plans/' . $planKey . '.jpg') }}" alt="{{ $planLabel }}"
+                     onerror="this.closest('.pf-plan-img').style.display='none'">
+                <span class="badge b-plain" style="position:absolute;top:10px;left:12px;height:20px;font-size:11px">Plan {{ $planLabel }}</span>
+            </div>
+            <div style="border-top:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px">
+                <img src="{{ asset('images/badges/' . $badgeKey . '.jpg') }}" alt="{{ $badgeLabel }}"
+                     onerror="this.style.display='none'" style="width:52px;height:52px;object-fit:contain;flex:none">
+                <div>
+                    <div class="pf-cap" style="margin:0">Badge score</div>
+                    <div style="font-size:14px;font-weight:600">{{ $badgeLabel }}</div>
+                    <div class="help" style="margin:2px 0 0">{{ $user['balance'] ?? 0 }} points</div>
+                </div>
+            </div>
+        </section>
+
+        {{-- Statistiques (valeurs d'affichage, non calculées) --}}
+        <section class="card card-pad">
+            <h2 class="pf-h" style="margin-bottom:14px">Activité</h2>
+            <div class="pf-stats">
+                <div><div class="pf-stat-n">0</div><div class="help" style="margin:2px 0 0">Échanges</div></div>
+                <div><div class="pf-stat-n">0</div><div class="help" style="margin:2px 0 0">Leads reçus</div></div>
+                <div><div class="pf-stat-n">0</div><div class="help" style="margin:2px 0 0">Connexions</div></div>
+                <div><div class="pf-stat-n">4.8</div><div class="help" style="margin:2px 0 0">Score</div></div>
+            </div>
+        </section>
+
+    </aside>
 </div>
 
 {{-- ════════════════════════════ MODALES ════════════════════════════ --}}
@@ -334,10 +440,13 @@
             <button type="button" class="x" data-close aria-label="Fermer"><x-lx2-icon name="x" /></button>
         </div>
         <div class="db">
-            <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <div style="display:flex;flex-direction:column;gap:6px">
                 @foreach ($missing as $item)
                     @php $target = $modalMap[$item['key']] ?? null; @endphp
-                    <button type="button" class="chip" onclick="missingGo(@js($target))">{{ $item['label'] }}</button>
+                    <button type="button" class="pf-todo" onclick="missingGo(@js($target))">
+                        <span>{{ $item['label'] }}</span>
+                        <x-lx2-icon name="chevron-right" />
+                    </button>
                 @endforeach
             </div>
         </div>
@@ -607,11 +716,9 @@
             } else {
                 const img = document.createElement('img');
                 img.id = 'avatarImg';
-                img.className = 'av';
+                img.className = 'pf-avatar';
                 img.alt = '';
                 img.src = data.avatar_url;
-                img.style.width = '96px';
-                img.style.height = '96px';
                 el.replaceWith(img);
             }
             toast('Photo mise à jour !', 'success');
