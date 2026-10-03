@@ -6,12 +6,28 @@
     <title>LeadXchange — Échangez des leads, accélérez votre business</title>
     <meta name="description" content="LeadXchange est la plateforme B2B qui connecte les professionnels pour échanger des opportunités business, des leads qualifiés et construire un réseau solide.">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Palette LeadXchange (public/css/lx2.css) : indigo primaire + neutres zinc + sémantique
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        teal:   { 50: '#eef0fe', 200: '#e0e4fd', 500: '#4154f4', 700: '#4154f4' },
+                        indigo: { 50: '#eef0fe', 500: '#4154f4', 600: '#4154f4' },
+                        amber:  { 50: '#fef6d8', 400: '#a16207', 500: '#a16207' },
+                        green:  { 400: '#22c55e', 500: '#22c55e' },
+                        red:    { 400: '#dc2626', 500: '#dc2626' },
+                        gray:   { 50: '#f7f8fa', 100: '#f4f4f5', 200: '#e4e4e7', 300: '#d4d4d8', 400: '#a1a1aa', 500: '#71717a', 600: '#52525b', 700: '#3f3f46', 800: '#27272a', 900: '#09090b' },
+                    },
+                },
+            },
+        };
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
     <style>
         * { font-family: 'Inter', sans-serif; }
-        .playfair { font-family: 'Playfair Display', Georgia, serif; }
 
         /* ── Animations ── */
         @keyframes fadeUp   { from { opacity:0; transform:translateY(30px) } to { opacity:1; transform:translateY(0) } }
@@ -35,12 +51,12 @@
 
         /* ── Gradient text ── */
         .gradient-text {
-            background: linear-gradient(135deg, #1E8F88 0%, #34d4bf 40%, #6366F1 100%);
+            background: linear-gradient(135deg, #4154f4 0%, #6a78e9 40%, #4154f4 100%);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             background-clip: text;
         }
         .gradient-text-gold {
-            background: linear-gradient(135deg, #F59E0B 0%, #FCD34D 50%, #F59E0B 100%);
+            background: linear-gradient(135deg, #a16207 0%, #a16207 50%, #a16207 100%);
             background-size: 200% auto;
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             background-clip: text; animation: shimmer 3s linear infinite;
@@ -48,46 +64,46 @@
 
         /* ── Buttons ── */
         .btn-primary {
-            background: #111827; color: white; padding: 14px 28px; border-radius: 14px;
+            background: #4154f4; color: white; padding: 14px 28px; border-radius: 14px;
             font-weight: 700; font-size: 15px; transition: all .2s;
             border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
         }
-        .btn-primary:hover { background: #1F2937; transform: translateY(-2px); box-shadow: 0 12px 30px rgba(17,24,39,.25); }
+        .btn-primary:hover { background: #3445dc; transform: translateY(-2px); box-shadow: 0 12px 30px rgba(65,84,244,.3); }
 
         .btn-teal {
-            background: linear-gradient(135deg, #1E8F88, #34d4bf); color: white;
+            background: linear-gradient(135deg, #4154f4, #6a78e9); color: white;
             padding: 14px 28px; border-radius: 14px; font-weight: 700; font-size: 15px;
             transition: all .2s; border: none; cursor: pointer;
             display: inline-flex; align-items: center; gap: 8px;
         }
-        .btn-teal:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(30,143,136,.35); }
+        .btn-teal:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(65,84,244,.35); }
 
         .btn-ghost {
-            background: transparent; color: #111827; padding: 13px 24px; border-radius: 14px;
+            background: transparent; color: #09090b; padding: 13px 24px; border-radius: 14px;
             font-weight: 600; font-size: 15px; transition: all .2s;
-            border: 1.5px solid #E5E7EB; cursor: pointer;
+            border: 1.5px solid #e4e4e7; cursor: pointer;
             display: inline-flex; align-items: center; gap: 8px;
         }
-        .btn-ghost:hover { border-color: #111827; background: #F9FAFB; transform: translateY(-1px); }
+        .btn-ghost:hover { border-color: #09090b; background: #f7f8fa; transform: translateY(-1px); }
 
         /* ── Cards ── */
         .feature-card {
-            background: white; border-radius: 20px; padding: 28px; border: 1px solid #F3F4F6;
+            background: white; border-radius: 20px; padding: 28px; border: 1px solid #f4f4f5;
             transition: all .25s; position: relative; overflow: hidden;
         }
         .feature-card:hover {
-            border-color: #1E8F88; transform: translateY(-4px);
-            box-shadow: 0 20px 40px rgba(30,143,136,.12);
+            border-color: #4154f4; transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(65,84,244,.12);
         }
         .feature-card::before {
             content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-            background: linear-gradient(90deg, #1E8F88, #6366F1);
+            background: linear-gradient(90deg, #4154f4, #4154f4);
             opacity: 0; transition: opacity .25s;
         }
         .feature-card:hover::before { opacity: 1; }
 
         /* ── Step connector ── */
-        .step-line { position: absolute; top: 24px; left: calc(50% + 40px); width: calc(100% - 80px); height: 2px; background: linear-gradient(90deg, #1E8F88, #E5E7EB); }
+        .step-line { position: absolute; top: 24px; left: calc(50% + 40px); width: calc(100% - 80px); height: 2px; background: linear-gradient(90deg, #4154f4, #e4e4e7); }
 
         /* ── Noise texture overlay ── */
         .noise { position: relative; }
@@ -97,10 +113,10 @@
         .orb { border-radius: 50%; filter: blur(80px); position: absolute; pointer-events: none; }
 
         /* ── Header scrolled ── */
-        .header-scrolled { box-shadow: 0 4px 20px rgba(0,0,0,.08); background: rgba(255,255,255,.97); }
+        .header-scrolled { box-shadow: 0 4px 20px rgba(9,9,11,.08); background: rgba(255,255,255,.97); }
 
         /* ── Dashboard mockup ── */
-        .mockup-card { background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.06); overflow: hidden; }
+        .mockup-card { background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(9,9,11,.06); overflow: hidden; }
 
         /* ── Stat counter ── */
         .stat-number { font-size: 2.5rem; font-weight: 900; line-height: 1; }
@@ -142,7 +158,7 @@
             </a>
             <a href="{{ route('register') }}"
                class="inline-flex items-center gap-2 text-sm font-semibold text-white px-4 py-2 rounded-xl transition"
-               style="background:#111827;" onmouseover="this.style.background='#1F2937'" onmouseout="this.style.background='#111827'">
+               style="background:#4154f4;" onmouseover="this.style.background='#3445dc'" onmouseout="this.style.background='#4154f4'">
                 S'inscrire
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </a>
@@ -153,12 +169,12 @@
 {{-- ═══════════════════════════════════════════════════════════════
      HERO
 ═══════════════════════════════════════════════════════════════ --}}
-<section class="relative min-h-screen flex items-center pt-16 overflow-hidden" style="background:linear-gradient(160deg,#F0FDFC 0%,#FAFAFA 50%,#EEF2FF 100%);">
+<section class="relative min-h-screen flex items-center pt-16 overflow-hidden" style="background:linear-gradient(160deg,#eef0fe 0%,#f7f8fa 50%,#eef0fe 100%);">
 
     {{-- Background orbs --}}
-    <div class="orb w-96 h-96" style="background:#1E8F88;opacity:.08;top:-100px;left:-100px;"></div>
-    <div class="orb w-80 h-80" style="background:#6366F1;opacity:.06;bottom:-50px;right:-80px;"></div>
-    <div class="orb w-64 h-64" style="background:#F59E0B;opacity:.05;top:40%;right:15%;"></div>
+    <div class="orb w-96 h-96" style="background:#4154f4;opacity:.08;top:-100px;left:-100px;"></div>
+    <div class="orb w-80 h-80" style="background:#4154f4;opacity:.06;bottom:-50px;right:-80px;"></div>
+    <div class="orb w-64 h-64" style="background:#a16207;opacity:.05;top:40%;right:15%;"></div>
 
     <div class="max-w-7xl mx-auto px-6 py-20 w-full">
         <div class="grid lg:grid-cols-2 gap-16 items-center">
@@ -167,7 +183,7 @@
             <div>
                 {{-- Badge --}}
                 <div class="animate-fade-up inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 border border-teal-200"
-                     style="background:linear-gradient(90deg,#E6F7F4,#EEF2FF);">
+                     style="background:linear-gradient(90deg,#eef0fe,#eef0fe);">
                     <span class="w-2 h-2 rounded-full bg-teal-500"></span>
                     <span class="text-sm font-semibold text-teal-700">Plateforme B2B Professionnelle</span>
                 </div>
@@ -196,7 +212,7 @@
                 {{-- Social proof --}}
                 <div class="animate-fade-up delay-400 flex items-center gap-4">
                     <div class="flex -space-x-2">
-                        @foreach(['#1E8F88','#6366F1','#F59E0B','#EF4444','#10B981'] as $c)
+                        @foreach(['#4154f4','#9e6ef5','#22c55e','#a16207','#dc2626'] as $c)
                         <div class="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold"
                              style="background:{{ $c }};">
                             {{ ['M','A','K','S','Y'][intval($loop->index)] }}
@@ -236,7 +252,7 @@
 
                         {{-- Stats row --}}
                         <div class="grid grid-cols-3 gap-3 mb-5">
-                            @foreach([['12','Connexions','#E6F7F4','#1E8F88'],['8','Leads','#EEF2FF','#6366F1'],['3','Événements','#FEF3C7','#F59E0B']] as [$n,$l,$bg,$c])
+                            @foreach([['12','Connexions','#eef0fe','#4154f4'],['8','Leads','#eef0fe','#4154f4'],['3','Événements','#fef6d8','#a16207']] as [$n,$l,$bg,$c])
                             <div class="rounded-2xl p-3 text-center" style="background:{{ $bg }};">
                                 <p class="text-xl font-black" style="color:{{ $c }};">{{ $n }}</p>
                                 <p class="text-[10px] font-semibold text-gray-500 mt-0.5">{{ $l }}</p>
@@ -252,11 +268,11 @@
                                 ['Audit comptable PME','Claire H.','Finance','5k €','converted'],
                             ] as [$t,$s,$c,$b,$st])
                             @php
-                                $stConf = ['accepted'=>['#ECFDF5','#10B981'],'new'=>['#EFF6FF','#3B82F6'],'converted'=>['#E6F7F4','#1E8F88']][$st];
+                                $stConf = ['accepted'=>['#e4faec','#22c55e'],'new'=>['#eef0fe','#4154f4'],'converted'=>['#eef0fe','#4154f4']][$st];
                             @endphp
                             <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition">
                                 <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                                     style="background:linear-gradient(135deg,#1E8F88,#34d4bf);">
+                                     style="background:linear-gradient(135deg,#4154f4,#6a78e9);">
                                     {{ strtoupper(substr($s,0,1)) }}
                                 </div>
                                 <div class="flex-1 min-w-0">
@@ -264,7 +280,7 @@
                                     <p class="text-[10px] text-gray-400">{{ $s }} · {{ $c }}</p>
                                 </div>
                                 <div class="flex items-center gap-2 flex-shrink-0">
-                                    <span class="text-[10px] font-bold" style="color:#10B981;">{{ $b }}</span>
+                                    <span class="text-[10px] font-bold" style="color:#22c55e;">{{ $b }}</span>
                                     <span class="px-2 py-0.5 rounded-full text-[9px] font-bold" style="background:{{ $stConf[0] }};color:{{ $stConf[1] }};">
                                         {{ ucfirst($st) }}
                                     </span>
@@ -276,8 +292,8 @@
 
                     {{-- Floating notification --}}
                     <div class="absolute -top-4 -right-6 bg-white rounded-2xl shadow-xl p-3.5 flex items-center gap-3 border border-gray-100" style="min-width:200px;">
-                        <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:#E6F7F4;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1E8F88" stroke-width="2.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:#eef0fe;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4154f4" stroke-width="2.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
                         </div>
                         <div>
                             <p class="text-xs font-bold text-gray-900">Nouveau lead reçu !</p>
@@ -287,8 +303,8 @@
 
                     {{-- Floating conversion badge --}}
                     <div class="absolute -bottom-4 -left-6 bg-white rounded-2xl shadow-xl p-3.5 flex items-center gap-3 border border-gray-100">
-                        <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:#ECFDF5;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:#e4faec;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                         </div>
                         <div>
                             <p class="text-xs font-bold text-gray-900">Lead converti 🎉</p>
@@ -308,10 +324,10 @@
     <div class="max-w-5xl mx-auto px-6">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             @foreach([
-                ['500+', 'Professionnels inscrits',  '#1E8F88'],
-                ['1 200+','Leads échangés',           '#6366F1'],
-                ['80+',  'Événements organisés',     '#F59E0B'],
-                ['95%',  'Taux de satisfaction',     '#10B981'],
+                ['500+', 'Professionnels inscrits',  '#4154f4'],
+                ['1 200+','Leads échangés',           '#4154f4'],
+                ['80+',  'Événements organisés',     '#a16207'],
+                ['95%',  'Taux de satisfaction',     '#22c55e'],
             ] as [$n,$l,$c])
             <div>
                 <p class="stat-number mb-1" style="color:{{ $c }};">{{ $n }}</p>
@@ -330,7 +346,7 @@
 
         <div class="text-center mb-16">
             <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold mb-4"
-                 style="background:#E6F7F4;color:#1E8F88;">
+                 style="background:#eef0fe;color:#4154f4;">
                 Tout ce dont vous avez besoin
             </div>
             <h2 class="text-4xl font-black text-gray-900 mb-4">Une plateforme, toutes vos opportunités</h2>
@@ -343,37 +359,37 @@
             $features = [
                 [
                     'icon'  => 'M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3',
-                    'color' => '#6366F1', 'bg' => '#EEF2FF',
+                    'color' => '#4154f4', 'bg' => '#eef0fe',
                     'title' => 'Échange de Leads',
                     'desc'  => 'Transmettez vos opportunités à la bonne personne. Chaque lead a un statut (Nouveau, Accepté, Converti) pour un suivi précis.',
                 ],
                 [
                     'icon'  => 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
-                    'color' => '#1E8F88', 'bg' => '#E6F7F4',
+                    'color' => '#4154f4', 'bg' => '#eef0fe',
                     'title' => 'Réseau Professionnel',
                     'desc'  => 'Connectez-vous avec des professionnels qualifiés dans votre secteur. Envoyez des demandes, développez votre network.',
                 ],
                 [
                     'icon'  => 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM9 22V12h6v10',
-                    'color' => '#F59E0B', 'bg' => '#FEF3C7',
+                    'color' => '#a16207', 'bg' => '#fef6d8',
                     'title' => 'Groupes Professionnels',
                     'desc'  => 'Rejoignez des groupes sectoriels pour échanger, collaborer et partager des ressources avec des pairs de votre domaine.',
                 ],
                 [
                     'icon'  => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z',
-                    'color' => '#EC4899', 'bg' => '#FDF2F8',
+                    'color' => '#9e6ef5', 'bg' => '#f1eafe',
                     'title' => 'Événements B2B',
                     'desc'  => 'Participez à des événements networking, workshops et webinaires. Rencontrez des décideurs et créez des opportunités concrètes.',
                 ],
                 [
                     'icon'  => 'M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16',
-                    'color' => '#10B981', 'bg' => '#ECFDF5',
+                    'color' => '#22c55e', 'bg' => '#e4faec',
                     'title' => 'Profil & Vitrine',
                     'desc'  => 'Créez un profil professionnel complet : compétences, secteur, portfolio. Soyez visible par les bons décideurs.',
                 ],
                 [
                     'icon'  => 'M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6 6 0 0 0-5-5.916V4a1 1 0 0 0-2 0v1.084A6 6 0 0 0 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 0 1-6 0v-1m6 0H9',
-                    'color' => '#8B5CF6', 'bg' => '#EDE9FE',
+                    'color' => '#9e6ef5', 'bg' => '#f1eafe',
                     'title' => 'Notifications Temps Réel',
                     'desc'  => 'Recevez des notifications instantanées pour chaque lead, demande de connexion ou événement. Ne manquez plus aucune opportunité.',
                 ],
@@ -403,7 +419,7 @@
 
         <div class="text-center mb-16">
             <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold mb-4"
-                 style="background:#EEF2FF;color:#6366F1;">
+                 style="background:#eef0fe;color:#4154f4;">
                 Simple comme bonjour
             </div>
             <h2 class="text-4xl font-black text-gray-900 mb-4">Démarrez en 3 étapes</h2>
@@ -412,13 +428,13 @@
 
         <div class="grid md:grid-cols-3 gap-8 relative">
             {{-- Connector lines --}}
-            <div class="hidden md:block absolute top-10 left-1/3 w-1/3 h-0.5" style="background:linear-gradient(90deg,#1E8F88,#6366F1);"></div>
-            <div class="hidden md:block absolute top-10 left-2/3 w-1/3 h-0.5" style="background:linear-gradient(90deg,#6366F1,#F59E0B);"></div>
+            <div class="hidden md:block absolute top-10 left-1/3 w-1/3 h-0.5" style="background:linear-gradient(90deg,#4154f4,#4154f4);"></div>
+            <div class="hidden md:block absolute top-10 left-2/3 w-1/3 h-0.5" style="background:linear-gradient(90deg,#4154f4,#a16207);"></div>
 
             @foreach([
-                ['01', 'Créez votre profil',     '#1E8F88', '#E6F7F4', 'Inscrivez-vous en 2 minutes. Complétez votre profil : secteur, compétences, entreprise. Plus votre profil est complet, plus vous recevez de leads pertinents.', 'M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM12 14a7 7 0 0 0-7 7h14a7 7 0 0 0-7-7z'],
-                ['02', 'Connectez-vous',          '#6366F1', '#EEF2FF', 'Parcourez les membres, envoyez des demandes de connexion et rejoignez des groupes de votre secteur. Votre réseau se construit naturellement.', 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'],
-                ['03', 'Échangez des leads',      '#F59E0B', '#FEF3C7', 'Envoyez des opportunités business à la bonne personne, acceptez des leads reçus et convertissez-les en projets réels. Votre business accélère.', 'M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3'],
+                ['01', 'Créez votre profil',     '#4154f4', '#eef0fe', 'Inscrivez-vous en 2 minutes. Complétez votre profil : secteur, compétences, entreprise. Plus votre profil est complet, plus vous recevez de leads pertinents.', 'M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM12 14a7 7 0 0 0-7 7h14a7 7 0 0 0-7-7z'],
+                ['02', 'Connectez-vous',          '#4154f4', '#eef0fe', 'Parcourez les membres, envoyez des demandes de connexion et rejoignez des groupes de votre secteur. Votre réseau se construit naturellement.', 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'],
+                ['03', 'Échangez des leads',      '#a16207', '#fef6d8', 'Envoyez des opportunités business à la bonne personne, acceptez des leads reçus et convertissez-les en projets réels. Votre business accélère.', 'M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3'],
             ] as [$num, $title, $color, $bg, $desc, $icon])
             <div class="relative text-center">
                 <div class="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 relative"
@@ -447,28 +463,28 @@
 {{-- ═══════════════════════════════════════════════════════════════
      MODULES SHOWCASE
 ═══════════════════════════════════════════════════════════════ --}}
-<section id="modules" class="py-24 overflow-hidden" style="background:linear-gradient(160deg,#0F172A 0%,#111827 100%);">
+<section id="modules" class="py-24 overflow-hidden" style="background:linear-gradient(160deg,#09090b 0%,#09090b 100%);">
     <div class="max-w-7xl mx-auto px-6">
 
         <div class="text-center mb-16">
             <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold mb-4"
-                 style="background:rgba(30,143,136,.2);color:#34d4bf;">
+                 style="background:rgba(65,84,244,.2);color:#6a78e9;">
                 Plateforme complète
             </div>
             <h2 class="text-4xl font-black text-white mb-4">Tout pour votre croissance B2B</h2>
-            <p class="text-lg max-w-2xl mx-auto" style="color:#94A3B8;">Un écosystème complet conçu pour les professionnels B2B ambitieux.</p>
+            <p class="text-lg max-w-2xl mx-auto" style="color:#a1a1aa;">Un écosystème complet conçu pour les professionnels B2B ambitieux.</p>
         </div>
 
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             @foreach([
-                ['Exchanges', 'Échangez des leads qualifiés', '#1E8F88', 'M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3', 'ACTIF'],
-                ['Réseau',    'Gérez vos connexions pro',     '#6366F1', 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',         'ACTIF'],
-                ['Groupes',   'Rejoignez des communautés',    '#F59E0B', 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M17 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',        'ACTIF'],
-                ['Événements','Participez & organisez',       '#EC4899', 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z', 'ACTIF'],
-                ['Profil',    'Votre vitrine professionnelle','#10B981', 'M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z',            'ACTIF'],
-                ['Marketplace','Offres & services B2B',       '#8B5CF6', 'M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z',                                          'Bientôt'],
-                ['Inbox',     'Messagerie directe',           '#3B82F6', 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',                      'Bientôt'],
-                ['Analytics', 'Tableaux de bord avancés',    '#EF4444', 'M18 20V10M12 20V4M6 20v-6',                                                             'Bientôt'],
+                ['Exchanges', 'Échangez des leads qualifiés', '#4154f4', 'M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3', 'ACTIF'],
+                ['Réseau',    'Gérez vos connexions pro',     '#4154f4', 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',         'ACTIF'],
+                ['Groupes',   'Rejoignez des communautés',    '#a16207', 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M17 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',        'ACTIF'],
+                ['Événements','Participez & organisez',       '#9e6ef5', 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z', 'ACTIF'],
+                ['Profil',    'Votre vitrine professionnelle','#22c55e', 'M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z',            'ACTIF'],
+                ['Marketplace','Offres & services B2B',       '#9e6ef5', 'M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z',                                          'Bientôt'],
+                ['Inbox',     'Messagerie directe',           '#4154f4', 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',                      'Bientôt'],
+                ['Analytics', 'Tableaux de bord avancés',    '#dc2626', 'M18 20V10M12 20V4M6 20v-6',                                                             'Bientôt'],
             ] as [$name,$desc,$color,$icon,$status])
             @php $isSoon = $status === 'Bientôt'; @endphp
             <div class="rounded-2xl p-5 border transition"
@@ -480,12 +496,12 @@
                         </svg>
                     </div>
                     <span class="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                          style="{{ $isSoon ? 'background:rgba(255,255,255,.08);color:#94A3B8;' : 'background:'.$color.'25;color:'.$color.';' }}">
+                          style="{{ $isSoon ? 'background:rgba(255,255,255,.08);color:#a1a1aa;' : 'background:'.$color.'25;color:'.$color.';' }}">
                         {{ $status }}
                     </span>
                 </div>
-                <h4 class="font-bold text-sm mb-1" style="color:{{ $isSoon ? '#94A3B8' : 'white' }};">{{ $name }}</h4>
-                <p class="text-xs leading-relaxed" style="color:{{ $isSoon ? '#475569' : '#94A3B8' }};">{{ $desc }}</p>
+                <h4 class="font-bold text-sm mb-1" style="color:{{ $isSoon ? '#a1a1aa' : 'white' }};">{{ $name }}</h4>
+                <p class="text-xs leading-relaxed" style="color:{{ $isSoon ? '#52525b' : '#a1a1aa' }};">{{ $desc }}</p>
             </div>
             @endforeach
         </div>
@@ -507,23 +523,23 @@
 
             {{-- Big value prop left --}}
             <div class="rounded-3xl p-8 text-white relative overflow-hidden noise"
-                 style="background:linear-gradient(135deg,#0F172A,#1E293B);">
-                <div class="orb w-48 h-48" style="background:#1E8F88;opacity:.15;top:-40px;right:-40px;filter:blur(50px);border-radius:50%;position:absolute;"></div>
+                 style="background:linear-gradient(135deg,#09090b,#27272a);">
+                <div class="orb w-48 h-48" style="background:#4154f4;opacity:.15;top:-40px;right:-40px;filter:blur(50px);border-radius:50%;position:absolute;"></div>
                 <div class="relative">
-                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-5" style="background:rgba(30,143,136,.2);">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#34d4bf" stroke-width="1.8"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-5" style="background:rgba(65,84,244,.2);">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6a78e9" stroke-width="1.8"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                     </div>
                     <h3 class="text-xl font-bold mb-3">Concentré sur le ROI</h3>
-                    <p class="text-sm leading-relaxed mb-6" style="color:#94A3B8;">
+                    <p class="text-sm leading-relaxed mb-6" style="color:#a1a1aa;">
                         Chaque fonctionnalité est conçue pour générer de la valeur concrète : plus de leads qualifiés, plus de conversions, plus de business.
                     </p>
                     <div class="space-y-3">
                         @foreach(['Leads trackés du premier contact à la conversion','Réseau qualifié dans votre secteur','Événements qui génèrent des opportunités réelles'] as $item)
                         <div class="flex items-center gap-3">
-                            <div class="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(30,143,136,.3);">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#34d4bf" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                            <div class="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(65,84,244,.3);">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#6a78e9" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
                             </div>
-                            <span class="text-sm" style="color:#CBD5E1;">{{ $item }}</span>
+                            <span class="text-sm" style="color:#d4d4d8;">{{ $item }}</span>
                         </div>
                         @endforeach
                     </div>
@@ -534,8 +550,8 @@
             <div class="space-y-6">
                 <div class="rounded-3xl p-7 border border-gray-100 bg-gradient-to-br from-gray-50 to-white">
                     <div class="flex items-center gap-4 mb-4">
-                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center" style="background:#EEF2FF;">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center" style="background:#eef0fe;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4154f4" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                         </div>
                         <div>
                             <h3 class="font-bold text-gray-900">Sécurisé & Privé</h3>
@@ -547,8 +563,8 @@
 
                 <div class="rounded-3xl p-7 border border-gray-100 bg-gradient-to-br from-teal-50 to-white">
                     <div class="flex items-center gap-4 mb-4">
-                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center" style="background:#E6F7F4;">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E8F88" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center" style="background:#eef0fe;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4154f4" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
                         </div>
                         <div>
                             <h3 class="font-bold text-gray-900">Mobile First</h3>
@@ -565,19 +581,19 @@
 {{-- ═══════════════════════════════════════════════════════════════
      CTA FINAL
 ═══════════════════════════════════════════════════════════════ --}}
-<section class="py-24 relative overflow-hidden noise" style="background:linear-gradient(135deg,#0F172A 0%,#1E293B 50%,#0F172A 100%);">
-    <div class="orb w-96 h-96" style="background:#1E8F88;opacity:.12;top:-100px;left:-100px;filter:blur(80px);border-radius:50%;position:absolute;"></div>
-    <div class="orb w-80 h-80" style="background:#6366F1;opacity:.1;bottom:-80px;right:-80px;filter:blur(80px);border-radius:50%;position:absolute;"></div>
+<section class="py-24 relative overflow-hidden noise" style="background:linear-gradient(135deg,#09090b 0%,#27272a 50%,#09090b 100%);">
+    <div class="orb w-96 h-96" style="background:#4154f4;opacity:.12;top:-100px;left:-100px;filter:blur(80px);border-radius:50%;position:absolute;"></div>
+    <div class="orb w-80 h-80" style="background:#4154f4;opacity:.1;bottom:-80px;right:-80px;filter:blur(80px);border-radius:50%;position:absolute;"></div>
 
     <div class="max-w-4xl mx-auto px-6 text-center relative">
         <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold mb-6"
-             style="background:rgba(30,143,136,.2);color:#34d4bf;">
+             style="background:rgba(65,84,244,.2);color:#6a78e9;">
             Rejoignez la communauté
         </div>
         <h2 class="text-5xl font-black text-white mb-6 leading-tight">
             Prêt à <span class="gradient-text">transformer</span><br>vos connexions en business ?
         </h2>
-        <p class="text-lg mb-10" style="color:#94A3B8;">
+        <p class="text-lg mb-10" style="color:#a1a1aa;">
             Rejoignez +500 professionnels qui utilisent déjà LeadXchange pour développer leur activité. Inscription gratuite, sans carte bancaire.
         </p>
         <div class="flex flex-wrap justify-center gap-4">
@@ -593,7 +609,7 @@
         {{-- Trust badges --}}
         <div class="flex flex-wrap justify-center gap-6 mt-12">
             @foreach(['✓ Inscription gratuite','✓ Sans engagement','✓ Notifications temps réel','✓ Support dédié'] as $badge)
-            <span class="text-sm font-medium" style="color:#64748B;">{{ $badge }}</span>
+            <span class="text-sm font-medium" style="color:#71717a;">{{ $badge }}</span>
             @endforeach
         </div>
     </div>
@@ -602,26 +618,26 @@
 {{-- ═══════════════════════════════════════════════════════════════
      FOOTER
 ═══════════════════════════════════════════════════════════════ --}}
-<footer style="background:#0F172A;" class="py-12">
+<footer style="background:#09090b;" class="py-12">
     <div class="max-w-7xl mx-auto px-6">
         <div class="flex flex-col md:flex-row items-center justify-between gap-6">
 
             {{-- Logo --}}
             <div class="flex items-center gap-2.5">
                 <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-sm"
-                     style="background:linear-gradient(135deg,#1E8F88,#34d4bf);">LX</div>
+                     style="background:linear-gradient(135deg,#4154f4,#6a78e9);">LX</div>
                 <span class="font-bold text-white text-base">LeadXchange</span>
             </div>
 
             {{-- Links --}}
             <div class="flex items-center gap-6">
                 @foreach(['Se connecter' => route('login'), "S'inscrire" => route('register')] as $label => $href)
-                <a href="{{ $href }}" class="text-sm transition" style="color:#64748B;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#64748B'">{{ $label }}</a>
+                <a href="{{ $href }}" class="text-sm transition" style="color:#71717a;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#71717a'">{{ $label }}</a>
                 @endforeach
             </div>
 
             {{-- Copyright --}}
-            <p class="text-sm" style="color:#475569;">
+            <p class="text-sm" style="color:#52525b;">
                 &copy; {{ date('Y') }} LeadXchange. Tous droits réservés.
             </p>
         </div>
