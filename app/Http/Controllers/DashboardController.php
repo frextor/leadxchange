@@ -135,14 +135,14 @@ class DashboardController extends Controller
         // ── Suggestions de contacts (section de la page) ─────────────────────
         // Indépendantes du popup de bienvenue : toujours calculées, même si le popup est désactivé.
         // On évite les membres avec qui une demande est déjà en cours (dans un sens ou l'autre).
-        $pendingWithIds = Connection::where(function ($q) use ($user) {
+        $pendingConnections = Connection::where(function ($q) use ($user) {
             $q->where('sender_id', $user->id)->orWhere('receiver_id', $user->id);
-        })->pending()->get()->map(
-            fn($c) => $c->sender_id === $user->id ? $c->receiver_id : $c->sender_id
-        );
+        })->pending()->get();
+        $pendingSentIds     = $pendingConnections->where('sender_id', $user->id)->pluck('receiver_id')->values();
+        $pendingReceivedIds = $pendingConnections->where('receiver_id', $user->id)->pluck('sender_id')->values();
+        $pendingWithIds     = $pendingSentIds->merge($pendingReceivedIds);
 
         $suggestions = $baseQuery()
-            ->whereNotIn('id', $pendingWithIds->toArray())
             ->inRandomOrder()
             ->limit(6)
             ->get();
@@ -228,7 +228,7 @@ class DashboardController extends Controller
             'completion', 'missing', 'prospects', 'plans',
             'featuredGroups', 'memberGroupIds',
             'upcomingEvents', 'attendingEventIds',
-            'leadStats', 'pendingLeads', 'suggestions', 'suggestionRatings', 'suggestionsCityWidened', 'pointsEarned',
+            'leadStats', 'pendingLeads', 'suggestions', 'suggestionRatings', 'suggestionsCityWidened', 'pendingSentIds', 'pendingReceivedIds', 'pointsEarned',
             'popupEnabled', 'popupFrequency',
             'popupTitle', 'popupSubtitle', 'popupBtnLater', 'popupBtnCta',
             'negativeBalancePopup', 'pointsNeeded', 'pointsPricePerUnit',

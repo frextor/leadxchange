@@ -237,7 +237,11 @@
             </a>
             <div class="role">{{ $member->profile?->job_title ?? 'Membre LeadXchange' }}</div>
         </div>
-        @if(auth()->user()->canFeature('can_send_invitations'))
+        @if($pendingSentIds->contains($member->id))
+        <span class="badge b-muted">Envoyé</span>
+        @elseif($pendingReceivedIds->contains($member->id))
+        <span class="badge b-soft">Demande reçue</span>
+        @elseif(auth()->user()->canFeature('can_send_invitations'))
         <button type="button" onclick="sendConnect({{ $member->id }}, this)" class="circle-act" aria-label="Se connecter avec {{ member_name($member) }}"><x-lx2-icon name="user-plus" /></button>
         @else
         <button type="button" onclick="openUpgradeModal('can_send_invitations')" class="circle-act" aria-label="Se connecter avec {{ member_name($member) }}"><x-lx2-icon name="user-plus" /></button>
