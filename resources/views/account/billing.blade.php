@@ -1,764 +1,337 @@
-@extends('layouts.app')
+@extends('layouts.app2')
+
 @section('title', 'Mon abonnement — LeadXchange')
 
-@push('styles')
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
-<style>
-/* ── Token palette ── */
-:root {
-    --bl-bg:         #F5F3F0;
-    --bl-surface:    #FFFFFF;
-    --bl-border:     #E4E0DA;
-    --bl-border2:    #CFC9C0;
-    --bl-text1:      #1A1714;
-    --bl-text2:      #726860;
-    --bl-text3:      #A89E94;
-    --bl-teal:       #14A98C;
-    --bl-teal-bg:    #EAF7F3;
-    --bl-teal-mid:   #B8E8DC;
-    --bl-teal-dark:  #0D8A72;
-    --bl-amber:      #C07020;
-    --bl-amber-bg:   #FEF3DC;
-    --bl-amber-bdr:  #F0C870;
-    --bl-red:        #CC2222;
-    --bl-red-bg:     #FEE8E8;
-    --bl-red-bdr:    #F0A0A0;
-    --bl-green:      #187A38;
-    --bl-green-bg:   #E0F4E8;
-    --bl-green-bdr:  #8ECFA8;
-    --bl-display:    'Plus Jakarta Sans', system-ui, sans-serif;
-}
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-        --bl-bg:        #131110;
-        --bl-surface:   #1E1B18;
-        --bl-border:    #2C2720;
-        --bl-border2:   #3A342A;
-        --bl-text1:     #EDE8E0;
-        --bl-text2:     #9C9288;
-        --bl-text3:     #635C54;
-        --bl-teal-bg:   #0B2820;
-        --bl-teal-mid:  #164034;
-        --bl-amber-bg:  #281A04;
-        --bl-amber-bdr: #6B4A10;
-        --bl-red-bg:    #260A0A;
-        --bl-red-bdr:   #6B2020;
-        --bl-green-bg:  #0A1E10;
-        --bl-green-bdr: #1E5030;
-    }
-}
-:root[data-theme="dark"] {
-    --bl-bg:        #131110;
-    --bl-surface:   #1E1B18;
-    --bl-border:    #2C2720;
-    --bl-border2:   #3A342A;
-    --bl-text1:     #EDE8E0;
-    --bl-text2:     #9C9288;
-    --bl-text3:     #635C54;
-    --bl-teal-bg:   #0B2820;
-    --bl-teal-mid:  #164034;
-    --bl-amber-bg:  #281A04;
-    --bl-amber-bdr: #6B4A10;
-    --bl-red-bg:    #260A0A;
-    --bl-red-bdr:   #6B2020;
-    --bl-green-bg:  #0A1E10;
-    --bl-green-bdr: #1E5030;
-}
+{{-- Écran « Mon abonnement » — design lx2. Plan, échéance, changement de plan, factures et résiliation. --}}
 
-/* ── Layout ── */
-.bl-wrap {
-    max-width: 660px;
-    margin: 0 auto;
-    padding: 36px 16px 80px;
-    background: var(--bl-bg);
-    min-height: 100vh;
-}
-.bl-section { margin-bottom: 14px; }
-
-/* ── Page title ── */
-.bl-page-title {
-    font-family: var(--bl-display);
-    font-size: 20px;
-    font-weight: 800;
-    color: var(--bl-text1);
-    letter-spacing: -0.3px;
-    margin-bottom: 2px;
-}
-.bl-page-sub {
-    font-size: 13px;
-    color: var(--bl-text2);
-    margin-bottom: 24px;
-}
-
-/* ── Card ── */
-.bl-card {
-    background: var(--bl-surface);
-    border: 1px solid var(--bl-border);
-    border-radius: 16px;
-    overflow: hidden;
-}
-
-/* ── Flash banners ── */
-.bl-flash {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 12px 16px;
-    border-radius: 12px;
-    font-size: 13px;
-    line-height: 1.5;
-    margin-bottom: 14px;
-    border: 1px solid;
-}
-.bl-flash-ok  { background: var(--bl-green-bg);  color: var(--bl-green);  border-color: var(--bl-green-bdr); }
-.bl-flash-err { background: var(--bl-red-bg);    color: var(--bl-red);    border-color: var(--bl-red-bdr);   }
-.bl-flash svg { flex-shrink: 0; margin-top: 1px; }
-
-/* ── Status pill ── */
-.bl-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.1px;
-}
-.bl-pill-active { background: var(--bl-green-bg); color: var(--bl-green); }
-.bl-pill-cancel { background: var(--bl-amber-bg); color: var(--bl-amber); }
-.bl-pill-off    { background: var(--bl-border);   color: var(--bl-text2); }
-.bl-pill-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-    flex-shrink: 0;
-}
-.bl-pill-active .bl-pill-dot {
-    animation: bl-pulse 2s ease-in-out infinite;
-}
-@keyframes bl-pulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.35; }
-}
-
-/* ── Plan hero (top of first card) ── */
-.bl-plan-hero {
-    padding: 22px 22px 0;
-}
-.bl-plan-top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 20px;
-}
-.bl-avatar {
-    width: 44px; height: 44px; border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--bl-display);
-    font-size: 18px; font-weight: 800;
-    color: #fff;
-    background: linear-gradient(135deg, #2DD4B0, #14A98C);
-    flex-shrink: 0;
-}
-.bl-plan-name {
-    font-family: var(--bl-display);
-    font-size: 16px;
-    font-weight: 800;
-    color: var(--bl-text1);
-    letter-spacing: -0.2px;
-}
-.bl-plan-price { font-size: 12px; color: var(--bl-text2); margin-top: 2px; }
-
-/* ── Expiry spotlight ── */
-.bl-expiry {
-    margin-bottom: 20px;
-    padding: 16px 18px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    border: 1px solid;
-}
-.bl-expiry-teal  {
-    background: var(--bl-teal-bg);
-    border-color: var(--bl-teal-mid);
-}
-.bl-expiry-amber {
-    background: var(--bl-amber-bg);
-    border-color: var(--bl-amber-bdr);
-}
-.bl-expiry-muted {
-    background: var(--bl-border);
-    border-color: var(--bl-border2);
-}
-.bl-expiry-icon {
-    width: 38px; height: 38px; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-}
-.bl-expiry-icon-teal  { background: var(--bl-teal); }
-.bl-expiry-icon-amber { background: var(--bl-amber); }
-.bl-expiry-icon-muted { background: var(--bl-text3); }
-.bl-expiry-eyebrow {
-    font-size: 9px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.9px;
-    margin-bottom: 3px;
-}
-.bl-expiry-eyebrow-teal  { color: var(--bl-teal-dark); }
-.bl-expiry-eyebrow-amber { color: var(--bl-amber); }
-.bl-expiry-eyebrow-muted { color: var(--bl-text2); }
-.bl-expiry-date {
-    font-family: var(--bl-display);
-    font-size: 21px;
-    font-weight: 800;
-    color: var(--bl-text1);
-    letter-spacing: -0.4px;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-}
-.bl-expiry-sub { font-size: 12px; color: var(--bl-text2); margin-top: 3px; }
-.bl-expiry-sub-teal  strong { color: var(--bl-teal-dark); }
-.bl-expiry-sub-amber strong { color: var(--bl-amber); }
-.bl-expiry-sub-red   strong { color: var(--bl-red); }
-
-/* ── Date strip ── */
-.bl-date-strip {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    border-top: 1px solid var(--bl-border);
-    margin: 0 -22px;
-}
-.bl-date-item {
-    padding: 14px 22px;
-    border-right: 1px solid var(--bl-border);
-}
-.bl-date-item:last-child { border-right: none; }
-.bl-date-eyebrow {
-    font-size: 9px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.9px;
-    color: var(--bl-text3);
-    margin-bottom: 4px;
-}
-.bl-date-val {
-    font-family: var(--bl-display);
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--bl-text1);
-    font-variant-numeric: tabular-nums;
-}
-.bl-date-hint { font-size: 11px; color: var(--bl-text2); margin-top: 1px; }
-
-/* ── Cancel banner (inside card) ── */
-.bl-cancel-banner {
-    margin: 0;
-    padding: 16px 22px;
-    background: var(--bl-amber-bg);
-    border-top: 1px solid var(--bl-amber-bdr);
-}
-.bl-cancel-banner p {
-    font-size: 12px;
-    color: var(--bl-amber);
-    line-height: 1.55;
-    margin-bottom: 10px;
-}
-.bl-btn-reactivate {
-    padding: 7px 14px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 600;
-    border: 1px solid var(--bl-amber-bdr);
-    color: var(--bl-amber);
-    background: transparent;
-    cursor: pointer;
-    transition: background 0.15s;
-    font-family: inherit;
-}
-.bl-btn-reactivate:hover { background: #fff3dc; }
-
-/* ── Section header inside card ── */
-.bl-card-header {
-    padding: 16px 22px 14px;
-    border-bottom: 1px solid var(--bl-border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-.bl-card-title {
-    font-family: var(--bl-display);
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--bl-text1);
-}
-.bl-card-sub { font-size: 11px; color: var(--bl-text2); margin-top: 1px; }
-.bl-badge-count {
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 9px;
-    border-radius: 999px;
-    background: var(--bl-teal-bg);
-    color: var(--bl-teal-dark);
-    flex-shrink: 0;
-}
-
-/* ── Plans grid ── */
-.bl-plans-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 10px;
-    padding: 16px;
-}
-.bl-plan-card {
-    border: 1.5px solid var(--bl-border);
-    border-radius: 12px;
-    padding: 14px;
-    transition: border-color 0.15s;
-}
-.bl-plan-card:hover:not(.bl-plan-card--active) {
-    border-color: var(--bl-teal);
-}
-.bl-plan-card--active {
-    border-color: var(--bl-teal);
-    background: var(--bl-teal-bg);
-}
-.bl-plan-card-label {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--bl-text2);
-    margin-bottom: 6px;
-}
-.bl-plan-card-price {
-    font-family: var(--bl-display);
-    font-size: 19px;
-    font-weight: 800;
-    color: var(--bl-text1);
-    letter-spacing: -0.4px;
-    line-height: 1;
-}
-.bl-plan-card-price span {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--bl-text2);
-}
-.bl-current-tag {
-    display: inline-block;
-    margin-top: 8px;
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--bl-teal-dark);
-    background: var(--bl-teal-mid);
-    padding: 2px 8px;
-    border-radius: 999px;
-}
-.bl-plan-btn {
-    display: block;
-    width: 100%;
-    margin-top: 10px;
-    padding: 7px;
-    border-radius: 8px;
-    text-align: center;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    border: none;
-    font-family: inherit;
-    text-decoration: none;
-    transition: opacity 0.15s;
-}
-.bl-plan-btn-primary { background: var(--bl-teal); color: #fff; }
-.bl-plan-btn-primary:hover { opacity: 0.85; }
-.bl-plan-btn-ghost {
-    background: transparent;
-    color: var(--bl-text2);
-    border: 1.5px solid var(--bl-border);
-}
-.bl-plan-btn-ghost:hover { border-color: var(--bl-border2); color: var(--bl-text1); }
-
-/* ── Invoice table ── */
-.bl-table-wrap { overflow-x: auto; }
-table.bl-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
-}
-.bl-table th {
-    text-align: left;
-    padding: 10px 18px;
-    font-size: 9px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.9px;
-    color: var(--bl-text3);
-    border-bottom: 1px solid var(--bl-border);
-    white-space: nowrap;
-    background: var(--bl-surface);
-}
-.bl-table td {
-    padding: 11px 18px;
-    border-bottom: 1px solid var(--bl-border);
-    color: var(--bl-text1);
-    vertical-align: middle;
-}
-.bl-table tr:last-child td { border-bottom: none; }
-.bl-table tr:hover td { background: var(--bl-teal-bg); }
-.bl-inv-num   { font-family: monospace; font-size: 11px; color: var(--bl-text2); }
-.bl-inv-desc  { color: var(--bl-text2); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bl-inv-amt   { font-family: var(--bl-display); font-weight: 700; white-space: nowrap; text-align: right; }
-.bl-inv-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 9px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--bl-teal-dark);
-    background: var(--bl-teal-bg);
-    text-decoration: none;
-    border: 1px solid var(--bl-teal-mid);
-    white-space: nowrap;
-    transition: background 0.12s;
-}
-.bl-inv-link:hover { background: var(--bl-teal-mid); }
-.bl-inv-ghost {
-    font-size: 11px;
-    color: var(--bl-text2);
-    text-decoration: none;
-    padding: 4px 6px;
-    border-radius: 6px;
-}
-.bl-inv-ghost:hover { color: var(--bl-text1); }
-
-.bl-empty {
-    padding: 36px 20px;
-    text-align: center;
-    color: var(--bl-text2);
-    font-size: 13px;
-}
-.bl-empty p { font-size: 11px; color: var(--bl-text3); margin-top: 6px; }
-
-/* ── Cancel zone ── */
-.bl-danger { padding: 20px 22px; }
-.bl-danger h3 {
-    font-family: var(--bl-display);
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--bl-text1);
-    margin-bottom: 4px;
-}
-.bl-danger p { font-size: 12px; color: var(--bl-text2); line-height: 1.55; margin-bottom: 14px; }
-.bl-btn-cancel {
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 600;
-    border: 1px solid var(--bl-red-bdr);
-    color: var(--bl-red);
-    background: transparent;
-    cursor: pointer;
-    font-family: inherit;
-    transition: background 0.15s;
-}
-.bl-btn-cancel:hover { background: var(--bl-red-bg); }
-
-@media (max-width: 480px) {
-    .bl-hidden-xs { display: none !important; }
-    .bl-date-strip { grid-template-columns: 1fr 1fr; }
-    .bl-date-item:nth-child(3) { border-top: 1px solid var(--bl-border); grid-column: span 2; border-right: none; }
-    .bl-plans-grid { grid-template-columns: 1fr 1fr; }
-}
-@media (prefers-reduced-motion: reduce) {
-    .bl-pill-dot { animation: none !important; }
-}
-</style>
-@endpush
-
-@section('content')
 @php
-    $hasSub     = !is_null($subscription);
-    $isActive   = $hasSub && $subscription->status === 'active';
-    $isCancelled= $hasSub && (bool)$subscription->cancel_at_period_end;
-    $isPaid     = $hasSub && (float)($subscription->plan?->price ?? 0) > 0;
-    $endDate    = $subscription?->current_period_end;
+    $hasSub          = ! is_null($subscription);
+    $isActive        = $hasSub && $subscription->status === 'active';
+    $isCancelled     = $hasSub && (bool) $subscription->cancel_at_period_end;
+    $isPaid          = $hasSub && (float) ($subscription->plan?->price ?? 0) > 0;
+    $isEnterprisePlan = $subscription?->plan?->is_enterprise ?? false;
+    $endDate         = $subscription?->current_period_end;
 
-    $daysLeft = null;
-    if ($endDate) {
-        $daysLeft = (int) now()->diffInDays($endDate, false);
-    }
+    $daysLeft = $endDate ? (int) now()->diffInDays($endDate, false) : null;
 
-    $billingLabel = match($subscription?->billing_period ?? '') {
+    $billingLabel = match ($subscription?->billing_period ?? '') {
         'yearly'  => 'Annuel',
         'monthly' => 'Mensuel',
         default   => '—',
     };
+    $periodDays = ($subscription?->billing_period === 'yearly') ? 365 : 30;
+    $progress   = ($hasSub && $endDate && $daysLeft !== null && $daysLeft >= 0)
+        ? max(0, min(100, (int) round(($periodDays - $daysLeft) / $periodDays * 100)))
+        : 0;
 
     $planInitial = strtoupper(substr($subscription?->plan?->name ?? 'Basic', 0, 1));
     $planLabel   = $subscription?->plan?->label ?? 'Basic';
-    $isEnterprisePlan = $subscription?->plan?->is_enterprise ?? false;
     $planPrice   = $isPaid
-        ? currency_format($subscription->plan->price) . ($subscription->billing_period === 'yearly' ? '/an' : '/mois')
-        : ($isEnterprisePlan ? 'Sur Devis' : 'Gratuit · sans engagement');
+        ? currency_format($subscription->plan->price) . ($subscription->billing_period === 'yearly' ? ' / an' : ' / mois')
+        : ($isEnterprisePlan ? 'Sur devis' : 'Gratuit · sans engagement');
 
-    // expiry style
     if ($isCancelled) {
-        $expiryStyle = 'amber';
-        $expiryEyebrow = 'Accès jusqu\'au';
-    } elseif ($daysLeft !== null && $daysLeft < 0) {
-        $expiryStyle = 'amber';
-        $expiryEyebrow = 'Expiré le';
-    } else {
-        $expiryStyle = 'teal';
+        $statusLabel = 'Résiliation programmée';
+        $statusClass = 'b-warm';
+        $expiryEyebrow = 'Accès maintenu jusqu’au';
+        $tone = 'var(--warm-fg)';
+    } elseif ($isActive) {
+        $statusLabel = 'Actif';
+        $statusClass = 'b-ok';
         $expiryEyebrow = 'Prochain renouvellement';
+        $tone = 'var(--primary)';
+    } elseif ($hasSub) {
+        $statusLabel = 'Inactif';
+        $statusClass = 'b-muted';
+        $expiryEyebrow = 'Échéance';
+        $tone = 'var(--muted-fg)';
+    } else {
+        $statusLabel = 'Basic';
+        $statusClass = 'b-muted';
+        $expiryEyebrow = 'Abonnement';
+        $tone = 'var(--muted-fg)';
     }
 @endphp
 
-<div class="bl-wrap">
+@push('styles')
+<style>
+    .bl-two{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start;margin-top:18px}
+    .bl-col{display:flex;flex-direction:column;gap:18px;min-width:0}
+    .bl-h{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
+    .bl-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .bl-cap{font-size:11.5px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-fg)}
+    .bl-help{margin:0;font-size:12.5px;color:var(--muted-fg);line-height:1.55}
 
-    {{-- Page header --}}
-    <div class="bl-page-title">Mon abonnement</div>
-    <div class="bl-page-sub">Gérez votre plan et consultez votre historique de facturation.</div>
+    /* En-tête du plan */
+    .bl-plan{display:flex;align-items:center;gap:14px;min-width:0}
+    .bl-plan-ico{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;flex:none;color:#fff;font-size:22px;font-weight:600;background:var(--lx-accent-grad)}
+    .bl-plan-name{font-size:20px;font-weight:600;letter-spacing:-.02em;line-height:1.2;margin-top:3px}
 
-    {{-- Flash --}}
-    @if(session('success'))
-    <div class="bl-flash bl-flash-ok">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 11 3 3L22 4"/></svg>
-        {{ session('success') }}
+    /* Échéance */
+    .bl-expiry{margin-top:22px;padding:18px 20px;border-radius:var(--radius-lg);background:var(--bg);border:1px solid var(--border)}
+    .bl-expiry-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    .bl-date{font-size:26px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:4px}
+    .bl-days{font-size:13.5px;color:var(--fg-2);text-align:right}
+    .bl-days b{font-size:15px;font-weight:600}
+    .bl-progress{height:8px;border-radius:999px;background:var(--muted);overflow:hidden;margin-top:16px}
+    .bl-progress > span{display:block;height:100%;border-radius:999px}
+
+    /* Bandeau de dates */
+    .bl-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:18px;border-top:1px solid var(--border)}
+    .bl-strip > div{padding:14px 0 0}
+    .bl-strip > div + div{padding-left:18px;border-left:1px solid var(--border)}
+    .bl-strip .v{font-size:14px;font-weight:500;margin-top:4px;font-variant-numeric:tabular-nums}
+
+    /* Plans */
+    .bl-plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+    .bl-tile{border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;flex-direction:column;gap:10px;background:#fff;transition:border-color .15s}
+    .bl-tile:hover{border-color:var(--border)}
+    .bl-tile.current{border-color:var(--primary);background:var(--primary-soft)}
+    .bl-tile-price{font-size:22px;font-weight:600;letter-spacing:-.02em;line-height:1}
+    .bl-tile-price small{font-size:12px;font-weight:500;color:var(--muted-fg);margin-left:2px}
+    .bl-tile .btn{margin-top:auto}
+
+    /* Factures */
+    .bl-table-wrap{overflow-x:auto}
+    table.bl-table{width:100%;border-collapse:collapse;font-size:13.5px}
+    .bl-table th{text-align:left;font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-fg);padding:10px 18px;border-bottom:1px solid var(--border);white-space:nowrap;background:var(--bg)}
+    .bl-table td{padding:13px 18px;border-bottom:1px solid var(--border);vertical-align:middle}
+    .bl-table tr:last-child td{border-bottom:0}
+    .bl-table tbody tr:hover td{background:var(--bg)}
+    .bl-num{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--fg-2)}
+    .bl-amt{font-weight:600;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+    .bl-actions{display:flex;justify-content:flex-end;gap:6px;white-space:nowrap}
+
+    /* Zone de résiliation */
+    .bl-danger h3{margin:0 0 6px;font-size:14px;font-weight:600}
+
+    @media (max-width:1020px){
+        .bl-two{grid-template-columns:minmax(0,1fr)}
+    }
+    @media (max-width:640px){
+        .bl-strip{grid-template-columns:1fr 1fr}
+        .bl-strip > div:nth-child(3){grid-column:1/-1;border-left:0;padding-left:0;margin-top:14px;border-top:1px solid var(--border);padding-top:14px}
+        .bl-table .bl-hide-sm{display:none}
+    }
+</style>
+@endpush
+
+@section('content')
+<x-lx2-header title="Mon abonnement" sub="Votre plan, votre facturation et votre résiliation" :back="route('dashboard')" />
+
+@if (session('success'))
+<div class="lx2-flash b-ok" role="status" style="margin-top:18px"><span>{{ session('success') }}</span></div>
+@endif
+@if (session('error'))
+<div class="lx2-flash b-hot" role="alert" style="margin-top:18px"><span>{{ session('error') }}</span></div>
+@endif
+
+{{-- ── Plan actuel et échéance ── --}}
+<section class="card card-pad" style="margin-top:18px">
+    <div class="bl-head" style="margin-bottom:0">
+        <div class="bl-plan">
+            <span class="bl-plan-ico">{{ $planInitial }}</span>
+            <div style="min-width:0">
+                <div class="bl-cap">Votre plan</div>
+                <div class="bl-plan-name">Plan {{ $planLabel }}</div>
+                <div class="bl-help" style="margin-top:2px">{{ $planPrice }}</div>
+            </div>
+        </div>
+        <span class="badge {{ $statusClass }}" style="height:28px;padding:0 12px;font-size:12.5px">{{ $statusLabel }}</span>
     </div>
-    @endif
-    @if(session('error'))
-    <div class="bl-flash bl-flash-err">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        {{ session('error') }}
-    </div>
-    @endif
 
-    {{-- ── Card 1 : Plan + expiry ── --}}
-    <div class="bl-card bl-section">
-        <div class="bl-plan-hero">
-
-            {{-- Plan header --}}
-            <div class="bl-plan-top">
-                <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
-                    <div class="bl-avatar">{{ $planInitial }}</div>
-                    <div>
-                        <div class="bl-plan-name">Plan {{ $planLabel }}</div>
-                        <div class="bl-plan-price">{{ $planPrice }}</div>
-                    </div>
-                </div>
-
-                @if($isCancelled)
-                <div class="bl-pill bl-pill-cancel"><span class="bl-pill-dot"></span>Résiliation prog.</div>
-                @elseif($isActive)
-                <div class="bl-pill bl-pill-active"><span class="bl-pill-dot"></span>Actif</div>
-                @elseif($hasSub)
-                <div class="bl-pill bl-pill-off">Inactif</div>
+    @if ($hasSub && $endDate)
+    <div class="bl-expiry">
+        <div class="bl-expiry-row">
+            <div>
+                <div class="bl-cap">{{ $expiryEyebrow }}</div>
+                <div class="bl-date">{{ $endDate->format('d/m/Y') }}</div>
+            </div>
+            <div class="bl-days">
+                @if ($daysLeft === null)
+                    —
+                @elseif ($daysLeft > 0)
+                    <b>{{ $daysLeft }} jour{{ $daysLeft > 1 ? 's' : '' }}</b> restant{{ $daysLeft > 1 ? 's' : '' }}
+                @elseif ($daysLeft === 0)
+                    <b>Échéance aujourd’hui</b>
                 @else
-                <div class="bl-pill bl-pill-off">Basic</div>
+                    <b style="color:var(--destructive)">Expiré depuis {{ abs($daysLeft) }} jour{{ abs($daysLeft) > 1 ? 's' : '' }}</b>
                 @endif
             </div>
+        </div>
+        <div class="bl-progress" aria-hidden="true"><span style="width:{{ $progress }}%;background:{{ $tone }}"></span></div>
+    </div>
+    @elseif (! $hasSub)
+    <div class="bl-expiry">
+        <div class="bl-cap">{{ $expiryEyebrow }}</div>
+        <div class="bl-date" style="font-size:20px">{{ $isEnterprisePlan ? 'Sur devis' : 'Gratuit' }}</div>
+        <p class="bl-help" style="margin-top:6px">{{ $isEnterprisePlan ? 'Pack négocié : contactez-nous pour en discuter.' : 'Sans engagement, sans date d’expiration.' }}</p>
+    </div>
+    @endif
 
-            {{-- Expiry spotlight --}}
-            @if($hasSub && $endDate)
-            <div class="bl-expiry bl-expiry-{{ $expiryStyle }}">
-                <div class="bl-expiry-icon bl-expiry-icon-{{ $expiryStyle }}">
-                    @if($isCancelled)
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="16" x2="15" y2="16"/></svg>
-                    @else
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
-                    @endif
-                </div>
+    <div class="bl-strip">
+        <div>
+            <div class="bl-cap">Membre depuis</div>
+            <div class="v">{{ $user->created_at->locale('fr')->isoFormat('D MMMM YYYY') }}</div>
+        </div>
+        <div>
+            <div class="bl-cap">Début de l’abonnement</div>
+            <div class="v">{{ $hasSub ? $subscription->created_at->locale('fr')->isoFormat('D MMMM YYYY') : '—' }}</div>
+        </div>
+        <div>
+            <div class="bl-cap">Facturation</div>
+            <div class="v">{{ $isPaid ? $billingLabel : '—' }}</div>
+        </div>
+    </div>
+
+    @if ($isCancelled)
+    <div class="lx2-flash b-warm" role="note" style="margin:20px 0 0;align-items:center">
+        <span>Votre abonnement sera résilié le <b>{{ $endDate?->format('d/m/Y') }}</b>. Vous gardez l’accès jusqu’à cette date.</span>
+        <form method="POST" action="{{ route('billing.reactivate') }}">
+            @csrf
+            <button type="submit" class="btn btn-outline btn-sm">Annuler la résiliation</button>
+        </form>
+    </div>
+    @endif
+</section>
+
+<div class="bl-two">
+
+    {{-- ── Colonne principale : changer de plan ── --}}
+    <div class="bl-col">
+        <section class="card card-pad">
+            <div class="bl-head">
                 <div>
-                    <div class="bl-expiry-eyebrow bl-expiry-eyebrow-{{ $expiryStyle }}">{{ $expiryEyebrow }}</div>
-                    <div class="bl-expiry-date">{{ $endDate->format('d/m/Y') }}</div>
-                    <div class="bl-expiry-sub bl-expiry-sub-{{ $daysLeft < 0 ? 'red' : $expiryStyle }}">
-                        @if($daysLeft === null)
-                            —
-                        @elseif($daysLeft > 0)
-                            <strong>{{ $daysLeft }} jour{{ $daysLeft > 1 ? 's' : '' }}</strong> restant{{ $daysLeft > 1 ? 's' : '' }}
-                        @elseif($daysLeft === 0)
-                            <strong>Expire aujourd'hui</strong>
+                    <h2 class="bl-h">Changer de plan</h2>
+                    <p class="bl-help" style="margin-top:4px">Passez à un plan supérieur à tout moment.</p>
+                </div>
+            </div>
+
+            <div class="bl-plans">
+                @foreach ($plans as $plan)
+                    @php $isCurrent = $subscription?->plan_id === $plan->id; @endphp
+                    <div class="bl-tile {{ $isCurrent ? 'current' : '' }}">
+                        <div class="bl-cap">{{ $plan->label }}</div>
+                        <div class="bl-tile-price">
+                            @if ($plan->price > 0)
+                                {{ currency_format($plan->price) }}<small>/ mois</small>
+                            @else
+                                {{ $plan->is_enterprise ? 'Sur devis' : 'Gratuit' }}
+                            @endif
+                        </div>
+
+                        @if ($isCurrent)
+                            <span class="badge b-ok" style="align-self:flex-start">Plan actuel</span>
+                        @elseif ($plan->stripe_price_id)
+                            <form method="POST" action="{{ route('checkout', $plan) }}">
+                                @csrf
+                                <button type="submit" class="btn btn-primary btn-sm btn-block">Choisir</button>
+                            </form>
                         @else
-                            <strong>Expiré depuis {{ abs($daysLeft) }} jour{{ abs($daysLeft) > 1 ? 's' : '' }}</strong>
+                            <a href="{{ route('upgrade') }}" class="btn btn-outline btn-sm btn-block">Voir l’offre</a>
                         @endif
                     </div>
-                </div>
+                @endforeach
             </div>
-            @elseif(!$hasSub)
-            <div class="bl-expiry bl-expiry-muted" style="margin-bottom:20px;">
-                <div class="bl-expiry-icon bl-expiry-icon-muted">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
-                </div>
+        </section>
+
+        {{-- Factures --}}
+        <section class="card" style="overflow:hidden">
+            <div class="bl-head" style="padding:18px 20px 0;margin-bottom:12px">
                 <div>
-                    <div class="bl-expiry-eyebrow bl-expiry-eyebrow-muted">Abonnement</div>
-                    <div class="bl-expiry-date" style="font-size:15px;">{{ $isEnterprisePlan ? 'Sur Devis' : 'Gratuit · Basic' }}</div>
-                    <div class="bl-expiry-sub">{{ $isEnterprisePlan ? 'Pack négocié · contactez-nous' : 'Sans engagement · pas d\'expiration' }}</div>
+                    <h2 class="bl-h">Factures</h2>
+                    <p class="bl-help" style="margin-top:4px">Émises via Stripe. Téléchargez le PDF de chaque facture.</p>
                 </div>
-            </div>
-            @endif
-
-            {{-- Date strip --}}
-            <div class="bl-date-strip">
-                <div class="bl-date-item">
-                    <div class="bl-date-eyebrow">Membre depuis</div>
-                    <div class="bl-date-val">{{ $user->created_at->format('d/m/Y') }}</div>
-                    <div class="bl-date-hint">{{ $user->created_at->format('Y') }}</div>
-                </div>
-                <div class="bl-date-item">
-                    <div class="bl-date-eyebrow">Début abonnement</div>
-                    @if($hasSub)
-                    <div class="bl-date-val">{{ $subscription->created_at->format('d/m/Y') }}</div>
-                    <div class="bl-date-hint">{{ $billingLabel }}</div>
-                    @else
-                    <div class="bl-date-val">—</div>
-                    <div class="bl-date-hint">Plan gratuit</div>
-                    @endif
-                </div>
-                <div class="bl-date-item">
-                    <div class="bl-date-eyebrow">Paiement</div>
-                    <div class="bl-date-val" style="font-size:11px;">{{ $isPaid ? 'Carte bancaire' : '—' }}</div>
-                    <div class="bl-date-hint">{{ $isPaid ? 'PCI-DSS' : ($isEnterprisePlan ? 'Sur Devis' : 'Gratuit') }}</div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Cancel warning --}}
-        @if($isCancelled)
-        <div class="bl-cancel-banner">
-            <p>
-                ⚠ Votre abonnement sera <strong>résilié le {{ $endDate?->format('d/m/Y') }}</strong>.
-                Vous conservez l'accès à toutes les fonctionnalités jusqu'à cette date.
-            </p>
-            <form method="POST" action="{{ route('billing.reactivate') }}">
-                @csrf
-                <button type="submit" class="bl-btn-reactivate">↩ Annuler la résiliation</button>
-            </form>
-        </div>
-        @endif
-    </div>
-
-    {{-- ── Card 2 : Plans ── --}}
-    <div class="bl-card bl-section">
-        <div class="bl-card-header">
-            <div>
-                <div class="bl-card-title">Changer de plan</div>
-                <div class="bl-card-sub">Passez à un plan supérieur à tout moment.</div>
-            </div>
-        </div>
-        <div class="bl-plans-grid">
-            @foreach($plans as $plan)
-            @php $isCurrent = $subscription?->plan_id === $plan->id; @endphp
-            <div class="bl-plan-card {{ $isCurrent ? 'bl-plan-card--active' : '' }}">
-                <div class="bl-plan-card-label">{{ $plan->label }}</div>
-                <div class="bl-plan-card-price">
-                    {{ $plan->price > 0 ? currency_format($plan->price) : ($plan->is_enterprise ? 'Sur Devis' : 'Gratuit') }}<span>{{ $plan->price > 0 ? '/mois' : '' }}</span>
-                </div>
-                @if($isCurrent)
-                    <div class="bl-current-tag">Plan actuel</div>
-                @elseif($plan->stripe_price_id)
-                    <form method="POST" action="{{ route('checkout', $plan) }}">
-                        @csrf
-                        <button type="submit" class="bl-plan-btn bl-plan-btn-primary">Choisir</button>
-                    </form>
-                @else
-                    <a href="{{ route('upgrade') }}" class="bl-plan-btn bl-plan-btn-ghost">Voir</a>
+                @if (count($invoices) > 0)
+                    <span class="badge b-muted">{{ count($invoices) }}</span>
                 @endif
             </div>
-            @endforeach
-        </div>
-    </div>
 
-    {{-- ── Card 3 : Invoices ── --}}
-    <div class="bl-card bl-section">
-        <div class="bl-card-header">
-            <div>
-                <div class="bl-card-title">Factures</div>
-                <div class="bl-card-sub">Émises via Stripe (CGU §12.3) · Cliquez PDF pour télécharger</div>
+            @if (count($invoices) > 0)
+            <div class="bl-table-wrap">
+                <table class="bl-table">
+                    <thead>
+                        <tr>
+                            <th>N° de facture</th>
+                            <th class="bl-hide-sm">Description</th>
+                            <th>Date</th>
+                            <th style="text-align:right">Montant</th>
+                            <th style="text-align:right"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($invoices as $invoice)
+                        <tr>
+                            <td><span class="bl-num">{{ $invoice['number'] }}</span></td>
+                            <td class="bl-hide-sm" title="{{ $invoice['description'] }}" style="color:var(--fg-2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ $invoice['description'] }}</td>
+                            <td style="white-space:nowrap;color:var(--muted-fg)">{{ $invoice['date'] }}</td>
+                            <td class="bl-amt">{{ number_format($invoice['amount'], 2, ',', ' ') }} {{ $invoice['currency'] }}</td>
+                            <td>
+                                <div class="bl-actions">
+                                    @if ($invoice['pdf_url'])
+                                        <a href="{{ $invoice['pdf_url'] }}" target="_blank" rel="noopener" class="btn btn-outline btn-sm">PDF</a>
+                                    @endif
+                                    @if ($invoice['receipt_url'])
+                                        <a href="{{ $invoice['receipt_url'] }}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">Voir</a>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
-            @if(count($invoices) > 0)
-            <span class="bl-badge-count">{{ count($invoices) }}</span>
+            @elseif ($isPaid)
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:36px 20px;text-align:center;color:var(--muted-fg);font-size:13.5px">
+                    <x-lx2-icon name="file-text" />
+                    <span>Aucune facture pour l’instant.</span>
+                    <span class="help" style="margin:0">Vos factures apparaîtront après votre premier paiement.</span>
+                </div>
+            @else
+                <div style="padding:28px 20px;text-align:center;color:var(--muted-fg);font-size:13.5px">
+                    Plan Basic : aucune facturation.
+                </div>
             @endif
-        </div>
-
-        @if(count($invoices) > 0)
-        <div class="bl-table-wrap">
-            <table class="bl-table">
-                <thead>
-                    <tr>
-                        <th>N° Facture</th>
-                        <th class="bl-hidden-xs">Description</th>
-                        <th>Date</th>
-                        <th style="text-align:right;">Montant</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($invoices as $invoice)
-                    <tr>
-                        <td><span class="bl-inv-num">{{ $invoice['number'] }}</span></td>
-                        <td class="bl-inv-desc bl-hidden-xs" title="{{ $invoice['description'] }}">
-                            {{ $invoice['description'] }}
-                        </td>
-                        <td style="white-space:nowrap;color:var(--bl-text2);">{{ $invoice['date'] }}</td>
-                        <td class="bl-inv-amt">{{ number_format($invoice['amount'], 2, ',', ' ') }} {{ $invoice['currency'] }}</td>
-                        <td style="text-align:right;white-space:nowrap;">
-                            <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
-                                @if($invoice['pdf_url'])
-                                <a href="{{ $invoice['pdf_url'] }}" target="_blank" class="bl-inv-link">
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                    PDF
-                                </a>
-                                @endif
-                                @if($invoice['receipt_url'])
-                                <a href="{{ $invoice['receipt_url'] }}" target="_blank" class="bl-inv-ghost">Voir ↗</a>
-                                @endif
-                            </div>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-        @elseif($isPaid)
-        <div class="bl-empty">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--bl-border2)" stroke-width="1.5" style="display:block;margin:0 auto 8px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            Aucune facture pour l'instant
-            <p>Vos factures apparaîtront après votre premier paiement.</p>
-        </div>
-        @else
-        <div class="bl-empty">
-            <p>Plan Basic — aucune facturation.</p>
-        </div>
-        @endif
+        </section>
     </div>
 
-    {{-- ── Card 4 : Cancel ── --}}
-    @if($hasSub && $isActive && !$isCancelled && $isPaid)
-    <div class="bl-card bl-section" style="border-color: var(--bl-red-bdr);">
-        <div class="bl-danger">
-            <h3>Résilier l'abonnement</h3>
-            <p>
+    {{-- ── Colonne latérale : paiement et résiliation ── --}}
+    <aside class="bl-col">
+        <section class="card card-pad">
+            <h2 class="bl-h" style="margin-bottom:14px">Paiement</h2>
+            <div style="display:flex;align-items:center;gap:12px">
+                <span class="av-fb" style="width:40px;height:40px;border-radius:10px"><x-lx2-icon name="credit-card" /></span>
+                <div style="min-width:0">
+                    <div style="font-size:14px;font-weight:500">{{ $isPaid ? 'Carte bancaire' : 'Aucun moyen de paiement' }}</div>
+                    <div class="bl-help">{{ $isPaid ? 'Paiement sécurisé par Stripe' : 'Requis uniquement pour un plan payant' }}</div>
+                </div>
+            </div>
+            @if ($isPaid && $isActive && ! $isCancelled && $endDate)
+            <div class="bl-strip" style="margin-top:16px;grid-template-columns:1fr">
+                <div style="border-left:0;padding-left:0">
+                    <div class="bl-cap">Prochain paiement</div>
+                    <div class="v">{{ $endDate->locale('fr')->isoFormat('D MMMM YYYY') }}</div>
+                </div>
+            </div>
+            @endif
+        </section>
+
+        @if ($hasSub && $isActive && ! $isCancelled && $isPaid)
+        <section class="card card-pad bl-danger" style="border-color:var(--destructive-soft)">
+            <h3>Résilier l’abonnement</h3>
+            <p class="bl-help" style="margin-bottom:14px">
                 La résiliation prend effet à la fin de la période en cours
-                @if($endDate)({{ $endDate->format('d/m/Y') }})@endif.
-                Vous conservez l'accès jusqu'à cette date. Aucun remboursement prorata (CGU §12.5).
+                @if ($endDate)({{ $endDate->format('d/m/Y') }})@endif.
+                Vous gardez l’accès jusqu’à cette date. Aucun remboursement au prorata (CGU §12.5).
             </p>
             @php $cancelEndDate = $endDate?->format('d/m/Y') ?? 'la fin de la période'; @endphp
             <form method="POST" action="{{ route('billing.cancel') }}"
-                  onsubmit="return confirm('Résilier votre abonnement ?\n\nAccès maintenu jusqu\'au {{ $cancelEndDate }}.')">
+                  onsubmit="return confirm('Résilier votre abonnement ? Accès maintenu jusqu’au {{ $cancelEndDate }}.')">
                 @csrf
-                <button type="submit" class="bl-btn-cancel">Résilier mon abonnement</button>
+                <button type="submit" class="btn btn-danger-soft btn-block">Résilier mon abonnement</button>
             </form>
-        </div>
-    </div>
-    @endif
-
+        </section>
+        @endif
+    </aside>
 </div>
 @endsection
