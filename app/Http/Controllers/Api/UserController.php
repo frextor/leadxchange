@@ -97,7 +97,7 @@ class UserController extends Controller
                 : ['pending', 'accepted'];
 
             // ?city_id=  → ville choisie à l'accueil, transmise par le JS web (voir note dans UserService)
-            $cityId = $request->filled('city_id') ? (int) $request->get('city_id') : null;
+            $cityId = $request->get('city_id') !== null && $request->get('city_id') !== '' ? (int) $request->get('city_id') : null;
 
             $users = $this->userService->getRecommendedUsers($currentUser, $page, $search, 10, $excludeStatuses, $cityId);
 

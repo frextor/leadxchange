@@ -172,7 +172,11 @@ class UserService
         // qui connaît la ville choisie à l'accueil) en priorité — la session PHP n'est pas fiable ici
         // car /api/* tourne sans session sur les domaines non listés dans SANCTUM_STATEFUL_DOMAINS.
         // Sinon, repli sur la session (contexte web classique) puis sur la ville du profil.
+        // 0 = « Toutes les villes » explicitement choisi (aucun filtre)
         $selectedCityId = $cityId ?? session('selected_city_id', $currentUser->city_id);
+        if ($selectedCityId === 0) {
+            $selectedCityId = null;
+        }
         $mySectorIds = $currentUser->profile?->sector_ids ?? [];
         $myInterestIds = $mySectorIds; // kept for scoring SQL compatibility (unused now)
 

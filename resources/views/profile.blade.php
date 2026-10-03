@@ -67,23 +67,23 @@
     .pf-grid .full{grid-column:1/-1}
     .pf-empty{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border:1.5px dashed var(--border);border-radius:var(--radius-lg);padding:16px 18px;color:var(--muted-fg);font-size:13.5px}
 
-    /* En-tête : couverture + identité */
+    /* En-tête : bannière, avatar qui la chevauche, actions alignées sur l'avatar, infos sous la bannière */
     .pf-hero{padding:0;overflow:hidden}
-    .pf-cover{height:132px;background:var(--lx-accent-grad);position:relative;overflow:hidden}
-    .pf-cover::before,.pf-cover::after{content:"";position:absolute;border-radius:999px;background:rgba(255,255,255,.12)}
-    .pf-cover::before{width:320px;height:320px;right:-90px;top:-170px}
-    .pf-cover::after{width:200px;height:200px;right:200px;bottom:-130px}
-    .pf-identity{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;padding:0 24px 22px;margin-top:-52px;position:relative}
+    .pf-cover{height:156px;position:relative;overflow:hidden;background:radial-gradient(90% 120% at 100% 0%,rgba(158,110,245,.6) 0%,rgba(158,110,245,0) 60%),var(--lx-accent-grad)}
+    .pf-cover::before,.pf-cover::after{content:"";position:absolute;border-radius:999px;background:rgba(255,255,255,.1)}
+    .pf-cover::before{width:340px;height:340px;right:-110px;top:-190px}
+    .pf-cover::after{width:180px;height:180px;right:260px;bottom:-120px}
+    .pf-topline{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:0 24px;margin-top:-56px;position:relative}
     .pf-avatar-wrap{position:relative;flex:none}
-    .pf-avatar{width:104px;height:104px;border-radius:999px;border:4px solid #fff;box-shadow:var(--shadow-md);object-fit:cover;display:grid;place-items:center;font-size:32px;font-weight:600}
-    .pf-camera{position:absolute;right:-2px;bottom:2px;width:32px;height:32px;cursor:pointer;box-shadow:var(--shadow-sm)}
-    .pf-name-block{min-width:0;padding-bottom:4px;flex:1 1 280px}
-    .pf-name{margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
-    .pf-headline{margin-top:4px;font-size:14px;color:var(--fg-2)}
-    .pf-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:13px;color:var(--muted-fg);margin-top:10px}
-    .pf-meta span{display:inline-flex;align-items:center;gap:5px}
+    .pf-avatar{width:112px;height:112px;border-radius:999px;border:4px solid #fff;box-shadow:var(--shadow-md);object-fit:cover;display:grid;place-items:center;font-size:36px;font-weight:600;background:var(--primary-soft);color:var(--primary)}
+    .pf-camera{position:absolute;right:0;bottom:4px;width:34px;height:34px;cursor:pointer;background:#fff;box-shadow:var(--shadow-md);border-color:var(--border)}
+    .pf-info{padding:14px 24px 24px}
+    .pf-name{margin:0;font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
+    .pf-headline{margin-top:4px;font-size:15px;color:var(--fg-2)}
+    .pf-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;font-size:13px;color:var(--muted-fg);margin-top:14px}
+    .pf-meta span{display:inline-flex;align-items:center;gap:6px;min-width:0;overflow-wrap:anywhere}
     .pf-meta svg{width:14px;height:14px;flex:none}
-    .pf-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding-bottom:4px}
+    .pf-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding-bottom:6px}
 
     /* Corps */
     .pf-body{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start;margin-top:20px}
@@ -117,11 +117,11 @@
 
     @media (max-width:640px){
         .pf-grid{grid-template-columns:1fr}
-        .pf-identity{flex-direction:column;align-items:flex-start;gap:12px;padding:0 18px 18px;margin-top:-44px}
-        .pf-avatar{width:88px;height:88px}
-        .pf-name-block{flex:none;width:100%}
-        .pf-actions{margin-left:0;width:100%}
-        .pf-actions .btn{flex:1}
+        .pf-topline{padding:0 18px;margin-top:-48px}
+        .pf-avatar{width:96px;height:96px}
+        .pf-info{padding:14px 18px 20px}
+        .pf-name{font-size:21px}
+        .pf-actions .btn{padding:0 12px}
     }
 </style>
 @endpush
@@ -146,7 +146,8 @@
 {{-- ── En-tête : couverture, identité, actions ── --}}
 <section class="card pf-hero">
     <div class="pf-cover"></div>
-    <div class="pf-identity">
+
+    <div class="pf-topline">
         <div class="pf-avatar-wrap">
             @if ($profile?->avatar_url)
                 <img id="avatarImg" class="pf-avatar" src="{{ $profile->avatar_url }}" alt="">
@@ -159,22 +160,21 @@
             <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp" class="hidden">
         </div>
 
-        <div class="pf-name-block">
-            <h1 class="pf-name">{{ $fullName }}</h1>
-            @if ($headline)<div class="pf-headline">{{ $headline }}</div>@endif
-            <div class="pf-meta">
-                <span class="badge b-muted">{{ $badgeLabel }}</span>
-                @if ($profile?->open_to_network)<span class="badge b-ok">Ouvert au réseau</span>@endif
-                @if ($user['city']['name'] ?? null)<span><x-lx2-icon name="map-pin" />{{ $user['city']['name'] }}</span>@endif
-                @if ($user['member_since'])<span><x-lx2-icon name="clock" />Membre depuis {{ \Carbon\Carbon::parse('1 ' . $user['member_since'])->locale('fr')->isoFormat('MMMM YYYY') }}</span>@endif
-                <span><x-lx2-icon name="mail" />{{ $user['email'] }}</span>
-            </div>
-        </div>
-
         <div class="pf-actions">
             <button type="button" class="btn btn-primary" onclick="lx2Dialog('modal-basic')">
                 <x-lx2-icon name="settings" />Modifier le profil
             </button>
+        </div>
+    </div>
+
+    <div class="pf-info">
+        <h1 class="pf-name">{{ $fullName }}</h1>
+        @if ($headline)<div class="pf-headline">{{ $headline }}</div>@endif
+        <div class="pf-meta">
+            <span class="badge b-muted">{{ $badgeLabel }}</span>
+            @if ($profile?->open_to_network)<span class="badge b-ok">Ouvert au réseau</span>@endif
+            @if ($user['city']['name'] ?? null)<span><x-lx2-icon name="map-pin" />{{ $user['city']['name'] }}</span>@endif
+            @if ($user['member_since'])<span><x-lx2-icon name="clock" />Membre depuis {{ \Carbon\Carbon::parse('1 ' . $user['member_since'])->locale('fr')->isoFormat('MMMM YYYY') }}</span>@endif
         </div>
     </div>
 </section>

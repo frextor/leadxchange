@@ -21,12 +21,8 @@ class RegionSelectorController extends Controller
 
         $cityId = $request->filled('city_id') ? (int) $request->city_id : null;
 
-        if ($cityId) {
-            $request->session()->put('selected_city_id', $cityId);
-        } else {
-            // "Toutes les régions" → supprime le filtre
-            $request->session()->forget('selected_city_id');
-        }
+        // « Toutes les villes » = null explicite : la clé existe, donc les lecteurs ne retombent pas sur la ville du profil
+        $request->session()->put('selected_city_id', $cityId);
 
         // Redirect to the intended page (events, groups, dashboard, connections…)
         $redirect = $request->input('redirect');
