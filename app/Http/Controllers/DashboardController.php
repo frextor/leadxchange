@@ -223,7 +223,70 @@ class DashboardController extends Controller
             ->latest('proposal_sent_at')
             ->first();
 
+        // ── Mon activité : séries quotidiennes (lecture seule, 90 jours, découpées côté vue) ──
+        $since90 = now()->subDays(89)->startOfDay();
+        $sentByDay = Lead::where('sender_id', $user->id)->where('created_at', '>=', $since90)
+            ->selectRaw('DATE(created_at) as d, COUNT(*) as c')->groupBy('d')->pluck('c', 'd');
+        $receivedByDay = Lead::where('receiver_id', $user->id)->where('created_at', '>=', $since90)
+            ->selectRaw('DATE(created_at) as d, COUNT(*) as c')->groupBy('d')->pluck('c', 'd');
+        $convertedByDay = Lead::where('sender_id', $user->id)->where('status', Lead::STATUS_CONVERTED)
+            ->where('converted_at', '>=', $since90)
+            ->selectRaw('DATE(converted_at) as d, COUNT(*) as c')->groupBy('d')->pluck('c', 'd');
+
+        $buildSeries = function (int $days) use ($sentByDay, $receivedByDay, $convertedByDay) {
+            $series = ['labels' => [], 'sent' => [], 'received' => [], 'converted' => []];
+            for ($i = $days - 1; $i >= 0; $i--) {
+                $date = now()->subDays($i);
+                $key  = $date->format('Y-m-d');
+                $series['labels'][]    = $date->format('d/m');
+                $series['sent'][]      = (int) ($sentByDay[$key] ?? 0);
+                $series['received'][]  = (int) ($receivedByDay[$key] ?? 0);
+                $series['converted'][] = (int) ($convertedByDay[$key] ?? 0);
+            }
+            return $series;
+        };
+        $activity = ['7' => $buildSeries(7), '30' => $buildSeries(30), '90' => $buildSeries(90)];
+
+        // ── Tendances du mois (mois en cours vs mois précédent) ──
+        $thisMonth = now()->startOfMonth();
+        $prevStart = now()->subMonthNoOverflow()->startOfMonth();
+        $prevEnd   = $thisMonth->copy()->subSecond();
+        $trend = fn (int $now, int $prev) => [
+            'now' => $now,
+            'pct' => $prev > 0 ? (int) round(($now - $prev) / $prev * 100) : null,
+        ];
+        $kpiTrends = [
+            'sent'      => $trend(
+                Lead::where('sender_id', $user->id)->where('created_at', '>=', $thisMonth)->count(),
+                Lead::where('sender_id', $user->id)->whereBetween('created_at', [$prevStart, $prevEnd])->count(),
+            ),
+            'converted' => $trend(
+                Lead::where('sender_id', $user->id)->where('status', Lead::STATUS_CONVERTED)->where('converted_at', '>=', $thisMonth)->count(),
+                Lead::where('sender_id', $user->id)->where('status', Lead::STATUS_CONVERTED)->whereBetween('converted_at', [$prevStart, $prevEnd])->count(),
+            ),
+            'points'    => $trend(
+                (int) PointsHistory::where('user_id', $user->id)->where('delta', '>', 0)->where('created_at', '>=', $thisMonth)->sum('delta'),
+                (int) PointsHistory::where('user_id', $user->id)->where('delta', '>', 0)->whereBetween('created_at', [$prevStart, $prevEnd])->sum('delta'),
+            ),
+        ];
+
+        // ── À faire : uniquement les actions issues de données existantes ──
+        $todoItems = collect();
+        if ($completion < 100) {
+            $todoItems->push(['icon' => 'user', 'title' => 'Compléter mon profil', 'count' => null, 'meta' => $completion . ' %', 'url' => route('profile.me')]);
+        }
+        if (($leadStats['pending'] ?? 0) > 0) {
+            $todoItems->push(['icon' => 'inbox', 'title' => 'Traiter les nouveaux leads', 'count' => $leadStats['pending'], 'meta' => null, 'url' => route('leads.index', ['box' => 'received'])]);
+        }
+        if ($pendingCount > 0) {
+            $todoItems->push(['icon' => 'user-plus', 'title' => 'Répondre aux demandes de connexion', 'count' => $pendingCount, 'meta' => null, 'url' => route('connections.index')]);
+        }
+
+        // Opportunités : aucune source de données n'existe encore. Structure prête, liste vide.
+        $opportunities = collect();
+
         return view('dashboard', compact(
+            'activity', 'kpiTrends', 'todoItems', 'opportunities',
             'user', 'connectionCount', 'pendingCount', 'groupCount',
             'completion', 'missing', 'prospects', 'plans',
             'featuredGroups', 'memberGroupIds',

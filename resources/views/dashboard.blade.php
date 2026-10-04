@@ -5,6 +5,85 @@
 @push('styles')
 <style>
     @keyframes slideUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ── Tableau de bord : grille principale et cartes ── */
+    .db-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px;align-items:start;margin-top:8px}
+    .db-col{display:flex;flex-direction:column;gap:18px;min-width:0}
+    .db-card{padding:20px}
+    .db-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    .db-title{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
+    .db-sub{margin:3px 0 0;font-size:12.5px;color:var(--muted-fg)}
+    .db-muted-link{font-size:12.5px;color:var(--muted-fg);white-space:nowrap;cursor:not-allowed}
+
+    /* Mon activité */
+    .db-seg{display:inline-flex;background:var(--muted);border-radius:var(--radius);padding:3px;gap:2px}
+    .db-seg button{height:28px;padding:0 11px;border:0;background:transparent;border-radius:6px;font-size:12.5px;color:var(--muted-fg);cursor:pointer;transition:background .15s,color .15s}
+    .db-seg button:hover{color:var(--fg-2)}
+    .db-seg button.on{background:#fff;color:var(--fg);box-shadow:var(--shadow-sm);font-weight:500}
+    .db-mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:10px}
+    .db-mini-n{display:block;font-size:22px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+    .db-mini-l{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-fg);margin-top:3px}
+    .db-mini-l i{width:8px;height:8px;border-radius:999px;display:inline-block;flex:none}
+    .db-chart{position:relative;height:200px;width:100%}
+    .db-chart svg{display:block;overflow:visible}
+    .db-chart .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+    .db-chart .grid-l{stroke:var(--border);stroke-width:1}
+    .db-chart .axis{font-size:11px;fill:var(--muted-fg)}
+    .db-tip{position:absolute;top:0;pointer-events:none;background:var(--fg);color:#fff;border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.5;transform:translate(-50%,-100%);white-space:nowrap;opacity:0;transition:opacity .12s;z-index:2}
+    .db-tip.show{opacity:1}
+
+    /* À faire */
+    .db-todo{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);color:var(--fg-2);margin-top:8px;transition:border-color .15s,background .15s}
+    .db-todo:hover{border-color:var(--primary);background:var(--primary-soft)}
+    .db-todo-ico{width:32px;height:32px;border-radius:9px;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center;flex:none}
+    .db-todo-t{flex:1;min-width:0;font-size:13.5px;font-weight:500}
+    .db-todo > svg{color:var(--muted-fg);width:14px;height:14px;flex:none}
+
+    /* Réseau à développer */
+    .db-list{display:flex;flex-direction:column;gap:10px}
+    .db-list .mrow{transition:border-color .15s,box-shadow .15s}
+    .db-list .mrow:hover{border-color:var(--primary-soft-2);box-shadow:var(--shadow-sm)}
+
+    /* Opportunités (structure prête) */
+    .db-opp{border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;display:flex;flex-direction:column;gap:8px;margin-top:8px;transition:border-color .15s}
+    .db-opp:hover{border-color:var(--primary)}
+    .db-opp-top{display:flex;align-items:center;gap:10px}
+    .db-opp-company{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .db-opp-cat{font-size:12px;color:var(--muted-fg)}
+    .db-opp-title{margin:0;font-size:14.5px;font-weight:600}
+    .db-opp-meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--fg-2)}
+    .db-opp-meta span{display:inline-flex;align-items:center;gap:5px}
+    .db-opp-meta svg{width:13px;height:13px;color:var(--muted-fg)}
+    .db-empty{display:flex;flex-direction:column;align-items:center;gap:6px;padding:26px 16px;text-align:center;color:var(--muted-fg);font-size:13px;border:1.5px dashed var(--border);border-radius:var(--radius-lg)}
+    .db-empty > svg{color:var(--muted-fg)}
+
+    /* Événements à venir (compact) */
+    .db-event{display:flex;align-items:center;gap:14px;padding:12px 20px;border-top:1px solid var(--border);transition:background .15s}
+    .db-event:first-child{border-top:0}
+    .db-event:hover{background:var(--bg)}
+    .db-event-date{width:50px;flex:none;text-align:center;border-radius:10px;background:var(--primary-soft);color:var(--primary);padding:6px 0;display:flex;flex-direction:column;line-height:1.1}
+    .db-event-date b{font-size:18px;font-weight:600}
+    .db-event-date small{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}
+    .db-event-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+    .db-event-t{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .db-event-meta{font-size:12.5px;color:var(--muted-fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    /* KPI : ligne de contexte */
+    .kpi-sub{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:11.5px;color:var(--muted-fg)}
+
+    /* Accès rapides : retour visuel au survol */
+    .qa a.card{transition:transform .15s,box-shadow .15s,border-color .15s}
+    .qa a.card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+
+    @media (max-width:1020px){
+        .db-grid{grid-template-columns:minmax(0,1fr)}
+    }
+    @media (max-width:640px){
+        .db-card{padding:16px}
+        .db-mini-n{font-size:18px}
+        .db-chart{height:170px}
+        .db-event{padding:12px 16px}
+    }
 </style>
 @endpush
 
@@ -185,14 +264,35 @@
 {{-- ══════════════════════════════════════════════════════════════
      KPIs
 ════════════════════════════════════════════════════════════════ --}}
+@php
+    $trendBadge = function (array $t): array {
+        if ($t['pct'] === null) {
+            return $t['now'] > 0 ? ['Nouveau ce mois', 'b-soft'] : ['Aucune activité', 'b-muted'];
+        }
+        if ($t['pct'] > 0) return ['▲ ' . $t['pct'] . ' %', 'b-ok'];
+        if ($t['pct'] < 0) return ['▼ ' . abs($t['pct']) . ' %', 'b-hot'];
+        return ['Stable', 'b-muted'];
+    };
+    $kpiCards = [
+        ['lx-send', $leadStats['sent'] ?? 0,            'Leads envoyés',   'Ce mois : ' . $kpiTrends['sent']['now'],            $trendBadge($kpiTrends['sent'])],
+        ['check',   $leadStats['converted'] ?? 0,       'Leads convertis', 'Ce mois : ' . $kpiTrends['converted']['now'],       $trendBadge($kpiTrends['converted'])],
+        ['wallet',  (int) ($user->points_balance ?? 0), 'Solde du compte', 'Plafond : 30 points',                                 null],
+        ['star',    $pointsEarned,                      'Points gagnés',   'Ce mois : +' . $kpiTrends['points']['now'],         $trendBadge($kpiTrends['points'])],
+    ];
+@endphp
 <div class="kpis">
-    @foreach([
-        ['lx-send', $leadStats['sent'] ?? 0,              'Leads envoyés'],
-        ['check',   $leadStats['converted'] ?? 0,         'Leads convertis'],
-        ['wallet',  (int) ($user->points_balance ?? 0),   'Solde du compte'],
-        ['star',    $pointsEarned,                        'Points gagnés'],
-    ] as [$icon, $value, $label])
-    <div class="card kpi"><span class="ico"><x-lx2-icon :name="$icon" /></span><div><div class="v num">{{ $value }}</div><div class="l">{{ $label }}</div></div></div>
+    @foreach($kpiCards as [$icon, $value, $label, $sub, $badge])
+    <div class="card kpi">
+        <span class="ico"><x-lx2-icon :name="$icon" /></span>
+        <div style="min-width:0">
+            <div class="v num">{{ $value }}</div>
+            <div class="l">{{ $label }}</div>
+            <div class="kpi-sub">
+                <span>{{ $sub }}</span>
+                @if($badge)<span class="badge {{ $badge[1] }}">{{ $badge[0] }}</span>@endif
+            </div>
+        </div>
+    </div>
     @endforeach
 </div>
 
@@ -200,7 +300,7 @@
 @if($completion < 100)
 <div class="banner">
     <span class="ring" style="background:conic-gradient(#fff 0 {{ $completion }}%,rgba(255,255,255,.3) 0)"><span>{{ $completion }}%</span></span>
-    <div class="tx"><b>Complétez votre profil commercial</b><small>Un profil complet génère 3× plus de leads entrants.</small></div>
+    <div class="tx"><b>Votre profil est presque prêt !</b><small>Complétez les dernières informations pour recevoir des opportunités plus pertinentes.</small></div>
     <a class="btn" href="{{ route('profile.me') }}">Compléter mon profil</a>
 </div>
 @endif
@@ -219,14 +319,108 @@
 {{-- ══════════════════════════════════════════════════════════════
      SUGGESTIONS DE CONTACTS — maquette › memberRow(id, 'Pour toi')
 ════════════════════════════════════════════════════════════════ --}}
-<div class="sh"><h2>Suggestions de contacts</h2><a class="link" href="{{ route('connections.index') }}">Voir tout</a></div>
+{{-- ══════════════════════════════════════════════════════════════
+     CONTENU PRINCIPAL — gauche : activité, opportunités · droite : à faire, réseau
+════════════════════════════════════════════════════════════════ --}}
+<div class="db-grid">
+
+    <div class="db-col">
+
+        {{-- Mon activité --}}
+        <section class="card db-card">
+            <div class="db-card-head">
+                <div>
+                    <h2 class="db-title">Mon activité</h2>
+                    <p class="db-sub">Leads envoyés, reçus et convertis</p>
+                </div>
+                <div class="db-seg" id="dbSeg" role="group" aria-label="Période">
+                    <button type="button" data-days="7">7 jours</button>
+                    <button type="button" data-days="30" class="on">30 jours</button>
+                    <button type="button" data-days="90">3 mois</button>
+                </div>
+            </div>
+
+            <div class="db-mini">
+                <div><span class="db-mini-n" id="dbSentN">0</span><span class="db-mini-l"><i style="background:var(--primary)"></i>Envoyés</span></div>
+                <div><span class="db-mini-n" id="dbRecvN">0</span><span class="db-mini-l"><i style="background:var(--purple)"></i>Reçus</span></div>
+                <div><span class="db-mini-n" id="dbConvN">0</span><span class="db-mini-l"><i style="background:var(--green)"></i>Convertis</span></div>
+            </div>
+
+            <div class="db-chart" id="dbChart" aria-label="Graphique d'activité"></div>
+            <script type="application/json" id="dbActivityData">@json($activity)</script>
+        </section>
+
+        {{-- Opportunités disponibles (structure prête : aucune source de données pour le moment) --}}
+        <section class="card db-card">
+            <div class="db-card-head">
+                <div>
+                    <h2 class="db-title">🔥 Opportunités disponibles</h2>
+                    <p class="db-sub">Demandes ouvertes par les entreprises du réseau</p>
+                </div>
+                <span class="db-muted-link" title="Bientôt disponible">Voir toutes les opportunités →</span>
+            </div>
+
+            @forelse($opportunities as $opp)
+            <article class="db-opp">
+                <div class="db-opp-top">
+                    <span class="av-fb" style="width:36px;height:36px;border-radius:10px">{{ mb_strtoupper(mb_substr($opp['company'], 0, 1)) }}</span>
+                    <div style="min-width:0;flex:1">
+                        <div class="db-opp-company">{{ $opp['company'] }}</div>
+                        <div class="db-opp-cat">{{ $opp['category'] }}</div>
+                    </div>
+                    <span class="badge {{ $opp['status_class'] }}">{{ $opp['status'] }}</span>
+                </div>
+                <h3 class="db-opp-title">{{ $opp['title'] }}</h3>
+                <div class="db-opp-meta">
+                    <span><x-lx2-icon name="map-pin" />{{ $opp['location'] }}</span>
+                    <span><b>{{ $opp['budget'] }}</b></span>
+                </div>
+                <a class="btn btn-outline btn-sm" href="{{ $opp['url'] }}">Voir l’opportunité</a>
+            </article>
+            @empty
+            <div class="db-empty">
+                <x-lx2-icon name="flag" />
+                <span>Aucune opportunité disponible pour le moment.</span>
+                <span class="help" style="margin:0">Les nouvelles demandes des entreprises apparaîtront ici.</span>
+            </div>
+            @endforelse
+        </section>
+    </div>
+
+    <div class="db-col">
+
+        {{-- À faire --}}
+        <section class="card db-card">
+            <div class="db-card-head" style="margin-bottom:10px">
+                <div><h2 class="db-title">À faire</h2></div>
+                @if($todoItems->isNotEmpty())<span class="badge b-soft">{{ $todoItems->count() }}</span>@endif
+            </div>
+
+            @forelse($todoItems as $todo)
+            <a class="db-todo" href="{{ $todo['url'] }}">
+                <span class="db-todo-ico"><x-lx2-icon :name="$todo['icon']" /></span>
+                <span class="db-todo-t">{{ $todo['title'] }}</span>
+                @if($todo['count'] !== null)<span class="badge b-hot">{{ $todo['count'] }}</span>@endif
+                @if($todo['meta'])<span class="badge b-soft">{{ $todo['meta'] }}</span>@endif
+                <x-lx2-icon name="chevron-right" />
+            </a>
+            @empty
+            <div class="db-empty" style="padding:22px 12px">
+                <x-lx2-icon name="check" />
+                <span>Tout est à jour pour le moment.</span>
+            </div>
+            @endforelse
+        </section>
+
+        {{-- Réseau à développer (suggestions) --}}
+        <div class="sh" style="margin-top:6px"><h2>🤝 Réseau à développer</h2><a class="link" href="{{ route('connections.index') }}">Voir tout</a></div>
 @if($suggestionsCityWidened)
 <div class="lx2-flash b-soft" role="note">
     <span>Aucun membre disponible à <b>{{ $selectedCity?->name }}</b> pour le moment — suggestions élargies à toutes les villes.</span>
 </div>
 @endif
 @if($suggestions->isNotEmpty())
-<div class="grid-2">
+<div class="db-list">
     @foreach($suggestions as $member)
     @php $note = $suggestionRatings[$member->id] ?? null; @endphp
     <div class="card mrow">
@@ -236,6 +430,7 @@
                 @if($note)<span class="stars"><x-lx2-icon name="star" />{{ round($note) }}</span>@endif
             </a>
             <div class="role">{{ $member->profile?->job_title ?? 'Membre LeadXchange' }}</div>
+            @if($member->profile?->sector)<span class="badge b-outline" style="margin-top:4px">{{ $member->profile->sector }}</span>@endif
         </div>
         @if($pendingSentIds->contains($member->id))
         <span class="badge b-muted">Envoyé</span>
@@ -256,13 +451,31 @@
 {{-- ══════════════════════════════════════════════════════════════
      ÉVÉNEMENTS À VENIR — maquette › eventCard(e)
 ════════════════════════════════════════════════════════════════ --}}
+    </div>
+</div>
+
 <div class="sh"><h2>Événements à venir</h2><a class="link" href="{{ route('events.index') }}">Voir tout</a></div>
 @if($upcomingEvents->isNotEmpty())
-<div class="grid-3">
+<section class="card db-card" style="padding:6px 0">
     @foreach($upcomingEvents as $event)
-        @include('events._card', ['event' => $event, 'attendingIds' => $attendingEventIds])
+    @php
+        $modeLabel   = ['virtual' => 'Virtuel', 'in_person' => 'En personne', 'hybrid' => 'Hybride'][$event->type] ?? 'Événement';
+        $isAttending = in_array($event->id, $attendingEventIds);
+    @endphp
+    <a class="db-event" href="{{ route('events.show', $event->id) }}">
+        <span class="db-event-date">
+            <b>{{ $event->starts_at->format('d') }}</b>
+            <small>{{ $event->starts_at->locale('fr')->isoFormat('MMM') }}</small>
+        </span>
+        <span class="db-event-main">
+            <span class="db-event-t">{{ $event->title }}</span>
+            <span class="db-event-meta">{{ $event->starts_at->locale('fr')->isoFormat('HH:mm') }} · {{ $event->city?->name ?? 'Ville non précisée' }} · {{ $modeLabel }}</span>
+        </span>
+        @if($isAttending)<span class="badge b-ok">Inscrit</span>@endif
+        <span class="btn btn-outline btn-sm">Voir</span>
+    </a>
     @endforeach
-</div>
+</section>
 @else
 <div class="card empty">Aucun événement à venir — <a class="link" href="{{ route('events.index') }}">explorez les événements</a></div>
 @endif
@@ -511,5 +724,110 @@ function lx2SetBilling(period, btn) {
         input.value = (period === 'annual' && hasAnnual) ? 'annual' : 'monthly';
     });
 }
+
+/* ── Mon activité : graphique SVG léger, période au choix (7 jours, 30 jours, 3 mois) ── */
+(function () {
+    const dataEl = document.getElementById('dbActivityData');
+    const chart  = document.getElementById('dbChart');
+    const seg    = document.getElementById('dbSeg');
+    if (!dataEl || !chart || !seg) return;
+
+    const data = JSON.parse(dataEl.textContent);
+    const SERIES = [
+        { key: 'sent',      label: 'Envoyés',  color: '#4154F4' },
+        { key: 'received',  label: 'Reçus',    color: '#9E6EF5' },
+        { key: 'converted', label: 'Convertis', color: '#22C55E' },
+    ];
+    const NS = 'http://www.w3.org/2000/svg';
+    const tip = document.createElement('div');
+    tip.className = 'db-tip';
+    chart.appendChild(tip);
+    let period = '30';
+
+    function sumOf(arr) { return arr.reduce((a, b) => a + b, 0); }
+
+    function render() {
+        const d = data[period];
+        const W = chart.clientWidth, H = chart.clientHeight;
+        if (!W || !H) return;
+        const pad = { l: 30, r: 18, t: 10, b: 24 };
+        const iw = W - pad.l - pad.r, ih = H - pad.t - pad.b;
+        const n = d.labels.length;
+        const max = Math.max(4, ...SERIES.flatMap(s => d[s.key]));
+        const x = i => pad.l + (n === 1 ? iw / 2 : i * iw / (n - 1));
+        const y = v => pad.t + ih - (v / max) * ih;
+
+        let g = '';
+        for (let k = 0; k <= 4; k++) {
+            const v = Math.round(max * k / 4), yy = y(v);
+            g += `<line class="grid-l" x1="${pad.l}" x2="${W - pad.r}" y1="${yy}" y2="${yy}"/>`;
+            g += `<text class="axis" x="${pad.l - 8}" y="${yy + 4}" text-anchor="end">${v}</text>`;
+        }
+        const step = Math.max(1, Math.ceil(n / 6));
+        d.labels.forEach((lab, i) => {
+            if (i % step === 0 || i === n - 1) {
+                g += `<text class="axis" x="${x(i)}" y="${H - 6}" text-anchor="middle">${lab}</text>`;
+            }
+        });
+        SERIES.forEach(s => {
+            const pts = d[s.key].map((v, i) => `${x(i)},${y(v)}`).join(' ');
+            g += `<polyline class="ln" fill="none" stroke="${s.color}" points="${pts}"/>`;
+        });
+        g += `<line id="dbCursor" x1="0" x2="0" y1="${pad.t}" y2="${pad.t + ih}" stroke="var(--border)" stroke-width="1" style="display:none"/>`;
+        g += `<rect class="hit" x="${pad.l}" y="${pad.t}" width="${iw}" height="${ih}" fill="transparent"/>`;
+
+        chart.querySelectorAll('svg').forEach(el => el.remove());
+        const svg = document.createElementNS(NS, 'svg');
+        svg.setAttribute('width', W);
+        svg.setAttribute('height', H);
+        svg.setAttribute('role', 'img');
+        svg.innerHTML = g;
+        chart.insertBefore(svg, tip);
+
+        const cursor = svg.querySelector('#dbCursor');
+        svg.querySelector('.hit').addEventListener('mousemove', (e) => {
+            const rect = svg.getBoundingClientRect();
+            const px = e.clientX - rect.left;
+            const i = Math.max(0, Math.min(n - 1, Math.round((px - pad.l) / (iw / Math.max(1, n - 1)))));
+            cursor.setAttribute('x1', x(i));
+            cursor.setAttribute('x2', x(i));
+            cursor.style.display = '';
+            tip.innerHTML = `<b>${d.labels[i]}</b><br>` + SERIES.map(s =>
+                `<span style="color:${s.color}">●</span> ${s.label} : ${d[s.key][i]}`).join('<br>');
+            tip.style.left = x(i) + 'px';
+            tip.style.top = (pad.t + 4) + 'px';
+            tip.classList.add('show');
+        });
+        svg.querySelector('.hit').addEventListener('mouseleave', () => {
+            cursor.style.display = 'none';
+            tip.classList.remove('show');
+        });
+    }
+
+    function summary() {
+        const d = data[period];
+        document.getElementById('dbSentN').textContent = sumOf(d.sent);
+        document.getElementById('dbRecvN').textContent = sumOf(d.received);
+        document.getElementById('dbConvN').textContent = sumOf(d.converted);
+    }
+
+    seg.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            period = btn.dataset.days;
+            seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
+            summary();
+            render();
+        });
+    });
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(render, 120);
+    });
+
+    summary();
+    render();
+})();
 </script>
 @endpush
