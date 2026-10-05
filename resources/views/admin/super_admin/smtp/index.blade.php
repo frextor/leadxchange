@@ -97,6 +97,7 @@
                         <input type="number" name="port" value="{{ old('port', $setting->port ?? 587) }}"
                                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
                                placeholder="587" required>
+                        <p class="text-[11px] text-gray-400 mt-1">465 = SSL · 587 = TLS</p>
                     </div>
 
                     <div>

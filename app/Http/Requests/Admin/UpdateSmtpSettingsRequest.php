@@ -25,6 +25,21 @@ class UpdateSmtpSettingsRequest extends FormRequest
         ];
     }
 
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($v) {
+            $port = (int) $this->input('port');
+            $enc  = $this->input('encryption');
+
+            if ($port === 465 && $enc !== 'ssl') {
+                $v->errors()->add('encryption', 'Le port 465 exige le chiffrement SSL.');
+            }
+            if ($port === 587 && $enc !== 'tls') {
+                $v->errors()->add('encryption', 'Le port 587 exige le chiffrement TLS.');
+            }
+        });
+    }
+
     public function messages(): array
     {
         return [
