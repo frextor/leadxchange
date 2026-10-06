@@ -234,14 +234,14 @@
 
             {{-- §4.1 — Secteur d'activité --}}
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Secteur d'activité <span class="text-red-400">*</span></label>
-                <select name="sector_id" class="lx-input px-4 py-3.5 @error('sector_id') lx-error @enderror">
-                    <option value="">— Sélectionnez votre secteur —</option>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Secteurs d'activité <span class="text-red-400">*</span> <span class="text-xs font-normal text-gray-400">(plusieurs choix possibles)</span></label>
+                <select name="sector_ids[]" id="sectorSelect" multiple class="lx-input px-4 py-3.5 @error('sector_ids') lx-error @enderror @error('sector_ids.*') lx-error @enderror">
                     @foreach($sectors as $s)
-                    <option value="{{ $s->id }}" {{ old('sector_id') == $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
+                    <option value="{{ $s->id }}" {{ in_array($s->id, (array) old('sector_ids', [])) ? 'selected' : '' }}>{{ $s->name }}</option>
                     @endforeach
                 </select>
-                @error('sector_id') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+                @error('sector_ids') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
+                @error('sector_ids.*') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
 
             {{-- §4.1 — Fonction / Poste --}}
@@ -321,6 +321,20 @@
     </p>
 @endsection
 
+@push('head')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css">
+<style>
+    .select2-container--default .select2-selection--multiple { border-radius: .75rem; border-color: #E4E4E7; min-height: 3.5rem; padding: .375rem .5rem; }
+    .select2-container--default.select2-container--focus .select2-selection--multiple { border-color: #3C55FD; box-shadow: 0 0 0 3px rgba(60,85,253,.15); }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice { background: #EEF0FE; border-color: #C7CDFB; color: #3C55FD; border-radius: .5rem; }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove { color: #3C55FD; }
+    .select2-dropdown { border-radius: .75rem; border-color: #E4E4E7; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/select2.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/i18n/fr.js"></script>
+@endpush
+
 @push('scripts')
 <div id="_reg_err" data-errors="{{ json_encode($errors->keys()) }}" hidden></div>
 <script>
@@ -380,6 +394,7 @@
         const s2 = document.getElementById('step2');
         s2.classList.remove('hidden');
         s2.classList.add('lx-fade-in');
+        initSectorSelect();
 
         document.getElementById('step2-indicator').style.background = '#3C55FD';
         document.getElementById('step2-indicator').style.color = '#fff';
@@ -481,10 +496,22 @@
     // Auto-jump to step 2 on server-side validation errors
     if (window._registerErrors && window._registerErrors.length) {
         document.addEventListener('DOMContentLoaded', function () {
-            const step2Fields = ['phone', 'gender', 'city_id', 'birthday', 'sector_id', 'job_title', 'legal_capacity', 'is_professional', 'terms'];
+            const step2Fields = ['phone', 'gender', 'city_id', 'birthday', 'sector_ids', 'job_title', 'legal_capacity', 'is_professional', 'terms'];
             const hasStep2Errors = step2Fields.some(f => window._registerErrors.includes(f));
             const hasStep1Errors = ['first_name', 'last_name', 'email', 'password'].some(f => window._registerErrors.includes(f));
             if (hasStep2Errors && !hasStep1Errors) goToStep2();
+        });
+    }
+
+    function initSectorSelect() {
+        if (typeof jQuery === 'undefined' || !jQuery.fn.select2) return;
+        const $sel = jQuery('#sectorSelect');
+        if ($sel.hasClass('select2-hidden-accessible')) return;
+        $sel.select2({
+            width: '100%',
+            placeholder: 'Sélectionnez un ou plusieurs secteurs',
+            closeOnSelect: false,
+            language: 'fr',
         });
     }
 </script>

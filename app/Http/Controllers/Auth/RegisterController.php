@@ -64,7 +64,8 @@ class RegisterController extends Controller
             'birthday'       => ['required', 'date', 'before:-18 years'],  // §3.2 : ≥ 18 ans
             'legal_capacity' => ['required', 'accepted'],                  // §3.2 : capacité juridique
             // §4.1 — Secteur d'activité et fonction obligatoires
-            'sector_id'       => ['required', 'integer', 'exists:sectors,id'],
+            'sector_ids'      => ['required', 'array', 'min:1'],
+            'sector_ids.*'    => ['integer', 'distinct', 'exists:sectors,id'],
             'job_title'       => ['required', 'string', 'max:100'],
             'is_professional' => ['required', 'accepted'],  // CGU §2.3
             'terms'           => ['required', 'accepted'],   // CGU §3.1
@@ -83,8 +84,10 @@ class RegisterController extends Controller
             'birthday.required'          => 'La date de naissance est requise.',
             'birthday.before'            => 'Vous devez avoir au moins 18 ans pour vous inscrire.',
             'legal_capacity.accepted'    => 'Vous devez déclarer avoir la pleine capacité juridique et être âgé(e) d\'au moins 18 ans.',
-            'sector_id.required'         => 'Veuillez sélectionner votre secteur d\'activité.',
-            'sector_id.exists'           => 'Secteur invalide.',
+            'sector_ids.required'        => 'Veuillez sélectionner au moins un secteur d\'activité.',
+            'sector_ids.min'             => 'Veuillez sélectionner au moins un secteur d\'activité.',
+            'sector_ids.*.exists'        => 'Secteur invalide.',
+            'sector_ids.*.distinct'      => 'Un secteur ne peut être sélectionné qu\'une fois.',
             'job_title.required'         => 'Veuillez indiquer votre fonction / poste.',
             'is_professional.accepted'   => 'Vous devez déclarer agir dans le cadre de votre activité professionnelle.',
             'terms.accepted'             => 'Vous devez accepter les Conditions Générales d\'Utilisation.',
@@ -103,7 +106,7 @@ class RegisterController extends Controller
                 'region_id'          => $validated['region_id'] ?? $validated['city_id'],
                 'birthday'           => $validated['birthday'],
                 'job_title'          => $validated['job_title'],     // §4.1
-                'sector_id'          => $validated['sector_id'],     // §4.1
+                'sector_ids'         => $validated['sector_ids'],    // §4.1
             ]);
 
             // The registration form already collects the account & step-2 info,

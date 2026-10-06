@@ -202,7 +202,9 @@ class AuthService
             'open_to_network'     => $data['open_to_network']     ?? null,
             'website'             => $data['website']             ?? null,
             'linkedin'            => $data['linkedin']            ?? null,
-            'sector_ids'          => isset($data['sector_id']) ? [$data['sector_id']] : null,
+            'sector_ids'          => isset($data['sector_ids'])
+                                        ? array_values(array_unique(array_map('intval', (array) $data['sector_ids'])))
+                                        : (isset($data['sector_id']) ? [(int) $data['sector_id']] : null),
             'market_addressed_id' => $data['market_addressed_id'] ?? null,
             'market_target_id'    => $data['market_target_id']    ?? null,
         ], fn($v) => $v !== null);
