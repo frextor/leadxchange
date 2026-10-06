@@ -48,7 +48,9 @@ $dialCodes = [
     ['+380', '🇺🇦', 'Ukraine'],
 ];
 
-$initialFlag  = collect($dialCodes)->firstWhere(0, $codeValue)[1] ?? '🌍';
+// Les emoji drapeaux ne s'affichent pas sous Windows : on en déduit le code ISO (ex. 🇲🇦 → ma) pour afficher une image.
+$isoOf      = fn (string $flag) => mb_strtolower(implode('', array_map(fn ($ch) => chr(mb_ord($ch) - 0x1F1E6 + 65), mb_str_split($flag))));
+$initialIso = $isoOf(collect($dialCodes)->firstWhere(0, $codeValue)[1] ?? '');
 $initialLabel = $codeValue;
 @endphp
 
@@ -56,9 +58,10 @@ $initialLabel = $codeValue;
      x-data="{
         open: false,
         code: '{{ $codeValue }}',
-        flag: '{{ $initialFlag }}',
+        iso: '{{ $initialIso }}',
         search: '',
-        codes: {{ json_encode(array_map(fn($d) => ['code'=>$d[0],'flag'=>$d[1],'label'=>$d[2]], $dialCodes)) }},
+        codes: {{ json_encode(array_map(fn($d) => ['code'=>$d[0],'iso'=>$isoOf($d[1]),'label'=>$d[2]], $dialCodes)) }},
+        flagUrl(iso) { return iso ? 'https://flagcdn.com/w40/' + iso + '.png' : ''; },
         get filtered() {
             if (!this.search) return this.codes;
             const s = this.search.toLowerCase();
@@ -66,7 +69,7 @@ $initialLabel = $codeValue;
         },
         select(c) {
             this.code = c.code;
-            this.flag = c.flag;
+            this.iso = c.iso;
             this.open = false;
             this.search = '';
         }
@@ -82,7 +85,7 @@ $initialLabel = $codeValue;
                 @click="open = !open"
                 class="flex items-center gap-1.5 h-full px-3 rounded-xl border text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-400 transition-all whitespace-nowrap"
                 style="border-color:#E5E7EB;background:#F9FAFB;color:#374151;min-width:90px;">
-            <span x-text="flag" class="text-lg leading-none"></span>
+            <img :src="flagUrl(iso)" alt="" class="w-5 h-auto rounded-sm shadow-sm" x-show="iso">
             <span x-text="code" class="text-xs font-semibold"></span>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="ml-auto"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
@@ -103,7 +106,7 @@ $initialLabel = $codeValue;
                     <li @click="select(c)"
                         class="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-teal-50 transition-colors"
                         :class="{ 'bg-teal-50': c.code === code }">
-                        <span x-text="c.flag" class="text-lg leading-none flex-shrink-0"></span>
+                        <img :src="flagUrl(c.iso)" alt="" class="w-5 h-auto rounded-sm shadow-sm flex-shrink-0">
                         <span x-text="c.label" class="text-sm text-gray-700 flex-1 truncate"></span>
                         <span x-text="c.code" class="text-xs text-gray-400 font-mono flex-shrink-0"></span>
                     </li>
