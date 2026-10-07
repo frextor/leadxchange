@@ -66,9 +66,10 @@
                     </div>
                     @error('receiver_id')<p class="field-err">{{ $message }}</p>@enderror
                 </div>
-                <div class="field full">
+                <div class="field full" style="position:relative" id="companyField">
                     <label class="label" for="fEnt">Entreprise</label>
-                    <input class="input {{ $err('company_name') }}" id="fEnt" name="company_name" value="{{ old('company_name') }}" maxlength="150" required placeholder="Nom de l'entreprise">
+                    <input class="input {{ $err('company_name') }}" id="fEnt" name="company_name" value="{{ old('company_name') }}" maxlength="150" required placeholder="Nom de l'entreprise" autocomplete="off">
+                    <div class="pop hidden" id="companyPop" role="listbox" style="left:0;right:0;top:100%;margin-top:4px;max-height:220px;overflow:auto"></div>
                     @error('company_name')<p class="field-err">{{ $message }}</p>@enderror
                 </div>
             </div>
@@ -220,6 +221,40 @@
         openPop(false);
         refresh();
     });
+
+    /* ── Entreprise : suggestions issues des entreprises déjà enregistrées ── */
+    const entInput = $('fEnt'), companyPop = $('companyPop');
+    let companyTimer;
+    const closeCompanyPop = () => companyPop.classList.add('hidden');
+    entInput.addEventListener('input', () => {
+        clearTimeout(companyTimer);
+        const q = entInput.value.trim();
+        if (q.length < 3) { closeCompanyPop(); return; }
+        companyTimer = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/companies/search?q=${encodeURIComponent(q)}`, {
+                    headers: { 'Accept': 'application/json', 'Authorization': 'Bearer ' + (window.API_TOKEN || '') },
+                    credentials: 'same-origin',
+                });
+                const data = await res.json().catch(() => ({}));
+                const list = data.data || [];
+                companyPop.innerHTML = list.length
+                    ? list.map(c => `<button type="button" class="dest-opt" role="option" data-name="${escapeHtml(c.name)}">
+                        <span style="flex:1;min-width:0">${escapeHtml(c.name)}${c.sector ? `<small>${escapeHtml(c.sector)}</small>` : ''}</span></button>`).join('')
+                    : '<div class="lx2-dd-state">Aucune entreprise trouvée — vous pouvez continuer avec cette saisie.</div>';
+                companyPop.classList.remove('hidden');
+            } catch { closeCompanyPop(); }
+        }, 300);
+    });
+    companyPop.addEventListener('click', (e) => {
+        const o = e.target.closest('.dest-opt');
+        if (!o) return;
+        entInput.value = o.dataset.name;
+        entInput.classList.remove('is-err');
+        closeCompanyPop();
+        refresh();
+    });
+    document.addEventListener('click', (e) => { if (!$('companyField').contains(e.target)) closeCompanyPop(); });
 
     /* ── Qualification ── */
     $('qualToggle').addEventListener('click', (e) => {
