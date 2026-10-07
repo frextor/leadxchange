@@ -10,7 +10,19 @@
     if ($selectedDest && $selectedDest->points_balance < 0) { $selectedDest = null; }
     $qual = old('qualification', 'tiede');
     $qualLabels = ['chaud' => 'Chaud', 'tiede' => 'Tiède', 'froid' => 'Froid'];
-    $prefixes = ['+33' => '🇫🇷 +33', '+32' => '🇧🇪 +32', '+41' => '🇨🇭 +41', '+352' => '🇱🇺 +352', '+212' => '🇲🇦 +212', '+216' => '🇹🇳 +216', '+213' => '🇩🇿 +213', '+1' => '🇨🇦 +1'];
+    // Drapeaux emoji illisibles sous Windows (voir <x-phone-input>) : on utilise des images flagcdn.
+    $prefixes = [
+        '+33'  => ['iso' => 'fr', 'label' => 'France'],
+        '+32'  => ['iso' => 'be', 'label' => 'Belgique'],
+        '+41'  => ['iso' => 'ch', 'label' => 'Suisse'],
+        '+352' => ['iso' => 'lu', 'label' => 'Luxembourg'],
+        '+212' => ['iso' => 'ma', 'label' => 'Maroc'],
+        '+216' => ['iso' => 'tn', 'label' => 'Tunisie'],
+        '+213' => ['iso' => 'dz', 'label' => 'Algérie'],
+        '+1'   => ['iso' => 'ca', 'label' => 'Canada'],
+    ];
+    $prefixValue = old('contact_phone_prefix', '+33');
+    $prefixIso   = $prefixes[$prefixValue]['iso'] ?? 'fr';
     $err = fn($k) => $errors->has($k) ? 'is-err' : '';
 @endphp
 
@@ -95,9 +107,22 @@
                 <div class="field">
                     <label class="label" for="fTel">Numéro de téléphone</label>
                     <div class="phone">
-                        <select class="select filled" name="contact_phone_prefix" aria-label="Indicatif">
-                            @foreach($prefixes as $v => $l)<option value="{{ $v }}" @selected(old('contact_phone_prefix', '+33') === $v)>{{ $l }}</option>@endforeach
-                        </select>
+                        <div class="lx2-dd" id="phonePrefixDd" style="position:relative">
+                            <input type="hidden" name="contact_phone_prefix" id="phonePrefixValue" value="{{ $prefixValue }}">
+                            <button type="button" class="select filled" id="phonePrefixBtn" aria-haspopup="true" aria-expanded="false" style="width:100%;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 6px">
+                                <img id="phonePrefixFlag" src="https://flagcdn.com/w40/{{ $prefixIso }}.png" alt="" style="width:16px;height:auto;border-radius:2px;flex-shrink:0">
+                                <span id="phonePrefixLabel">{{ $prefixValue }}</span>
+                            </button>
+                            <div class="pop hidden" id="phonePrefixPop" style="left:0;top:calc(100% + 6px);min-width:190px;padding:4px">
+                                @foreach($prefixes as $code => $p)
+                                <button type="button" class="dest-opt" data-code="{{ $code }}" data-iso="{{ $p['iso'] }}">
+                                    <img src="https://flagcdn.com/w40/{{ $p['iso'] }}.png" alt="" style="width:18px;height:auto;border-radius:2px;flex-shrink:0">
+                                    <span style="flex:1;min-width:0">{{ $p['label'] }}</span>
+                                    <span style="color:var(--muted-fg);font-size:12px">{{ $code }}</span>
+                                </button>
+                                @endforeach
+                            </div>
+                        </div>
                         <input class="input {{ $err('contact_phone') }}" id="fTel" name="contact_phone" value="{{ old('contact_phone') }}" maxlength="20" required placeholder="000000000" inputmode="tel">
                     </div>
                     @error('contact_phone')<p class="field-err">{{ $message }}</p>@enderror
@@ -255,6 +280,20 @@
         refresh();
     });
     document.addEventListener('click', (e) => { if (!$('companyField').contains(e.target)) closeCompanyPop(); });
+
+    /* ── Indicatif téléphonique (drapeaux) ── */
+    const phoneBtn = $('phonePrefixBtn'), phonePop = $('phonePrefixPop');
+    const togglePhonePop = (open) => { phonePop.classList.toggle('hidden', !open); phoneBtn.setAttribute('aria-expanded', open); };
+    phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePhonePop(phonePop.classList.contains('hidden')); });
+    phonePop.addEventListener('click', (e) => {
+        const o = e.target.closest('[data-code]');
+        if (!o) return;
+        $('phonePrefixValue').value = o.dataset.code;
+        $('phonePrefixLabel').textContent = o.dataset.code;
+        $('phonePrefixFlag').src = `https://flagcdn.com/w40/${o.dataset.iso}.png`;
+        togglePhonePop(false);
+    });
+    document.addEventListener('click', (e) => { if (!$('phonePrefixDd').contains(e.target)) togglePhonePop(false); });
 
     /* ── Qualification ── */
     $('qualToggle').addEventListener('click', (e) => {

@@ -71,7 +71,7 @@ HTML : '';
             </div>
             <div class="lx-stat-sep"></div>
             <div class="lx-stat">
-                <span class="lx-stat-val">🇫🇷</span>
+                <span class="lx-stat-val"><img src="https://flagcdn.com/w40/fr.png" alt="France" style="width:26px;height:auto;border-radius:3px;vertical-align:middle"></span>
                 <span class="lx-stat-lbl">Fait en France</span>
             </div>
         </div>

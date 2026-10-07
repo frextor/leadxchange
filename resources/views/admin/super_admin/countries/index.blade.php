@@ -98,7 +98,7 @@
                             <td class="px-5 py-3">
                                 {{-- Display mode --}}
                                 <div id="country-display-{{ $country->id }}" class="flex items-center gap-2.5">
-                                    <span class="text-xl leading-none">{{ $country->flag }}</span>
+                                    <img src="https://flagcdn.com/w40/{{ strtolower($country->code) }}.png" alt="" class="w-5 h-auto rounded-sm flex-shrink-0">
                                     <span class="font-semibold text-gray-900">{{ $country->name }}</span>
                                 </div>
                                 {{-- Edit mode --}}
