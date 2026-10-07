@@ -23,6 +23,10 @@
     @media (max-width:720px){.net-banner{flex-wrap:wrap}.net-stats{margin-left:0;padding-left:0;padding-top:12px;width:100%;justify-content:space-between}.net-stats .st::before{display:none}}
     #sortPop{right:0;top:calc(100% + 6px);width:170px;padding:0}
     #sortPop li button:hover{background:var(--surface-2,#F6F7FB)}
+    #netState .ic{display:inline-flex;width:44px;height:44px;border-radius:999px;background:var(--muted);align-items:center;justify-content:center;margin-bottom:12px;color:var(--muted-fg)}
+    #netState .ic svg{width:18px;height:18px}
+    #netState p{margin:0;font-size:13.5px}
+    #netState .lx2-linkbtn{display:inline-block;margin-top:10px}
 </style>
 @endpush
 
@@ -67,9 +71,10 @@
                 <button type="button" class="link lx2-linkbtn" id="filtersReset">Réinitialiser</button>
             </div>
             <div style="padding:14px;display:flex;flex-direction:column;gap:14px;max-height:60vh;overflow:auto">
-                <div class="field">
+                <div class="field" style="position:relative" id="filterCompanyField">
                     <label class="label" for="filterCompany">Entreprise</label>
                     <input class="input" id="filterCompany" type="text" placeholder="Nom de l'entreprise" autocomplete="off">
+                    <div class="pop hidden" id="filterCompanyPop" role="listbox" style="left:0;right:0;top:100%;margin-top:4px;max-height:200px;overflow:auto"></div>
                 </div>
                 <div class="field">
                     <span class="label">Centres d'intérêt</span>
@@ -132,11 +137,13 @@
     const CAN_VIEW_NAME = @json($canViewName);
     const CAN_INVITE    = @json($canInvite);
     const ICON = {
-        plus: @json(\App\Support\Lx2Icons::svg('user-plus')),
-        msg:  @json(\App\Support\Lx2Icons::svg('message-circle')),
-        star: @json(\App\Support\Lx2Icons::svg('star')),
-        x:    @json(\App\Support\Lx2Icons::svg('x')),
-        check:@json(\App\Support\Lx2Icons::svg('check')),
+        plus:   @json(\App\Support\Lx2Icons::svg('user-plus')),
+        msg:    @json(\App\Support\Lx2Icons::svg('message-circle')),
+        star:   @json(\App\Support\Lx2Icons::svg('star')),
+        x:      @json(\App\Support\Lx2Icons::svg('x')),
+        check:  @json(\App\Support\Lx2Icons::svg('check')),
+        users:  @json(\App\Support\Lx2Icons::svg('users')),
+        search: @json(\App\Support\Lx2Icons::svg('search')),
     };
     const $ = (id) => document.getElementById(id);
     const esc = (s) => escapeHtml(s == null ? '' : s);
@@ -242,8 +249,16 @@
                                 : tab === 'visitors'  ? `<span class="num">${total}</span> visiteur${total > 1 ? 's' : ''} de ton profil`
                                 : q.length >= 3       ? `Résultats pour « ${esc(q)} »` : 'Membres pour toi';
         $('netState').hidden = list.length > 0 || loading;
-        $('netState').textContent = tab === 'contacts' ? "Vous n'avez pas encore de contact. Connectez-vous avec des membres depuis « Pour toi »."
-                                  : tab === 'visitors' ? "Personne n'a encore visité votre profil." : 'Aucun membre ne correspond à votre recherche.';
+        if (!loading) {
+            const isSearch = tab === 'recommendations' && q.length >= 3;
+            const icon = isSearch ? ICON.search : ICON.users;
+            const text = tab === 'contacts'   ? "Vous n'avez pas encore de contact."
+                       : tab === 'visitors'    ? "Personne n'a encore visité votre profil."
+                       : isSearch              ? `Aucun membre ne correspond à « ${esc(q)} ».`
+                                                : 'Aucune suggestion pour le moment.';
+            const cta = tab === 'contacts' ? '<button type="button" class="link lx2-linkbtn" id="netEmptyGoTo" style="opacity:1">Explorer « Pour toi »</button>' : '';
+            $('netState').innerHTML = `<span class="ic">${icon}</span><p>${text}</p>${cta}`;
+        }
         $('netMore').hidden = !(tab !== 'contacts' && page < lastPage);
     }
 
@@ -302,13 +317,14 @@
         searchTimer = setTimeout(() => load(), 350);
     });
     $('netMore').addEventListener('click', () => { page++; load(false); });
+    $('netState').addEventListener('click', (e) => { if (e.target.closest('#netEmptyGoTo')) setTab('recommendations'); });
 
     /* ── Panneau « Filtres » (Entreprise, Centres d'intérêt) ── */
     const filtersBtn = $('filtersBtn'), filtersPop = $('filtersPop');
     const toggleFilters = (open) => { filtersPop.classList.toggle('hidden', !open); filtersBtn.setAttribute('aria-expanded', open); };
     filtersBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFilters(filtersPop.classList.contains('hidden')); });
     document.addEventListener('click', (e) => { if (!$('filtersDd').contains(e.target)) toggleFilters(false); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { toggleFilters(false); toggleSort(false); closeCityDd(); } });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { toggleFilters(false); toggleSort(false); closeFilterCompanyPop(); closeCityDd(); } });
 
     /* ── Panneau de tri (Pertinence / Plus récents / Nom) ── */
     const sortBtn = $('sortBtn'), sortPop = $('sortPop');
@@ -330,8 +346,38 @@
     $('filtersReset').addEventListener('click', () => {
         $('filterCompany').value = '';
         document.querySelectorAll('.filter-interest:checked').forEach(el => el.checked = false);
+        $('filterCompanyPop').classList.add('hidden');
         updateFiltersCount(); render();
     });
+
+    /* ── Entreprise (panneau Filtres) : suggestions issues des entreprises déjà enregistrées ── */
+    const filterCompanyPop = $('filterCompanyPop');
+    let filterCompanyTimer;
+    const closeFilterCompanyPop = () => filterCompanyPop.classList.add('hidden');
+    $('filterCompany').addEventListener('input', () => {
+        clearTimeout(filterCompanyTimer);
+        const q = $('filterCompany').value.trim();
+        if (q.length < 3) { closeFilterCompanyPop(); return; }
+        filterCompanyTimer = setTimeout(async () => {
+            try {
+                const data = await api(`/api/companies/search?q=${encodeURIComponent(q)}`);
+                const list = data.data || [];
+                filterCompanyPop.innerHTML = list.length
+                    ? list.map(c => `<button type="button" class="dest-opt" role="option" data-name="${esc(c.name)}">
+                        <span style="flex:1;min-width:0">${esc(c.name)}${c.sector ? `<small>${esc(c.sector)}</small>` : ''}</span></button>`).join('')
+                    : '<div class="lx2-dd-state">Aucune entreprise trouvée</div>';
+                filterCompanyPop.classList.remove('hidden');
+            } catch { closeFilterCompanyPop(); }
+        }, 300);
+    });
+    filterCompanyPop.addEventListener('click', (e) => {
+        const o = e.target.closest('.dest-opt');
+        if (!o) return;
+        $('filterCompany').value = o.dataset.name;
+        closeFilterCompanyPop();
+        onFilterChange();
+    });
+    document.addEventListener('click', (e) => { if (!$('filterCompanyField').contains(e.target)) closeFilterCompanyPop(); });
 
     /* ── Actions de connexion ── */
     $('netList').addEventListener('click', async (e) => {
