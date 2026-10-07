@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\City;
+use App\Models\Connection;
 use App\Models\Interest;
+use App\Models\Lead;
 use App\Models\Market;
 use App\Models\Profile;
 use App\Models\ProfileVisitor;
@@ -79,6 +81,19 @@ class ProfileController extends Controller
 
         $isOwn = $id === $currentUserId;
 
+        // Carte « Activité » : statistiques réelles plutôt que des valeurs figées.
+        $exchangesCount = Lead::where(function ($q) use ($targetUser) {
+                $q->where('sender_id', $targetUser->id)->orWhere('receiver_id', $targetUser->id);
+            })
+            ->whereIn('status', [Lead::STATUS_ACCEPTED, Lead::STATUS_CONVERTED])
+            ->count();
+        $leadsReceivedCount = Lead::where('receiver_id', $targetUser->id)->count();
+        $connectionsCount   = Connection::where('status', 'accepted')
+            ->where(function ($q) use ($targetUser) {
+                $q->where('sender_id', $targetUser->id)->orWhere('receiver_id', $targetUser->id);
+            })->count();
+        $ratingScore = $this->userService->ratingPayload($targetUser)['average'];
+
         return view('profile', [
             'user'          => $user,
             'profile'       => $targetUser->profile,
@@ -91,6 +106,12 @@ class ProfileController extends Controller
             'missing'       => $isOwn ? $this->profileService->getMissingFields($targetUser) : [],
             'isOwnProfile'  => $isOwn,
             'pointsBalance' => $isOwn ? (int) ($request->user()->points_balance ?? 0) : null,
+            'activityStats' => [
+                'exchanges'   => $exchangesCount,
+                'leads'       => $leadsReceivedCount,
+                'connections' => $connectionsCount,
+                'score'       => $ratingScore !== null ? number_format($ratingScore, 1) : '—',
+            ],
         ]);
     }
 

@@ -420,10 +420,10 @@
         <section class="card card-pad">
             <h2 class="pf-h" style="margin-bottom:14px">Activité</h2>
             <div class="pf-stats">
-                <div><div class="pf-stat-n">0</div><div class="help" style="margin:2px 0 0">Échanges</div></div>
-                <div><div class="pf-stat-n">0</div><div class="help" style="margin:2px 0 0">Leads reçus</div></div>
-                <div><div class="pf-stat-n">0</div><div class="help" style="margin:2px 0 0">Connexions</div></div>
-                <div><div class="pf-stat-n">4.8</div><div class="help" style="margin:2px 0 0">Score</div></div>
+                <div><div class="pf-stat-n">{{ $activityStats['exchanges'] }}</div><div class="help" style="margin:2px 0 0">Échanges</div></div>
+                <div><div class="pf-stat-n">{{ $activityStats['leads'] }}</div><div class="help" style="margin:2px 0 0">Leads reçus</div></div>
+                <div><div class="pf-stat-n">{{ $activityStats['connections'] }}</div><div class="help" style="margin:2px 0 0">Connexions</div></div>
+                <div><div class="pf-stat-n">{{ $activityStats['score'] }}</div><div class="help" style="margin:2px 0 0">Score</div></div>
             </div>
         </section>
 
