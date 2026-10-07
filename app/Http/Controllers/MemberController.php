@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\City;
+use App\Models\Connection;
 use App\Models\Interest;
 use App\Models\ProfileVisitor;
 use App\Services\UserService;
@@ -43,16 +44,31 @@ class MemberController extends Controller
         $cities = City::orderBy('name')->get(['id', 'name']);
         $selectedCityId = session('selected_city_id', $user->city_id);
 
+        // Bandeau de synthèse (« Votre réseau prend de l'élan ») : mêmes règles que les onglets
+        // Pour toi / Contacts / Visiteurs, pour rester cohérent avec ce qu'ils affichent.
+        $suggestionsCount = $this->userService
+            ->getRecommendedUsers($user, 1, null, 1, ['accepted'], $selectedCityId)
+            ->total();
+        $contactsCount = Connection::where('status', 'accepted')
+            ->where(function ($q) use ($user) {
+                $q->where('sender_id', $user->id)->orWhere('receiver_id', $user->id);
+            })->count();
+        $recentVisitorsCount = ProfileVisitor::where('profile_user_id', $user->id)
+            ->where('last_visited_at', '>=', now()->subDays(30))->count();
+
         return view('members.index', [
-            'sectors'         => \App\Models\Sector::orderBy('name')->get(['id', 'name']),
-            'cities'          => $cities,
-            'selectedCityId'  => $selectedCityId,
-            'interests'       => Interest::orderBy('name')->get(['id', 'name']),
-            'newVisitorCount' => ProfileVisitor::where('profile_user_id', $user->id)
-                                    ->where('is_new', true)->count(),
-            'initialTab'      => $tab,
-            'canViewName'     => $user->canFeature('can_view_member_name'),
-            'canInvite'       => $user->canFeature('can_send_invitations'),
+            'sectors'             => \App\Models\Sector::orderBy('name')->get(['id', 'name']),
+            'cities'              => $cities,
+            'selectedCityId'      => $selectedCityId,
+            'interests'           => Interest::orderBy('name')->get(['id', 'name']),
+            'newVisitorCount'     => ProfileVisitor::where('profile_user_id', $user->id)
+                                        ->where('is_new', true)->count(),
+            'suggestionsCount'    => $suggestionsCount,
+            'contactsCount'       => $contactsCount,
+            'recentVisitorsCount' => $recentVisitorsCount,
+            'initialTab'          => $tab,
+            'canViewName'         => $user->canFeature('can_view_member_name'),
+            'canInvite'           => $user->canFeature('can_send_invitations'),
         ]);
     }
 

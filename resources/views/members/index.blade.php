@@ -8,8 +8,36 @@
     (architecture hybride) : /api/users/recommendations, /api/users, /api/connections, /api/profile/visitors.
 --}}
 
+@push('styles')
+<style>
+    .net-banner{gap:0}
+    .net-banner .tx b{display:block}
+    .net-banner .tx small{display:block;margin-top:2px}
+    .net-stats{display:flex;align-items:stretch;gap:28px;margin-left:auto;padding-left:24px}
+    .net-stats .st{text-align:center;position:relative}
+    .net-stats .st::before{content:"";position:absolute;left:-14px;top:50%;transform:translateY(-50%);width:1px;height:28px;background:rgba(255,255,255,.3)}
+    .net-stats .st:first-child::before{display:none}
+    .net-stats .st .n{display:block;font-size:20px;font-weight:600;line-height:1.1}
+    .net-stats .st .l{display:block;font-size:11.5px;opacity:.85;margin-top:2px;white-space:nowrap}
+    .net-stats .st .dot{display:inline-block;width:6px;height:6px;border-radius:999px;background:#fff;margin-left:4px;vertical-align:middle}
+    @media (max-width:720px){.net-banner{flex-wrap:wrap}.net-stats{margin-left:0;padding-left:0;padding-top:12px;width:100%;justify-content:space-between}.net-stats .st::before{display:none}}
+    #sortPop{right:0;top:calc(100% + 6px);width:170px;padding:0}
+    #sortPop li button:hover{background:var(--surface-2,#F6F7FB)}
+</style>
+@endpush
+
 @section('content')
 <x-lx2-header title="Réseau" sub="Développez votre réseau de partenaires d'affaires" />
+
+<div class="banner net-banner">
+    <span class="ring" style="background:none;display:grid;place-items:center"><x-lx2-icon name="trending-up" /></span>
+    <div class="tx"><b>Votre réseau prend de l'élan</b><small>Les profils les plus pertinents pour vous, cette semaine.</small></div>
+    <div class="net-stats">
+        <div class="st"><span class="n">{{ $suggestionsCount }}</span><span class="l">Suggestions</span></div>
+        <div class="st"><span class="n">{{ $contactsCount }}</span><span class="l">Contacts</span></div>
+        <div class="st"><span class="n">{{ $recentVisitorsCount }}{{ $newVisitorCount > 0 ? ' ' : '' }}@if($newVisitorCount > 0)<span class="dot"></span>@endif</span><span class="l">Visites récentes</span></div>
+    </div>
+</div>
 
 <div class="toolbar">
     <div class="chips" id="netTabs">
@@ -78,7 +106,21 @@
 </div>
 @endif
 
-<div class="sh"><h2 id="netTitle">Membres pour toi</h2></div>
+<div class="sh">
+    <h2 id="netTitle">Membres pour toi</h2>
+    <div class="lx2-dd" id="sortDd">
+        <button type="button" class="link lx2-linkbtn" id="sortBtn" aria-haspopup="true" aria-expanded="false" style="display:flex;align-items:center;gap:5px;opacity:1">
+            <x-lx2-icon name="trending-up" /><span id="sortLabel">Pertinence</span>
+        </button>
+        <div class="pop hidden" id="sortPop">
+            <ul style="padding:6px 0">
+                <li><button type="button" class="link lx2-linkbtn" data-sort="relevance" style="display:block;width:100%;text-align:left;padding:8px 14px;opacity:1">Pertinence</button></li>
+                <li><button type="button" class="link lx2-linkbtn" data-sort="recent" style="display:block;width:100%;text-align:left;padding:8px 14px;opacity:1">Plus récents</button></li>
+                <li><button type="button" class="link lx2-linkbtn" data-sort="name" style="display:block;width:100%;text-align:left;padding:8px 14px;opacity:1">Nom (A→Z)</button></li>
+            </ul>
+        </div>
+    </div>
+</div>
 <div class="grid-2" id="netList"></div>
 <div id="netState" class="card empty" hidden></div>
 <div style="text-align:center;margin-top:16px"><button type="button" class="btn btn-outline" id="netMore" hidden>Charger plus</button></div>
@@ -176,8 +218,23 @@
         $('filtersCount').textContent = n;
     }
 
+    /* ── Tri (Pertinence / Plus récents / Nom) ── */
+    let sortMode = 'relevance';
+    const SORT_LABELS = { relevance: 'Pertinence', recent: 'Plus récents', name: 'Nom (A→Z)' };
+    function sortList(list) {
+        const sorted = list.slice();
+        if (sortMode === 'recent') {
+            sorted.sort((a, b) => new Date(b.joined_at || 0) - new Date(a.joined_at || 0));
+        } else if (sortMode === 'name') {
+            sorted.sort((a, b) => name(a).localeCompare(name(b), 'fr'));
+        } else if (tab === 'recommendations') {
+            sorted.sort((a, b) => (b.rec_score || 0) - (a.rec_score || 0));
+        }
+        return sorted;
+    }
+
     function render() {
-        const list = items.filter(m => sectorOk(m) && searchOk(m) && companyOk(m) && cityOk(m) && interestsOk(m));
+        const list = sortList(items.filter(m => sectorOk(m) && searchOk(m) && companyOk(m) && cityOk(m) && interestsOk(m)));
         $('netList').innerHTML = list.map(row).join('');
         const q = $('memberSearch').value.trim();
         const total = tab === 'recommendations' ? null : list.length;
@@ -251,7 +308,20 @@
     const toggleFilters = (open) => { filtersPop.classList.toggle('hidden', !open); filtersBtn.setAttribute('aria-expanded', open); };
     filtersBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFilters(filtersPop.classList.contains('hidden')); });
     document.addEventListener('click', (e) => { if (!$('filtersDd').contains(e.target)) toggleFilters(false); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { toggleFilters(false); closeCityDd(); } });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { toggleFilters(false); toggleSort(false); closeCityDd(); } });
+
+    /* ── Panneau de tri (Pertinence / Plus récents / Nom) ── */
+    const sortBtn = $('sortBtn'), sortPop = $('sortPop');
+    const toggleSort = (open) => { sortPop.classList.toggle('hidden', !open); sortBtn.setAttribute('aria-expanded', open); };
+    sortBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSort(sortPop.classList.contains('hidden')); });
+    document.addEventListener('click', (e) => { if (!$('sortDd').contains(e.target)) toggleSort(false); });
+    sortPop.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-sort]'); if (!b) return;
+        sortMode = b.dataset.sort;
+        $('sortLabel').textContent = SORT_LABELS[sortMode];
+        toggleSort(false);
+        render();
+    });
 
     let filterTimer;
     const onFilterChange = () => { updateFiltersCount(); clearTimeout(filterTimer); filterTimer = setTimeout(render, 150); };

@@ -254,6 +254,7 @@ class UserService
                 [
                     'same_city' => $myCityId !== null && $u->city_id === $myCityId,
                     'rec_score' => (int) ($u->rec_score ?? 0),
+                    'joined_at' => $u->created_at?->toISOString(),
                 ]
             ));
 
