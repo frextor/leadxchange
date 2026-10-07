@@ -10,7 +10,7 @@
 
 @push('styles')
 <style>
-    .net-banner{gap:0}
+    .net-banner{gap:0;margin-bottom:18px}
     .net-banner .tx b{display:block}
     .net-banner .tx small{display:block;margin-top:2px}
     .net-stats{display:flex;align-items:stretch;gap:28px;margin-left:auto;padding-left:24px}
