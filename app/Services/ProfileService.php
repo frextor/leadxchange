@@ -109,6 +109,21 @@ class ProfileService
         $profile->save();
     }
 
+    /**
+     * Change l'adresse email de l'utilisateur. L'ancienne adresse n'est plus vérifiée :
+     * on remet email_verified_at à null et on renvoie un lien de vérification vers la
+     * nouvelle adresse (même mécanique que l'inscription).
+     */
+    public function updateEmail(User $user, string $newEmail): void
+    {
+        $user->forceFill([
+            'email'             => $newEmail,
+            'email_verified_at' => null,
+        ])->save();
+
+        $user->sendEmailVerificationNotification();
+    }
+
     public function updateAvatar(User $user, UploadedFile $file): string
     {
         $profile = $user->profile ?? Profile::create(['user_id' => $user->id]);

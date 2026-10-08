@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Interest;
+use App\Services\ActivityLogger;
 use App\Services\ConsulService;
 use App\Services\FirebaseService;
 use App\Services\ProfileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
@@ -97,6 +100,40 @@ class ProfileController extends Controller
         return response()->json([
             'message'    => 'Bio mise à jour',
             'completion' => $this->profileService->getCompletionPercentage($request->user()->fresh()),
+        ]);
+    }
+
+    /**
+     * L'utilisateur peut changer son adresse email à tout moment, sous réserve de
+     * confirmer son mot de passe actuel. La nouvelle adresse doit être revérifiée.
+     */
+    public function updateEmail(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'email'            => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'current_password' => ['required', 'string'],
+        ], [
+            'email.unique' => 'Cette adresse email est déjà utilisée par un autre compte.',
+        ]);
+
+        if (! Hash::check($data['current_password'], $user->password)) {
+            return response()->json(['message' => 'Mot de passe incorrect.'], 422);
+        }
+
+        if ($data['email'] === $user->email) {
+            return response()->json(['message' => 'Cette adresse est déjà la vôtre.'], 422);
+        }
+
+        $oldEmail = $user->email;
+        $this->profileService->updateEmail($user, $data['email']);
+
+        ActivityLogger::log('profile.email_changed', "Email changé de {$oldEmail} vers {$data['email']}", $user->id);
+
+        return response()->json([
+            'message' => 'Adresse email mise à jour. Un lien de vérification a été envoyé à votre nouvelle adresse.',
+            'email'   => $data['email'],
         ]);
     }
 

@@ -330,7 +330,13 @@
                 <button type="button" class="btn btn-ghost btn-sm" onclick="lx2Dialog('modal-basic')">Modifier</button>
             </div>
             <div class="pf-grid">
-                <div><div class="pf-cap">Email</div><div class="pf-val">{{ $user['email'] }}</div></div>
+                <div>
+                    <div class="pf-cap">Email</div>
+                    <div class="pf-val" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                        <span>{{ $user['email'] }}</span>
+                        <button type="button" class="link lx2-linkbtn" onclick="lx2Dialog('modal-email')" style="opacity:1;flex-shrink:0">Modifier</button>
+                    </div>
+                </div>
                 <div><div class="pf-cap">Ville actuelle</div><div class="pf-val {{ $user['city']['name'] ?? null ? '' : 'pf-none' }}">{{ $user['city']['name'] ?? 'Non renseignée' }}</div></div>
                 <div><div class="pf-cap">Genre</div><div class="pf-val {{ $user['gender'] ? '' : 'pf-none' }}">{{ $user['gender'] ? ['male' => 'Homme', 'female' => 'Femme', 'other' => 'Autre'][$user['gender']] ?? $user['gender'] : 'Non renseigné' }}</div></div>
                 <div><div class="pf-cap">Date de naissance</div><div class="pf-val {{ $user['birthday'] ? '' : 'pf-none' }}">{{ $user['birthday'] ? \Carbon\Carbon::parse($user['birthday'])->locale('fr')->isoFormat('D MMMM YYYY') : 'Non renseignée' }}</div></div>
@@ -518,6 +524,31 @@
         <div class="df">
             <button type="button" class="btn btn-outline" data-close>Annuler</button>
             <button type="button" class="btn btn-primary" id="btn-save-basic" onclick="saveBasic()">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+{{-- Email --}}
+<div class="overlay hidden" id="modal-email" data-dialog>
+    <div class="dialog">
+        <div class="dh">
+            <div><h3>Modifier l'adresse email</h3></div>
+            <button type="button" class="x" data-close aria-label="Fermer"><x-lx2-icon name="x" /></button>
+        </div>
+        <div class="db" style="display:flex;flex-direction:column;gap:14px">
+            <p class="help" style="margin:0">Vous devrez vérifier votre nouvelle adresse (un lien sera envoyé) avant de pouvoir continuer à utiliser votre compte.</p>
+            <div class="field">
+                <label class="label" for="em_new_email">Nouvelle adresse email</label>
+                <input id="em_new_email" type="email" class="input" placeholder="nouvelle@adresse.com" autocomplete="email">
+            </div>
+            <div class="field">
+                <label class="label" for="em_password">Mot de passe actuel</label>
+                <input id="em_password" type="password" class="input" placeholder="Pour confirmer que c'est bien vous" autocomplete="current-password">
+            </div>
+        </div>
+        <div class="df">
+            <button type="button" class="btn btn-outline" data-close>Annuler</button>
+            <button type="button" class="btn btn-primary" id="btn-save-email" onclick="saveEmail()">Enregistrer</button>
         </div>
     </div>
 </div>
@@ -771,6 +802,21 @@
             toast('Bio mise à jour !', 'success');
             setTimeout(() => location.reload(), 800);
         } catch (e) { toast(e.message, 'error'); setBtnLoading('btn-save-bio', false); }
+    }
+
+    async function saveEmail() {
+        const email = document.getElementById('em_new_email').value.trim();
+        const password = document.getElementById('em_password').value;
+        if (!email || !password) { toast('Renseignez la nouvelle adresse et votre mot de passe.', 'error'); return; }
+        setBtnLoading('btn-save-email', true);
+        try {
+            const data = await apiFetch('/api/profile/email', 'PUT', {
+                email: email,
+                current_password: password,
+            });
+            toast(data.message || 'Adresse email mise à jour !', 'success');
+            setTimeout(() => location.reload(), 1200);
+        } catch (e) { toast(e.message, 'error'); setBtnLoading('btn-save-email', false); }
     }
 
     function toggleChip(btn) { btn.classList.toggle('on'); }

@@ -99,6 +99,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/profile/basic',            [ProfileController::class, 'updateBasic']);
     Route::put('/profile/professional',     [ProfileController::class, 'updateProfessional']);
     Route::put('/profile/bio',              [ProfileController::class, 'updateBio']);
+    Route::put('/profile/email',            [ProfileController::class, 'updateEmail']);
     Route::post('/profile/avatar',          [ProfileController::class, 'updateAvatar']);
     Route::post('/profile/presentation-video', [ProfileController::class, 'updatePresentationVideo']);
     Route::post('/profile/interests',       [ProfileController::class, 'syncInterests']);
