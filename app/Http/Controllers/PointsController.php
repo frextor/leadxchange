@@ -37,6 +37,12 @@ class PointsController extends Controller
         $user     = $request->user();
         $quantity = (int) $request->input('quantity');
 
+        // L'achat de points n'est ouvert qu'en cas de solde négatif (pour se remettre à flot) —
+        // un abonné dont le solde est nul ou positif n'a pas besoin d'en acheter.
+        if ((int) ($user->points_balance ?? 0) >= 0) {
+            return back()->with('error', 'L\'achat de points n\'est possible que si votre solde est négatif.');
+        }
+
         if (! config('services.stripe.secret')) {
             return back()->with('error', 'Le paiement en ligne n\'est pas disponible pour le moment.');
         }

@@ -176,7 +176,17 @@
                 <h2 class="pts-h">Acheter des points</h2>
             </div>
 
-            @if ($stripeEnabled)
+            @if (!$stripeEnabled)
+                <div class="pts-empty" style="padding:24px 8px">
+                    <x-lx2-icon name="credit-card" />
+                    <span>Le paiement en ligne n'est pas disponible pour le moment.<br>Contactez l'administrateur.</span>
+                </div>
+            @elseif ($balance >= 0)
+                <div class="pts-empty" style="padding:24px 8px">
+                    <x-lx2-icon name="check" />
+                    <span>Votre solde n'est pas négatif — l'achat de points n'est utile que pour se remettre à flot après un solde négatif.</span>
+                </div>
+            @else
                 <p class="pts-help" style="margin-bottom:16px">
                     1 point = <b style="color:var(--fg)">{{ number_format($pricePerPoint, 2, ',', ' ') }} €</b>
                 </p>
@@ -207,11 +217,6 @@
                         <x-lx2-icon name="credit-card" />Payer par carte
                     </button>
                 </form>
-            @else
-                <div class="pts-empty" style="padding:24px 8px">
-                    <x-lx2-icon name="credit-card" />
-                    <span>Le paiement en ligne n'est pas disponible pour le moment.<br>Contactez l'administrateur.</span>
-                </div>
             @endif
         </section>
 
