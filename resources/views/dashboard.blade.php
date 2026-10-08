@@ -305,6 +305,16 @@
 </div>
 @endif
 
+{{-- ── Fin d'essai « Full Access » Premium proche (≤ 7 jours) ── --}}
+@php $trialDaysLeft = auth()->user()->trialDaysRemaining(); @endphp
+@if($trialDaysLeft > 0 && $trialDaysLeft <= 7)
+<div class="banner">
+    <span class="ring" style="background:none;display:grid;place-items:center"><x-lx2-icon name="gem" /></span>
+    <div class="tx"><b>Votre essai Premium se termine bientôt</b><small>Il reste {{ $trialDaysLeft }} jour{{ $trialDaysLeft > 1 ? 's' : '' }} — passez à un plan payant pour ne rien perdre.</small></div>
+    <a class="btn" href="{{ route('upgrade') }}">Voir les plans</a>
+</div>
+@endif
+
 {{-- ══════════════════════════════════════════════════════════════
      ACTIONS RAPIDES
 ════════════════════════════════════════════════════════════════ --}}

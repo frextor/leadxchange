@@ -60,6 +60,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'stripe_customer_id',
         'cgu_version',
         'cgu_accepted_at',
+        'trial_reminder_sent_at',
     ];
 
     /**
@@ -79,6 +80,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     protected $casts = [
         'email_verified_at'    => 'datetime',
+        'trial_reminder_sent_at' => 'datetime',
         'birthday'             => 'date',
         'onboarding_completed' => 'boolean',
         'newsletter'           => 'boolean',
@@ -173,12 +175,12 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     // Returns the plan that governs this user's permissions (role overrides subscription)
+    //
+    // Note : ne pas mettre en cache statique ce résultat — il dépend de l'heure actuelle
+    // (essai Full Access) et un `static` persisterait entre requêtes/utilisateurs dans un
+    // worker de queue ou Octane, ce qui a déjà causé un plan obsolète dans les tests.
     public function effectivePlan(): ?\App\Models\Plan
     {
-        static $cache = [];
-        $cacheKey = $this->id . ':' . ($this->isAmbassador() ? 'amb' : ($this->isConsul() ? 'con' : 'sub'));
-        if (isset($cache[$cacheKey])) return $cache[$cacheKey];
-
         if ($this->isAmbassador()) {
             $plan = \App\Models\Plan::where('name', 'ambassadeur')->first();
         } elseif ($this->isConsul()) {
@@ -186,14 +188,14 @@ class User extends Authenticatable implements MustVerifyEmail
         } else {
             $plan = $this->subscription?->plan ?? \App\Models\Plan::where('name', 'basic')->first();
 
-            // Essai « Full Access » (accès Enterprise) : uniquement tant que l'utilisateur
-            // n'a pas souscrit un plan payant (reste sur Basic) et que l'essai court encore.
+            // Essai « Full Access » (accès Premium offert à l'inscription) : uniquement tant que
+            // l'utilisateur n'a pas souscrit un plan payant (reste sur Basic) et que l'essai court encore.
             if ($plan?->name === 'basic' && $this->isOnFullAccessTrial()) {
-                $plan = \App\Models\Plan::where('name', 'enterprise')->first() ?? $plan;
+                $plan = \App\Models\Plan::where('name', 'premium')->first() ?? $plan;
             }
         }
 
-        return $cache[$cacheKey] = $plan;
+        return $plan;
     }
 
     /**
@@ -216,6 +218,13 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         $endsAt = $this->fullAccessTrialEndsAt();
         return $endsAt !== null && now()->lt($endsAt);
+    }
+
+    /** Nombre de jours restants avant la fin de l'essai (0 si terminé/non applicable). */
+    public function trialDaysRemaining(): int
+    {
+        if (! $this->isOnFullAccessTrial()) return 0;
+        return max(0, (int) ceil(now()->diffInHours($this->fullAccessTrialEndsAt()) / 24));
     }
 
     // Hierarchy: Basic → Premium → Consul (admin appoints) → Ambassadeur (consul requests, admin approves)
