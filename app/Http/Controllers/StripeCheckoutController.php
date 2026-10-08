@@ -24,11 +24,39 @@ class StripeCheckoutController extends Controller
         return new StripeClient(config('services.stripe.secret'));
     }
 
-    /** Redirect to Stripe Checkout for a given plan. */
+    /** Redirect to Stripe Checkout for a given plan — ou activation directe si le plan est gratuit. */
     public function checkout(Plan $plan, Request $request): RedirectResponse
     {
+        $user = $request->user();
+
+        // Plan gratuit (ex. Premium offert temporairement) : rien à facturer, on active
+        // directement l'abonnement sans passer par Stripe, au lieu de bloquer avec une erreur.
         if ((float) $plan->price <= 0) {
-            return redirect()->route('upgrade')->with('error', 'Ce plan est gratuit.');
+            $billingPeriod = $request->input('billing_period', 'monthly');
+
+            Subscription::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'plan_id'                => $plan->id,
+                    'status'                 => 'active',
+                    'billing_period'         => $billingPeriod,
+                    'stripe_subscription_id' => null,
+                    'stripe_status'          => null,
+                    'current_period_end'     => null,
+                    'cancel_at_period_end'   => false,
+                ]
+            );
+
+            ActivityLogger::log(
+                'payment.plan_purchased',
+                "Plan {$plan->label} activé gratuitement par {$user->first_name} {$user->last_name}",
+                $user->id,
+                $user,
+                ['plan_label' => $plan->label, 'free' => true],
+            );
+
+            return redirect()->route('dashboard')
+                ->with('success', "Plan {$plan->label} activé ! Bienvenue dans votre nouveau plan.");
         }
 
         if (! $plan->stripe_price_id) {
@@ -45,7 +73,6 @@ class StripeCheckoutController extends Controller
             $billingPeriod  = 'monthly';
         }
 
-        $user   = $request->user();
         $stripe = $this->stripe();
 
         // Ensure Stripe customer
