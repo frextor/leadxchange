@@ -22,6 +22,15 @@
     }
     $planLabels  = ['basic' => 'Basic', 'premium' => 'Premium', 'consul' => 'Consul', 'ambassadeur' => 'Ambassadeur'];
     $planLabel   = $planLabels[$planKey] ?? ucfirst($planKey);
+    // Visuels des badges « Statut » et « Score » : icône + couleur plutôt qu'une image
+    // (pas de maquette graphique fournie pour l'instant — robuste même sans assets).
+    $planVisuals = [
+        'basic'       => ['icon' => 'user',   'color' => 'var(--muted-fg)', 'background' => 'var(--muted)'],
+        'premium'     => ['icon' => 'gem',    'color' => 'var(--primary)',  'background' => 'var(--primary-soft)'],
+        'consul'      => ['icon' => 'shield', 'color' => 'var(--ok-fg)',    'background' => 'var(--ok-soft)'],
+        'ambassadeur' => ['icon' => 'star',   'color' => 'var(--warm-fg)',  'background' => 'var(--warm-soft)'],
+    ];
+    $planVisual  = $planVisuals[$planKey] ?? $planVisuals['basic'];
     $badgeKey    = $user['badge']['level'] ?? 'neutre';
     $badgeLabel  = $user['badge']['label'] ?? 'Neutre';
     $expLabels   = ['junior' => 'Junior (0-2 ans)', 'mid' => 'Intermédiaire (2-5 ans)', 'senior' => 'Senior (5-10 ans)', 'expert' => 'Expert (10+ ans)'];
@@ -106,8 +115,8 @@
     .pf-balance{font-size:32px;font-weight:600;letter-spacing:-.02em;line-height:1}
     .pf-stats{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     .pf-stat-n{font-size:22px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
-    .pf-plan-img{background:var(--muted);height:116px;display:grid;place-items:center;position:relative}
-    .pf-plan-img img{max-height:96px;max-width:70%;object-fit:contain}
+    .pf-badge-ico{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;flex:none}
+    .pf-badge-ico svg{width:24px;height:24px}
 
     @media (max-width:1020px){
         .pf-body{grid-template-columns:minmax(0,1fr)}
@@ -398,16 +407,25 @@
         </section>
         @endif
 
-        {{-- Plan et badge --}}
-        <section class="card" style="overflow:hidden">
-            <div class="pf-plan-img">
+        {{-- Plan et badge — image envoyée par un admin (/admin/notation/icons) si disponible,
+             sinon une icône de repli colorée (jamais vide, même sans visuel importé). --}}
+        <section class="card card-pad">
+            <div style="display:flex;align-items:center;gap:12px">
+                <span class="pf-badge-ico" id="planIcoFallback" style="background:{{ $planVisual['background'] }};color:{{ $planVisual['color'] }};display:none"><x-lx2-icon :name="$planVisual['icon']" /></span>
                 <img src="{{ asset('images/plans/' . $planKey . '.jpg') }}" alt="{{ $planLabel }}"
-                     onerror="this.closest('.pf-plan-img').style.display='none'">
-                <span class="badge b-plain" style="position:absolute;top:10px;left:12px;height:20px;font-size:11px">Plan {{ $planLabel }}</span>
+                     style="width:52px;height:52px;object-fit:contain;flex:none;border-radius:14px"
+                     onerror="this.style.display='none';document.getElementById('planIcoFallback').style.display='grid'">
+                <div>
+                    <div class="pf-cap" style="margin:0">Statut</div>
+                    <div style="font-size:14px;font-weight:600">Plan {{ $planLabel }}</div>
+                </div>
             </div>
-            <div style="border-top:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px">
+            <hr class="sep" style="margin:14px 0">
+            <div style="display:flex;align-items:center;gap:12px">
+                <span class="pf-badge-ico" id="scoreIcoFallback" style="background:{{ $user['badge']['background'] ?? 'var(--muted)' }};color:{{ $user['badge']['color'] ?? 'var(--muted-fg)' }};display:none"><x-lx2-icon name="gem" /></span>
                 <img src="{{ asset('images/badges/' . $badgeKey . '.jpg') }}" alt="{{ $badgeLabel }}"
-                     onerror="this.style.display='none'" style="width:52px;height:52px;object-fit:contain;flex:none">
+                     style="width:52px;height:52px;object-fit:contain;flex:none;border-radius:14px"
+                     onerror="this.style.display='none';document.getElementById('scoreIcoFallback').style.display='grid'">
                 <div>
                     <div class="pf-cap" style="margin:0">Badge score</div>
                     <div style="font-size:14px;font-weight:600">{{ $badgeLabel }}</div>

@@ -39,7 +39,7 @@ use Illuminate\Support\Facades\Route;
 // ==========================================
 // Public Routes (No authentication)
 // ==========================================
-Route::prefix('auth')->group(function () {
+Route::prefix('auth')->middleware('throttle:6,1')->group(function () {
     Route::post('/register',        [AuthController::class, 'register']);
     Route::post('/login',           [AuthController::class, 'login']);
     Route::post('/linkedin',        [AuthController::class, 'linkedin']);

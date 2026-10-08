@@ -120,22 +120,22 @@ Route::post('/stripe/webhook', [\App\Http\Controllers\StripeCheckoutController::
 // ==========================================
 // Admin login bypass (accessible même en mode maintenance)
 Route::get('/admin-access',  [LoginController::class, 'showLoginForm'])->name('admin.access.form');
-Route::post('/admin-access', [LoginController::class, 'login'])->name('admin.access.post');
+Route::post('/admin-access', [LoginController::class, 'login'])->name('admin.access.post')->middleware('throttle:6,1');
 
 Route::middleware('guest')->group(function () {
     // Login
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [LoginController::class, 'login'])->name('login.post');
+    Route::post('/login', [LoginController::class, 'login'])->name('login.post')->middleware('throttle:6,1');
 
     // Registration
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-    Route::post('/register', [RegisterController::class, 'register']);
+    Route::post('/register', [RegisterController::class, 'register'])->middleware('throttle:6,1');
 
     // Password Reset
     Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
-    Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+    Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email')->middleware('throttle:6,1');
     Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
-    Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
+    Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update')->middleware('throttle:6,1');
 });
 
 // ==========================================
