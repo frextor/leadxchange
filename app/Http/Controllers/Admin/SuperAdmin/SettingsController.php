@@ -46,8 +46,26 @@ class SettingsController extends Controller
         $pricePerUnit    = (float) SystemSetting::get('points.price_per_unit', 5.00);
         $annualEnabled   = (bool)  SystemSetting::get('billing.annual_enabled', true);
         $annualDiscount  = (int)   SystemSetting::get('billing.annual_discount_pct', 0);
+        $sendCredit      = \App\Services\PointsService::sendCredit();
 
-        return view('admin.super_admin.settings.points', compact('pricePerUnit', 'annualEnabled', 'annualDiscount'));
+        return view('admin.super_admin.settings.points', compact('pricePerUnit', 'annualEnabled', 'annualDiscount', 'sendCredit'));
+    }
+
+    public function updatePointsRules(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'points_send_credit' => ['required', 'integer', 'min:0', 'max:100'],
+        ]);
+
+        SystemSetting::updateOrCreate(
+            ['key' => 'points.send_credit'],
+            ['value' => $request->points_send_credit, 'type' => 'int', 'group' => 'points']
+        );
+        Cache::forget('system_settings');
+
+        ActivityLogger::log('admin.settings.updated', "Points gagnés à l'envoi d'un lead accepté mis à jour : {$request->points_send_credit}");
+
+        return back()->with('success', 'Barème des points enregistré.');
     }
 
     public function updateBillingAnnual(Request $request): RedirectResponse

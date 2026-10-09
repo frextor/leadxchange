@@ -31,10 +31,16 @@ use Illuminate\Support\Facades\Log;
  */
 class PointsService
 {
-    const SEND_CREDIT    = 2;
+    const SEND_CREDIT    = 2;  // valeur par défaut — voir sendCredit(), paramétrable dans Admin > Réglages > Points
     const RECEIVE_DEBIT  = -1;
     const CAP            = 30;
     const MIN_TO_RECEIVE = 0;   // must have ≥ 0 pt to receive (negative balance blocks)
+
+    /** Points gagnés par l'expéditeur quand son lead est accepté — paramétrable (Admin > Réglages > Points). */
+    public static function sendCredit(): int
+    {
+        return (int) SystemSetting::get('points.send_credit', self::SEND_CREDIT);
+    }
 
     const BONUS_MAP = [
         'MQL' => 1,
@@ -74,7 +80,7 @@ class PointsService
         if ($lead->sender_points_credited) return;
 
         DB::transaction(function () use ($lead) {
-            $this->adjust($lead->sender, +self::SEND_CREDIT, 'lead_sent_accepted');
+            $this->adjust($lead->sender, +self::sendCredit(), 'lead_sent_accepted');
             $this->adjust($lead->receiver, self::RECEIVE_DEBIT, 'lead_received');
 
             $lead->update([
@@ -124,8 +130,10 @@ class PointsService
 
         DB::transaction(function () use ($lead) {
             if ($lead->sender_points_credited) {
-                // Revert sender's +2 (only if user still exists)
-                if ($lead->sender) $this->adjust($lead->sender, -self::SEND_CREDIT, 'lead_expired_revert');
+                // Revert sender's credit (only if user still exists). Utilise la valeur actuelle du
+                // réglage : si celui-ci change entre le crédit et l'expiration d'un même lead, le
+                // montant annulé peut légèrement différer du montant crédité à l'origine.
+                if ($lead->sender) $this->adjust($lead->sender, -self::sendCredit(), 'lead_expired_revert');
                 // Revert receiver's -1
                 if ($lead->receiver) $this->adjust($lead->receiver, +abs(self::RECEIVE_DEBIT), 'lead_expired_revert');
             }

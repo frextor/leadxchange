@@ -6,6 +6,7 @@
 
 @php
     $cap         = 30;
+    $sendCredit  = \App\Services\PointsService::sendCredit();
     $barPercent  = $balance > 0 ? min(100, round($balance / $cap * 100)) : 0;
     $balanceHelp = $balance < 0
         ? 'Solde négatif : rechargez pour continuer à recevoir des leads.'
@@ -227,8 +228,8 @@
 
             <div class="pts-rule">
                 <span class="pts-ico in"><x-lx2-icon name="arrow-up-right" /></span>
-                <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500">Envoyer un lead accepté</div><div class="pts-help">Vous gagnez 2 points</div></div>
-                <span class="badge b-ok">+2</span>
+                <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500">Envoyer un lead accepté</div><div class="pts-help">Vous gagnez {{ $sendCredit }} point{{ $sendCredit > 1 ? 's' : '' }}</div></div>
+                <span class="badge b-ok">+{{ $sendCredit }}</span>
             </div>
             <div class="pts-rule">
                 <span class="pts-ico out"><x-lx2-icon name="inbox" /></span>

@@ -60,7 +60,7 @@ class LeadController extends Controller
             'ratings'        => $this->leadService->averageRatingsForSenders($connections->pluck('id')),
             'sectors'        => Sector::orderBy('name')->get(['id', 'name']),
             'preselectedId'  => (int) $request->query('to', 0) ?: null,
-            'pointsOnAccept' => \App\Services\PointsService::SEND_CREDIT,
+            'pointsOnAccept' => \App\Services\PointsService::sendCredit(),
         ]);
     }
 
