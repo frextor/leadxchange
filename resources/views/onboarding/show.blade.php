@@ -122,9 +122,11 @@
                         <input type="hidden" name="company_id" x-model="companyId">
                         <div x-show="companyResults.length" x-cloak
                              class="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto">
-                            <template x-for="c in companyResults" :key="c.id">
-                                <button type="button" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
-                                        @click="selectCompany(c)" x-text="c.name"></button>
+                            <template x-for="c in companyResults" :key="c.external ? c.siret : c.id">
+                                <button type="button" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50" @click="selectCompany(c)">
+                                    <span x-text="c.name"></span>
+                                    <span class="text-gray-400" x-text="c.city ? ' · ' + c.city : ''"></span>
+                                </button>
                             </template>
                         </div>
                     </div>
@@ -293,15 +295,29 @@ function onboarding() {
         },
 
         searchCompany() {
-            if (this.companySearch.length < 3) { this.companyResults = []; return; }
-            fetch('{{ route('company.search') }}?q=' + encodeURIComponent(this.companySearch))
+            const q = this.companySearch;
+            if (q.length < 3) { this.companyResults = []; return; }
+            fetch('{{ route('company.search') }}?q=' + encodeURIComponent(q))
                 .then(r => r.json())
-                .then(data => { this.companyResults = data; })
+                .then(data => {
+                    if (data.length > 0 || this.companySearch !== q) { this.companyResults = data; return; }
+                    // Rien parmi les membres LeadXchange : on élargit automatiquement
+                    // au registre officiel des entreprises (même source que le 2e champ).
+                    return fetch('{{ route('company.search-external') }}?q=' + encodeURIComponent(q))
+                        .then(r => r.json())
+                        .then(ext => { if (this.companySearch === q) this.companyResults = ext.map(c => ({ ...c, external: true })); });
+                })
                 .catch(() => { this.companyResults = []; });
         },
 
         selectCompany(c) {
-            this.companyId = c.id;
+            if (c.external) {
+                this.companyId = null;
+                this.companyName = c.name;
+                this.companySiret = c.siret;
+            } else {
+                this.companyId = c.id;
+            }
             this.companySearch = c.name;
             this.companyResults = [];
         },
