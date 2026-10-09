@@ -6,6 +6,10 @@
 <style>
     @keyframes slideUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
 
+    /* ── Icône de plan (en-tête) : repli si l'image envoyée dans Icônes & Visuels est absente ── */
+    .ph-plan-ico{width:62px;height:66px;border-radius:14px;display:grid;place-items:center;flex:none;background:var(--primary-soft);color:var(--primary)}
+    .ph-plan-ico svg{width:28px;height:28px}
+
     /* ── Tableau de bord : grille principale et cartes ── */
     .db-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px;align-items:start;margin-top:8px}
     .db-col{display:flex;flex-direction:column;gap:18px;min-width:0}
@@ -212,10 +216,16 @@
 @php
     $effectivePlan = $user->effectivePlan();
     $isPaidPlan    = $effectivePlan && in_array($effectivePlan->name, ['premium', 'enterprise'], true);
+    // Même image que celle envoyée dans Admin > Icônes & Visuels pour ce plan (pas de slot
+    // dédié "enterprise" dans cet outil : on réutilise le visuel Premium).
+    $dashPlanImgKey = $effectivePlan?->name === 'enterprise' ? 'premium' : ($effectivePlan->name ?? 'premium');
 @endphp
 <div class="ph">
     @if($isPaidPlan)
-    <img src="{{ asset('images/brand/crown.jpg') }}" alt="{{ $effectivePlan->label }}" style="width:62px;height:66px;object-fit:contain;mix-blend-mode:multiply" class="hide-m">
+    <span class="ph-plan-ico" id="phPlanIcoFallback" style="display:none"><x-lx2-icon name="gem" /></span>
+    <img src="{{ asset('images/plans/' . $dashPlanImgKey . '.jpg') }}" alt="{{ $effectivePlan->label }}"
+         style="width:62px;height:66px;object-fit:contain;border-radius:14px" class="hide-m"
+         onerror="this.style.display='none';document.getElementById('phPlanIcoFallback').style.display='grid'">
     @endif
     <div class="t">
         <div class="sub" style="margin:0 0 2px">{{ ucfirst(now()->locale('fr')->isoFormat('dddd, D MMMM')) }}</div>
