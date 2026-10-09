@@ -11,7 +11,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/select2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/i18n/fr.js"></script>
     <style>
+        .select2-container--default .select2-selection--multiple { border-radius: .75rem; border-color: #E4E4E7; min-height: 48px; padding: .375rem .5rem; }
+        .select2-container--default.select2-container--focus .select2-selection--multiple { border-color: #3C55FD; box-shadow: 0 0 0 3px rgba(60,85,253,.15); }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice { background: #EEF0FE; border-color: #C7CDFB; color: #3C55FD; border-radius: .5rem; }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove { color: #3C55FD; }
+        .select2-dropdown { border-radius: .75rem; border-color: #E4E4E7; }
         body { font-family: 'Inter', system-ui, sans-serif; background:#F9FAFB; }
         [x-cloak] { display: none !important; }
 
@@ -178,7 +187,7 @@
 
                     <div>
                         <label class="lx-label">Dans quels secteurs recherchez vous des leads ?</label>
-                        <select name="looking_for[]" multiple class="lx-input lx-multiselect">
+                        <select id="prefLookingFor" name="looking_for[]" multiple class="lx-input lx-multiselect">
                             @foreach($sectors as $sector)
                                 <option value="{{ $sector->id }}" {{ in_array($sector->id, $user->profile?->looking_for ?? []) ? 'selected' : '' }}>{{ $sector->name }}</option>
                             @endforeach
@@ -187,7 +196,7 @@
 
                     <div>
                         <label class="lx-label">Dans quels secteurs pouvez vous fournir vous des leads ?</label>
-                        <select name="services_offered[]" multiple class="lx-input lx-multiselect">
+                        <select id="prefServicesOffered" name="services_offered[]" multiple class="lx-input lx-multiselect">
                             @foreach($sectors as $sector)
                                 <option value="{{ $sector->id }}" {{ in_array($sector->id, $user->profile?->services_offered ?? []) ? 'selected' : '' }}>{{ $sector->name }}</option>
                             @endforeach
@@ -255,7 +264,7 @@
                 <div class="flex items-center gap-3">
                     <button type="button" class="ob-btn ob-btn-ghost" x-show="step > 1" x-cloak @click="step--">Précédent</button>
                     <button type="button" class="ob-btn ob-btn-ghost" @click="skip()">Passer</button>
-                    <button type="button" class="ob-btn ob-btn-primary" x-show="step < 4" x-cloak @click="step++">Suivant</button>
+                    <button type="button" class="ob-btn ob-btn-primary" x-show="step < 4" x-cloak @click="step++; $nextTick(() => initPreferenceSelects())">Suivant</button>
                     <button type="submit" class="ob-btn ob-btn-primary" x-show="step === 4" x-cloak :disabled="submitting">
                         <span x-text="submitting ? 'Enregistrement…' : 'Terminer'"></span>
                     </button>
@@ -350,6 +359,20 @@ function onboarding() {
             }
         },
     };
+}
+
+function initPreferenceSelects() {
+    if (typeof jQuery === 'undefined' || !jQuery.fn.select2) return;
+    ['#prefLookingFor', '#prefServicesOffered'].forEach((id) => {
+        const $sel = jQuery(id);
+        if (!$sel.length || $sel.hasClass('select2-hidden-accessible')) return;
+        $sel.select2({
+            width: '100%',
+            placeholder: 'Sélectionnez un ou plusieurs secteurs',
+            closeOnSelect: false,
+            language: 'fr',
+        });
+    });
 }
 </script>
 
