@@ -187,64 +187,6 @@
         </div>
     </div>
 
-    <hr class="border-gray-100">
-
-    {{-- ── Section 3 : Barème des points ── --}}
-    <div class="grid grid-cols-3 gap-6">
-        <div class="col-span-2">
-            <form method="POST" action="{{ route('admin.super.settings.points.rules.update') }}">
-                @csrf @method('PUT')
-
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
-                    <div>
-                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5">Barème des points</p>
-                        <p class="text-xs text-gray-400">Points crédités à l'expéditeur quand son lead est accepté.</p>
-                    </div>
-
-                    <div class="max-w-xs">
-                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Points gagnés à l'envoi d'un lead accepté</label>
-                        <div class="relative">
-                            <input type="number" name="points_send_credit"
-                                   value="{{ old('points_send_credit', $sendCredit) }}"
-                                   min="0" max="100" step="1" required
-                                   class="w-full h-10 pl-3 pr-14 rounded-xl border border-gray-200 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition">
-                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">pts</span>
-                        </div>
-                        @error('points_send_credit')
-                            <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <div class="bg-amber-50 border border-amber-100 rounded-xl p-4 text-xs text-amber-700">
-                        <p class="font-semibold mb-1">⚠️ Lien avec les CGU</p>
-                        <p>Cette valeur est actuellement citée dans les CGU (§6.2) comme un montant fixe. Si vous la changez, pensez à mettre les CGU à jour pour rester cohérent.</p>
-                    </div>
-
-                    <div class="flex justify-end">
-                        <button type="submit"
-                                class="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90 active:scale-[.98]"
-                                style="background:linear-gradient(135deg,#6366F1,#4338CA);">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-                            </svg>
-                            Enregistrer
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        <div class="space-y-4">
-            <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 text-xs text-indigo-700 space-y-2">
-                <p class="font-bold">À noter</p>
-                <ul class="space-y-1.5 list-disc list-inside">
-                    <li>Le débit du destinataire à la réception (−1 pt) n'est pas paramétrable ici.</li>
-                    <li>Un changement ne s'applique qu'aux leads acceptés après l'enregistrement.</li>
-                </ul>
-            </div>
-        </div>
-    </div>
-
 </div>
 
 @endsection

@@ -46,27 +46,11 @@ class SettingsController extends Controller
         $pricePerUnit    = (float) SystemSetting::get('points.price_per_unit', 5.00);
         $annualEnabled   = (bool)  SystemSetting::get('billing.annual_enabled', true);
         $annualDiscount  = (int)   SystemSetting::get('billing.annual_discount_pct', 0);
-        $sendCredit      = \App\Services\PointsService::sendCredit();
 
-        return view('admin.super_admin.settings.points', compact('pricePerUnit', 'annualEnabled', 'annualDiscount', 'sendCredit'));
+        return view('admin.super_admin.settings.points', compact('pricePerUnit', 'annualEnabled', 'annualDiscount'));
     }
 
-    public function updatePointsRules(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'points_send_credit' => ['required', 'integer', 'min:0', 'max:100'],
-        ]);
-
-        SystemSetting::updateOrCreate(
-            ['key' => 'points.send_credit'],
-            ['value' => $request->points_send_credit, 'type' => 'int', 'group' => 'points']
-        );
-        Cache::forget('system_settings');
-
-        ActivityLogger::log('admin.settings.updated', "Points gagnés à l'envoi d'un lead accepté mis à jour : {$request->points_send_credit}");
-
-        return back()->with('success', 'Barème des points enregistré.');
-    }
+    // ── §5.x Réglages des leads (points gagnés/perdus) — voir plus bas, section "Leads" ──
 
     public function updateBillingAnnual(Request $request): RedirectResponse
     {
@@ -106,6 +90,41 @@ class SettingsController extends Controller
         ActivityLogger::log('admin.settings.updated', "Prix du point mis à jour : {$request->points_price_per_unit}");
 
         return back()->with('success', 'Prix du point enregistré.');
+    }
+
+    // ── Réglages des leads (points gagnés à l'envoi / perdus à la réception) ──
+
+    public function leadsSettings(): View
+    {
+        $sendCredit   = \App\Services\PointsService::sendCredit();
+        $receiveDebit = abs(\App\Services\PointsService::receiveDebit());
+
+        return view('admin.super_admin.settings.leads', compact('sendCredit', 'receiveDebit'));
+    }
+
+    public function updateLeadsSettings(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'points_send_credit'   => ['required', 'integer', 'min:0', 'max:100'],
+            'points_receive_debit' => ['required', 'integer', 'min:0', 'max:100'],
+        ]);
+
+        SystemSetting::updateOrCreate(
+            ['key' => 'points.send_credit'],
+            ['value' => $request->points_send_credit, 'type' => 'int', 'group' => 'leads']
+        );
+        SystemSetting::updateOrCreate(
+            ['key' => 'points.receive_debit'],
+            ['value' => $request->points_receive_debit, 'type' => 'int', 'group' => 'leads']
+        );
+        Cache::forget('system_settings');
+
+        ActivityLogger::log(
+            'admin.settings.updated',
+            "Réglages leads mis à jour : +{$request->points_send_credit} pt(s) envoi, -{$request->points_receive_debit} pt(s) réception"
+        );
+
+        return back()->with('success', 'Réglages des leads enregistrés.');
     }
 
     // ── §5.2 Welcome popup ───────────────────────────────────────────────
@@ -388,6 +407,7 @@ class SettingsController extends Controller
             ['key' => 'ambassadors',      'label' => 'Ambassadeurs',        'visible' => true],
             ['key' => 'admins',           'label' => 'Admins',              'visible' => true],
             ['key' => 'plans',            'label' => 'Plans & Permissions', 'visible' => true],
+            ['key' => 'leads_settings',   'label' => 'Réglages des leads',  'visible' => true],
             ['key' => 'regions',          'label' => 'Régions / Villes',    'visible' => true],
             ['key' => 'sectors',          'label' => 'Secteurs',            'visible' => true],
             ['key' => 'countries',        'label' => 'Pays',                'visible' => true],

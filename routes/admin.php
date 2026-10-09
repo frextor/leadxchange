@@ -210,7 +210,8 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::put('settings/currency',     [SettingsController::class, 'updateCurrency'])->name('settings.currency.update');
     Route::get('settings/points',           [SettingsController::class, 'pointsSettings'])->name('settings.points');
     Route::put('settings/points',           [SettingsController::class, 'updatePointsPrice'])->name('settings.points.update');
-    Route::put('settings/points-rules',     [SettingsController::class, 'updatePointsRules'])->name('settings.points.rules.update');
+    Route::get('settings/leads',            [SettingsController::class, 'leadsSettings'])->name('settings.leads');
+    Route::put('settings/leads',            [SettingsController::class, 'updateLeadsSettings'])->name('settings.leads.update');
     Route::put('settings/billing-annual',   [SettingsController::class, 'updateBillingAnnual'])->name('settings.billing.annual.update');
     // Enterprise licenses — attribution des packs aux comptes holders
     Route::get('enterprise',               [\App\Http\Controllers\Admin\SuperAdmin\EnterpriseLicenseController::class, 'index'])->name('enterprise.index');

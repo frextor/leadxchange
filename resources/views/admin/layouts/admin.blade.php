@@ -107,6 +107,15 @@
             $rowSa   = \App\Models\SystemSetting::where('key','admin_nav_superadmin')->first();
             $adminNavPlat = ($rowPlat && $rowPlat->value) ? (json_decode($rowPlat->value, true) ?? SC::defaultAdminMenuPlateforme()) : SC::defaultAdminMenuPlateforme();
             $adminNavSa   = ($rowSa   && $rowSa->value)   ? (json_decode($rowSa->value,   true) ?? SC::defaultAdminMenuSuperAdmin()) : SC::defaultAdminMenuSuperAdmin();
+            // Un item par défaut ajouté après qu'un admin ait personnalisé son menu restait invisible
+            // (sa personnalisation enregistrée ne le contient pas) : on fusionne les nouveautés ici,
+            // comme le fait déjà l'écran "Menu administration" au moment de la sauvegarde.
+            foreach (SC::defaultAdminMenuPlateforme() as $def) {
+                if (! collect($adminNavPlat)->pluck('key')->contains($def['key'])) $adminNavPlat[] = $def;
+            }
+            foreach (SC::defaultAdminMenuSuperAdmin() as $def) {
+                if (! collect($adminNavSa)->pluck('key')->contains($def['key'])) $adminNavSa[] = $def;
+            }
         @endphp
         <nav id="sidebar-nav" class="flex-1 px-3 py-3 overflow-y-auto space-y-0.5">
 
@@ -298,6 +307,13 @@
                         </a>
                     </div>
                 </div>
+                @break
+
+            @case('leads_settings')
+                <a href="{{ route('admin.super.settings.leads') }}" class="nav-item sa {{ request()->routeIs('admin.super.settings.leads*') ? 'active' : '' }}">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>
+                    {{ $navAdm['label'] }}
+                </a>
                 @break
 
             @case('regions')
