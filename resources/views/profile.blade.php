@@ -56,7 +56,7 @@
         'sector'      => 'modal-professional',
         'experience'  => 'modal-professional',
         'location'    => 'modal-basic',
-        'company'     => null,
+        'company'     => route('company.create'),
         'interests'   => 'modal-interests',
         'looking_for' => 'modal-professional',
         'gender'      => 'modal-basic',
@@ -736,7 +736,11 @@
     function missingGo(target) {
         document.getElementById('modal-missing').classList.add('hidden');
         if (target === 'avatar-input') { document.getElementById('avatarInput').click(); return; }
-        if (target) lx2Dialog(target);
+        if (!target) return;
+        // Un target qui est une URL (ex. "Entreprise" → page company.create, pas de modale dédiée)
+        // redirige la page au lieu d'essayer d'ouvrir une fenêtre inexistante.
+        if (target.startsWith('/') || target.startsWith('http')) { window.location.href = target; return; }
+        lx2Dialog(target);
     }
 
     // ── Pop-up points : masquable pour la session ──
