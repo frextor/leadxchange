@@ -86,7 +86,7 @@ class EventsController extends Controller
         $ambassador = auth()->user();
         $this->authorizeEvent($ambassador, $event);
 
-        $registrations = $event->users()->withPivot('role', 'registered_at')->latest('registered_at')->get();
+        $registrations = $event->attendees()->latest('registered_at')->get();
         $invitations   = $event->invitations()->with('user')->latest()->get();
 
         $organizerGroups = collect();
@@ -235,7 +235,7 @@ class EventsController extends Controller
         $ambassador = auth()->user();
         $this->authorizeEvent($ambassador, $event);
 
-        $rows   = $event->users()->withPivot('role', 'registered_at')->get();
+        $rows   = $event->attendees()->get();
         $output = "Prénom,Nom,Email,Rôle,Date inscription\n";
 
         foreach ($rows as $u) {
