@@ -10,7 +10,10 @@
     $roleLine    = collect([$profile?->job_title, $user['company']['name'] ?? null])->filter()->implode(' · ');
     $phone       = trim(($user['phone']['code'] ?? '') . ' ' . ($user['phone']['number'] ?? ''));
     $video       = $profile?->presentation_video && $profile?->presentation_video_status === 'approved' ? $profile->presentation_video_url : null;
-    $names       = fn($ids) => collect($ids ?? [])->map(fn($id) => $sectors[$id]->name ?? null)->filter()->values();
+    // filter() avant map() : certains profils ont des sector_ids/looking_for/services_offered
+    // mal formés en base (ex. tableau imbriqué [["19"]] au lieu de ["19"]) — on ignore ces
+    // entrées invalides au lieu de planter sur $sectors[$id] avec $id non scalaire.
+    $names       = fn($ids) => collect($ids ?? [])->filter(fn($id) => is_int($id) || is_string($id))->map(fn($id) => $sectors[$id]->name ?? null)->filter()->values();
     $sectorNames = $names($profile?->sector_ids)->whenEmpty(fn($c) => collect([$user['company']['sector']['name'] ?? null])->filter());
     $offered     = $names($profile?->services_offered);
     $wanted      = $names($profile?->looking_for);
