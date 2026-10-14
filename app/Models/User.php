@@ -62,6 +62,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'cgu_accepted_at',
         'trial_reminder_sent_at',
         'password_set_at',
+        'linkedin_id',
     ];
 
     /**

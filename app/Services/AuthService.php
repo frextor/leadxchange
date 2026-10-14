@@ -97,7 +97,8 @@ class AuthService
      */
     public function loginWithLinkedIn(array $linkedinUser, ?string $referralToken = null): User
     {
-        $email = strtolower((string) ($linkedinUser['email'] ?? ''));
+        $email      = strtolower((string) ($linkedinUser['email'] ?? ''));
+        $linkedinId = (string) ($linkedinUser['sub'] ?? '');
         if ($email === '') {
             throw new \InvalidArgumentException('LinkedIn did not return an email address.');
         }
@@ -115,8 +116,14 @@ class AuthService
         $firstName = $firstName !== '' ? $firstName : 'LinkedIn';
         $lastName = $lastName !== '' ? $lastName : 'User';
 
-        return DB::transaction(function () use ($email, $firstName, $lastName, $linkedinUser, $referralToken) {
-            $user = User::where('email', $email)->first();
+        return DB::transaction(function () use ($email, $linkedinId, $firstName, $lastName, $linkedinUser, $referralToken) {
+            // L'identifiant LinkedIn (stable) prime sur l'email : l'utilisateur a pu
+            // changer son email dans l'app depuis sa dernière connexion LinkedIn — dans
+            // ce cas, LinkedIn renvoie toujours son email d'origine, qui ne correspond
+            // plus à aucun compte si on ne cherche que par email (ça créerait un doublon
+            // vide au lieu de retrouver le bon compte).
+            $user = $linkedinId !== '' ? User::where('linkedin_id', $linkedinId)->first() : null;
+            $user ??= User::where('email', $email)->first();
 
             if (!$user) {
                 $user = User::create([
@@ -128,6 +135,7 @@ class AuthService
                     'points_balance'  => 0,
                     'badge_level'     => 'neutre',
                     'onboarding_completed' => false,
+                    'linkedin_id'     => $linkedinId !== '' ? $linkedinId : null,
                 ]);
 
                 $user->forceFill(['email_verified_at' => now()])->save();
@@ -139,8 +147,19 @@ class AuthService
                         ->where('status', 'pending')
                         ->update(['status' => 'registered']);
                 }
-            } elseif (!$user->email_verified_at) {
-                $user->forceFill(['email_verified_at' => now()])->save();
+            } else {
+                $updates = [];
+                if (!$user->email_verified_at) {
+                    $updates['email_verified_at'] = now();
+                }
+                // Relie rétroactivement un compte trouvé par email (première connexion
+                // LinkedIn d'un compte existant, ou compte créé avant cette correction).
+                if ($linkedinId !== '' && !$user->linkedin_id) {
+                    $updates['linkedin_id'] = $linkedinId;
+                }
+                if ($updates) {
+                    $user->forceFill($updates)->save();
+                }
             }
 
             // Download and store LinkedIn photo locally to avoid CDN URL expiry
