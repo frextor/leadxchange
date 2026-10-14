@@ -708,25 +708,20 @@
     </div>
 </div>
 
-{{-- Popup points (solde ≤ 0), masquable pour la session --}}
-@if (isset($pointsBalance) && $pointsBalance <= 0)
+{{-- Popup points (solde négatif uniquement — 0 reste autorisé pour envoyer/recevoir des leads), masquable pour la session --}}
+@if (isset($pointsBalance) && $pointsBalance < 0)
 <div class="overlay" id="points-popup-overlay" onclick="if(event.target===this)pointsPopupClose()">
     <div class="dialog" style="max-width:380px">
         <div class="dh">
-            <div><h3>{{ $pointsBalance < 0 ? 'Solde de points négatif' : 'Vous n\'avez plus de points' }}</h3></div>
+            <div><h3>Solde de points négatif</h3></div>
             <button type="button" class="x" onclick="pointsPopupClose()" aria-label="Fermer"><x-lx2-icon name="x" /></button>
         </div>
         <div class="db" style="text-align:center">
             <p class="prose" style="margin:0 auto 14px">
-                @if ($pointsBalance < 0)
-                    Votre solde est de <b style="color:var(--destructive)">{{ $pointsBalance }} point{{ abs($pointsBalance) > 1 ? 's' : '' }}</b>.
-                    Rechargez votre compte pour continuer à recevoir des leads de la communauté.
-                @else
-                    Votre solde est à <b style="color:var(--warm-fg)">0 point</b>.
-                    Achetez des points ou envoyez des leads pour en gagner.
-                @endif
+                Votre solde est de <b style="color:var(--destructive)">{{ $pointsBalance }} point{{ abs($pointsBalance) > 1 ? 's' : '' }}</b>.
+                Rechargez votre compte pour continuer à recevoir des leads de la communauté.
             </p>
-            <div class="badge {{ $pointsBalance < 0 ? 'b-hot' : 'b-warm' }}" style="height:auto;padding:10px 18px;font-size:26px;font-weight:600">{{ $pointsBalance }} pts</div>
+            <div class="badge b-hot" style="height:auto;padding:10px 18px;font-size:26px;font-weight:600">{{ $pointsBalance }} pts</div>
         </div>
         <div class="df" style="flex-direction:column">
             <a class="btn btn-primary btn-block" href="{{ route('points.index') }}"><x-lx2-icon name="wallet" />Acheter des points</a>
