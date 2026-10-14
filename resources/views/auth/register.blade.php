@@ -165,7 +165,7 @@
                 <x-phone-input
                     codeId="phone_country_code"
                     codeName="phone_country_code"
-                    codeValue="{{ old('phone_country_code', '+212') }}"
+                    codeValue="{{ old('phone_country_code', '+33') }}"
                     phoneId="phone"
                     phoneName="phone"
                     phoneValue="{{ old('phone') }}"
