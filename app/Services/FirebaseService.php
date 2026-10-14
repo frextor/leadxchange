@@ -7,11 +7,13 @@ use App\Models\Conversation;
 use App\Models\DeviceToken;
 use App\Models\Group;
 use App\Models\Message;
+use App\Mail\SystemNotificationMail;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class FirebaseService
 {
@@ -139,8 +141,8 @@ class FirebaseService
             return;
         }
 
-        $tokens = DeviceToken::where('user_id', $targetUserId)->pluck('token');
-        if ($tokens->isEmpty()) {
+        $targetUser = User::find($targetUserId);
+        if (!$targetUser) {
             return;
         }
 
@@ -166,12 +168,31 @@ class FirebaseService
             default    => ['Lead update', $leadLabel],
         };
 
-        $notificationId = null;
-        $targetUser = User::find($targetUserId);
-        if ($targetUser) {
-            $notificationId = (string) Notification::storeForUser($targetUser, 'lead', $title, $body, [
-                'lead_id' => (string) $lead->id,
-            ])->id;
+        $leadUrl = route('leads.show', $lead->id);
+
+        // Toujours stocker la notification in-app et envoyer l'email, même sans appareil
+        // mobile enregistré — avant, les deux dépendaient par erreur d'un token FCM existant.
+        $notificationId = (string) Notification::storeForUser($targetUser, 'lead', $title, $body, [
+            'lead_id' => (string) $lead->id,
+            'url'     => $leadUrl,
+        ])->id;
+
+        try {
+            Mail::to($targetUser->email)->send(new SystemNotificationMail(
+                recipientName: $targetUser->first_name,
+                title:         $title,
+                body:          $body,
+                actionLabel:   'Voir le lead',
+                actionUrl:     $leadUrl,
+                templateKey:   'lead_' . $event,
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('Lead email notification failed', ['error' => $e->getMessage()]);
+        }
+
+        $tokens = DeviceToken::where('user_id', $targetUserId)->pluck('token');
+        if ($tokens->isEmpty()) {
+            return;
         }
 
         $accessToken = $this->getAccessToken();
