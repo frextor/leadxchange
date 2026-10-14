@@ -129,7 +129,7 @@
             @if($plan->is_enterprise)
                 <div class="up-price-row"><span class="up-price" style="font-size:26px">Sur devis</span></div>
                 <div class="up-subprice">{{ $plan->contact_cta ?? 'Pack multi-licences personnalisé' }}</div>
-            @elseif(!$plan->price)
+            @elseif(!$monthlyPrice)
                 <div class="up-price-row"><span class="up-price" style="font-size:26px">Gratuit</span></div>
                 <div class="up-subprice">Pour toujours, sans engagement</div>
             @else
@@ -178,7 +178,7 @@
                     <button type="button" class="btn btn-primary btn-block" onclick="toggleEnterpriseForm()" style="background:{{ $t['grad'] }}">
                         <x-lx2-icon name="phone" />Demander un devis
                     </button>
-                @elseif(!$plan->price)
+                @elseif(!$monthlyPrice)
                     <div class="btn btn-outline btn-block" style="pointer-events:none;opacity:.6">Plan gratuit</div>
                 @elseif($plan->stripe_price_id)
                     <form method="POST" action="{{ route('checkout', $plan) }}" class="checkout-form" data-plan-id="{{ $plan->id }}" data-has-annual="{{ $plan->stripe_annual_price_id ? '1' : '0' }}">
