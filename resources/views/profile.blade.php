@@ -115,7 +115,7 @@
     .pf-balance{font-size:32px;font-weight:600;letter-spacing:-.02em;line-height:1}
     .pf-stats{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     .pf-stat-n{font-size:22px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
-    .pf-badge-ico{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;flex:none}
+    .pf-badge-ico{width:107px;height:87px;border-radius:14px;display:grid;place-items:center;flex:none}
     .pf-badge-ico svg{width:24px;height:24px}
 
     @media (max-width:1020px){
@@ -419,7 +419,7 @@
             <div style="display:flex;align-items:center;gap:12px">
                 <span class="pf-badge-ico" id="planIcoFallback" style="background:{{ $planVisual['background'] }};color:{{ $planVisual['color'] }};display:none"><x-lx2-icon :name="$planVisual['icon']" /></span>
                 <img src="{{ asset('images/plans/' . $planKey . '.jpg') }}" alt="{{ $planLabel }}"
-                     style="width:52px;height:52px;object-fit:contain;flex:none;border-radius:14px"
+                     style="width:107px;height:87px;object-fit:contain;flex:none;border-radius:14px"
                      onerror="this.style.display='none';document.getElementById('planIcoFallback').style.display='grid'">
                 <div>
                     <div class="pf-cap" style="margin:0">Statut</div>

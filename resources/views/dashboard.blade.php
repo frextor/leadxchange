@@ -7,7 +7,7 @@
     @keyframes slideUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
 
     /* ── Icône de plan (en-tête) : repli si l'image envoyée dans Icônes & Visuels est absente ── */
-    .ph-plan-ico{width:62px;height:66px;border-radius:14px;display:grid;place-items:center;flex:none;background:var(--primary-soft);color:var(--primary)}
+    .ph-plan-ico{width:107px;height:87px;border-radius:14px;display:grid;place-items:center;flex:none;background:var(--primary-soft);color:var(--primary)}
     .ph-plan-ico svg{width:28px;height:28px}
 
     /* ── Tableau de bord : grille principale et cartes ── */
@@ -224,7 +224,7 @@
     @if($isPaidPlan)
     <span class="ph-plan-ico" id="phPlanIcoFallback" style="display:none"><x-lx2-icon name="gem" /></span>
     <img src="{{ asset('images/plans/' . $dashPlanImgKey . '.jpg') }}" alt="{{ $effectivePlan->label }}"
-         style="width:62px;height:66px;object-fit:contain;border-radius:14px" class="hide-m"
+         style="width:107px;height:87px;object-fit:contain;border-radius:14px" class="hide-m"
          onerror="this.style.display='none';document.getElementById('phPlanIcoFallback').style.display='grid'">
     @endif
     <div class="t">

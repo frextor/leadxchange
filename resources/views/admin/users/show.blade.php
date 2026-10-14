@@ -55,7 +55,7 @@
                     <img src="{{ asset('images/plans/' . $adminPlanKey . '.jpg') }}"
                          alt="{{ $adminPlanKey }}"
                          onerror="this.style.display='none'"
-                         class="h-12 w-auto object-contain">
+                         style="width:107px;height:87px;object-fit:contain">
                     <img src="{{ asset('images/badges/' . $adminBadgeKey . '.jpg') }}"
                          alt="{{ $adminBadgeKey }}"
                          onerror="this.style.display='none'"
