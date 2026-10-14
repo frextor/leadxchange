@@ -106,19 +106,25 @@ class ProfileController extends Controller
     /**
      * L'utilisateur peut changer son adresse email à tout moment, sous réserve de
      * confirmer son mot de passe actuel. La nouvelle adresse doit être revérifiée.
+     *
+     * Exception : un compte créé via LinkedIn n'a jamais de mot de passe connu de
+     * l'utilisateur (généré aléatoirement à l'inscription) — on ne peut pas exiger
+     * une valeur qui n'existe pas. hasUsablePassword() le détecte et on se repose
+     * alors uniquement sur la vérification de la nouvelle adresse.
      */
     public function updateEmail(Request $request): JsonResponse
     {
         $user = $request->user();
+        $requirePassword = $user->hasUsablePassword();
 
         $data = $request->validate([
             'email'            => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
-            'current_password' => ['required', 'string'],
+            'current_password' => [$requirePassword ? 'required' : 'nullable', 'string'],
         ], [
             'email.unique' => 'Cette adresse email est déjà utilisée par un autre compte.',
         ]);
 
-        if (! Hash::check($data['current_password'], $user->password)) {
+        if ($requirePassword && ! Hash::check($data['current_password'], $user->password)) {
             return response()->json(['message' => 'Mot de passe incorrect.'], 422);
         }
 

@@ -553,6 +553,7 @@
                 </div>
             </div>
 
+            @if ($me->hasUsablePassword())
             <div class="field">
                 <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
                     <label class="label" for="em_password" style="margin:0">Mot de passe actuel</label>
@@ -563,9 +564,19 @@
                     <input id="em_password" type="password" class="input" placeholder="Votre mot de passe" autocomplete="current-password">
                 </div>
             </div>
+            @endif
 
             <div class="lx2-flash b-soft" role="note">
-                <span style="display:flex;align-items:flex-start;gap:8px"><x-lx2-icon name="shield" /><span>Un lien de vérification sera envoyé à la nouvelle adresse. Elle ne sera active qu'une fois ce lien ouvert.</span></span>
+                <span style="display:flex;align-items:flex-start;gap:8px">
+                    <x-lx2-icon name="shield" />
+                    <span>
+                        @if ($me->hasUsablePassword())
+                            Un lien de vérification sera envoyé à la nouvelle adresse. Elle ne sera active qu'une fois ce lien ouvert.
+                        @else
+                            Compte connecté via LinkedIn : pas de mot de passe à confirmer. Un lien sera envoyé à la nouvelle adresse pour la vérifier.
+                        @endif
+                    </span>
+                </span>
             </div>
         </div>
         <div class="df">
@@ -832,8 +843,9 @@
 
     async function saveEmail() {
         const email = document.getElementById('em_new_email').value.trim();
-        const password = document.getElementById('em_password').value;
-        if (!email || !password) { toast('Renseignez la nouvelle adresse et votre mot de passe.', 'error'); return; }
+        const passwordEl = document.getElementById('em_password'); // absent pour un compte LinkedIn
+        const password = passwordEl ? passwordEl.value : '';
+        if (!email || (passwordEl && !password)) { toast('Renseignez la nouvelle adresse' + (passwordEl ? ' et votre mot de passe.' : '.'), 'error'); return; }
         setBtnLoading('btn-save-email', true);
         try {
             const data = await apiFetch('/api/profile/email', 'PUT', {

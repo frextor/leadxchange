@@ -61,6 +61,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'cgu_version',
         'cgu_accepted_at',
         'trial_reminder_sent_at',
+        'password_set_at',
     ];
 
     /**
@@ -86,6 +87,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'newsletter'           => 'boolean',
         'notifications'        => 'boolean',
         'password'                   => 'string',
+        'password_set_at'            => 'datetime',
         'points_balance'             => 'integer',
         'points_negative_since'      => 'datetime',
         'ambassador_requested_at'    => 'datetime',
@@ -225,6 +227,16 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         if (! $this->isOnFullAccessTrial()) return 0;
         return max(0, (int) ceil(now()->diffInHours($this->fullAccessTrialEndsAt()) / 24));
+    }
+
+    /**
+     * False pour un compte créé via LinkedIn qui n'a jamais défini son propre mot de
+     * passe (généré aléatoirement à l'inscription, jamais communiqué à l'utilisateur) —
+     * aucune valeur correcte n'existe alors pour confirmer une action sensible.
+     */
+    public function hasUsablePassword(): bool
+    {
+        return ! is_null($this->password_set_at);
     }
 
     // Hierarchy: Basic → Premium → Consul (admin appoints) → Ambassadeur (consul requests, admin approves)

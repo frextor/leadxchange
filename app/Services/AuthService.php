@@ -48,6 +48,7 @@ class AuthService
                 'last_name'          => $data['last_name'],
                 'email'              => $data['email'],
                 'password'           => Hash::make($data['password']),
+                'password_set_at'    => now(),
                 'phone'              => $data['phone']              ?? null,
                 'phone_country_code' => $data['phone_country_code'] ?? null,
                 'city_id'            => $data['city_id']            ?? null,
