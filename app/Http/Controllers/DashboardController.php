@@ -279,7 +279,7 @@ class DashboardController extends Controller
             $todoItems->push(['icon' => 'inbox', 'title' => 'Traiter les nouveaux leads', 'count' => $leadStats['pending'], 'meta' => null, 'url' => route('leads.index', ['box' => 'received'])]);
         }
         if ($pendingCount > 0) {
-            $todoItems->push(['icon' => 'user-plus', 'title' => 'Répondre aux demandes de connexion', 'count' => $pendingCount, 'meta' => null, 'url' => route('connections.index')]);
+            $todoItems->push(['icon' => 'user-plus', 'title' => 'Répondre aux demandes de connexion', 'count' => $pendingCount, 'meta' => null, 'url' => route('connections.index', ['tab' => 'requests'])]);
         }
 
         // Opportunités : aucune source de données n'existe encore. Structure prête, liste vide.

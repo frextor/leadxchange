@@ -47,6 +47,7 @@
     <div class="chips" id="netTabs">
         <button type="button" class="chip" data-tab="recommendations">Pour toi</button>
         <button type="button" class="chip" data-tab="contacts">Contacts</button>
+        <button type="button" class="chip" data-tab="requests">Demandes @if($pendingRequestsCount > 0)<span class="n num">{{ $pendingRequestsCount }}</span>@endif</button>
         <button type="button" class="chip" data-tab="visitors">Visiteurs @if($newVisitorCount > 0)<span class="n num">{{ $newVisitorCount }}</span>@endif</button>
     </div>
     <div class="grow"></div>
@@ -205,7 +206,7 @@
        sinon les résultats élargis par le repli (autres villes) seraient aussitôt exclus. ── */
     const SELECTED_CITY_ID = @json($selectedCityId);
     const CITY_NAMES = @json($cities->pluck('name', 'id'));
-    const cityOk = (m) => { if (!SELECTED_CITY_ID || tab === 'recommendations') return true;
+    const cityOk = (m) => { if (!SELECTED_CITY_ID || tab === 'recommendations' || tab === 'requests') return true;
         const mCity = typeof m.city === 'object' && m.city ? m.city : (m.city ? { name: m.city } : null);
         if (!mCity) return false;
         return (mCity.id != null && String(mCity.id) === String(SELECTED_CITY_ID)) || mCity.name === CITY_NAMES[SELECTED_CITY_ID]; };
@@ -246,6 +247,7 @@
         const q = $('memberSearch').value.trim();
         const total = tab === 'recommendations' ? null : list.length;
         $('netTitle').innerHTML = tab === 'contacts'  ? `<span class="num">${total}</span> contact${total > 1 ? 's' : ''}`
+                                : tab === 'requests'  ? `<span class="num">${total}</span> demande${total > 1 ? 's' : ''} de connexion`
                                 : tab === 'visitors'  ? `<span class="num">${total}</span> visiteur${total > 1 ? 's' : ''} de ton profil`
                                 : q.length >= 3       ? `Résultats pour « ${esc(q)} »` : 'Membres pour toi';
         $('netState').hidden = list.length > 0 || loading;
@@ -253,13 +255,14 @@
             const isSearch = tab === 'recommendations' && q.length >= 3;
             const icon = isSearch ? ICON.search : ICON.users;
             const text = tab === 'contacts'   ? "Vous n'avez pas encore de contact."
+                       : tab === 'requests'    ? "Aucune demande de connexion en attente."
                        : tab === 'visitors'    ? "Personne n'a encore visité votre profil."
                        : isSearch              ? `Aucun membre ne correspond à « ${esc(q)} ».`
                                                 : 'Aucune suggestion pour le moment.';
             const cta = tab === 'contacts' ? '<button type="button" class="link lx2-linkbtn" id="netEmptyGoTo" style="opacity:1">Explorer « Pour toi »</button>' : '';
             $('netState').innerHTML = `<span class="ic">${icon}</span><p>${text}</p>${cta}`;
         }
-        $('netMore').hidden = !(tab !== 'contacts' && page < lastPage);
+        $('netMore').hidden = !(tab !== 'contacts' && tab !== 'requests' && page < lastPage);
     }
 
     async function load(reset = true) {
@@ -273,6 +276,10 @@
             if (tab === 'contacts') {
                 data = await api('/api/connections?type=connections');
                 list = (data.data || []).map(c => Object.assign({}, c.user, { connection_status: 'accepted', connection_id: c.id }));
+                lastPage = 1;
+            } else if (tab === 'requests') {
+                data = await api('/api/connections?type=received&status=pending');
+                list = (data.data || []).map(c => Object.assign({}, c.user, { connection_status: 'pending', connection_id: c.id, i_am_receiver: true, i_am_sender: false }));
                 lastPage = 1;
             } else if (tab === 'visitors') {
                 data = await api(`/api/profile/visitors?filter=all&page=${page}`);
@@ -300,7 +307,7 @@
     function setTab(t, push = true) {
         tab = t;
         document.querySelectorAll('#netTabs .chip').forEach(c => c.classList.toggle('on', c.dataset.tab === t));
-        $('memberSearch').placeholder = t === 'recommendations' ? 'Rechercher des membres' : (t === 'contacts' ? 'Rechercher un contact' : 'Rechercher un visiteur');
+        $('memberSearch').placeholder = t === 'recommendations' ? 'Rechercher des membres' : (t === 'contacts' ? 'Rechercher un contact' : (t === 'requests' ? 'Rechercher une demande' : 'Rechercher un visiteur'));
         const cityNotice = document.getElementById('cityFilterNotice');
         if (cityNotice) cityNotice.hidden = (t === 'recommendations');
         if (push) history.replaceState(null, '', t === 'recommendations' ? location.pathname : `?tab=${t}`);

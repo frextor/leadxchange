@@ -212,6 +212,24 @@
             } catch {}
         };
 
+        // Accepter/Refuser une demande de connexion directement depuis le détail de la notification
+        // (la notification ne porte qu'un connection_id, pas d'URL utilisable — voir openNotifDetail).
+        async function respondToConnectionFromNotif(connectionId, notifId, action) {
+            try {
+                const res = await fetch(`/api/connections/${connectionId}/${action}`, { method:'POST', headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF,'Authorization':'Bearer '+window.API_TOKEN}, credentials:'same-origin' });
+                const data = await res.json();
+                if (!res.ok || data.success === false) throw new Error(data.message || 'Erreur');
+                closeNotifDetail();
+                toast(action === 'accept' ? 'Demande acceptée 🎉' : 'Demande refusée', action === 'accept' ? 'success' : 'info');
+                document.getElementById('notif-' + notifId)?.remove();
+                notifPanelLoaded = false;
+                loadNotifications();
+                if (notifLoaded) loadRequests();
+            } catch (e) {
+                toast(e.message || 'Une erreur est survenue', 'error');
+            }
+        }
+
         // URL is only offered as a link if it does NOT point to the admin subdomain —
         // a regular user must never be bounced to admin.* and hit a login/403 wall.
         function isSafeNotifUrl(url) {
@@ -233,9 +251,26 @@
             document.getElementById('notifDetailDate').textContent  = timeAgo(n.created_at);
 
             const url = n.data && n.data.url ? n.data.url : null;
+            const connectionId = n.data && n.data.connection_id ? n.data.connection_id : null;
             const actions = document.getElementById('notifDetailActions');
             actions.innerHTML = '';
-            if (url && isSafeNotifUrl(url)) {
+
+            if (connectionId && /connect|invit/.test(String(n.type || ''))) {
+                const acceptBtn = document.createElement('button');
+                acceptBtn.type = 'button';
+                acceptBtn.className = 'flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90';
+                acceptBtn.style.background = 'linear-gradient(135deg,#2BB6A3,#1E8F88)';
+                acceptBtn.textContent = 'Accepter';
+                acceptBtn.onclick = () => respondToConnectionFromNotif(connectionId, id, 'accept');
+                actions.appendChild(acceptBtn);
+
+                const rejectBtn = document.createElement('button');
+                rejectBtn.type = 'button';
+                rejectBtn.className = 'flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-500 border border-gray-200 hover:bg-gray-50 transition';
+                rejectBtn.textContent = 'Refuser';
+                rejectBtn.onclick = () => respondToConnectionFromNotif(connectionId, id, 'reject');
+                actions.appendChild(rejectBtn);
+            } else if (url && isSafeNotifUrl(url)) {
                 const a = document.createElement('a');
                 a.href = url;
                 a.className = 'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90';
@@ -246,7 +281,7 @@
             const closeBtn = document.createElement('button');
             closeBtn.type = 'button';
             closeBtn.onclick = closeNotifDetail;
-            closeBtn.className = (url && isSafeNotifUrl(url) ? '' : 'flex-1 ') + 'px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 border border-gray-200 hover:bg-gray-50 transition';
+            closeBtn.className = (actions.children.length > 0 ? '' : 'flex-1 ') + 'px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 border border-gray-200 hover:bg-gray-50 transition';
             closeBtn.textContent = 'Fermer';
             actions.appendChild(closeBtn);
 

@@ -36,9 +36,9 @@ class MemberController extends Controller
     {
         $user = $request->user();
 
-        // Design lx2 (maquette) : Pour toi · Contacts · Visiteurs — l'ancien onglet « search » ouvre « Pour toi »
+        // Design lx2 (maquette) : Pour toi · Contacts · Demandes · Visiteurs — l'ancien onglet « search » ouvre « Pour toi »
         $tab = $request->get('tab', 'recommendations');
-        $tab = in_array($tab, ['recommendations', 'contacts', 'visitors'], true) ? $tab : 'recommendations';
+        $tab = in_array($tab, ['recommendations', 'contacts', 'requests', 'visitors'], true) ? $tab : 'recommendations';
 
         // Ville active (sélecteur global choisi sur l'accueil, même session que Dashboard/Événements/Groupes).
         $cities = City::orderBy('name')->get(['id', 'name']);
@@ -55,6 +55,9 @@ class MemberController extends Controller
             })->count();
         $recentVisitorsCount = ProfileVisitor::where('profile_user_id', $user->id)
             ->where('last_visited_at', '>=', now()->subDays(30))->count();
+        // Demandes reçues en attente : jamais filtrées par ville/région — un membre d'une autre
+        // région doit pouvoir être vu et traité comme n'importe quelle autre demande.
+        $pendingRequestsCount = Connection::where('receiver_id', $user->id)->pending()->count();
 
         return view('members.index', [
             'sectors'             => \App\Models\Sector::orderBy('name')->get(['id', 'name']),
@@ -66,6 +69,7 @@ class MemberController extends Controller
             'suggestionsCount'    => $suggestionsCount,
             'contactsCount'       => $contactsCount,
             'recentVisitorsCount' => $recentVisitorsCount,
+            'pendingRequestsCount' => $pendingRequestsCount,
             'initialTab'          => $tab,
             'canViewName'         => $user->canFeature('can_view_member_name'),
             'canInvite'           => $user->canFeature('can_send_invitations'),

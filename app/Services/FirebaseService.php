@@ -29,7 +29,8 @@ class FirebaseService
 
         // Always store DB notification regardless of push tokens
         $notificationId = (string) Notification::storeForUser($receiver, 'connection_request', $title, $body, [
-            'user_id' => (string) $sender->id,
+            'user_id'       => (string) $sender->id,
+            'connection_id' => (string) $connection->id,
         ])->id;
 
         $tokens = DeviceToken::where('user_id', $connection->receiver_id)->pluck('token');
