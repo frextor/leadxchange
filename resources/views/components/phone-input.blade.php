@@ -1,13 +1,14 @@
 {{-- Reusable phone input with custom flag dropdown (emoji-safe on Windows) --}}
 @props([
-    'codeId'     => 'phone_country_code',
-    'codeValue'  => '+33',
-    'codeName'   => 'phone_country_code',
-    'phoneId'    => 'phone',
-    'phoneValue' => '',
-    'phoneName'  => 'phone',
-    'inputClass' => '',
-    'dark'       => false,
+    'codeId'      => 'phone_country_code',
+    'codeValue'   => '+33',
+    'codeName'    => 'phone_country_code',
+    'phoneId'     => 'phone',
+    'phoneValue'  => '',
+    'phoneName'   => 'phone',
+    'inputClass'  => '',
+    'dark'        => false,
+    'autoDetectIp' => false,
 ])
 
 @php
@@ -48,6 +49,9 @@ $dialCodes = [
     ['+380', '🇺🇦', 'Ukraine'],
 ];
 
+// Ordre alphabétique par nom de pays (insensible aux accents : Égypte doit trier avec les E).
+usort($dialCodes, fn ($a, $b) => strcmp(\Illuminate\Support\Str::ascii($a[2]), \Illuminate\Support\Str::ascii($b[2])));
+
 // Les emoji drapeaux ne s'affichent pas sous Windows : on en déduit le code ISO (ex. 🇲🇦 → ma) pour afficher une image.
 $isoOf      = fn (string $flag) => mb_strtolower(implode('', array_map(fn ($ch) => chr(mb_ord($ch) - 0x1F1E6 + 65), mb_str_split($flag))));
 $initialIso = $isoOf(collect($dialCodes)->firstWhere(0, $codeValue)[1] ?? '');
@@ -60,6 +64,7 @@ $initialLabel = $codeValue;
         code: '{{ $codeValue }}',
         iso: '{{ $initialIso }}',
         search: '',
+        userChanged: false,
         codes: {{ json_encode(array_map(fn($d) => ['code'=>$d[0],'iso'=>$isoOf($d[1]),'label'=>$d[2]], $dialCodes)) }},
         flagUrl(iso) { return iso ? 'https://flagcdn.com/w40/' + iso + '.png' : ''; },
         get filtered() {
@@ -70,11 +75,18 @@ $initialLabel = $codeValue;
         select(c) {
             this.code = c.code;
             this.iso = c.iso;
+            this.userChanged = true;
             this.open = false;
             this.search = '';
+        },
+        applyDetectedCountry(isoCode) {
+            if (this.userChanged || !isoCode) return;
+            const match = this.codes.find(c => c.iso === isoCode.toLowerCase());
+            if (match) { this.code = match.code; this.iso = match.iso; }
         }
      }"
-     @click.outside="open = false">
+     @click.outside="open = false"
+     @if ($autoDetectIp) x-on:ip-country-detected.window="applyDetectedCountry($event.detail.countryCode)" @endif>
 
     {{-- Hidden input for form submission --}}
     <input type="hidden" id="{{ $codeId }}" name="{{ $codeName }}" :value="code">

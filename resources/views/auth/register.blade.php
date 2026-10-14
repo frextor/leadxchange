@@ -170,6 +170,7 @@
                     phoneName="phone"
                     phoneValue="{{ old('phone') }}"
                     inputClass="{{ $errors->has('phone') ? 'border-red-400' : '' }}"
+                    :auto-detect-ip="is_null(old('phone_country_code'))"
                 />
                 @error('phone_country_code') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
                 @error('phone') <p class="mt-1.5 text-sm text-red-500">{{ $message }}</p> @enderror
@@ -442,7 +443,11 @@
         fetch('https://ip-api.com/json?fields=status,city,countryCode,regionName')
             .then(r => r.json())
             .then(data => {
-                if (data.status !== 'success' || !data.city) return;
+                if (data.status !== 'success') return;
+                if (data.countryCode) {
+                    window.dispatchEvent(new CustomEvent('ip-country-detected', { detail: { countryCode: data.countryCode } }));
+                }
+                if (!data.city) return;
                 const match = matchCity(data.city, data.countryCode);
                 if (!match) return;
                 // Fill city
