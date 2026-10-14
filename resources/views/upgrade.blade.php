@@ -1,403 +1,286 @@
-@extends('layouts.app')
+@extends('layouts.app2')
 
-@section('title', 'Mettre à niveau — LeadXchange')
+@section('title', 'Plans & tarifs — LeadXchange')
 
-@section('content')
+{{-- Écran « Plans & tarifs » — design lx2. Grille de plans, bascule mensuel/annuel, devis Entreprise. --}}
+
 @php
     $themes = [
-        'basic'       => ['top' => '#64748B', 'bg' => '#F8FAFC', 'accent' => '#475569'],
-        'premium'     => ['top' => '#6366F1', 'bg' => '#EEF2FF', 'accent' => '#4338CA'],
-        'consul'      => ['top' => '#0D9488', 'bg' => '#F0FDFA', 'accent' => '#0F766E'],
-        'ambassadeur' => ['top' => '#D97706', 'bg' => '#FFFBEB', 'accent' => '#92400E'],
-        'enterprise'  => ['top' => '#1D4ED8', 'bg' => '#EFF6FF', 'accent' => '#1E40AF'],
+        'basic'      => ['color' => 'var(--muted-fg)', 'soft' => 'var(--muted)',       'grad' => null],
+        'premium'    => ['color' => 'var(--primary)',  'soft' => 'var(--primary-soft)', 'grad' => 'var(--lx-accent-grad)'],
+        'enterprise' => ['color' => 'var(--purple)',    'soft' => 'var(--purple-soft)',  'grad' => 'linear-gradient(135deg,#B394F8,#9E6EF5)'],
     ];
+    $annualBillingEnabled = (bool) \App\Models\SystemSetting::get('billing.annual_enabled', true);
+    $annualDiscountPct    = (int)  \App\Models\SystemSetting::get('billing.annual_discount_pct', 0);
+    $hasAnnualPlans       = $plans->filter(fn($p) => $p->annual_price > 0)->isNotEmpty();
+    $isSpecialRole        = $currentPlan && in_array($currentPlan->name, ['consul', 'ambassadeur'], true);
 @endphp
 
-<div class="max-w-5xl mx-auto px-4 py-10">
+@push('styles')
+<style>
+    .up-seg{display:inline-flex;background:var(--muted);border-radius:var(--radius-lg);padding:4px;gap:2px}
+    .up-seg button{height:36px;padding:0 20px;border:0;background:transparent;border-radius:7px;font-size:13.5px;font-weight:500;color:var(--muted-fg);cursor:pointer;transition:background .15s,color .15s;position:relative}
+    .up-seg button:hover{color:var(--fg-2)}
+    .up-seg button.on{background:#fff;color:var(--fg);box-shadow:var(--shadow-sm)}
+    .up-seg .save-tag{position:absolute;top:-9px;right:-8px;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:999px;background:var(--green);color:#fff;line-height:1.5}
 
-    {{-- Raison du redirect (limite plan atteinte) --}}
-    @if(session('upgrade_reason'))
-    <div class="mb-6 flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-5 py-4 text-sm">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0 mt-0.5"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        <div>
-            <p class="font-semibold">Limite de votre plan atteinte</p>
-            <p class="text-amber-700 mt-0.5">{{ session('upgrade_reason') }}</p>
-        </div>
+    .up-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;align-items:stretch;margin-top:28px}
+    .up-card{position:relative;display:flex;flex-direction:column;border:1.5px solid var(--border);border-radius:var(--radius-lg);background:#fff;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+    .up-card.featured{border-color:var(--primary);box-shadow:0 8px 28px rgba(65,84,244,.12)}
+    .up-card.current{border-color:var(--primary)}
+    .up-ribbon{position:absolute;top:14px;right:14px;z-index:1}
+    .up-top{height:4px;width:100%}
+    .up-body{padding:24px 22px;display:flex;flex-direction:column;flex:1}
+    .up-name{font-size:17px;font-weight:600;letter-spacing:-.01em}
+    .up-desc{font-size:12.5px;color:var(--muted-fg);margin-top:3px;line-height:1.5;min-height:32px}
+    .up-price-row{display:flex;align-items:baseline;gap:5px;margin-top:18px}
+    .up-price{font-size:34px;font-weight:600;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+    .up-period{font-size:13px;color:var(--muted-fg)}
+    .up-subprice{font-size:12px;color:var(--muted-fg);margin-top:6px}
+    .up-sep{height:1px;background:var(--border);margin:20px 0}
+    .up-features{display:flex;flex-direction:column;gap:10px;flex:1}
+    .up-feat{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:var(--fg-2);line-height:1.5}
+    .up-feat-ico{width:17px;height:17px;border-radius:999px;display:grid;place-items:center;flex:none;margin-top:1px}
+    .up-feat-ico svg{width:9px;height:9px}
+    .up-cta-wrap{margin-top:22px}
+    .up-cta-note{text-align:center;font-size:11px;color:var(--muted-fg);margin-top:9px;display:flex;align-items:center;justify-content:center;gap:5px}
+
+    .up-role-banner{display:flex;align-items:center;gap:14px;padding:18px 20px;border-radius:var(--radius-lg);background:var(--lx-accent-grad);color:#fff;margin-top:18px}
+    .up-role-ico{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.18);display:grid;place-items:center;flex:none}
+
+    .up-qform .field{margin-bottom:14px}
+    .up-qform label{display:block;font-size:12.5px;font-weight:500;color:var(--fg-2);margin-bottom:6px}
+
+    @media (max-width:640px){
+        .up-grid{grid-template-columns:1fr}
+    }
+</style>
+@endpush
+
+@section('content')
+<x-lx2-header title="Plans & tarifs" sub="Choisissez l'offre adaptée à votre activité" :back="route('dashboard')" />
+
+{{-- Raison du redirect (limite plan atteinte) --}}
+@if(session('upgrade_reason'))
+<div class="lx2-flash b-warm" role="alert" style="margin-top:18px">
+    <span><b>Limite de votre plan atteinte.</b> {{ session('upgrade_reason') }}</span>
+</div>
+@endif
+
+{{-- Statut actuel --}}
+@if($isSpecialRole)
+<div class="up-role-banner">
+    <span class="up-role-ico"><x-lx2-icon name="{{ $currentPlan->name === 'ambassadeur' ? 'star' : 'shield' }}" /></span>
+    <div>
+        <b style="font-size:14.5px">Badge {{ $currentPlan->label }} actif</b>
+        <p style="margin:2px 0 0;font-size:12.5px;opacity:.9">Ce statut vous donne accès à toutes les fonctionnalités Premium. Attribué par l'administration — pas lié à un abonnement payant.</p>
     </div>
-    @endif
-
-    {{-- Header --}}
-    <div class="text-center mb-10">
-        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-4"
-             style="background:#EEF2FF;color:#4338CA;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            Plans d'abonnement
-        </div>
-        <h1 class="text-3xl font-extrabold text-gray-900 mb-3">Choisissez votre plan</h1>
-        <p class="text-sm text-gray-500 max-w-md mx-auto">
-            Débloquez toutes les fonctionnalités de LeadXchange et développez votre réseau professionnel.
-        </p>
-
-        {{-- Billing period toggle --}}
-        @php
-            $annualBillingEnabled = (bool) \App\Models\SystemSetting::get('billing.annual_enabled', true);
-            $annualDiscountPct    = (int)  \App\Models\SystemSetting::get('billing.annual_discount_pct', 0);
-            $hasAnnualPlans       = $plans->filter(fn($p) => $p->annual_price > 0)->isNotEmpty();
-        @endphp
-        @if($annualBillingEnabled && $hasAnnualPlans)
-        <div class="mt-6 inline-flex items-center gap-1 p-1 rounded-2xl border border-gray-200 bg-gray-50">
-            <button id="btn-monthly" onclick="setBilling('monthly')"
-                    class="px-5 py-2 rounded-xl text-sm font-semibold transition billing-btn billing-btn--active">
-                Mensuel
-            </button>
-            <button id="btn-annual" onclick="setBilling('annual')"
-                    class="px-5 py-2 rounded-xl text-sm font-semibold transition billing-btn relative">
-                Annuel
-                @if($annualDiscountPct > 0)
-                <span class="absolute -top-2 -right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500 text-white leading-none">-{{ $annualDiscountPct }}%</span>
-                @endif
-            </button>
-        </div>
-        @if($annualDiscountPct > 0)
-        <p class="text-xs text-gray-400 mt-2">Économisez {{ $annualDiscountPct }}% avec la facturation annuelle</p>
+</div>
+@elseif($currentPlan)
+<div class="lx2-flash b-soft" role="note" style="margin-top:18px">
+    <span>Plan actuel : <b>{{ $currentPlan->label }}</b>
+        @if($currentPlan->is_enterprise) · Entreprise
+        @elseif($currentPlan->price) · {{ currency_format($currentPlan->price) }}/mois
+        @else · Gratuit
         @endif
-        @endif
+    </span>
+</div>
+@endif
+
+{{-- Bascule mensuel / annuel --}}
+@if($annualBillingEnabled && $hasAnnualPlans)
+<div style="display:flex;justify-content:center;margin-top:26px">
+    <div class="up-seg" role="group" aria-label="Période de facturation">
+        <button type="button" id="btn-monthly" class="on" onclick="setBilling('monthly')">Mensuel</button>
+        <button type="button" id="btn-annual" onclick="setBilling('annual')" style="{{ $annualDiscountPct > 0 ? 'margin-right:4px' : '' }}">
+            Annuel
+            @if($annualDiscountPct > 0)<span class="save-tag">-{{ $annualDiscountPct }}%</span>@endif
+        </button>
     </div>
+</div>
+@endif
 
-    {{-- Current plan banner --}}
-    @if($currentPlan)
-    @php $isSpecialRole = in_array($currentPlan->name, ['consul','ambassadeur']); @endphp
-    @if($isSpecialRole)
-    {{-- Consul / Ambassadeur : badge accordé par l'admin ou sur demande --}}
-    <div class="mb-7 flex flex-col items-center gap-3 text-sm">
-        <div class="flex items-center gap-2">
-            @if($currentPlan->name === 'ambassadeur')
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                🏅 Badge Ambassadeur actif
-            </span>
+{{-- Grille des plans --}}
+<div class="up-grid">
+    @foreach($plans as $plan)
+    @php
+        $t = $themes[$plan->name] ?? $themes['basic'];
+        $isCurrent = $currentPlan && $currentPlan->id === $plan->id;
+        $isFeatured = $plan->name === 'premium' && !$isCurrent;
+        $raw = $plan->features;
+        $planFeatures = (is_array($raw) && array_values($raw) === $raw) ? array_filter(array_map('strval', $raw)) : [];
+        $monthlyPrice  = (float) $plan->price;
+        $annualTotal   = $plan->annual_price ? (float) $plan->annual_price : null;
+        $annualMonthly = $annualTotal ? round($annualTotal / 12, 2) : null;
+        $savingsPct    = ($annualMonthly && $monthlyPrice > 0) ? round((1 - $annualMonthly / $monthlyPrice) * 100) : null;
+    @endphp
+    <div class="up-card {{ $isFeatured ? 'featured' : '' }} {{ $isCurrent ? 'current' : '' }}">
+        @if($isCurrent)
+        <span class="up-ribbon badge b-primary"><x-lx2-icon name="check" />Votre plan</span>
+        @elseif($isFeatured)
+        <span class="up-ribbon badge b-primary">Recommandé</span>
+        @endif
+        <div class="up-top" style="background:{{ $t['grad'] ?? $t['color'] }}"></div>
+
+        <div class="up-body">
+            <div class="up-name">{{ $plan->label }}</div>
+            <div class="up-desc">{{ $plan->description ?? ' ' }}</div>
+
+            @if($plan->is_enterprise)
+                <div class="up-price-row"><span class="up-price" style="font-size:26px">Sur devis</span></div>
+                <div class="up-subprice">{{ $plan->contact_cta ?? 'Pack multi-licences personnalisé' }}</div>
+            @elseif(!$plan->price)
+                <div class="up-price-row"><span class="up-price" style="font-size:26px">Gratuit</span></div>
+                <div class="up-subprice">Pour toujours, sans engagement</div>
             @else
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-teal-100 text-teal-800 border border-teal-200">
-                🛡️ Badge Consul actif
-            </span>
-            @endif
-            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
-                ✓ Inclut Premium
-            </span>
-        </div>
-        <p class="text-xs text-gray-400 max-w-sm text-center">
-            Votre badge {{ $currentPlan->label }} vous donne accès à toutes les fonctionnalités Premium.
-            Ce statut est attribué par l'administration — il n'est pas lié à un abonnement payant.
-        </p>
-    </div>
-    @else
-    <div class="mb-7 flex items-center justify-center gap-2 text-sm">
-        <span class="text-gray-500">Plan actuel :</span>
-        <span class="font-bold text-gray-900">{{ $currentPlan->label }}</span>
-        @if($currentPlan->is_enterprise)
-        <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">Entreprise</span>
-        @elseif(!$currentPlan->price)
-        <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">Basic</span>
-        @else
-        <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-600">{{ currency_format($currentPlan->price) }}/mois</span>
-        @endif
-    </div>
-    @endif
-    @endif
-
-    {{-- Plans grid --}}
-    <div class="grid grid-cols-1 gap-5 mb-10"
-         style="grid-template-columns: repeat({{ min($plans->count(), 3) }}, minmax(0, 1fr));">
-
-        @foreach($plans as $plan)
-        @php
-            $t = $themes[$plan->name] ?? $themes['basic'];
-            $isCurrent = $currentPlan && $currentPlan->id === $plan->id;
-        @endphp
-        <div class="bg-white rounded-2xl border-2 overflow-hidden flex flex-col transition-shadow hover:shadow-lg relative
-                    {{ $isCurrent ? 'border-indigo-300 shadow-md' : 'border-gray-100' }}"
-             style="{{ $isCurrent ? '' : "border-top:3px solid {$t['top']};" }}">
-
-            @if($isCurrent)
-            <div class="absolute top-3 right-3">
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500 text-white">
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 7"/></svg>
-                    Votre plan
-                </span>
-            </div>
-            @endif
-
-            {{-- Plan header --}}
-            <div class="px-5 pt-5 pb-4">
-                <h3 class="text-base font-bold text-gray-900 mb-0.5">{{ $plan->label }}</h3>
-                @if($plan->description)
-                <p class="text-xs text-gray-400 leading-relaxed">{{ $plan->description }}</p>
-                @endif
-            </div>
-
-            {{-- Price --}}
-            <div class="px-5 py-4 border-y border-gray-100" style="background:{{ $t['bg'] }};">
-                @if($plan->is_enterprise)
-                <div class="flex items-baseline gap-2">
-                    <span class="text-3xl font-extrabold text-gray-900">Sur devis</span>
-                </div>
-                <p class="text-xs text-gray-400 mt-1">{{ $plan->contact_cta ?? 'Pack multi-licences personnalisé' }}</p>
-                @elseif(!$plan->price)
-                <div class="flex items-baseline gap-2">
-                    <span class="text-3xl font-extrabold text-gray-900">Basic</span>
-                    <span class="text-xs text-gray-400">gratuit pour toujours</span>
-                </div>
-                @else
-                @php
-                    $monthlyPrice  = (float) $plan->price;
-                    $annualTotal   = $plan->annual_price ? (float) $plan->annual_price : null;
-                    $annualMonthly = $annualTotal ? round($annualTotal / 12, 2) : null;
-                    $savingsPct    = ($annualMonthly && $monthlyPrice > 0)
-                        ? round((1 - $annualMonthly / $monthlyPrice) * 100)
-                        : null;
-                @endphp
-                {{-- Monthly price (shown by default) --}}
                 <div class="price-monthly-block">
-                    <div class="flex items-baseline gap-1">
-                        <span class="text-3xl font-extrabold text-gray-900">{{ currency_format($monthlyPrice) }}</span>
-                        <span class="text-xs text-gray-400">/ mois</span>
-                    </div>
-                    @if($annualTotal)
-                    <p class="text-xs text-gray-400 mt-1">ou {{ currency_format($annualTotal) }}/an</p>
-                    @endif
+                    <div class="up-price-row"><span class="up-price">{{ currency_format($monthlyPrice) }}</span><span class="up-period">/ mois</span></div>
+                    @if($annualTotal)<div class="up-subprice">ou {{ currency_format($annualTotal) }}/an</div>@endif
                 </div>
-                {{-- Annual price (hidden by default) --}}
                 @if($annualTotal)
-                <div class="price-annual-block" style="display:none;">
-                    <div class="flex items-baseline gap-1">
-                        <span class="text-3xl font-extrabold text-gray-900">{{ currency_format($annualMonthly) }}</span>
-                        <span class="text-xs text-gray-400">/ mois</span>
-                        @if($savingsPct && $savingsPct > 0)
-                        <span class="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-700">-{{ $savingsPct }}%</span>
-                        @endif
+                <div class="price-annual-block" style="display:none">
+                    <div class="up-price-row">
+                        <span class="up-price">{{ currency_format($annualMonthly) }}</span><span class="up-period">/ mois</span>
+                        @if($savingsPct > 0)<span class="badge b-ok" style="margin-left:4px;height:20px;font-size:10.5px">-{{ $savingsPct }}%</span>@endif
                     </div>
-                    <p class="text-xs text-gray-400 mt-1">{{ currency_format($annualTotal) }} facturé annuellement</p>
+                    <div class="up-subprice">{{ currency_format($annualTotal) }} facturé annuellement</div>
                 </div>
                 @endif
-                @endif
-            </div>
-
-            {{-- Features list --}}
-            <div class="px-5 py-4 flex-1">
-                @php
-                    // Features stored as array of strings (new format) or associative (legacy)
-                    $raw = $plan->features;
-                    if (is_array($raw) && array_values($raw) === $raw) {
-                        // Indexed array — new format: ["Feature A", "Feature B"]
-                        $planFeatures = array_filter(array_map('strval', $raw));
-                    } else {
-                        $planFeatures = [];
-                    }
-                @endphp
-                @if(count($planFeatures) > 0)
-                <ul class="space-y-2">
-                    @foreach($planFeatures as $featText)
-                    <li class="flex items-start gap-2.5 text-xs text-gray-700">
-                        <span class="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                              style="background:{{ $t['bg'] }};">
-                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="{{ $t['top'] }}" stroke-width="3"><path d="m5 12 5 5L20 7"/></svg>
-                        </span>
-                        {{ $featText }}
-                    </li>
-                    @endforeach
-                </ul>
-                @else
-                <p class="text-xs text-gray-400 italic">Fonctionnalités à configurer dans le paramétrage.</p>
-                @endif
-            </div>
-
-            {{-- CTA --}}
-            <div class="px-5 pb-5 pt-3">
-                @if($isCurrent)
-                <div class="w-full py-2.5 rounded-xl text-xs font-semibold text-center border-2 border-indigo-200 text-indigo-400 bg-indigo-50">
-                    ✓ Plan actuel
-                </div>
-                @elseif($plan->is_enterprise && $pendingEnterpriseQuote)
-                @php
-                    $quoteStatusLabels = [
-                        'pending'   => 'En attente de traitement',
-                        'contacted' => 'Notre équipe vous a contacté',
-                        'proposed'  => 'Proposition envoyée — consultez vos emails',
-                    ];
-                @endphp
-                <div class="w-full py-2.5 px-3 rounded-xl text-xs font-semibold text-center border-2 border-amber-200 text-amber-700 bg-amber-50 flex items-center justify-center gap-1.5">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                    Demande déjà envoyée
-                </div>
-                <p class="text-center text-[10px] text-amber-500 mt-2">
-                    {{ $quoteStatusLabels[$pendingEnterpriseQuote->status] ?? 'Notre équipe va vous recontacter sous 24 h.' }}
-                </p>
-                @elseif($plan->is_enterprise)
-                <button type="button"
-                        onclick="toggleEnterpriseForm()"
-                        class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-white transition hover:opacity-90 active:scale-[.98]"
-                        style="background:linear-gradient(135deg,{{ $t['top'] }},{{ $t['accent'] }});">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.39 18a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 3.18 2 2 0 0 1 4.11 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91A16 16 0 0 0 14 14.91l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                    Demander un devis
-                </button>
-                @elseif(!$plan->price)
-                <div class="w-full py-2.5 rounded-xl text-xs font-semibold text-center bg-gray-50 text-gray-400 border border-gray-200">
-                    Plan gratuit
-                </div>
-                @elseif($plan->stripe_price_id)
-                <form method="POST" action="{{ route('checkout', $plan) }}" class="checkout-form" data-plan-id="{{ $plan->id }}" data-has-annual="{{ $plan->stripe_annual_price_id ? '1' : '0' }}">
-                    @csrf
-                    <input type="hidden" name="billing_period" value="monthly" class="billing-period-input">
-                    <button type="submit"
-                            class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-white transition hover:opacity-90 active:scale-[.98]"
-                            style="background:linear-gradient(135deg,{{ $t['top'] }},{{ $t['accent'] }});">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                        <span class="cta-label">Passer au plan {{ $plan->label }}</span>
-                    </button>
-                </form>
-                <p class="text-center text-[10px] text-gray-400 mt-2 flex items-center justify-center gap-1">
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    Paiement sécurisé via Stripe
-                </p>
-                @else
-                <a href="#contact"
-                   class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-white transition hover:opacity-90 active:scale-[.98]"
-                   style="background:linear-gradient(135deg,{{ $t['top'] }},{{ $t['accent'] }});"
-                   onclick="showUpgradeContact('{{ $plan->label }}')">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                    Nous contacter
-                </a>
-                @endif
-            </div>
-
-        </div>
-        @endforeach
-    </div>
-
-    {{-- Enterprise quote form (hidden by default, toggled by the CTA button) --}}
-    <div id="enterprise-form" class="max-w-lg mx-auto" style="display:none;">
-        <div class="bg-white rounded-2xl border-2 border-blue-100 shadow-sm overflow-hidden">
-            <div class="px-6 pt-5 pb-4" style="background:linear-gradient(135deg,#EFF6FF,#E0F2FE);">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                         style="background:rgba(37,99,235,.12);">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="1.8"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
-                    </div>
-                    <div>
-                        <h2 class="text-base font-bold text-gray-900">Demande de devis Pack Entreprise</h2>
-                        <p class="text-xs text-gray-500">Notre équipe vous contactera sous 24 h.</p>
-                    </div>
-                </div>
-            </div>
-
-            @if(session('enterprise_quote_sent'))
-            <div class="px-6 py-8 text-center">
-                <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 bg-emerald-50">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                </div>
-                <h3 class="text-base font-bold text-gray-900 mb-1">Demande envoyée !</h3>
-                <p class="text-sm text-gray-500">Notre équipe va étudier votre demande et vous recontacter rapidement.</p>
-            </div>
-            @else
-            <form method="POST" action="{{ route('enterprise.request-quote') }}" class="px-6 py-5 space-y-4">
-                @csrf
-
-                @if($errors->any())
-                <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
-                    {{ $errors->first() }}
-                </div>
-                @endif
-
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Nom de l'entreprise <span class="text-red-400">*</span></label>
-                    <input type="text" name="company_name" required maxlength="100"
-                           value="{{ old('company_name') }}"
-                           placeholder="Acme SAS"
-                           class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Nombre d'utilisateurs souhaités <span class="text-red-400">*</span></label>
-                    <div class="flex items-center gap-3">
-                        <input type="number" name="seats_needed" required min="2" max="500"
-                               value="{{ old('seats_needed', 10) }}"
-                               class="w-28 rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-center font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <span class="text-xs text-gray-400">licences (vous inclus — minimum 2)</span>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Téléphone</label>
-                    <input type="tel" name="phone" maxlength="30"
-                           value="{{ old('phone', auth()->user()->phone) }}"
-                           placeholder="+33 6 00 00 00 00"
-                           class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Message (optionnel)</label>
-                    <textarea name="message" maxlength="1000" rows="3"
-                              placeholder="Décrivez votre besoin, secteur d'activité, délai souhaité…"
-                              class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none">{{ old('message') }}</textarea>
-                </div>
-
-                <button type="submit"
-                        class="w-full py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
-                        style="background:linear-gradient(135deg,#1D4ED8,#1E40AF);">
-                    Envoyer ma demande →
-                </button>
-
-                <p class="text-center text-xs text-gray-400">
-                    Votre demande sera traitée par notre équipe sous 24 h ouvrées.
-                </p>
-            </form>
             @endif
+
+            <div class="up-sep"></div>
+
+            <div class="up-features">
+                @forelse($planFeatures as $featText)
+                <div class="up-feat">
+                    <span class="up-feat-ico" style="background:{{ $t['soft'] }};color:{{ $t['color'] }}"><x-lx2-icon name="check" /></span>
+                    {{ $featText }}
+                </div>
+                @empty
+                <p class="up-subprice" style="font-style:italic">Fonctionnalités à configurer.</p>
+                @endforelse
+            </div>
+
+            <div class="up-cta-wrap">
+                @if($isCurrent)
+                    <div class="btn btn-outline btn-block" style="pointer-events:none;opacity:.7"><x-lx2-icon name="check" />Plan actuel</div>
+                @elseif($plan->is_enterprise && $pendingEnterpriseQuote)
+                    @php
+                        $quoteStatusLabels = [
+                            'pending'   => 'En attente de traitement',
+                            'contacted' => 'Notre équipe vous a contacté',
+                            'proposed'  => 'Proposition envoyée — consultez vos emails',
+                        ];
+                    @endphp
+                    <div class="btn btn-block" style="background:var(--warm-soft);color:var(--warm-fg);pointer-events:none"><x-lx2-icon name="clock" />Demande déjà envoyée</div>
+                    <p class="up-cta-note">{{ $quoteStatusLabels[$pendingEnterpriseQuote->status] ?? 'Notre équipe va vous recontacter sous 24 h.' }}</p>
+                @elseif($plan->is_enterprise)
+                    <button type="button" class="btn btn-primary btn-block" onclick="toggleEnterpriseForm()" style="background:{{ $t['grad'] }}">
+                        <x-lx2-icon name="phone" />Demander un devis
+                    </button>
+                @elseif(!$plan->price)
+                    <div class="btn btn-outline btn-block" style="pointer-events:none;opacity:.6">Plan gratuit</div>
+                @elseif($plan->stripe_price_id)
+                    <form method="POST" action="{{ route('checkout', $plan) }}" class="checkout-form" data-plan-id="{{ $plan->id }}" data-has-annual="{{ $plan->stripe_annual_price_id ? '1' : '0' }}">
+                        @csrf
+                        <input type="hidden" name="billing_period" value="monthly" class="billing-period-input">
+                        <button type="submit" class="btn btn-primary btn-block" style="background:{{ $t['grad'] }}">
+                            <x-lx2-icon name="arrow-up-right" /><span class="cta-label">Passer au plan {{ $plan->label }}</span>
+                        </button>
+                    </form>
+                    <p class="up-cta-note"><x-lx2-icon name="lock" />Paiement sécurisé via Stripe</p>
+                @else
+                    <a href="#contact" class="btn btn-primary btn-block" style="background:{{ $t['grad'] }}" onclick="showUpgradeContact('{{ $plan->label }}')">
+                        <x-lx2-icon name="mail" />Nous contacter
+                    </a>
+                @endif
+            </div>
         </div>
     </div>
-
-    {{-- Generic contact section (non-enterprise plans) --}}
-    <div id="contact" class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center max-w-lg mx-auto">
-        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-             style="background:linear-gradient(135deg,#EEF2FF,#E0E7FF);">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        </div>
-        <h2 class="text-base font-bold text-gray-900 mb-2" id="contactTitle">Mettre à niveau votre plan</h2>
-        <p class="text-sm text-gray-500 mb-5 leading-relaxed">
-            En cas de difficulté pour upgrader votre abonnement, contactez notre équipe LeadXchange.
-        </p>
-        <a href="mailto:support@lxchange.org?subject=Demande%20d%27upgrade%20de%20plan"
-           class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
-           style="background:linear-gradient(135deg,#6366F1,#4338CA);">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            support@lxchange.org
-        </a>
-    </div>
-
+    @endforeach
 </div>
 
+{{-- Formulaire devis Entreprise (masqué par défaut) --}}
+<div id="enterprise-form" class="card" style="max-width:520px;margin:28px auto 0;overflow:hidden;display:none">
+    <div style="padding:20px 24px;background:linear-gradient(135deg,var(--purple-soft),#F1EAFE);display:flex;align-items:center;gap:14px">
+        <span class="av-fb" style="width:44px;height:44px;border-radius:12px;background:#fff;color:var(--purple)"><x-lx2-icon name="gem" /></span>
+        <div>
+            <h2 style="margin:0;font-size:15.5px;font-weight:600">Demande de devis Pack Entreprise</h2>
+            <p style="margin:2px 0 0;font-size:12.5px;color:var(--fg-2)">Notre équipe vous contactera sous 24 h.</p>
+        </div>
+    </div>
+
+    @if(session('enterprise_quote_sent'))
+    <div style="padding:36px 24px;text-align:center">
+        <div class="av-fb" style="width:56px;height:56px;border-radius:999px;background:var(--ok-soft);color:var(--ok-fg);margin:0 auto 14px"><x-lx2-icon name="check" /></div>
+        <h3 style="margin:0 0 4px;font-size:15px;font-weight:600">Demande envoyée !</h3>
+        <p style="margin:0;font-size:13px;color:var(--muted-fg)">Notre équipe va étudier votre demande et vous recontacter rapidement.</p>
+    </div>
+    @else
+    <form method="POST" action="{{ route('enterprise.request-quote') }}" class="up-qform" style="padding:22px 24px">
+        @csrf
+        @if($errors->any())
+        <div class="lx2-flash b-hot" role="alert" style="margin-bottom:14px"><span>{{ $errors->first() }}</span></div>
+        @endif
+
+        <div class="field">
+            <label for="eq_company">Nom de l'entreprise *</label>
+            <input type="text" id="eq_company" class="input" name="company_name" required maxlength="100" value="{{ old('company_name') }}" placeholder="Acme SAS">
+        </div>
+
+        <div class="field">
+            <label for="eq_seats">Nombre d'utilisateurs souhaités *</label>
+            <div style="display:flex;align-items:center;gap:10px">
+                <input type="number" id="eq_seats" class="input" style="width:100px;text-align:center;font-weight:600" name="seats_needed" required min="2" max="500" value="{{ old('seats_needed', 10) }}">
+                <span class="up-cta-note" style="font-size:12px">licences (vous inclus — minimum 2)</span>
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="eq_phone">Téléphone</label>
+            <input type="tel" id="eq_phone" class="input" name="phone" maxlength="30" value="{{ old('phone', auth()->user()->phone) }}" placeholder="+33 6 00 00 00 00">
+        </div>
+
+        <div class="field">
+            <label for="eq_message">Message (optionnel)</label>
+            <textarea id="eq_message" class="textarea" name="message" maxlength="1000" rows="3" placeholder="Décrivez votre besoin, secteur d'activité, délai souhaité…">{{ old('message') }}</textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" style="background:linear-gradient(135deg,#B394F8,#9E6EF5)">Envoyer ma demande<x-lx2-icon name="arrow-up-right" /></button>
+        <p class="up-cta-note" style="margin-top:12px">Votre demande sera traitée par notre équipe sous 24 h ouvrées.</p>
+    </form>
+    @endif
+</div>
+
+{{-- Contact générique --}}
+<div id="contact" class="card card-pad" style="max-width:460px;margin:28px auto 0;text-align:center">
+    <div class="av-fb" style="width:52px;height:52px;border-radius:14px;margin:0 auto 14px"><x-lx2-icon name="mail" /></div>
+    <h2 id="contactTitle" style="margin:0 0 6px;font-size:15px;font-weight:600">Mettre à niveau votre plan</h2>
+    <p style="margin:0 0 18px;font-size:13px;color:var(--muted-fg);line-height:1.6">En cas de difficulté pour upgrader votre abonnement, contactez notre équipe LeadXchange.</p>
+    <a href="mailto:support@lxchange.org?subject=Demande%20d%27upgrade%20de%20plan" class="btn btn-primary">
+        <x-lx2-icon name="mail" />support@lxchange.org
+    </a>
+</div>
+
+@endsection
+
 @push('scripts')
-<style>
-.billing-btn { color:#6B7280; }
-.billing-btn--active { background:#fff; color:#1E293B; box-shadow:0 1px 3px rgba(0,0,0,.1); }
-</style>
 <script>
 var currentBilling = 'monthly';
 
 function setBilling(period) {
     currentBilling = period;
+    document.getElementById('btn-monthly').classList.toggle('on', period === 'monthly');
+    document.getElementById('btn-annual').classList.toggle('on', period === 'annual');
 
-    document.getElementById('btn-monthly').classList.toggle('billing-btn--active', period === 'monthly');
-    document.getElementById('btn-annual').classList.toggle('billing-btn--active', period === 'annual');
-
-    // Toggle price blocks
-    document.querySelectorAll('.price-monthly-block').forEach(function(el) {
+    document.querySelectorAll('.price-monthly-block').forEach(function (el) {
         el.style.display = period === 'monthly' ? '' : 'none';
     });
-    document.querySelectorAll('.price-annual-block').forEach(function(el) {
+    document.querySelectorAll('.price-annual-block').forEach(function (el) {
         el.style.display = period === 'annual' ? '' : 'none';
     });
 
-    // Update hidden billing_period inputs
-    document.querySelectorAll('.billing-period-input').forEach(function(input) {
+    document.querySelectorAll('.billing-period-input').forEach(function (input) {
         var form = input.closest('.checkout-form');
         var hasAnnual = form.dataset.hasAnnual === '1';
         input.value = (period === 'annual' && hasAnnual) ? 'annual' : 'monthly';
@@ -406,35 +289,35 @@ function setBilling(period) {
 
 function showUpgradeContact(planName) {
     document.getElementById('contactTitle').textContent = 'Passer au plan ' + planName;
-    setTimeout(function() {
+    setTimeout(function () {
         document.getElementById('contact').scrollIntoView({ behavior: 'smooth' });
     }, 100);
 }
+
 function toggleEnterpriseForm() {
     var el = document.getElementById('enterprise-form');
     var contact = document.getElementById('contact');
     if (el.style.display === 'none') {
         el.style.display = 'block';
         contact.style.display = 'none';
-        setTimeout(function() { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+        setTimeout(function () { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
     } else {
         el.style.display = 'none';
         contact.style.display = 'block';
     }
 }
+
 @if(session('enterprise_quote_sent'))
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('enterprise-form').style.display = 'block';
     document.getElementById('contact').style.display = 'none';
 });
 @endif
 @if($errors->any() && old('company_name'))
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('enterprise-form').style.display = 'block';
     document.getElementById('contact').style.display = 'none';
 });
 @endif
 </script>
 @endpush
-
-@endsection
