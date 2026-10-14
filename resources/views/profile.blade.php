@@ -532,23 +532,45 @@
 <div class="overlay hidden" id="modal-email" data-dialog>
     <div class="dialog">
         <div class="dh">
-            <div><h3>Modifier l'adresse email</h3></div>
+            <div style="display:flex;align-items:center;gap:12px">
+                <span class="av-fb" style="width:38px;height:38px;border-radius:11px;flex-shrink:0"><x-lx2-icon name="mail" /></span>
+                <div><h3 style="margin:0">Modifier l'adresse email</h3><p class="help" style="margin:1px 0 0">Étape de sécurité : confirmez que c'est bien vous</p></div>
+            </div>
             <button type="button" class="x" data-close aria-label="Fermer"><x-lx2-icon name="x" /></button>
         </div>
-        <div class="db" style="display:flex;flex-direction:column;gap:14px">
-            <p class="help" style="margin:0">Vous devrez vérifier votre nouvelle adresse (un lien sera envoyé) avant de pouvoir continuer à utiliser votre compte.</p>
+        <div class="db" style="display:flex;flex-direction:column;gap:16px">
+
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-radius:var(--radius);background:var(--bg);border:1px solid var(--border)">
+                <span class="help" style="margin:0">Adresse actuelle</span>
+                <span style="font-size:13px;font-weight:500">{{ $user['email'] }}</span>
+            </div>
+
             <div class="field">
                 <label class="label" for="em_new_email">Nouvelle adresse email</label>
-                <input id="em_new_email" type="email" class="input" placeholder="nouvelle@adresse.com" autocomplete="email">
+                <div class="input-wrap">
+                    <x-lx2-icon name="mail" />
+                    <input id="em_new_email" type="email" class="input" placeholder="nouvelle@adresse.com" autocomplete="email">
+                </div>
             </div>
+
             <div class="field">
-                <label class="label" for="em_password">Mot de passe actuel</label>
-                <input id="em_password" type="password" class="input" placeholder="Pour confirmer que c'est bien vous" autocomplete="current-password">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                    <label class="label" for="em_password" style="margin:0">Mot de passe actuel</label>
+                    <a href="{{ route('password.request') }}" class="link" style="font-size:12px" target="_blank" rel="noopener">Mot de passe oublié ?</a>
+                </div>
+                <div class="input-wrap">
+                    <x-lx2-icon name="lock" />
+                    <input id="em_password" type="password" class="input" placeholder="Votre mot de passe" autocomplete="current-password">
+                </div>
+            </div>
+
+            <div class="lx2-flash b-soft" role="note">
+                <span style="display:flex;align-items:flex-start;gap:8px"><x-lx2-icon name="shield" /><span>Un lien de vérification sera envoyé à la nouvelle adresse. Elle ne sera active qu'une fois ce lien ouvert.</span></span>
             </div>
         </div>
         <div class="df">
             <button type="button" class="btn btn-outline" data-close>Annuler</button>
-            <button type="button" class="btn btn-primary" id="btn-save-email" onclick="saveEmail()">Enregistrer</button>
+            <button type="button" class="btn btn-primary" id="btn-save-email" onclick="saveEmail()"><x-lx2-icon name="check" />Enregistrer</button>
         </div>
     </div>
 </div>
