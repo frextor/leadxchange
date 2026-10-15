@@ -84,7 +84,9 @@ class UserService
                     $q->orWhereHas('profile', fn ($p) => $p->whereExists(
                         fn ($sub) => $sub->selectRaw('1')
                             ->from('sectors')
-                            ->whereRaw('JSON_CONTAINS(profiles.services_offered, CAST(sectors.id AS CHAR))')
+                            // Les IDs sont stockés tantôt en nombres JSON ([1]), tantôt en chaînes ([\"1\"])
+                            // selon le point d'entrée qui a écrit le profil — on doit matcher les deux.
+                            ->whereRaw('(JSON_CONTAINS(profiles.services_offered, CAST(sectors.id AS CHAR)) OR JSON_CONTAINS(profiles.services_offered, JSON_QUOTE(CAST(sectors.id AS CHAR))))')
                             ->where('sectors.name', 'LIKE', $like)
                     ));
                 }
@@ -92,7 +94,7 @@ class UserService
                     $q->orWhereHas('profile', fn ($p) => $p->whereExists(
                         fn ($sub) => $sub->selectRaw('1')
                             ->from('sectors')
-                            ->whereRaw('JSON_CONTAINS(profiles.looking_for, CAST(sectors.id AS CHAR))')
+                            ->whereRaw('(JSON_CONTAINS(profiles.looking_for, CAST(sectors.id AS CHAR)) OR JSON_CONTAINS(profiles.looking_for, JSON_QUOTE(CAST(sectors.id AS CHAR))))')
                             ->where('sectors.name', 'LIKE', $like)
                     ));
                 }
