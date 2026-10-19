@@ -147,6 +147,7 @@
         <b>Confirmez votre adresse email pour accéder au site.</b>
         Un lien de confirmation a été envoyé à {{ $me->email }}. Vérifiez aussi vos spams.
         @if (session('success'))<br>✓ {{ session('success') }}@endif
+        @if (session('error'))<br><span style="color:var(--destructive)">{{ session('error') }}</span>@endif
     </span>
     <form method="POST" action="{{ route('verification.send') }}">
         @csrf

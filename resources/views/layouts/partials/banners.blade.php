@@ -116,6 +116,11 @@
             {{ session('success') }}
         </div>
         @endif
+        @if(session('error') && str_contains(session('error', ''), 'email'))
+        <div class="bg-red-50 border-b border-red-200 px-4 py-2.5 text-center text-sm text-red-700 font-medium">
+            {{ session('error') }}
+        </div>
+        @endif
     </div>
     @endif
     @endauth

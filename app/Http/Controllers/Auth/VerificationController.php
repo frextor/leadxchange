@@ -85,7 +85,16 @@ class VerificationController extends Controller
             return back()->with('info', 'Votre email est déjà vérifié.');
         }
 
-        $request->user()->sendEmailVerificationNotification();
+        try {
+            $request->user()->sendEmailVerificationNotification();
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Verification email resend failed', [
+                'user_id' => $request->user()->id,
+                'error'   => $e->getMessage(),
+            ]);
+
+            return back()->with('error', "L'email n'a pas pu être envoyé pour le moment. Réessayez dans quelques minutes.");
+        }
 
         return back()->with('success', 'Un nouveau lien de vérification a été envoyé à votre adresse email.');
     }
