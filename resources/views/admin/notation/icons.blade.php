@@ -22,6 +22,7 @@
     $planMeta = [
         'basic'       => ['label' => 'Basic',       'color' => 'gray'],
         'premium'     => ['label' => 'Premium',      'color' => 'indigo'],
+        'enterprise'  => ['label' => 'Entreprise',   'color' => 'purple'],
         'consul'      => ['label' => 'Consul',       'color' => 'teal'],
         'ambassadeur' => ['label' => 'Ambassadeur',  'color' => 'amber'],
     ];

@@ -19,14 +19,17 @@
         $planKey = 'consul';
     } elseif (($user['plan']['name'] ?? '') === 'premium') {
         $planKey = 'premium';
+    } elseif (($user['plan']['name'] ?? '') === 'enterprise') {
+        $planKey = 'enterprise';
     }
-    $planLabels  = ['basic' => 'Basic', 'premium' => 'Premium', 'consul' => 'Consul', 'ambassadeur' => 'Ambassadeur'];
+    $planLabels  = ['basic' => 'Basic', 'premium' => 'Premium', 'enterprise' => 'Entreprise', 'consul' => 'Consul', 'ambassadeur' => 'Ambassadeur'];
     $planLabel   = $planLabels[$planKey] ?? ucfirst($planKey);
     // Visuels des badges « Statut » et « Score » : icône + couleur plutôt qu'une image
     // (pas de maquette graphique fournie pour l'instant — robuste même sans assets).
     $planVisuals = [
         'basic'       => ['icon' => 'user',   'color' => 'var(--muted-fg)', 'background' => 'var(--muted)'],
         'premium'     => ['icon' => 'gem',    'color' => 'var(--primary)',  'background' => 'var(--primary-soft)'],
+        'enterprise'  => ['icon' => 'users',  'color' => 'var(--purple)',   'background' => 'var(--purple-soft)'],
         'consul'      => ['icon' => 'shield', 'color' => 'var(--ok-fg)',    'background' => 'var(--ok-soft)'],
         'ambassadeur' => ['icon' => 'star',   'color' => 'var(--warm-fg)',  'background' => 'var(--warm-soft)'],
     ];

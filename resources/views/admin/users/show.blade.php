@@ -49,6 +49,7 @@
                     if ($user->isAmbassador()) $adminPlanKey = 'ambassadeur';
                     elseif ($user->isConsul())  $adminPlanKey = 'consul';
                     elseif ($user->subscription?->plan?->name === 'premium') $adminPlanKey = 'premium';
+                    elseif ($user->subscription?->plan?->name === 'enterprise') $adminPlanKey = 'enterprise';
                     $adminBadgeKey = $user->badge_level ?? 'neutre';
                 @endphp
                 <div class="mt-3 flex items-center gap-2">

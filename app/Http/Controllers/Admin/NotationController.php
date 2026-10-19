@@ -173,14 +173,14 @@ class NotationController extends Controller
 
     public function icons(): View
     {
-        $plans  = ['basic', 'premium', 'consul', 'ambassadeur'];
+        $plans  = ['basic', 'premium', 'enterprise', 'consul', 'ambassadeur'];
         $badges = ['neutre', 'bronze', 'argent', 'or', 'platinium'];
         return view('admin.notation.icons', compact('plans', 'badges'));
     }
 
     public function uploadPlanIcon(Request $request, string $key): RedirectResponse
     {
-        abort_unless(in_array($key, ['basic', 'premium', 'consul', 'ambassadeur']), 404);
+        abort_unless(in_array($key, ['basic', 'premium', 'enterprise', 'consul', 'ambassadeur']), 404);
         $request->validate(['icon' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096']]);
         $request->file('icon')->move(public_path('images/plans'), $key . '.jpg');
         return back()->with('success_plan_' . $key, 'Image mise à jour.');

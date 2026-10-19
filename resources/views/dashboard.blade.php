@@ -216,13 +216,12 @@
 @php
     $effectivePlan = $user->effectivePlan();
     $isPaidPlan    = $effectivePlan && in_array($effectivePlan->name, ['premium', 'enterprise'], true);
-    // Même image que celle envoyée dans Admin > Icônes & Visuels pour ce plan (pas de slot
-    // dédié "enterprise" dans cet outil : on réutilise le visuel Premium).
-    $dashPlanImgKey = $effectivePlan?->name === 'enterprise' ? 'premium' : ($effectivePlan->name ?? 'premium');
+    // Image envoyée dans Admin > Icônes & Visuels pour ce plan précis (enterprise a son propre slot).
+    $dashPlanImgKey = $effectivePlan->name ?? 'premium';
 @endphp
 <div class="ph">
     @if($isPaidPlan)
-    <span class="ph-plan-ico" id="phPlanIcoFallback" style="display:none"><x-lx2-icon name="gem" /></span>
+    <span class="ph-plan-ico" id="phPlanIcoFallback" style="display:none{{ $effectivePlan->name === 'enterprise' ? ';background:var(--purple-soft);color:var(--purple)' : '' }}"><x-lx2-icon :name="$effectivePlan->name === 'enterprise' ? 'users' : 'gem'" /></span>
     <img src="{{ asset('images/plans/' . $dashPlanImgKey . '.jpg') }}" alt="{{ $effectivePlan->label }}"
          style="width:107px;height:87px;object-fit:contain;border-radius:14px" class="hide-m"
          onerror="this.style.display='none';document.getElementById('phPlanIcoFallback').style.display='grid'">
