@@ -59,7 +59,7 @@ class RegisterController extends Controller
             // Step 2: Profile Information
             'phone'          => ['nullable', 'string', 'max:30', 'unique:users,phone'],
             'gender'         => ['required', 'in:male,female,other'],
-            'city_id'   => ['required', 'integer', 'exists:cities,id'],
+            'city_name' => ['required', 'string', 'max:100'],
             'region_id' => ['nullable', 'integer', 'exists:cities,id'],
             'birthday'       => ['required', 'date', 'before:-18 years'],  // §3.2 : ≥ 18 ans
             'legal_capacity' => ['required', 'accepted'],                  // §3.2 : capacité juridique
@@ -79,8 +79,7 @@ class RegisterController extends Controller
             'password.min'            => 'Le mot de passe doit contenir au moins 8 caractères.',
             'phone.unique'            => 'Ce numéro de téléphone est déjà utilisé.',
             'gender.required'         => 'Veuillez sélectionner votre sexe.',
-            'city_id.required' => 'Veuillez sélectionner votre ville de résidence.',
-            'city_id.exists'   => 'Ville invalide.',
+            'city_name.required' => 'Veuillez indiquer votre ville de résidence.',
             'birthday.required'          => 'La date de naissance est requise.',
             'birthday.before'            => 'Vous devez avoir au moins 18 ans pour vous inscrire.',
             'legal_capacity.accepted'    => 'Vous devez déclarer avoir la pleine capacité juridique et être âgé(e) d\'au moins 18 ans.',
@@ -97,13 +96,18 @@ class RegisterController extends Controller
             // Service handles ALL business logic
             $user = $this->authService->register($validated);
 
+            // Ville saisie librement (pas de liste fermée) : on résout/crée la City correspondante
+            // pour que le reste de l'app (recommandations, filtres, dashboard...) continue de
+            // fonctionner normalement sur city_id.
+            $cityId = \App\Models\City::findOrCreateByName($validated['city_name'])->id;
+
             // Update profile (step 2 data)
             $user = $this->authService->updateProfile($user, [
                 'phone'              => $validated['phone'] ?? null,
                 'phone_country_code' => $validated['phone_country_code'] ?? null,
                 'gender'             => $validated['gender'],
-                'city_id'            => $validated['city_id'],
-                'region_id'          => $validated['region_id'] ?? $validated['city_id'],
+                'city_id'            => $cityId,
+                'region_id'          => $validated['region_id'] ?? $cityId,
                 'birthday'           => $validated['birthday'],
                 'job_title'          => $validated['job_title'],     // §4.1
                 'sector_ids'         => $validated['sector_ids'],    // §4.1
