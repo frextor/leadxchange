@@ -29,9 +29,14 @@ class SystemSetting extends Model
         };
     }
 
-    public static function set(string $key, mixed $value): void
+    /**
+     * Note : la colonne `type` a pour défaut 'int' au niveau du schéma — sans le
+     * préciser explicitement ici, toute valeur texte/JSON enregistrée via cette
+     * méthode serait silencieusement réduite à (int) lors de la lecture (ex. "0").
+     */
+    public static function set(string $key, mixed $value, string $type = 'string'): void
     {
-        static::updateOrCreate(['key' => $key], ['value' => (string) $value]);
+        static::updateOrCreate(['key' => $key], ['value' => (string) $value, 'type' => $type]);
         Cache::forget('system_settings');
     }
 }
