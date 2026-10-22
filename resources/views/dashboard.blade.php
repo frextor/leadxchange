@@ -43,10 +43,9 @@
     .db-todo-t{flex:1;min-width:0;font-size:13.5px;font-weight:500}
     .db-todo > svg{color:var(--muted-fg);width:14px;height:14px;flex:none}
 
-    /* Réseau à développer */
-    .db-list{display:flex;flex-direction:column;gap:10px}
-    .db-list .mrow{transition:border-color .15s,box-shadow .15s}
-    .db-list .mrow:hover{border-color:var(--primary-soft-2);box-shadow:var(--shadow-sm)}
+    /* Réseau à développer — grille de 3 par ligne (voir .grid-3 dans lx2.css) */
+    #reseauSuggestions .mrow{transition:border-color .15s,box-shadow .15s}
+    #reseauSuggestions .mrow:hover{border-color:var(--primary-soft-2);box-shadow:var(--shadow-sm)}
 
     /* Opportunités (structure prête) */
     .db-opp{border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;display:flex;flex-direction:column;gap:8px;margin-top:8px;transition:border-color .15s}
@@ -346,7 +345,7 @@
 </div>
 @endif
 @if($suggestions->isNotEmpty())
-<div class="db-list">
+<div class="grid-3" id="reseauSuggestions">
     @foreach($suggestions as $member)
     @php $note = $suggestionRatings[$member->id] ?? null; @endphp
     <div class="card mrow">
