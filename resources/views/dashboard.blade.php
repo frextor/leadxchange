@@ -338,54 +338,54 @@
 {{-- ══════════════════════════════════════════════════════════════
      SUGGESTIONS DE CONTACTS — maquette › memberRow(id, 'Pour toi')
 ════════════════════════════════════════════════════════════════ --}}
+{{-- Réseau à développer (suggestions) — pleine largeur, au-dessus de la grille --}}
+<div class="sh"><h2>{{ \App\Models\SystemSetting::get('dashboard_title_reseau', '🤝 Réseau à développer') }}</h2><a class="link" href="{{ route('connections.index') }}">Voir tout</a></div>
+@if($suggestionsCityWidened)
+<div class="lx2-flash b-soft" role="note">
+    <span>Aucun membre disponible à <b>{{ $selectedCity?->name }}</b> pour le moment — suggestions élargies à toutes les villes.</span>
+</div>
+@endif
+@if($suggestions->isNotEmpty())
+<div class="db-list">
+    @foreach($suggestions as $member)
+    @php $note = $suggestionRatings[$member->id] ?? null; @endphp
+    <div class="card mrow">
+        <a href="{{ route('profile.show', $member->id) }}"><x-lx2-avatar :user="$member" :size="40" /></a>
+        <div class="who">
+            <a class="nm" href="{{ route('profile.show', $member->id) }}">{{ member_name($member) }}
+                @if($note)<span class="stars"><x-lx2-icon name="star" />{{ round($note) }}</span>@endif
+            </a>
+            <div class="role">{{ $member->profile?->job_title ?? 'Membre LeadXchange' }}</div>
+            @if($member->profile?->sector)<span class="badge b-outline" style="margin-top:4px">{{ $member->profile->sector }}</span>@endif
+        </div>
+        @if($pendingSentIds->contains($member->id))
+        <span class="badge b-muted">Envoyé</span>
+        @elseif($pendingReceivedIds->contains($member->id))
+        <span class="badge b-soft">Demande reçue</span>
+        @elseif(auth()->user()->canFeature('can_send_invitations'))
+        <button type="button" onclick="sendConnect({{ $member->id }}, this)" class="circle-act" aria-label="Se connecter avec {{ member_name($member) }}"><x-lx2-icon name="user-plus" /></button>
+        @else
+        <button type="button" onclick="openUpgradeModal('can_send_invitations')" class="circle-act" aria-label="Se connecter avec {{ member_name($member) }}"><x-lx2-icon name="user-plus" /></button>
+        @endif
+    </div>
+    @endforeach
+</div>
+@else
+<div class="card empty">Aucune suggestion pour le moment — <a class="link" href="{{ route('connections.index') }}">explorez le réseau</a></div>
+@endif
+
 {{-- ══════════════════════════════════════════════════════════════
-     CONTENU PRINCIPAL — gauche : activité, opportunités · droite : à faire, réseau
+     CONTENU PRINCIPAL — gauche : activité, opportunités · droite : à faire
 ════════════════════════════════════════════════════════════════ --}}
 <div class="db-grid">
 
     <div class="db-col">
 
-        {{-- Réseau à développer (suggestions) — en premier, colonne large --}}
-        <div class="sh"><h2>🤝 Réseau à développer</h2><a class="link" href="{{ route('connections.index') }}">Voir tout</a></div>
-        @if($suggestionsCityWidened)
-        <div class="lx2-flash b-soft" role="note">
-            <span>Aucun membre disponible à <b>{{ $selectedCity?->name }}</b> pour le moment — suggestions élargies à toutes les villes.</span>
-        </div>
-        @endif
-        @if($suggestions->isNotEmpty())
-        <div class="db-list">
-            @foreach($suggestions as $member)
-            @php $note = $suggestionRatings[$member->id] ?? null; @endphp
-            <div class="card mrow">
-                <a href="{{ route('profile.show', $member->id) }}"><x-lx2-avatar :user="$member" :size="40" /></a>
-                <div class="who">
-                    <a class="nm" href="{{ route('profile.show', $member->id) }}">{{ member_name($member) }}
-                        @if($note)<span class="stars"><x-lx2-icon name="star" />{{ round($note) }}</span>@endif
-                    </a>
-                    <div class="role">{{ $member->profile?->job_title ?? 'Membre LeadXchange' }}</div>
-                    @if($member->profile?->sector)<span class="badge b-outline" style="margin-top:4px">{{ $member->profile->sector }}</span>@endif
-                </div>
-                @if($pendingSentIds->contains($member->id))
-                <span class="badge b-muted">Envoyé</span>
-                @elseif($pendingReceivedIds->contains($member->id))
-                <span class="badge b-soft">Demande reçue</span>
-                @elseif(auth()->user()->canFeature('can_send_invitations'))
-                <button type="button" onclick="sendConnect({{ $member->id }}, this)" class="circle-act" aria-label="Se connecter avec {{ member_name($member) }}"><x-lx2-icon name="user-plus" /></button>
-                @else
-                <button type="button" onclick="openUpgradeModal('can_send_invitations')" class="circle-act" aria-label="Se connecter avec {{ member_name($member) }}"><x-lx2-icon name="user-plus" /></button>
-                @endif
-            </div>
-            @endforeach
-        </div>
-        @else
-        <div class="card empty">Aucune suggestion pour le moment — <a class="link" href="{{ route('connections.index') }}">explorez le réseau</a></div>
-        @endif
-
         {{-- Mon activité --}}
         <section class="card db-card">
             <div class="db-card-head">
                 <div>
-                    <h2 class="db-title">Mon activité</h2>
+                    <h2 class="db-title">{{ \App\Models\SystemSetting::get('dashboard_title_activite', 'Mon activité') }}</h2>
                     <p class="db-sub">Leads envoyés, reçus et convertis</p>
                 </div>
                 <div class="db-seg" id="dbSeg" role="group" aria-label="Période">
@@ -409,7 +409,7 @@
         <section class="card db-card">
             <div class="db-card-head">
                 <div>
-                    <h2 class="db-title">🔥 Opportunités disponibles</h2>
+                    <h2 class="db-title">{{ \App\Models\SystemSetting::get('dashboard_title_opportunites', '🔥 Opportunités disponibles') }}</h2>
                     <p class="db-sub">Demandes ouvertes par les entreprises du réseau</p>
                 </div>
                 <span class="db-muted-link" title="Bientôt disponible">Voir toutes les opportunités →</span>
@@ -447,7 +447,7 @@
         {{-- À faire --}}
         <section class="card db-card">
             <div class="db-card-head" style="margin-bottom:10px">
-                <div><h2 class="db-title">À faire</h2></div>
+                <div><h2 class="db-title">{{ \App\Models\SystemSetting::get('dashboard_title_todo', 'À faire') }}</h2></div>
                 @if($todoItems->isNotEmpty())<span class="badge b-soft">{{ $todoItems->count() }}</span>@endif
             </div>
 
@@ -473,7 +473,7 @@
     </div>
 </div>
 
-<div class="sh"><h2>Événements à venir</h2><a class="link" href="{{ route('events.index') }}">Voir tout</a></div>
+<div class="sh"><h2>{{ \App\Models\SystemSetting::get('dashboard_title_events', 'Événements à venir') }}</h2><a class="link" href="{{ route('events.index') }}">Voir tout</a></div>
 @if($upcomingEvents->isNotEmpty())
 <section class="card db-card" style="padding:6px 0">
     @foreach($upcomingEvents as $event)
@@ -502,7 +502,7 @@
 {{-- ══════════════════════════════════════════════════════════════
      GROUPES POPULAIRES — maquette › groupCard(g)
 ════════════════════════════════════════════════════════════════ --}}
-<div class="sh"><h2>Groupes populaires</h2><a class="link" href="{{ route('groups.index') }}">Voir tout</a></div>
+<div class="sh"><h2>{{ \App\Models\SystemSetting::get('dashboard_title_groups', 'Groupes populaires') }}</h2><a class="link" href="{{ route('groups.index') }}">Voir tout</a></div>
 @if($featuredGroups->isNotEmpty())
 <div class="grid-3">
     @foreach($featuredGroups as $group)

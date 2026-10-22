@@ -250,6 +250,9 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::get('settings/about-page',          [SettingsController::class, 'aboutPage'])->name('settings.about-page');
     Route::put('settings/about-page',          [SettingsController::class, 'updateAboutPage'])->name('settings.about-page.update');
 
+    Route::get('settings/dashboard-titles',    [SettingsController::class, 'dashboardTitles'])->name('settings.dashboard-titles');
+    Route::put('settings/dashboard-titles',    [SettingsController::class, 'updateDashboardTitles'])->name('settings.dashboard-titles.update');
+
     Route::get('settings/menu',               [SettingsController::class, 'menuSettings'])->name('settings.menu');
     Route::put('settings/menu',               [SettingsController::class, 'updateMenuSettings'])->name('settings.menu.update');
     Route::post('settings/menu/save',         [SettingsController::class, 'updateMenuSettings'])->name('settings.menu.store');

@@ -223,6 +223,51 @@ class SettingsController extends Controller
         return back()->with('success', 'Page À propos enregistrée.');
     }
 
+    // ── Titres des blocs du dashboard ────────────────────────────────────
+
+    /** Libellés par défaut (utilisés tant que l'admin n'a rien personnalisé). */
+    public static function defaultDashboardTitles(): array
+    {
+        return [
+            'dashboard_title_reseau'       => '🤝 Réseau à développer',
+            'dashboard_title_activite'     => 'Mon activité',
+            'dashboard_title_opportunites' => '🔥 Opportunités disponibles',
+            'dashboard_title_todo'         => 'À faire',
+            'dashboard_title_events'       => 'Événements à venir',
+            'dashboard_title_groups'       => 'Groupes populaires',
+        ];
+    }
+
+    public function dashboardTitles(): View
+    {
+        $settings = SystemSetting::where('group', 'dashboard_titles')->get()->keyBy('key');
+        $defaults = self::defaultDashboardTitles();
+
+        return view('admin.super_admin.settings.dashboard-titles', compact('settings', 'defaults'));
+    }
+
+    public function updateDashboardTitles(Request $request): RedirectResponse
+    {
+        $keys = array_keys(self::defaultDashboardTitles());
+
+        $request->validate(
+            array_fill_keys($keys, ['required', 'string', 'max:60'])
+        );
+
+        foreach ($keys as $key) {
+            SystemSetting::updateOrCreate(['key' => $key], [
+                'value' => $request->input($key),
+                'group' => 'dashboard_titles',
+                'type'  => 'string',
+            ]);
+        }
+
+        Cache::forget('system_settings');
+        ActivityLogger::log('admin.settings.updated', 'Titres des blocs du dashboard mis à jour');
+
+        return back()->with('success', 'Titres mis à jour.');
+    }
+
     // ── §5.x Payments ─────────────────────────────────────────────────────
 
     public function payments(): View
@@ -425,6 +470,7 @@ class SettingsController extends Controller
             ['key' => 'about',            'label' => 'Page À propos',       'visible' => true],
             ['key' => 'smtp',             'label' => 'Email / SMTP',        'visible' => true],
             ['key' => 'geo_block',        'label' => 'Blocage géographique','visible' => true],
+            ['key' => 'dashboard_titles', 'label' => 'Titres du dashboard', 'visible' => true],
         ];
     }
 
