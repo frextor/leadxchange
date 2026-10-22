@@ -212,10 +212,8 @@
                     </div>
 
                     <div class="pts-step">
-                        <button type="button" class="btn btn-outline" style="width:40px;padding:0" onclick="changeQty(-1)" aria-label="Retirer un point">−</button>
                         <input type="number" name="quantity" id="qty" class="pts-qty"
                                value="{{ $defaultQty }}" min="1" max="{{ $maxQty }}" oninput="updateTotal()">
-                        <button type="button" class="btn btn-outline" style="width:40px;padding:0" onclick="changeQty(1)" aria-label="Ajouter un point">+</button>
                         <span class="pts-help">points</span>
                     </div>
 
@@ -271,12 +269,6 @@
         document.getElementById('totalDisplay').textContent =
             (qty * pricePerPoint).toFixed(2).replace('.', ',') + ' €';
         document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('on', parseInt(b.dataset.qty) === qty));
-    }
-
-    function changeQty(d) {
-        const el = document.getElementById('qty');
-        el.value = clampQty((parseInt(el.value) || 1) + d);
-        updateTotal();
     }
 
     function setQty(n) {
