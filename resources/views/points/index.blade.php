@@ -193,11 +193,20 @@
                     1 point = <b style="color:var(--fg)">{{ number_format($pricePerPoint, 2, ',', ' ') }} €</b>
                 </p>
 
+                @php
+                    $maxQty = abs($balance);
+                    // Toujours proposer le déficit exact, plus les paliers usuels qui ne le dépassent pas.
+                    $presets = collect([1, 3, 5, 10, $maxQty])->filter(fn ($p) => $p >= 1 && $p <= $maxQty)->unique()->sort()->values();
+                @endphp
+                <p class="pts-help" style="margin:-10px 0 16px;color:var(--warm-fg)">
+                    Achat plafonné à {{ $maxQty }} point{{ $maxQty > 1 ? 's' : '' }} maximum (le montant de votre déficit).
+                </p>
+
                 <form method="POST" action="{{ route('points.buy.free') }}" id="buyForm">
                     @csrf
 
                     <div class="pts-presets">
-                        @foreach ([1, 3, 5, 10] as $p)
+                        @foreach ($presets as $p)
                         <button type="button" class="chip preset-btn" data-qty="{{ $p }}" onclick="setQty({{ $p }})">{{ $p }} pt{{ $p > 1 ? 's' : '' }}</button>
                         @endforeach
                     </div>
@@ -205,7 +214,7 @@
                     <div class="pts-step">
                         <button type="button" class="btn btn-outline" style="width:40px;padding:0" onclick="changeQty(-1)" aria-label="Retirer un point">−</button>
                         <input type="number" name="quantity" id="qty" class="pts-qty"
-                               value="{{ $defaultQty }}" min="1" max="50" oninput="updateTotal()">
+                               value="{{ $defaultQty }}" min="1" max="{{ $maxQty }}" oninput="updateTotal()">
                         <button type="button" class="btn btn-outline" style="width:40px;padding:0" onclick="changeQty(1)" aria-label="Ajouter un point">+</button>
                         <span class="pts-help">points</span>
                     </div>
@@ -252,8 +261,9 @@
 @push('scripts')
 <script>
     const pricePerPoint = {{ $pricePerPoint }};
+    const maxQty = {{ $balance < 0 ? abs($balance) : 1 }};
 
-    function clampQty(v) { return Math.max(1, Math.min(50, v)); }
+    function clampQty(v) { return Math.max(1, Math.min(maxQty, v)); }
 
     function updateTotal() {
         const el  = document.getElementById('qty');

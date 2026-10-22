@@ -25,23 +25,32 @@ class PointsController extends Controller
 
         $pricePerPoint   = (float) SystemSetting::get('points.price_per_unit', 5.00);
         $stripeEnabled   = (bool)  config('services.stripe.secret');
+        // Par défaut, on pré-remplit avec exactement de quoi revenir à 0 — l'achat
+        // est plafonné à ce montant (voir buy()), pas question d'acheter plus que son déficit.
+        $defaultQty      = $balance < 0 ? abs($balance) : 1;
 
-        return view('points.index', compact('user', 'balance', 'history', 'pricePerPoint', 'stripeEnabled'));
+        return view('points.index', compact('user', 'balance', 'history', 'pricePerPoint', 'stripeEnabled', 'defaultQty'));
     }
 
-    /** Lance un checkout Stripe pour acheter N points librement */
+    /** Lance un checkout Stripe pour acheter N points, plafonné au déficit du solde */
     public function buy(Request $request): RedirectResponse
     {
-        $request->validate(['quantity' => 'required|integer|min:1|max:50']);
-
-        $user     = $request->user();
-        $quantity = (int) $request->input('quantity');
+        $user    = $request->user();
+        $balance = (int) ($user->points_balance ?? 0);
 
         // L'achat de points n'est ouvert qu'en cas de solde négatif (pour se remettre à flot) —
         // un abonné dont le solde est nul ou positif n'a pas besoin d'en acheter.
-        if ((int) ($user->points_balance ?? 0) >= 0) {
+        if ($balance >= 0) {
             return back()->with('error', 'L\'achat de points n\'est possible que si votre solde est négatif.');
         }
+
+        // Plafonné à exactement de quoi revenir à 0 — impossible d'acheter plus que son déficit.
+        $maxQty = abs($balance);
+        $request->validate(['quantity' => "required|integer|min:1|max:{$maxQty}"], [
+            'quantity.max' => "Vous ne pouvez acheter que {$maxQty} point(s) maximum (le montant de votre déficit).",
+        ]);
+
+        $quantity = (int) $request->input('quantity');
 
         if (! config('services.stripe.secret')) {
             return back()->with('error', 'Le paiement en ligne n\'est pas disponible pour le moment.');
