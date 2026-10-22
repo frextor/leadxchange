@@ -345,6 +345,42 @@
 
     <div class="db-col">
 
+        {{-- Réseau à développer (suggestions) — en premier, colonne large --}}
+        <div class="sh"><h2>🤝 Réseau à développer</h2><a class="link" href="{{ route('connections.index') }}">Voir tout</a></div>
+        @if($suggestionsCityWidened)
+        <div class="lx2-flash b-soft" role="note">
+            <span>Aucun membre disponible à <b>{{ $selectedCity?->name }}</b> pour le moment — suggestions élargies à toutes les villes.</span>
+        </div>
+        @endif
+        @if($suggestions->isNotEmpty())
+        <div class="db-list">
+            @foreach($suggestions as $member)
+            @php $note = $suggestionRatings[$member->id] ?? null; @endphp
+            <div class="card mrow">
+                <a href="{{ route('profile.show', $member->id) }}"><x-lx2-avatar :user="$member" :size="40" /></a>
+                <div class="who">
+                    <a class="nm" href="{{ route('profile.show', $member->id) }}">{{ member_name($member) }}
+                        @if($note)<span class="stars"><x-lx2-icon name="star" />{{ round($note) }}</span>@endif
+                    </a>
+                    <div class="role">{{ $member->profile?->job_title ?? 'Membre LeadXchange' }}</div>
+                    @if($member->profile?->sector)<span class="badge b-outline" style="margin-top:4px">{{ $member->profile->sector }}</span>@endif
+                </div>
+                @if($pendingSentIds->contains($member->id))
+                <span class="badge b-muted">Envoyé</span>
+                @elseif($pendingReceivedIds->contains($member->id))
+                <span class="badge b-soft">Demande reçue</span>
+                @elseif(auth()->user()->canFeature('can_send_invitations'))
+                <button type="button" onclick="sendConnect({{ $member->id }}, this)" class="circle-act" aria-label="Se connecter avec {{ member_name($member) }}"><x-lx2-icon name="user-plus" /></button>
+                @else
+                <button type="button" onclick="openUpgradeModal('can_send_invitations')" class="circle-act" aria-label="Se connecter avec {{ member_name($member) }}"><x-lx2-icon name="user-plus" /></button>
+                @endif
+            </div>
+            @endforeach
+        </div>
+        @else
+        <div class="card empty">Aucune suggestion pour le moment — <a class="link" href="{{ route('connections.index') }}">explorez le réseau</a></div>
+        @endif
+
         {{-- Mon activité --}}
         <section class="card db-card">
             <div class="db-card-head">
@@ -430,42 +466,6 @@
             </div>
             @endforelse
         </section>
-
-        {{-- Réseau à développer (suggestions) --}}
-        <div class="sh" style="margin-top:6px"><h2>🤝 Réseau à développer</h2><a class="link" href="{{ route('connections.index') }}">Voir tout</a></div>
-@if($suggestionsCityWidened)
-<div class="lx2-flash b-soft" role="note">
-    <span>Aucun membre disponible à <b>{{ $selectedCity?->name }}</b> pour le moment — suggestions élargies à toutes les villes.</span>
-</div>
-@endif
-@if($suggestions->isNotEmpty())
-<div class="db-list">
-    @foreach($suggestions as $member)
-    @php $note = $suggestionRatings[$member->id] ?? null; @endphp
-    <div class="card mrow">
-        <a href="{{ route('profile.show', $member->id) }}"><x-lx2-avatar :user="$member" :size="40" /></a>
-        <div class="who">
-            <a class="nm" href="{{ route('profile.show', $member->id) }}">{{ member_name($member) }}
-                @if($note)<span class="stars"><x-lx2-icon name="star" />{{ round($note) }}</span>@endif
-            </a>
-            <div class="role">{{ $member->profile?->job_title ?? 'Membre LeadXchange' }}</div>
-            @if($member->profile?->sector)<span class="badge b-outline" style="margin-top:4px">{{ $member->profile->sector }}</span>@endif
-        </div>
-        @if($pendingSentIds->contains($member->id))
-        <span class="badge b-muted">Envoyé</span>
-        @elseif($pendingReceivedIds->contains($member->id))
-        <span class="badge b-soft">Demande reçue</span>
-        @elseif(auth()->user()->canFeature('can_send_invitations'))
-        <button type="button" onclick="sendConnect({{ $member->id }}, this)" class="circle-act" aria-label="Se connecter avec {{ member_name($member) }}"><x-lx2-icon name="user-plus" /></button>
-        @else
-        <button type="button" onclick="openUpgradeModal('can_send_invitations')" class="circle-act" aria-label="Se connecter avec {{ member_name($member) }}"><x-lx2-icon name="user-plus" /></button>
-        @endif
-    </div>
-    @endforeach
-</div>
-@else
-<div class="card empty">Aucune suggestion pour le moment — <a class="link" href="{{ route('connections.index') }}">explorez le réseau</a></div>
-@endif
 
 {{-- ══════════════════════════════════════════════════════════════
      ÉVÉNEMENTS À VENIR — maquette › eventCard(e)
