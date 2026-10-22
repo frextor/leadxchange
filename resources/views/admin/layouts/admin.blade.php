@@ -439,6 +439,13 @@
                 </a>
                 @break
 
+            @case('ui_texts')
+                <a href="{{ route('admin.super.settings.ui-texts') }}" class="nav-item sa {{ request()->routeIs('admin.super.settings.ui-texts*') ? 'active' : '' }}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7V3h16v4M9 21h6M12 3v18"/></svg>
+                    {{ $navAdm['label'] }}
+                </a>
+                @break
+
             @case('smtp')
                 <a href="{{ route('admin.super.smtp.index') }}" class="nav-item sa {{ request()->routeIs('admin.super.smtp*') ? 'active' : '' }}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>

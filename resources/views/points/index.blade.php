@@ -186,7 +186,7 @@
             @elseif ($balance >= 0)
                 <div class="pts-empty" style="padding:24px 8px">
                     <x-lx2-icon name="check" />
-                    <span>Votre solde n'est pas négatif — l'achat de points n'est utile que pour se remettre à flot après un solde négatif.</span>
+                    <span>{{ ui_text('points.msg.not_negative_notice', "Votre solde n'est pas négatif — l'achat de points n'est utile que pour se remettre à flot après un solde négatif.") }}</span>
                 </div>
             @else
                 <p class="pts-help" style="margin-bottom:16px">
@@ -199,7 +199,7 @@
                     $presets = collect([1, 3, 5, 10, $maxQty])->filter(fn ($p) => $p >= 1 && $p <= $maxQty)->unique()->sort()->values();
                 @endphp
                 <p class="pts-help" style="margin:-10px 0 16px;color:var(--warm-fg)">
-                    Achat plafonné à {{ $maxQty }} point{{ $maxQty > 1 ? 's' : '' }} maximum (le montant de votre déficit).
+                    {{ ui_text('points.msg.capped_notice', 'Achat plafonné à :max point(s) maximum (le montant de votre déficit).', ['max' => $maxQty]) }}
                 </p>
 
                 <form method="POST" action="{{ route('points.buy.free') }}" id="buyForm">

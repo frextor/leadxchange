@@ -328,17 +328,17 @@
 ════════════════════════════════════════════════════════════════ --}}
 <div class="sh"><h2>Actions rapides</h2></div>
 <div class="qa">
-    <a class="card hi" href="{{ route('leads.create') }}"><span class="tile"><x-lx2-icon name="lx-send" /></span>Envoyer un lead<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
-    <a class="card" href="{{ route('leads.index') }}"><span class="tile" style="background:var(--primary)"><x-lx2-icon name="inbox" /></span>Mes leads reçus<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
-    <a class="card" href="{{ route('connections.index', ['tab' => 'contacts']) }}"><span class="tile" style="background:var(--green)"><x-lx2-icon name="contact" /></span>Mes connexions<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
-    <a class="card" href="{{ route('connections.index') }}"><span class="tile" style="background:var(--purple)"><x-lx2-icon name="users-round" /></span>Réseauter<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
+    <a class="card hi" href="{{ route('leads.create') }}"><span class="tile"><x-lx2-icon name="lx-send" /></span>{{ ui_text('dashboard.btn.send_lead', 'Envoyer un lead') }}<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
+    <a class="card" href="{{ route('leads.index') }}"><span class="tile" style="background:var(--primary)"><x-lx2-icon name="inbox" /></span>{{ ui_text('dashboard.btn.leads_received', 'Mes leads reçus') }}<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
+    <a class="card" href="{{ route('connections.index', ['tab' => 'contacts']) }}"><span class="tile" style="background:var(--green)"><x-lx2-icon name="contact" /></span>{{ ui_text('dashboard.btn.connections', 'Mes connexions') }}<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
+    <a class="card" href="{{ route('connections.index') }}"><span class="tile" style="background:var(--purple)"><x-lx2-icon name="users-round" /></span>{{ ui_text('dashboard.btn.network', 'Réseauter') }}<span class="arr"><x-lx2-icon name="arrow-up-right" /></span></a>
 </div>
 
 {{-- ══════════════════════════════════════════════════════════════
      SUGGESTIONS DE CONTACTS — maquette › memberRow(id, 'Pour toi')
 ════════════════════════════════════════════════════════════════ --}}
 {{-- Réseau à développer (suggestions) — pleine largeur, au-dessus de la grille --}}
-<div class="sh"><h2>{{ \App\Models\SystemSetting::get('dashboard_title_reseau', '🤝 Réseau à développer') }}</h2><a class="link" href="{{ route('connections.index') }}">Voir tout</a></div>
+<div class="sh"><h2>{{ \App\Models\SystemSetting::get('dashboard_title_reseau', '🤝 Réseau à développer') }}</h2><a class="link" href="{{ route('connections.index') }}">{{ ui_text('dashboard.btn.see_all_network', 'Voir tout') }}</a></div>
 @if($suggestionsCityWidened)
 <div class="lx2-flash b-soft" role="note">
     <span>Aucun membre disponible à <b>{{ $selectedCity?->name }}</b> pour le moment — suggestions élargies à toutes les villes.</span>
@@ -472,7 +472,7 @@
     </div>
 </div>
 
-<div class="sh"><h2>{{ \App\Models\SystemSetting::get('dashboard_title_events', 'Événements à venir') }}</h2><a class="link" href="{{ route('events.index') }}">Voir tout</a></div>
+<div class="sh"><h2>{{ \App\Models\SystemSetting::get('dashboard_title_events', 'Événements à venir') }}</h2><a class="link" href="{{ route('events.index') }}">{{ ui_text('dashboard.btn.see_all_events', 'Voir tout') }}</a></div>
 @if($upcomingEvents->isNotEmpty())
 <section class="card db-card" style="padding:6px 0">
     @foreach($upcomingEvents as $event)
@@ -501,7 +501,7 @@
 {{-- ══════════════════════════════════════════════════════════════
      GROUPES POPULAIRES — maquette › groupCard(g)
 ════════════════════════════════════════════════════════════════ --}}
-<div class="sh"><h2>{{ \App\Models\SystemSetting::get('dashboard_title_groups', 'Groupes populaires') }}</h2><a class="link" href="{{ route('groups.index') }}">Voir tout</a></div>
+<div class="sh"><h2>{{ \App\Models\SystemSetting::get('dashboard_title_groups', 'Groupes populaires') }}</h2><a class="link" href="{{ route('groups.index') }}">{{ ui_text('dashboard.btn.see_all_groups', 'Voir tout') }}</a></div>
 @if($featuredGroups->isNotEmpty())
 <div class="grid-3">
     @foreach($featuredGroups as $group)

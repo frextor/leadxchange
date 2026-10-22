@@ -83,10 +83,11 @@
                     {{-- Hidden order input --}}
                     <input type="hidden" name="order[]" value="{{ $item['key'] }}">
 
-                    {{-- Label --}}
-                    <div class="flex-1">
-                        <p class="text-sm font-semibold text-gray-800">{{ $item['label'] }}</p>
-                        <p class="text-[11px] text-gray-400 font-mono">{{ $item['key'] }}</p>
+                    {{-- Label (modifiable) --}}
+                    <div class="flex-1 min-w-0">
+                        <input type="text" name="label[{{ $item['key'] }}]" value="{{ $item['label'] }}" maxlength="30"
+                               class="w-full text-sm font-semibold text-gray-800 border border-transparent hover:border-gray-200 focus:border-indigo-300 focus:outline-none rounded-lg px-2 py-1 -ml-2">
+                        <p class="text-[11px] text-gray-400 font-mono px-2">{{ $item['key'] }}</p>
                     </div>
 
                     {{-- Visibility toggle --}}

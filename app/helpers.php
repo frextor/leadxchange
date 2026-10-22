@@ -40,6 +40,25 @@ if (! function_exists('currency_symbol')) {
 }
 
 /**
+ * Texte d'interface personnalisable (bouton, message, lien...) via
+ * Admin → Paramètres → Textes de l'interface. $key doit correspondre à une
+ * entrée enregistrée dans config('ui_texts'). $replace permet des variables
+ * de type ":nom" dans le texte (ex. ['max' => 5] remplace ":max").
+ */
+if (! function_exists('ui_text')) {
+    function ui_text(string $key, string $default, array $replace = []): string
+    {
+        $text = SystemSetting::get('ui_text.' . $key, $default);
+
+        foreach ($replace as $search => $value) {
+            $text = str_replace(':' . $search, (string) $value, $text);
+        }
+
+        return $text;
+    }
+}
+
+/**
  * Display a member's name respecting the viewer's plan permission.
  * Basic plan → first name only. Prémium+ → full name.
  */

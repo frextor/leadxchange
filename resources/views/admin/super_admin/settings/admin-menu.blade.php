@@ -95,8 +95,9 @@
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg>
                             </span>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-semibold text-gray-800">{{ $item['label'] }}</p>
-                                <p class="text-[10px] text-gray-400 font-mono">{{ $item['key'] }}</p>
+                                <input type="text" class="label-input w-full text-sm font-semibold text-gray-800 border border-transparent hover:border-gray-200 focus:border-indigo-300 focus:outline-none rounded-lg px-2 py-1 -ml-2"
+                                       data-key="{{ $item['key'] }}" value="{{ $item['label'] }}" maxlength="30">
+                                <p class="text-[10px] text-gray-400 font-mono px-2">{{ $item['key'] }}</p>
                             </div>
                             <span class="item-pos text-[10px] font-bold text-gray-300 w-5 text-center"></span>
                             <label class="toggle-switch">
@@ -144,8 +145,9 @@
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg>
                             </span>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-semibold text-gray-800">{{ $item['label'] }}</p>
-                                <p class="text-[10px] text-gray-400 font-mono">{{ $item['key'] }}</p>
+                                <input type="text" class="label-input w-full text-sm font-semibold text-gray-800 border border-transparent hover:border-gray-200 focus:border-indigo-300 focus:outline-none rounded-lg px-2 py-1 -ml-2"
+                                       data-key="{{ $item['key'] }}" value="{{ $item['label'] }}" maxlength="30">
+                                <p class="text-[10px] text-gray-400 font-mono px-2">{{ $item['key'] }}</p>
                             </div>
                             <span class="item-pos text-[10px] font-bold text-gray-300 w-5 text-center"></span>
                             <label class="toggle-switch">
@@ -183,6 +185,10 @@ const DEFAULTS = {
     plateforme: @json(array_column($plat, 'key')),
     superadmin: @json(array_column($sa,   'key')),
 };
+const DEFAULT_LABELS = {
+    plateforme: @json(array_column($plat, 'label', 'key')),
+    superadmin: @json(array_column($sa,   'label', 'key')),
+};
 
 // Init sortables
 ['plateforme','superadmin'].forEach(section => {
@@ -211,7 +217,12 @@ function saveSection(section) {
     for (var i = 0; i < lis.length; i++) {
         var li = lis[i];
         var toggle = li.querySelector('.vis-toggle');
-        items.push({ key: li.getAttribute('data-key'), visible: toggle ? toggle.checked : true });
+        var labelInput = li.querySelector('.label-input');
+        items.push({
+            key: li.getAttribute('data-key'),
+            label: labelInput ? labelInput.value : '',
+            visible: toggle ? toggle.checked : true,
+        });
     }
     if (items.length === 0) { alert('Erreur: liste vide.'); return; }
     document.getElementById('config_json_' + section).value = JSON.stringify(items);
@@ -226,6 +237,8 @@ function resetSection(section) {
         const li = items.find(el => el.dataset.key === key);
         if (li) {
             li.querySelector('.vis-toggle').checked = true;
+            const labelInput = li.querySelector('.label-input');
+            if (labelInput) labelInput.value = DEFAULT_LABELS[section][key] ?? labelInput.value;
             list.appendChild(li);
         }
     });

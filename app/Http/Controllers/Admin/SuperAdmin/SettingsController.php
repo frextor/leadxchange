@@ -268,6 +268,53 @@ class SettingsController extends Controller
         return back()->with('success', 'Titres mis à jour.');
     }
 
+    // ── Textes de l'interface (boutons, messages...) ─────────────────────
+
+    public function uiTexts(): View
+    {
+        $registry = config('ui_texts');
+        $saved    = SystemSetting::where('key', 'like', 'ui_text.%')->get()->keyBy('key');
+
+        return view('admin.super_admin.settings.ui-texts', compact('registry', 'saved'));
+    }
+
+    public function updateUiTexts(Request $request): RedirectResponse
+    {
+        $registry = config('ui_texts');
+        $keys     = [];
+        foreach ($registry as $section) {
+            $keys = array_merge($keys, array_keys($section));
+        }
+
+        // Les clés du registre contiennent des points (ex. "dashboard.btn.send_lead") —
+        // Request::input()/validate() les interpréterait comme un chemin imbriqué plutôt
+        // qu'une clé plate. On passe donc par un tableau texts[...] (index brut, pas de
+        // notation pointée) et on valide/lit manuellement sans les helpers "dot path".
+        $texts = (array) $request->input('texts', []);
+
+        foreach ($keys as $key) {
+            $value = trim((string) ($texts[$key] ?? ''));
+            if (mb_strlen($value) > 300) {
+                return back()->withErrors([$key => 'Ce texte dépasse 300 caractères.'])->withInput();
+            }
+        }
+
+        foreach ($keys as $key) {
+            $value = trim((string) ($texts[$key] ?? ''));
+            if ($value === '') {
+                // Vide → on efface la personnalisation, le texte par défaut du code s'applique.
+                SystemSetting::where('key', 'ui_text.' . $key)->delete();
+            } else {
+                SystemSetting::set('ui_text.' . $key, $value);
+            }
+        }
+
+        Cache::forget('system_settings');
+        ActivityLogger::log('admin.settings.updated', "Textes de l'interface mis à jour");
+
+        return back()->with('success', 'Textes mis à jour.');
+    }
+
     // ── §5.x Payments ─────────────────────────────────────────────────────
 
     public function payments(): View
@@ -471,6 +518,7 @@ class SettingsController extends Controller
             ['key' => 'smtp',             'label' => 'Email / SMTP',        'visible' => true],
             ['key' => 'geo_block',        'label' => 'Blocage géographique','visible' => true],
             ['key' => 'dashboard_titles', 'label' => 'Titres du dashboard', 'visible' => true],
+            ['key' => 'ui_texts',         'label' => "Textes de l'interface", 'visible' => true],
         ];
     }
 
@@ -509,9 +557,10 @@ class SettingsController extends Controller
         foreach ((array) $incoming as $entry) {
             $key = $entry['key'] ?? '';
             if ($defaults->has($key)) {
+                $label = trim((string) ($entry['label'] ?? ''));
                 $config[] = [
                     'key'     => $key,
-                    'label'   => $defaults[$key]['label'],
+                    'label'   => $label !== '' ? $label : $defaults[$key]['label'],
                     'visible' => (bool) ($entry['visible'] ?? true),
                 ];
             }
@@ -569,13 +618,15 @@ class SettingsController extends Controller
         $visible = $request->input('visible', []);   // only checked checkboxes are submitted
 
         $defaults = collect(self::defaultMenuItems())->keyBy('key');
+        $labels   = (array) $request->input('label', []);
         $config   = [];
 
         foreach ($order as $key) {
             if ($defaults->has($key)) {
+                $label = trim((string) ($labels[$key] ?? ''));
                 $config[] = [
                     'key'     => $key,
-                    'label'   => $defaults[$key]['label'],
+                    'label'   => $label !== '' ? $label : $defaults[$key]['label'],
                     'visible' => in_array($key, (array) $visible),
                     'fixed'   => false,
                 ];

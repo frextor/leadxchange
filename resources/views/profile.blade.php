@@ -717,13 +717,13 @@
 <div class="overlay" id="points-popup-overlay" onclick="if(event.target===this)pointsPopupClose()">
     <div class="dialog" style="max-width:380px">
         <div class="dh">
-            <div><h3>Solde de points négatif</h3></div>
+            <div><h3>{{ ui_text('points.msg.negative_popup_title', 'Solde de points négatif') }}</h3></div>
             <button type="button" class="x" onclick="pointsPopupClose()" aria-label="Fermer"><x-lx2-icon name="x" /></button>
         </div>
         <div class="db" style="text-align:center">
             <p class="prose" style="margin:0 auto 14px">
-                Votre solde est de <b style="color:var(--destructive)">{{ $pointsBalance }} point{{ abs($pointsBalance) > 1 ? 's' : '' }}</b>.
-                Rechargez votre compte pour continuer à recevoir des leads de la communauté.
+                {{ ui_text('points.msg.negative_popup_prefix', 'Votre solde est de') }} <b style="color:var(--destructive)">{{ $pointsBalance }} point{{ abs($pointsBalance) > 1 ? 's' : '' }}</b>.
+                {{ ui_text('points.msg.negative_popup_suffix', 'Rechargez votre compte pour continuer à recevoir des leads de la communauté.') }}
             </p>
             <div class="badge b-hot" style="height:auto;padding:10px 18px;font-size:26px;font-weight:600">{{ $pointsBalance }} pts</div>
         </div>
