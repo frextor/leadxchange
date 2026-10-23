@@ -101,8 +101,9 @@
 @endunless
 
 @if($selectedCityId)
-{{-- Masqué sur « Pour toi » : ce filtre y est géré côté serveur, avec repli si la ville choisie n'a personne. --}}
-<div class="lx2-flash b-soft" role="note" id="cityFilterNotice" @if($initialTab === 'recommendations') hidden @endif>
+{{-- Masqué sur « Pour toi » (filtre géré côté serveur, avec repli) et sur « Contacts »/« Demandes »
+     (jamais filtrés par ville — un contact ou une demande reste visible quelle que soit la région choisie). --}}
+<div class="lx2-flash b-soft" role="note" id="cityFilterNotice" @if(in_array($initialTab, ['recommendations', 'requests', 'contacts'], true)) hidden @endif>
     <span>Filtré sur la ville sélectionnée à l'accueil : <b>{{ $cities->firstWhere('id', $selectedCityId)?->name }}</b>. Seuls les membres de cette ville sont affichés.</span>
     <a class="link lx2-linkbtn" href="{{ route('dashboard') }}" style="opacity:1">{{ ui_text('members.btn.change_city', 'Changer la ville') }}</a>
 </div>
@@ -213,7 +214,7 @@
        sinon les résultats élargis par le repli (autres villes) seraient aussitôt exclus. ── */
     const SELECTED_CITY_ID = @json($selectedCityId);
     const CITY_NAMES = @json($cities->pluck('name', 'id'));
-    const cityOk = (m) => { if (!SELECTED_CITY_ID || tab === 'recommendations' || tab === 'requests') return true;
+    const cityOk = (m) => { if (!SELECTED_CITY_ID || tab === 'recommendations' || tab === 'requests' || tab === 'contacts') return true;
         const mCity = typeof m.city === 'object' && m.city ? m.city : (m.city ? { name: m.city } : null);
         if (!mCity) return false;
         return (mCity.id != null && String(mCity.id) === String(SELECTED_CITY_ID)) || mCity.name === CITY_NAMES[SELECTED_CITY_ID]; };
@@ -316,7 +317,7 @@
         document.querySelectorAll('#netTabs .chip').forEach(c => c.classList.toggle('on', c.dataset.tab === t));
         $('memberSearch').placeholder = t === 'recommendations' ? 'Rechercher des membres' : (t === 'contacts' ? 'Rechercher un contact' : (t === 'requests' ? 'Rechercher une demande' : 'Rechercher un visiteur'));
         const cityNotice = document.getElementById('cityFilterNotice');
-        if (cityNotice) cityNotice.hidden = (t === 'recommendations');
+        if (cityNotice) cityNotice.hidden = (t === 'recommendations' || t === 'requests' || t === 'contacts');
         if (push) history.replaceState(null, '', t === 'recommendations' ? location.pathname : `?tab=${t}`);
         load();
     }
