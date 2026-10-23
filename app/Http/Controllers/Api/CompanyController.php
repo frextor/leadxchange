@@ -79,13 +79,25 @@ class CompanyController extends Controller
                 ]);
             }
 
-            // ── Create new company ─────────────────────────────────────────
+            // ── Create new company or return existing one by SIRET ────────
             $validated = $request->validate([
                 'name'      => ['required', 'string', 'max:255'],
-                'siret'     => ['required', 'string', 'size:14', 'unique:companies,siret', 'regex:/^[0-9]{14}$/'],
+                'siret'     => ['required', 'string', 'size:14', 'regex:/^[0-9]{14}$/'],
                 'sector_id' => ['nullable', 'integer', 'exists:sectors,id'],
                 'website'   => ['nullable', 'url', 'max:255'],
             ]);
+
+            $existing = \App\Models\Company::where('siret', $validated['siret'])->first();
+            if ($existing) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Company already exists',
+                    'data'    => [
+                        'action'  => 'existing',
+                        'company' => $this->companyData($existing),
+                    ],
+                ]);
+            }
 
             $company = $this->companyService->createCompany($user, $validated);
 
