@@ -67,7 +67,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Company Routes
     Route::prefix('companies')->group(function () {
-        Route::get('/search', [CompanyController::class, 'search']);      // Search companies
+        Route::get('/search', [CompanyController::class, 'search']);                  // Search companies (local DB)
+        Route::get('/search-external', [CompanyController::class, 'searchExternal']); // Search via gov API (name or SIRET)
         Route::get('/me', [CompanyController::class, 'getUserCompany']);  // Get user's company
         Route::post('/', [CompanyController::class, 'store']);            // Create/Join company
         Route::get('/', [CompanyController::class, 'index']);             // List all companies
