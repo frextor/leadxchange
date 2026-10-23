@@ -21,22 +21,22 @@
         .nav-item {
             display: flex; align-items: center; gap: 10px;
             padding: 8px 12px; border-radius: 10px;
-            font-size: 13.5px; font-weight: 500;
-            color: #64748B; transition: all .12s;
+            font-size: 13.5px; font-weight: 400;
+            color: #8A93A3; transition: all .12s;
             text-decoration: none; white-space: nowrap;
             position: relative;
         }
-        .nav-item svg { flex-shrink: 0; color: #94A3B8; transition: color .12s; }
-        .nav-item:hover { background: #F1F5F9; color: #1E293B; }
-        .nav-item:hover svg { color: #475569; }
+        .nav-item svg { flex-shrink: 0; color: #AEB7C4; transition: color .12s; }
+        .nav-item:hover { background: #F6F8FA; color: #475569; }
+        .nav-item:hover svg { color: #64748B; }
 
         /* Platform active */
         .nav-item.active {
-            background: linear-gradient(135deg, #F0FDFA, #E0E7FF);
-            color: #23339E;
-            font-weight: 600;
+            background: linear-gradient(135deg, #F5FEFD, #EEF1FD);
+            color: #3C4BAE;
+            font-weight: 500;
         }
-        .nav-item.active svg { color: #23339E; }
+        .nav-item.active svg { color: #3C4BAE; }
         .nav-item.active::before {
             content: '';
             position: absolute; left: 0; top: 50%;
@@ -47,18 +47,18 @@
 
         /* Super admin active */
         .nav-item.sa.active {
-            background: linear-gradient(135deg, #F5F3FF, #EDE9FE);
-            color: #6D28D9;
+            background: linear-gradient(135deg, #FAF9FF, #F4F2FE);
+            color: #8257D9;
         }
-        .nav-item.sa.active svg { color: #7C3AED; }
-        .nav-item.sa.active::before { background: #8B5CF6; }
-        .nav-item.sa:hover { color: #4C1D95; }
-        .nav-item.sa:hover svg { color: #7C3AED; }
+        .nav-item.sa.active svg { color: #9575E0; }
+        .nav-item.sa.active::before { background: #B197EC; }
+        .nav-item.sa:hover { color: #6D5AAE; }
+        .nav-item.sa:hover svg { color: #9575E0; }
 
         /* Section labels */
         .nav-section {
-            font-size: 10px; font-weight: 700; text-transform: uppercase;
-            letter-spacing: .1em; color: #94A3B8;
+            font-size: 10px; font-weight: 500; text-transform: uppercase;
+            letter-spacing: .1em; color: #B0B8C4;
             padding: 3px 12px; margin-top: 20px; margin-bottom: 4px;
         }
 
