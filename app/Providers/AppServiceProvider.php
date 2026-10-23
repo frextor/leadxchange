@@ -4,10 +4,6 @@ namespace App\Providers;
 
 use App\Models\ConsulRequest;
 use App\Models\Group;
-use App\Models\Lead;
-use App\Models\LeadRating;
-use App\Observers\LeadObserver;
-use App\Observers\LeadRatingObserver;
 use App\Policies\ConsulRequestPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
@@ -28,9 +24,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Lead::observe(LeadObserver::class);
-        LeadRating::observe(LeadRatingObserver::class);
-
         Gate::policy(ConsulRequest::class, ConsulRequestPolicy::class);
 
         // Inject consul groups into all consul layout views

@@ -153,14 +153,14 @@ class LeadService
 
         DB::beginTransaction();
         try {
-            $lead->update([
-                'status'                 => Lead::STATUS_ACCEPTED,
-                'points_deducted'        => true,
-                'accepted_at'            => now(),
-                'sender_points_credited' => true,
-                'rating_due_at'          => now()->addDays(15),
-            ]);
+            $lead->update(['status' => Lead::STATUS_ACCEPTED]);
             $lead->load('sender', 'receiver');
+
+            // Crédite l'expéditeur / débite le destinataire selon les réglages admin
+            // (CGU §6 — Admin > Réglages Leads). Pose aussi accepted_at/rating_due_at.
+            $this->points->onLeadAccepted($lead);
+            $lead->refresh();
+
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -281,7 +281,7 @@ class LeadService
 
         DB::beginTransaction();
         try {
-            $lead->update(['lead_type' => $leadType, 'points_deducted' => true]);
+            $lead->update(['lead_type' => $leadType]);
             $lead->load('sender', 'receiver');
 
             $rating = LeadRating::create([
@@ -291,6 +291,9 @@ class LeadService
                 'relevance'  => $relevance,
                 'reactivity' => $reactivity,
             ]);
+
+            // Transfère le bonus MQL/SQL/SP du destinataire vers l'expéditeur (CGU §6.2.2)
+            $this->points->onLeadRated($lead, $leadType);
 
             DB::commit();
         } catch (\Exception $e) {
