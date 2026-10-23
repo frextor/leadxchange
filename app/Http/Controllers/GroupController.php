@@ -83,7 +83,12 @@ class GroupController extends Controller
         // Les demandes d'adhésion envoyées par l'utilisateur ne sont pas des invitations.
         $invitations  = $pendingInvitations->where('type', GroupInvitation::TYPE_INVITATION)->values();
         $requestedIds = $pendingInvitations->where('type', GroupInvitation::TYPE_REQUEST)->pluck('group_id')->all();
-        $discover     = $nearby->concat($recommended)->concat($others)->values();
+
+        // Une ville/région est sélectionnée : on ne montre que les groupes de cette ville.
+        // « Toutes les villes » (aucune sélection) : on montre tout, suggestions sectorielles en premier.
+        $discover = $activeCityId
+            ? $nearby
+            : $recommended->concat($others)->values();
 
         $this->previews->attachPreviewMembers($myGroups->concat($discover)->concat($invitations->pluck('group')->filter()));
 
