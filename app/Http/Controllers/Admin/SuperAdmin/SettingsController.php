@@ -98,8 +98,9 @@ class SettingsController extends Controller
     {
         $sendCredit   = \App\Services\PointsService::sendCredit();
         $receiveDebit = abs(\App\Services\PointsService::receiveDebit());
+        $bonusMap     = \App\Services\PointsService::bonusMap();
 
-        return view('admin.super_admin.settings.leads', compact('sendCredit', 'receiveDebit'));
+        return view('admin.super_admin.settings.leads', compact('sendCredit', 'receiveDebit', 'bonusMap'));
     }
 
     public function updateLeadsSettings(Request $request): RedirectResponse
@@ -107,6 +108,9 @@ class SettingsController extends Controller
         $request->validate([
             'points_send_credit'   => ['required', 'integer', 'min:0', 'max:100'],
             'points_receive_debit' => ['required', 'integer', 'min:0', 'max:100'],
+            'points_bonus_mql'     => ['required', 'integer', 'min:0', 'max:100'],
+            'points_bonus_sql'     => ['required', 'integer', 'min:0', 'max:100'],
+            'points_bonus_sp'      => ['required', 'integer', 'min:0', 'max:100'],
         ]);
 
         SystemSetting::updateOrCreate(
@@ -117,11 +121,24 @@ class SettingsController extends Controller
             ['key' => 'points.receive_debit'],
             ['value' => $request->points_receive_debit, 'type' => 'int', 'group' => 'leads']
         );
+        SystemSetting::updateOrCreate(
+            ['key' => 'points.bonus_mql'],
+            ['value' => $request->points_bonus_mql, 'type' => 'int', 'group' => 'leads']
+        );
+        SystemSetting::updateOrCreate(
+            ['key' => 'points.bonus_sql'],
+            ['value' => $request->points_bonus_sql, 'type' => 'int', 'group' => 'leads']
+        );
+        SystemSetting::updateOrCreate(
+            ['key' => 'points.bonus_sp'],
+            ['value' => $request->points_bonus_sp, 'type' => 'int', 'group' => 'leads']
+        );
         Cache::forget('system_settings');
 
         ActivityLogger::log(
             'admin.settings.updated',
-            "Réglages leads mis à jour : +{$request->points_send_credit} pt(s) envoi, -{$request->points_receive_debit} pt(s) réception"
+            "Réglages leads mis à jour : +{$request->points_send_credit} pt(s) envoi, -{$request->points_receive_debit} pt(s) réception, " .
+            "qualification MQL={$request->points_bonus_mql} SQL={$request->points_bonus_sql} SP={$request->points_bonus_sp}"
         );
 
         return back()->with('success', 'Réglages des leads enregistrés.');

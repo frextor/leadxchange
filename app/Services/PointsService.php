@@ -54,6 +54,16 @@ class PointsService
         'SP'  => 5,
     ];
 
+    /** Bonus de qualification transféré du destinataire vers l'expéditeur à la notation — paramétrable (Admin > Réglages Leads). */
+    public static function bonusMap(): array
+    {
+        return [
+            'MQL' => (int) SystemSetting::get('points.bonus_mql', self::BONUS_MAP['MQL']),
+            'SQL' => (int) SystemSetting::get('points.bonus_sql', self::BONUS_MAP['SQL']),
+            'SP'  => (int) SystemSetting::get('points.bonus_sp',  self::BONUS_MAP['SP']),
+        ];
+    }
+
     const MALUS_UQ_THRESHOLD  = 3;   // > 3 UQ leads → malus
     const MALUS_WINDOW_MONTHS = 6;
     const MALUS_AMOUNT        = -5;
@@ -100,7 +110,7 @@ class PointsService
     // ── Receiver rates the lead → debit receiver -N, credit sender +N ────────
     public function onLeadRated(Lead $lead, string $leadType): void
     {
-        $bonus = self::BONUS_MAP[$leadType] ?? 0;
+        $bonus = self::bonusMap()[$leadType] ?? 0;
 
         DB::transaction(function () use ($lead, $bonus, $leadType) {
             $lead->update([
@@ -233,6 +243,6 @@ class PointsService
     // ── Bonus points for a given lead type ───────────────────────────────────
     public static function bonusFor(?string $leadType): int
     {
-        return self::BONUS_MAP[$leadType] ?? 0;
+        return self::bonusMap()[$leadType] ?? 0;
     }
 }

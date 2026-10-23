@@ -8,7 +8,7 @@
     <div>
         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Super Admin</p>
         <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Réglages des leads</h1>
-        <p class="text-sm text-gray-400 mt-1">Points gagnés à l'envoi et perdus à la réception d'un lead.</p>
+        <p class="text-sm text-gray-400 mt-1">Points gagnés à l'envoi, perdus à la réception, et bonus de qualification d'un lead.</p>
     </div>
 </div>
 
@@ -74,9 +74,50 @@
                     </div>
                 </div>
 
+                <div class="border-t border-gray-100 pt-6">
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5">Bonus de qualification</p>
+                    <p class="text-xs text-gray-400">Transféré du destinataire vers l'expéditeur quand le destinataire note le lead (MQL / SQL / SP).</p>
+                </div>
+
+                <div class="grid grid-cols-3 gap-5">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">MQL</label>
+                        <div class="relative max-w-[160px]">
+                            <input type="number" name="points_bonus_mql"
+                                   value="{{ old('points_bonus_mql', $bonusMap['MQL']) }}"
+                                   min="0" max="100" step="1" required
+                                   class="w-full h-10 pl-3 pr-10 rounded-xl border border-gray-200 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">pts</span>
+                        </div>
+                        @error('points_bonus_mql')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">SQL</label>
+                        <div class="relative max-w-[160px]">
+                            <input type="number" name="points_bonus_sql"
+                                   value="{{ old('points_bonus_sql', $bonusMap['SQL']) }}"
+                                   min="0" max="100" step="1" required
+                                   class="w-full h-10 pl-3 pr-10 rounded-xl border border-gray-200 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">pts</span>
+                        </div>
+                        @error('points_bonus_sql')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">SP</label>
+                        <div class="relative max-w-[160px]">
+                            <input type="number" name="points_bonus_sp"
+                                   value="{{ old('points_bonus_sp', $bonusMap['SP']) }}"
+                                   min="0" max="100" step="1" required
+                                   class="w-full h-10 pl-3 pr-10 rounded-xl border border-gray-200 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">pts</span>
+                        </div>
+                        @error('points_bonus_sp')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+                    </div>
+                </div>
+
                 <div class="bg-amber-50 border border-amber-100 rounded-xl p-4 text-xs text-amber-700">
                     <p class="font-semibold mb-1">⚠️ Lien avec les CGU</p>
-                    <p>Ces montants sont actuellement cités dans les CGU (§6.2) comme des valeurs fixes (+2 / −1). Si vous les changez, pensez à mettre les CGU à jour pour rester cohérent.</p>
+                    <p>Ces montants sont actuellement cités dans les CGU (§6.2) comme des valeurs fixes (+2 / −1 / MQL 1 / SQL 3 / SP 5). Si vous les changez, pensez à mettre les CGU à jour pour rester cohérent.</p>
                 </div>
 
                 <div class="flex justify-end">
