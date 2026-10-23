@@ -176,7 +176,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/payments/status',                         [PaymentController::class, 'status']);
 
     // Promo Code Routes
-    Route::post('/promo-codes/redeem', [\App\Http\Controllers\Api\PromoCodeController::class, 'redeem']);
+    Route::post('/promo-codes/redeem', [\App\Http\Controllers\PromoCodeRedeemController::class, 'redeemApi']);
 
     // Enterprise invitation Routes
     Route::get('/enterprise/invitations',                  [EnterpriseInvitationController::class, 'index']);
