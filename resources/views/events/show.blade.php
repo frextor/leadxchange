@@ -50,14 +50,14 @@
 
         <div class="card card-pad">
             <h3 style="margin:0 0 8px;font-size:15px;font-weight:600">À propos</h3>
-            <p class="prose" style="margin:0;white-space:pre-line">{{ $event->description ?: "L'organisateur n'a pas encore ajouté de description." }}</p>
+            <p class="prose" style="margin:0;white-space:pre-line">{{ $event->description ?: ui_text('events.msg.no_description', "L'organisateur n'a pas encore ajouté de description.") }}</p>
         </div>
 
         <div class="card">
             <div class="card-h">
                 <h3>Participants <span style="color:var(--muted-fg);font-weight:400" class="num">({{ $event->attendees_count }}{{ $capacity ? '/' . $capacity : '' }})</span></h3>
                 @if($isOrganizer && ! $isPast)
-                <button type="button" class="btn btn-outline-primary btn-sm" onclick="lx2Dialog('inviteEvDialog')"><x-lx2-icon name="plus" />Inviter</button>
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="lx2Dialog('inviteEvDialog')"><x-lx2-icon name="plus" />{{ ui_text('events.btn.invite', 'Inviter') }}</button>
                 @endif
             </div>
             <div class="plist" style="padding:4px 18px">
@@ -87,7 +87,7 @@
                         @endif
                     </div>
                 @empty
-                    <div class="empty" style="padding:24px">Aucun participant pour le moment.</div>
+                    <div class="empty" style="padding:24px">{{ ui_text('events.msg.no_attendees', 'Aucun participant pour le moment.') }}</div>
                 @endforelse
                 @if($attendees->count() > 12)
                     <div class="help" style="padding:0 0 12px">+ {{ $attendees->count() - 12 }} autres participants</div>
@@ -101,7 +101,7 @@
             <div class="info-list">
                 <div><x-lx2-icon name="calendar" /><span>{{ ucfirst($event->starts_at->locale('fr')->isoFormat('dddd D MMMM YYYY')) }}<small>{{ $event->starts_at->format('H:i') }}@if($event->ends_at) – {{ $event->ends_at->format('H:i') }}@endif</small></span></div>
                 @if($event->type !== 'virtual')
-                <div><x-lx2-icon name="map-pin" /><span>{{ $event->city?->name ?? 'Lieu' }}<small>{{ $event->location ?: 'Adresse communiquée par l\'organisateur' }}</small></span></div>
+                <div><x-lx2-icon name="map-pin" /><span>{{ $event->city?->name ?? 'Lieu' }}<small>{{ $event->location ?: ui_text('events.msg.location_tbd', "Adresse communiquée par l'organisateur") }}</small></span></div>
                 @endif
                 <div><x-lx2-icon name="users" /><span>{{ $modeLabels[$event->type] ?? $event->type }}<small>{{ $modeSubs[$event->type] ?? '' }}</small></span></div>
                 @if($event->creator)
@@ -124,39 +124,39 @@
                 @if($canOnline)
                 <a class="btn btn-outline-primary btn-sm" href="{{ $event->meeting_link }}" target="_blank" rel="noopener"><x-lx2-icon name="video" />Lien en ligne</a>
                 @endif
-                <button type="button" class="btn btn-primary btn-sm" onclick="evShare()"><x-lx2-icon name="share-2" />Partager</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="evShare()"><x-lx2-icon name="share-2" />{{ ui_text('events.btn.share', 'Partager') }}</button>
             </div>
 
             {{-- Action principale --}}
             @if($isPast)
-                <button class="btn btn-secondary btn-block" disabled>Cet événement est terminé</button>
+                <button class="btn btn-secondary btn-block" disabled>{{ ui_text('events.msg.event_ended', 'Cet événement est terminé') }}</button>
             @elseif($isOrganizer)
-                <span class="btn btn-soft btn-block" style="cursor:default">Vous êtes l'organisateur</span>
+                <span class="btn btn-soft btn-block" style="cursor:default">{{ ui_text('events.msg.you_are_organizer', "Vous êtes l'organisateur") }}</span>
             @elseif($isAttending)
-                <span class="btn btn-soft btn-block" style="cursor:default"><x-lx2-icon name="check" />Vous êtes inscrit</span>
+                <span class="btn btn-soft btn-block" style="cursor:default"><x-lx2-icon name="check" />{{ ui_text('events.msg.you_are_attending', 'Vous êtes inscrit') }}</span>
                 <form method="POST" action="{{ route('events.leave', $event->id) }}">@csrf @method('DELETE')
-                    <button type="submit" class="btn btn-danger-soft btn-block">Quitter l'événement</button></form>
+                    <button type="submit" class="btn btn-danger-soft btn-block">{{ ui_text('events.btn.leave_event', "Quitter l'événement") }}</button></form>
             @elseif($pendingInvitation)
-                <p class="help" style="margin:0;text-align:center">Vous êtes invité à cet événement.</p>
+                <p class="help" style="margin:0;text-align:center">{{ ui_text('events.msg.pending_invitation_notice', 'Vous êtes invité à cet événement.') }}</p>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                    <form method="POST" action="{{ route('events.invitations.decline', $pendingInvitation->id) }}">@csrf<button type="submit" class="btn btn-secondary btn-block">Décliner</button></form>
-                    <form method="POST" action="{{ route('events.invitations.accept', $pendingInvitation->id) }}">@csrf<button type="submit" class="btn btn-primary btn-block">Accepter</button></form>
+                    <form method="POST" action="{{ route('events.invitations.decline', $pendingInvitation->id) }}">@csrf<button type="submit" class="btn btn-secondary btn-block">{{ ui_text('events.btn.decline_invitation', 'Décliner') }}</button></form>
+                    <form method="POST" action="{{ route('events.invitations.accept', $pendingInvitation->id) }}">@csrf<button type="submit" class="btn btn-primary btn-block">{{ ui_text('events.btn.accept_invitation', 'Accepter') }}</button></form>
                 </div>
             @elseif($isFull)
-                <button class="btn btn-soft btn-block" disabled>Complet</button>
+                <button class="btn btn-soft btn-block" disabled>{{ ui_text('events.msg.event_full', 'Complet') }}</button>
             @elseif(! $event->is_public)
-                <span class="btn btn-secondary btn-block" style="cursor:default"><x-lx2-icon name="lock" />Sur invitation uniquement</span>
+                <span class="btn btn-secondary btn-block" style="cursor:default"><x-lx2-icon name="lock" />{{ ui_text('events.msg.invite_only_notice', 'Sur invitation uniquement') }}</span>
             @elseif(! $me->canFeature('can_participate_events'))
-                <button type="button" class="btn btn-primary btn-block" onclick="openUpgradeModal('can_participate_events')">Rejoindre</button>
+                <button type="button" class="btn btn-primary btn-block" onclick="openUpgradeModal('can_participate_events')">{{ ui_text('events.btn.join', 'Rejoindre') }}</button>
             @elseif($event->is_free)
                 <form method="POST" action="{{ route('events.join', $event->id) }}">@csrf
-                    <button type="submit" class="btn btn-primary btn-block">Rejoindre</button></form>
+                    <button type="submit" class="btn btn-primary btn-block">{{ ui_text('events.btn.join', 'Rejoindre') }}</button></form>
             @else
-                <button type="button" class="btn btn-primary btn-block" onclick="openStripeModal()">Rejoindre · {{ currency_format($event->price, 2) }}</button>
+                <button type="button" class="btn btn-primary btn-block" onclick="openStripeModal()">{{ ui_text('events.btn.join', 'Rejoindre') }} · {{ currency_format($event->price, 2) }}</button>
             @endif
 
             @if($isOrganizer)
-                <button type="button" class="btn btn-danger btn-block" onclick="lx2Dialog('deleteEvDialog')"><x-lx2-icon name="trash-2" />Supprimer</button>
+                <button type="button" class="btn btn-danger btn-block" onclick="lx2Dialog('deleteEvDialog')"><x-lx2-icon name="trash-2" />{{ ui_text('events.btn.delete_event', 'Supprimer') }}</button>
             @endif
         </div>
     </aside>
@@ -168,13 +168,13 @@
     <form class="dialog" method="POST" action="{{ route('events.destroy', $event->id) }}">
         @csrf @method('DELETE')
         <div class="dh">
-            <div><h3>Supprimer l'événement ?</h3>
+            <div><h3>{{ ui_text('events.msg.delete_event_title', "Supprimer l'événement ?") }}</h3>
                 <p>@if($event->attendees_count > 1){{ $event->attendees_count - 1 }} participant{{ $event->attendees_count > 2 ? 's' : '' }} inscrit{{ $event->attendees_count > 2 ? 's' : '' }}. @endif Cette action est définitive.</p></div>
             <button type="button" class="x" data-close aria-label="Fermer"><x-lx2-icon name="x" /></button>
         </div>
         <div class="df">
             <button type="button" class="btn btn-outline" data-close>Annuler</button>
-            <button type="submit" class="btn btn-danger">Supprimer</button>
+            <button type="submit" class="btn btn-danger">{{ ui_text('events.btn.delete_event', 'Supprimer') }}</button>
         </div>
     </form>
 </div>
@@ -194,7 +194,7 @@
             </div>
             <div id="invMembers">
                 @if($eventConnections->isEmpty())
-                    <div class="lx2-dd-state">Toutes vos connexions participent déjà, ou vous n'avez pas encore de connexion.</div>
+                    <div class="lx2-dd-state">{{ ui_text('events.msg.invite_no_connections', "Toutes vos connexions participent déjà, ou vous n'avez pas encore de connexion.") }}</div>
                 @else
                     <div class="input-wrap" style="margin-bottom:6px"><x-lx2-icon name="search" /><input class="input" id="invQ" placeholder="Rechercher" autocomplete="off"></div>
                     <div id="invList">
@@ -202,7 +202,7 @@
                         <div class="mrow inv-row" style="padding:8px 0" data-search="{{ mb_strtolower($c['name']) }}">
                             <span class="av-fb" style="width:34px;height:34px;font-size:12px">{{ mb_strtoupper(mb_substr($c['name'], 0, 1)) }}</span>
                             <div class="who"><div class="nm">{{ $c['name'] }}</div><div class="role">{{ $c['job_title'] ?: 'Membre LeadXchange' }}</div></div>
-                            <button type="button" class="btn btn-primary btn-sm" data-inv="{{ $c['id'] }}">Inviter</button>
+                            <button type="button" class="btn btn-primary btn-sm" data-inv="{{ $c['id'] }}">{{ ui_text('events.btn.invite_member', 'Inviter') }}</button>
                         </div>
                         @endforeach
                     </div>
@@ -217,14 +217,14 @@
                         @csrf <input type="hidden" name="group_id" value="{{ $grp->id }}">
                         <span class="av-fb" style="width:34px;height:34px"><x-lx2-icon name="users" /></span>
                         <div class="who"><div class="nm">{{ $grp->name }}</div><div class="role">{{ $grp->members_count }} membre{{ $grp->members_count > 1 ? 's' : '' }}</div></div>
-                        <button type="submit" class="btn btn-primary btn-sm">Inviter le groupe</button>
+                        <button type="submit" class="btn btn-primary btn-sm">{{ ui_text('events.btn.invite_group', 'Inviter le groupe') }}</button>
                     </form>
                     @endforeach
                 @endif
             </div>
         </div>
         @if($eventConnections->isNotEmpty())
-        <div class="df" id="invAllWrap"><button type="button" class="btn btn-primary btn-block" id="invAll">Tout inviter</button></div>
+        <div class="df" id="invAllWrap"><button type="button" class="btn btn-primary btn-block" id="invAll">{{ ui_text('events.btn.invite_all', 'Tout inviter') }}</button></div>
         @endif
     </div>
 </div>
@@ -246,12 +246,12 @@
                 <div id="card-element" class="input" style="height:auto;padding:11px 12px"></div>
                 <p class="field-err" id="card-errors" hidden></p>
             </div>
-            <p class="help" id="stripeProcessing" style="margin:0" hidden><span class="lx2-spin" style="width:14px;height:14px;vertical-align:-2px"></span> Paiement en cours…</p>
-            <p class="help pos" id="stripeSuccess" style="margin:0" hidden>Paiement confirmé ! Inscription en cours…</p>
+            <p class="help" id="stripeProcessing" style="margin:0" hidden><span class="lx2-spin" style="width:14px;height:14px;vertical-align:-2px"></span> {{ ui_text('events.msg.payment_processing', 'Paiement en cours…') }}</p>
+            <p class="help pos" id="stripeSuccess" style="margin:0" hidden>{{ ui_text('events.msg.payment_confirmed', 'Paiement confirmé ! Inscription en cours…') }}</p>
         </div>
         <div class="df" style="flex-direction:column;align-items:stretch;gap:8px">
-            <button type="button" class="btn btn-primary btn-block" id="stripePayBtn" onclick="confirmStripePayment()"><x-lx2-icon name="credit-card" />Payer {{ currency_format($event->price, 2) }}</button>
-            <p class="help" style="margin:0;text-align:center"><x-lx2-icon name="lock" /> Paiement sécurisé par Stripe</p>
+            <button type="button" class="btn btn-primary btn-block" id="stripePayBtn" onclick="confirmStripePayment()"><x-lx2-icon name="credit-card" />{{ ui_text('events.btn.pay', 'Payer') }} {{ currency_format($event->price, 2) }}</button>
+            <p class="help" style="margin:0;text-align:center"><x-lx2-icon name="lock" /> {{ ui_text('events.msg.secure_payment_notice', 'Paiement sécurisé par Stripe') }}</p>
         </div>
     </div>
 </div>

@@ -18,7 +18,7 @@
 <x-lx2-header title="Créer un événement" sub="Publiez un événement pour votre région ou un cercle privé" :back="route('events.index')" />
 
 @if($errors->any())
-<div class="lx2-flash b-hot" role="alert"><span>Vérifiez les champs signalés ci-dessous.</span></div>
+<div class="lx2-flash b-hot" role="alert"><span>{{ ui_text('events.msg.form_errors_banner', 'Vérifiez les champs signalés ci-dessous.') }}</span></div>
 @endif
 
 <div class="form-layout">
@@ -68,7 +68,7 @@
                     </select>
                 </div>
                 <p class="help full" id="privateHelp" @if($scope !== 'private') hidden @endif style="margin:0">
-                    Les membres des groupes que vous administrez et qui portent le même nom que l'événement seront invités automatiquement.
+                    {{ ui_text('events.msg.private_auto_invite_notice', "Les membres des groupes que vous administrez et qui portent le même nom que l'événement seront invités automatiquement.") }}
                 </p>
             </div>
         </section>
@@ -97,7 +97,7 @@
                     @if($isConsul)
                         <input type="hidden" name="city_id" value="{{ $user->city_id }}">
                         <div class="select filled" style="cursor:default"><span style="display:flex;gap:8px;align-items:center"><x-lx2-icon name="map-pin" />{{ $user->city?->name ?? '—' }}</span><x-lx2-icon name="lock" /></div>
-                        <p class="help">En tant que Consul, vos événements sont créés dans votre ville.</p>
+                        <p class="help">{{ ui_text('events.msg.consul_city_notice', 'En tant que Consul, vos événements sont créés dans votre ville.') }}</p>
                     @else
                         <select class="select filled {{ $err('city_id') }}" id="evCity" name="city_id">
                             <option value="">Indifférent</option>
@@ -173,8 +173,8 @@
         </section>
 
         <div class="sticky-foot" style="margin:0 -24px;border-radius:0 0 var(--radius-lg) var(--radius-lg)">
-            <a class="btn btn-outline" href="{{ route('events.index') }}">Annuler</a>
-            <button class="btn btn-primary" type="submit" id="evSubmit">Créer</button>
+            <a class="btn btn-outline" href="{{ route('events.index') }}">{{ ui_text('events.btn.cancel', 'Annuler') }}</a>
+            <button class="btn btn-primary" type="submit" id="evSubmit">{{ ui_text('events.btn.create_event', 'Créer') }}</button>
         </div>
     </form>
 

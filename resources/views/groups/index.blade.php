@@ -31,9 +31,9 @@
         <input class="input" id="groupSearch" type="search" placeholder="Rechercher des groupes" autocomplete="off">
     </div>
     @if($canCreate)
-        <button type="button" class="btn btn-primary" onclick="lx2Dialog('createGroupDialog')"><x-lx2-icon name="plus" /><span class="lbl-m">Créer un groupe</span></button>
+        <button type="button" class="btn btn-primary" onclick="lx2Dialog('createGroupDialog')"><x-lx2-icon name="plus" /><span class="lbl-m">{{ ui_text('groups.btn.create_group', 'Créer un groupe') }}</span></button>
     @else
-        <button type="button" class="btn btn-primary" onclick="openUpgradeModal('can_create_pole')"><x-lx2-icon name="plus" /><span class="lbl-m">Créer un groupe</span></button>
+        <button type="button" class="btn btn-primary" onclick="openUpgradeModal('can_create_pole')"><x-lx2-icon name="plus" /><span class="lbl-m">{{ ui_text('groups.btn.create_group', 'Créer un groupe') }}</span></button>
     @endif
 </div>
 
@@ -47,7 +47,7 @@
         @endforeach
     </div>
     @else
-    <div class="card empty">Aucune invitation en attente.</div>
+    <div class="card empty">{{ ui_text('groups.msg.no_invitations', 'Aucune invitation en attente.') }}</div>
     @endif
 </div>
 
@@ -59,7 +59,7 @@
         @endforeach
     </div>
     @else
-    <div class="card empty">Vous n'êtes membre d'aucun groupe. <a class="link" href="?tab=discover">Découvrir des groupes</a></div>
+    <div class="card empty">{{ ui_text('groups.msg.no_groups_joined', "Vous n'êtes membre d'aucun groupe.") }} <a class="link" href="?tab=discover">Découvrir des groupes</a></div>
     @endif
 </div>
 
@@ -71,10 +71,10 @@
         @endforeach
     </div>
     @else
-    <div class="card empty">Aucun nouveau groupe à découvrir pour le moment.</div>
+    <div class="card empty">{{ ui_text('groups.msg.no_groups_discover', 'Aucun nouveau groupe à découvrir pour le moment.') }}</div>
     @endif
 </div>
-<div class="card empty" id="grpNoMatch" hidden>Aucun groupe ne correspond à votre recherche.</div>
+<div class="card empty" id="grpNoMatch" hidden>{{ ui_text('groups.msg.no_search_match', 'Aucun groupe ne correspond à votre recherche.') }}</div>
 
 {{-- Créer un groupe (mêmes champs que GroupController@store) --}}
 @if($canCreate)
@@ -133,7 +133,7 @@
         </div>
         <div class="df">
             <button type="button" class="btn btn-outline" data-close>Annuler</button>
-            <button type="submit" class="btn btn-primary">Créer le groupe</button>
+            <button type="submit" class="btn btn-primary">{{ ui_text('groups.btn.create_group_submit', 'Créer le groupe') }}</button>
         </div>
     </form>
 </div>

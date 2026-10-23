@@ -36,9 +36,9 @@
     </div>
     <div class="grow"></div>
     @if($canSend)
-        <a class="btn btn-primary" href="{{ route('leads.create') }}"><x-lx2-icon name="plus" /><span class="lbl-m">Envoyer un lead</span></a>
+        <a class="btn btn-primary" href="{{ route('leads.create') }}"><x-lx2-icon name="plus" /><span class="lbl-m">{{ ui_text('leads.btn.send_lead_cta', 'Envoyer un lead') }}</span></a>
     @else
-        <button type="button" class="btn btn-primary" onclick="openUpgradeModal('can_send_leads')"><x-lx2-icon name="plus" /><span class="lbl-m">Envoyer un lead</span></button>
+        <button type="button" class="btn btn-primary" onclick="openUpgradeModal('can_send_leads')"><x-lx2-icon name="plus" /><span class="lbl-m">{{ ui_text('leads.btn.send_lead_cta', 'Envoyer un lead') }}</span></button>
     @endif
 </div>
 
@@ -56,14 +56,14 @@
             @empty
                 <div class="card empty">
                     @if($box === 'sent')
-                        Vous n'avez encore envoyé aucun lead.
-                        @if($canSend)<div style="margin-top:12px"><a class="btn btn-primary" href="{{ route('leads.create') }}">Envoyer votre premier lead</a></div>@endif
+                        {{ ui_text('leads.msg.empty_sent', "Vous n'avez encore envoyé aucun lead.") }}
+                        @if($canSend)<div style="margin-top:12px"><a class="btn btn-primary" href="{{ route('leads.create') }}">{{ ui_text('leads.btn.send_first_lead', 'Envoyer votre premier lead') }}</a></div>@endif
                     @else
-                        Aucun lead reçu pour le moment. Les leads envoyés par votre réseau apparaîtront ici.
+                        {{ ui_text('leads.msg.empty_received', 'Aucun lead reçu pour le moment. Les leads envoyés par votre réseau apparaîtront ici.') }}
                     @endif
                 </div>
             @endforelse
-            <div class="card empty" id="leadNoMatch" hidden>Aucun lead ne correspond à ce filtre.</div>
+            <div class="card empty" id="leadNoMatch" hidden>{{ ui_text('leads.msg.no_filter_match', 'Aucun lead ne correspond à ce filtre.') }}</div>
         </div>
     </div>
     <div class="detail">

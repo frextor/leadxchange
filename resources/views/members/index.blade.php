@@ -35,7 +35,7 @@
 
 <div class="banner net-banner">
     <span class="ring" style="background:none;display:grid;place-items:center"><x-lx2-icon name="trending-up" /></span>
-    <div class="tx"><b>Votre réseau prend de l'élan</b><small>Les profils les plus pertinents pour vous, cette semaine.</small></div>
+    <div class="tx"><b>{{ ui_text('members.msg.banner_title', "Votre réseau prend de l'élan") }}</b><small>{{ ui_text('members.msg.banner_subtitle', 'Les profils les plus pertinents pour vous, cette semaine.') }}</small></div>
     <div class="net-stats">
         <div class="st"><span class="n">{{ $suggestionsCount }}</span><span class="l">Suggestions</span></div>
         <div class="st"><span class="n">{{ $contactsCount }}</span><span class="l">Contacts</span></div>
@@ -95,8 +95,8 @@
 
 @unless($canViewName)
 <div class="lx2-flash b-soft" role="note">
-    <span>Avec votre offre, seuls les prénoms des membres sont visibles.</span>
-    <button type="button" class="link lx2-linkbtn" onclick="openUpgradeModal('can_view_member_name')" style="opacity:1">Voir les offres</button>
+    <span>{{ ui_text('members.msg.name_restricted_notice', 'Avec votre offre, seuls les prénoms des membres sont visibles.') }}</span>
+    <button type="button" class="link lx2-linkbtn" onclick="openUpgradeModal('can_view_member_name')" style="opacity:1">{{ ui_text('members.btn.view_plans', 'Voir les offres') }}</button>
 </div>
 @endunless
 
@@ -104,7 +104,7 @@
 {{-- Masqué sur « Pour toi » : ce filtre y est géré côté serveur, avec repli si la ville choisie n'a personne. --}}
 <div class="lx2-flash b-soft" role="note" id="cityFilterNotice" @if($initialTab === 'recommendations') hidden @endif>
     <span>Filtré sur la ville sélectionnée à l'accueil : <b>{{ $cities->firstWhere('id', $selectedCityId)?->name }}</b>. Seuls les membres de cette ville sont affichés.</span>
-    <a class="link lx2-linkbtn" href="{{ route('dashboard') }}" style="opacity:1">Changer la ville</a>
+    <a class="link lx2-linkbtn" href="{{ route('dashboard') }}" style="opacity:1">{{ ui_text('members.btn.change_city', 'Changer la ville') }}</a>
 </div>
 {{-- Affiché uniquement sur « Pour toi » quand le serveur a dû élargir la recherche (aucun candidat dans la ville choisie). --}}
 <div class="lx2-flash b-soft" role="note" id="cityWidenedNotice" hidden>
@@ -137,6 +137,13 @@
 (function () {
     const CAN_VIEW_NAME = @json($canViewName);
     const CAN_INVITE    = @json($canInvite);
+    const TXT = {
+        emptyContacts:        @json(ui_text('members.msg.empty_contacts', "Vous n'avez pas encore de contact.")),
+        emptyRequests:        @json(ui_text('members.msg.empty_requests', 'Aucune demande de connexion en attente.')),
+        emptyVisitors:        @json(ui_text('members.msg.empty_visitors', "Personne n'a encore visité votre profil.")),
+        emptyRecommendations: @json(ui_text('members.msg.empty_recommendations', 'Aucune suggestion pour le moment.')),
+        exploreRecommendations: @json(ui_text('members.btn.explore_recommendations', 'Explorer « Pour toi »')),
+    };
     const ICON = {
         plus:   @json(\App\Support\Lx2Icons::svg('user-plus')),
         msg:    @json(\App\Support\Lx2Icons::svg('message-circle')),
@@ -254,12 +261,12 @@
         if (!loading) {
             const isSearch = tab === 'recommendations' && q.length >= 3;
             const icon = isSearch ? ICON.search : ICON.users;
-            const text = tab === 'contacts'   ? "Vous n'avez pas encore de contact."
-                       : tab === 'requests'    ? "Aucune demande de connexion en attente."
-                       : tab === 'visitors'    ? "Personne n'a encore visité votre profil."
+            const text = tab === 'contacts'   ? TXT.emptyContacts
+                       : tab === 'requests'    ? TXT.emptyRequests
+                       : tab === 'visitors'    ? TXT.emptyVisitors
                        : isSearch              ? `Aucun membre ne correspond à « ${esc(q)} ».`
-                                                : 'Aucune suggestion pour le moment.';
-            const cta = tab === 'contacts' ? '<button type="button" class="link lx2-linkbtn" id="netEmptyGoTo" style="opacity:1">Explorer « Pour toi »</button>' : '';
+                                                : TXT.emptyRecommendations;
+            const cta = tab === 'contacts' ? `<button type="button" class="link lx2-linkbtn" id="netEmptyGoTo" style="opacity:1">${esc(TXT.exploreRecommendations)}</button>` : '';
             $('netState').innerHTML = `<span class="ic">${icon}</span><p>${text}</p>${cta}`;
         }
         $('netMore').hidden = !(tab !== 'contacts' && tab !== 'requests' && page < lastPage);

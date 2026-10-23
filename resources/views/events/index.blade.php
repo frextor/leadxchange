@@ -20,9 +20,9 @@
     </div>
     <div class="grow"></div>
     @if($canCreate)
-        <a class="btn btn-primary" href="{{ route('events.create') }}"><x-lx2-icon name="plus" /><span class="lbl-m">Créer un événement</span></a>
+        <a class="btn btn-primary" href="{{ route('events.create') }}"><x-lx2-icon name="plus" /><span class="lbl-m">{{ ui_text('events.btn.create_event_cta', 'Créer un événement') }}</span></a>
     @else
-        <button type="button" class="btn btn-primary" onclick="openUpgradeModal('can_create_events')"><x-lx2-icon name="plus" /><span class="lbl-m">Créer un événement</span></button>
+        <button type="button" class="btn btn-primary" onclick="openUpgradeModal('can_create_events')"><x-lx2-icon name="plus" /><span class="lbl-m">{{ ui_text('events.btn.create_event_cta', 'Créer un événement') }}</span></button>
     @endif
 </div>
 
@@ -43,7 +43,7 @@
     @endforeach
 </div>
 @else
-<div class="card empty">Vous n'êtes inscrit à aucun événement à venir.</div>
+<div class="card empty">{{ ui_text('events.msg.empty_my_events', "Vous n'êtes inscrit à aucun événement à venir.") }}</div>
 @endif
 
 <div class="sh"><h2>Recommandés pour vous</h2></div>
@@ -54,7 +54,7 @@
     @endforeach
 </div>
 @else
-<div class="card empty">Aucun événement à venir pour le moment.</div>
+<div class="card empty">{{ ui_text('events.msg.empty_suggested', 'Aucun événement à venir pour le moment.') }}</div>
 @endif
 
 @if($pastEvents->isNotEmpty())

@@ -86,29 +86,28 @@
     @if($canAct || $canConvert || $canRate || $canReport || $canRemind)
     <div class="detail-foot">
         @if($canReport)
-            <button type="button" class="btn btn-ghost" style="margin-right:auto;color:var(--muted-fg)" onclick="lx2Dialog('reportDialog')"><x-lx2-icon name="flag" />Signaler</button>
+            <button type="button" class="btn btn-ghost" style="margin-right:auto;color:var(--muted-fg)" onclick="lx2Dialog('reportDialog')"><x-lx2-icon name="flag" />{{ ui_text('leads.btn.report', 'Signaler') }}</button>
         @endif
         @if($canAct)
-            <form method="POST" action="{{ route('leads.reject', $lead->id) }}">@csrf<button type="submit" class="btn btn-secondary">Refuser</button></form>
-            <button type="button" class="btn btn-primary" onclick="lx2Dialog('acceptDialog')">Accepter</button>
+            <form method="POST" action="{{ route('leads.reject', $lead->id) }}">@csrf<button type="submit" class="btn btn-secondary">{{ ui_text('leads.btn.reject', 'Refuser') }}</button></form>
+            <button type="button" class="btn btn-primary" onclick="lx2Dialog('acceptDialog')">{{ ui_text('leads.btn.accept', 'Accepter') }}</button>
         @endif
         @if($canRate)
-            <button type="button" class="btn btn-outline" onclick="lx2Dialog('rateDialog')"><x-lx2-icon name="star" />Noter le lead</button>
+            <button type="button" class="btn btn-outline" onclick="lx2Dialog('rateDialog')"><x-lx2-icon name="star" />{{ ui_text('leads.btn.rate', 'Noter le lead') }}</button>
         @endif
         @if($canConvert)
-            <form method="POST" action="{{ route('leads.convert', $lead->id) }}">@csrf<button type="submit" class="btn btn-primary">Marquer converti</button></form>
+            <form method="POST" action="{{ route('leads.convert', $lead->id) }}">@csrf<button type="submit" class="btn btn-primary">{{ ui_text('leads.btn.mark_converted', 'Marquer converti') }}</button></form>
         @endif
         @if($canRemind)
-            <a class="btn btn-outline" href="{{ route('chat.index', ['with' => $other->id]) }}">Relancer</a>
+            <a class="btn btn-outline" href="{{ route('chat.index', ['with' => $other->id]) }}">{{ ui_text('leads.btn.remind', 'Relancer') }}</a>
         @endif
     </div>
     @endif
 </div>
 
 @if($canRate && $ratingDue)
-    <p class="help" style="margin:0">Notez ce lead avant le {{ $ratingDue->locale('fr')->isoFormat('D MMMM') }} : au-delà de 4★ de moyenne, l'expéditeur reçoit un bonus.</p>
+    <p class="help" style="margin:0">{{ ui_text('leads.msg.rating_due_notice', "Notez ce lead avant le :date : au-delà de 4★ de moyenne, l'expéditeur reçoit un bonus.", ['date' => $ratingDue->locale('fr')->isoFormat('D MMMM')]) }}</p>
 @endif
 <p class="help" style="margin:0">
-    <b>Responsabilité partagée (CGU §7.6)</b> — l'émetteur est responsable de la licéité des données transmises,
-    le receveur de leur traitement ultérieur.
+    <b>{{ ui_text('leads.msg.shared_responsibility_title', 'Responsabilité partagée (CGU §7.6)') }}</b> — {{ ui_text('leads.msg.shared_responsibility_body', "l'émetteur est responsable de la licéité des données transmises, le receveur de leur traitement ultérieur.") }}
 </p>

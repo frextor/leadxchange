@@ -108,7 +108,7 @@
                         </div>
                     @endif
                 @empty
-                    <div class="empty" style="margin:auto">Aucun message pour le moment.@if($isMember) Lancez la conversation !@endif</div>
+                    <div class="empty" style="margin:auto">{{ ui_text('groups.msg.wall_empty', 'Aucun message pour le moment.') }}@if($isMember) {{ ui_text('groups.msg.wall_empty_cta', 'Lancez la conversation !') }}@endif</div>
                 @endforelse
             @endif
         </div>
@@ -116,16 +116,16 @@
         @if($locked)
             <div class="lock-over"><div class="card">
                 <div style="width:44px;height:44px;border-radius:999px;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center;margin:0 auto 10px"><x-lx2-icon name="lock" /></div>
-                <b style="font-size:15px">Groupe privé</b>
+                <b style="font-size:15px">{{ ui_text('groups.msg.private_group_label', 'Groupe privé') }}</b>
                 <p style="color:var(--muted-fg);font-size:13px;margin:6px 0 16px">
-                    {{ $pendingInvitation?->inviter ? member_name($pendingInvitation->inviter) : "L'administrateur" }} vous invite à rejoindre ce groupe. Acceptez pour voir le mur et participer aux échanges.
+                    {{ $pendingInvitation?->inviter ? member_name($pendingInvitation->inviter) : "L'administrateur" }} {{ ui_text('groups.msg.private_invite_suffix', 'vous invite à rejoindre ce groupe. Acceptez pour voir le mur et participer aux échanges.') }}
                 </p>
                 <div style="display:flex;gap:10px">
-                    <form method="POST" action="{{ route('groups.invitations.decline', $pendingInvitation->id) }}" style="flex:1">@csrf<button type="submit" class="btn btn-secondary btn-block">Décliner</button></form>
+                    <form method="POST" action="{{ route('groups.invitations.decline', $pendingInvitation->id) }}" style="flex:1">@csrf<button type="submit" class="btn btn-secondary btn-block">{{ ui_text('groups.btn.decline_invitation', 'Décliner') }}</button></form>
                     @if($me->canFeature('can_join_pole'))
-                    <form method="POST" action="{{ route('groups.invitations.accept', $pendingInvitation->id) }}" style="flex:1">@csrf<button type="submit" class="btn btn-primary btn-block">Accepter</button></form>
+                    <form method="POST" action="{{ route('groups.invitations.accept', $pendingInvitation->id) }}" style="flex:1">@csrf<button type="submit" class="btn btn-primary btn-block">{{ ui_text('groups.btn.accept_invitation', 'Accepter') }}</button></form>
                     @else
-                    <button type="button" class="btn btn-primary" style="flex:1" onclick="openUpgradeModal('can_join_pole')">Accepter</button>
+                    <button type="button" class="btn btn-primary" style="flex:1" onclick="openUpgradeModal('can_join_pole')">{{ ui_text('groups.btn.accept_invitation', 'Accepter') }}</button>
                     @endif
                 </div>
             </div></div>
@@ -149,13 +149,13 @@
             </form>
         @else
             <div class="composer" style="justify-content:space-between">
-                <span style="font-size:13px;color:var(--muted-fg)">Rejoignez le groupe pour participer aux échanges.</span>
+                <span style="font-size:13px;color:var(--muted-fg)">{{ ui_text('groups.msg.join_to_participate_notice', 'Rejoignez le groupe pour participer aux échanges.') }}</span>
                 @if($hasPendingRequest)
-                    <button class="btn btn-soft btn-sm" disabled>Demande envoyée</button>
+                    <button class="btn btn-soft btn-sm" disabled>{{ ui_text('groups.msg.request_sent', 'Demande envoyée') }}</button>
                 @elseif($me->canFeature('can_join_pole'))
-                    <form method="POST" action="{{ route('groups.join', $group->id) }}">@csrf<button type="submit" class="btn btn-primary btn-sm">Rejoindre</button></form>
+                    <form method="POST" action="{{ route('groups.join', $group->id) }}">@csrf<button type="submit" class="btn btn-primary btn-sm">{{ ui_text('groups.btn.join_group', 'Rejoindre') }}</button></form>
                 @else
-                    <button type="button" class="btn btn-primary btn-sm" onclick="openUpgradeModal('can_join_pole')">Rejoindre</button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="openUpgradeModal('can_join_pole')">{{ ui_text('groups.btn.join_group', 'Rejoindre') }}</button>
                 @endif
             </div>
         @endif
@@ -191,7 +191,7 @@
             <div class="card-pad" style="display:flex;flex-direction:column;gap:14px">
                 <div>
                     <h3 style="margin:0 0 6px;font-size:14px;font-weight:600">À propos</h3>
-                    <p class="prose" style="margin:0;font-size:13px;white-space:pre-line">{{ $group->description ?: 'Aucune description pour le moment.' }}</p>
+                    <p class="prose" style="margin:0;font-size:13px;white-space:pre-line">{{ $group->description ?: ui_text('groups.msg.no_description', 'Aucune description pour le moment.') }}</p>
                     @if($group->sector)<div style="margin-top:8px"><span class="badge b-outline">{{ $group->sector->name }}</span></div>@endif
                 </div>
 
@@ -244,10 +244,10 @@
                 <div style="font-size:12px;color:var(--muted-fg)">Créé le {{ $group->created_at->format('d/m/Y') }}@if($group->city) à {{ $group->city->name }}@endif</div>
 
                 @if($isOwner)
-                    <button type="button" class="btn btn-danger btn-block" onclick="lx2Dialog('deleteGrpDialog')"><x-lx2-icon name="trash-2" />Supprimer le groupe</button>
+                    <button type="button" class="btn btn-danger btn-block" onclick="lx2Dialog('deleteGrpDialog')"><x-lx2-icon name="trash-2" />{{ ui_text('groups.btn.delete_group', 'Supprimer le groupe') }}</button>
                 @elseif($isMember)
                     <form method="POST" action="{{ route('groups.leave', $group->id) }}" onsubmit="return confirm('Quitter ce groupe ?')">@csrf @method('DELETE')
-                        <button type="submit" class="btn btn-danger-soft btn-block">Quitter</button></form>
+                        <button type="submit" class="btn btn-danger-soft btn-block">{{ ui_text('groups.btn.leave_group', 'Quitter') }}</button></form>
                 @endif
             </div>
         </div>
@@ -272,7 +272,7 @@
         </div>
         <div class="df">
             <button type="button" class="btn btn-outline" data-close>Annuler</button>
-            <button type="submit" class="btn btn-primary">Publier le sondage</button>
+            <button type="submit" class="btn btn-primary">{{ ui_text('groups.btn.publish_poll', 'Publier le sondage') }}</button>
         </div>
     </form>
 </div>
@@ -293,7 +293,7 @@
         </div>
         <div class="df">
             <button type="button" class="btn btn-outline" data-close>Annuler</button>
-            <button type="submit" class="btn btn-primary">Créer l'activité</button>
+            <button type="submit" class="btn btn-primary">{{ ui_text('groups.btn.create_activity', "Créer l'activité") }}</button>
         </div>
     </form>
 </div>
@@ -311,17 +311,17 @@
                 <div class="mrow inv-row" style="padding:8px 0" data-search="{{ mb_strtolower($c->first_name . ' ' . $c->last_name) }}">
                     <x-lx2-avatar :user="$c" :size="34" />
                     <div class="who"><div class="nm">{{ member_name($c) }}</div><div class="role">{{ $c->profile?->job_title ?? 'Membre LeadXchange' }}</div></div>
-                    <button type="button" class="btn btn-primary btn-sm" data-ginv="{{ $c->id }}">Inviter</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-ginv="{{ $c->id }}">{{ ui_text('groups.btn.invite_member', 'Inviter') }}</button>
                 </div>
                 @empty
-                <div class="lx2-dd-state" id="gInvEmpty">{{ $canInviteAll ? 'Recherchez un membre par son nom ou son email.' : "Toutes vos connexions sont déjà membres, ou vous n'avez pas encore de connexion." }}</div>
+                <div class="lx2-dd-state" id="gInvEmpty">{{ $canInviteAll ? ui_text('groups.msg.invite_search_hint', 'Recherchez un membre par son nom ou son email.') : ui_text('groups.msg.invite_no_connections', "Toutes vos connexions sont déjà membres, ou vous n'avez pas encore de connexion.") }}</div>
                 @endforelse
             </div>
             <div id="gInvSearchRes"></div>
         </div>
         @if($me->isAmbassador())
         <form class="df" method="POST" action="{{ route('groups.invite-region', $group->id) }}" onsubmit="return confirm('Inviter tous les membres de votre région ?')">
-            @csrf <button type="submit" class="btn btn-outline btn-block"><x-lx2-icon name="users" />Inviter toute ma région</button>
+            @csrf <button type="submit" class="btn btn-outline btn-block"><x-lx2-icon name="users" />{{ ui_text('groups.btn.invite_region', 'Inviter toute ma région') }}</button>
         </form>
         @endif
     </div>
@@ -333,12 +333,12 @@
     <form class="dialog" method="POST" action="{{ route('groups.destroy', $group->id) }}">
         @csrf @method('DELETE')
         <div class="dh">
-            <div><h3>Supprimer le groupe ?</h3><p>Les publications et l'historique du groupe seront supprimés. Cette action est définitive.</p></div>
+            <div><h3>Supprimer le groupe ?</h3><p>{{ ui_text('groups.msg.delete_group_warning', "Les publications et l'historique du groupe seront supprimés. Cette action est définitive.") }}</p></div>
             <button type="button" class="x" data-close aria-label="Fermer"><x-lx2-icon name="x" /></button>
         </div>
         <div class="df">
             <button type="button" class="btn btn-outline" data-close>Annuler</button>
-            <button type="submit" class="btn btn-danger">Supprimer</button>
+            <button type="submit" class="btn btn-danger">{{ ui_text('groups.btn.delete_group', 'Supprimer le groupe') }}</button>
         </div>
     </form>
 </div>

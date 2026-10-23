@@ -37,25 +37,25 @@
         <div class="actions">
             @if($invitation)
                 <form method="POST" action="{{ route('groups.invitations.decline', $invitation->id) }}" style="flex:1;display:flex">@csrf
-                    <button type="submit" class="btn btn-secondary" style="flex:1">Décliner</button></form>
+                    <button type="submit" class="btn btn-secondary" style="flex:1">{{ ui_text('groups.btn.decline_invitation', 'Décliner') }}</button></form>
                 @if($canJoin)
                 <form method="POST" action="{{ route('groups.invitations.accept', $invitation->id) }}" style="flex:1;display:flex">@csrf
-                    <button type="submit" class="btn btn-primary" style="flex:1">Accepter</button></form>
+                    <button type="submit" class="btn btn-primary" style="flex:1">{{ ui_text('groups.btn.accept_invitation', 'Accepter') }}</button></form>
                 @else
-                <button type="button" class="btn btn-primary" onclick="openUpgradeModal('can_join_pole')">Accepter</button>
+                <button type="button" class="btn btn-primary" onclick="openUpgradeModal('can_join_pole')">{{ ui_text('groups.btn.accept_invitation', 'Accepter') }}</button>
                 @endif
             @elseif($role === 'owner')
-                <a class="btn btn-soft" href="{{ route('groups.show', $group->id) }}">Gérer le groupe</a>
+                <a class="btn btn-soft" href="{{ route('groups.show', $group->id) }}">{{ ui_text('groups.btn.manage_group', 'Gérer le groupe') }}</a>
             @elseif($role)
                 <form method="POST" action="{{ route('groups.leave', $group->id) }}" style="flex:1;display:flex" onsubmit="return confirm('Quitter ce groupe ?')">@csrf @method('DELETE')
-                    <button type="submit" class="btn btn-danger-soft" style="flex:1">Quitter</button></form>
+                    <button type="submit" class="btn btn-danger-soft" style="flex:1">{{ ui_text('groups.btn.leave_group', 'Quitter') }}</button></form>
             @elseif($requested)
-                <button class="btn btn-soft" disabled>Demande envoyée</button>
+                <button class="btn btn-soft" disabled>{{ ui_text('groups.msg.request_sent', 'Demande envoyée') }}</button>
             @elseif(! $canJoin)
-                <button type="button" class="btn btn-primary" onclick="openUpgradeModal('can_join_pole')">Rejoindre</button>
+                <button type="button" class="btn btn-primary" onclick="openUpgradeModal('can_join_pole')">{{ ui_text('groups.btn.join_group', 'Rejoindre') }}</button>
             @else
                 <form method="POST" action="{{ route('groups.join', $group->id) }}" style="flex:1;display:flex">@csrf
-                    <button type="submit" class="btn btn-primary" style="flex:1">Rejoindre</button></form>
+                    <button type="submit" class="btn btn-primary" style="flex:1">{{ ui_text('groups.btn.join_group', 'Rejoindre') }}</button></form>
             @endif
         </div>
     </div>

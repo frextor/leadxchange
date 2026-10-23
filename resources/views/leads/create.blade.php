@@ -51,7 +51,7 @@
                     </button>
                     <div class="pop dest-pop hidden" id="destPop" role="listbox">
                         @if($connections->isEmpty())
-                            <div class="lx2-dd-state">Connectez-vous avec des membres pour leur envoyer des leads.<br><a class="link" href="{{ route('connections.index') }}">Explorer le réseau</a></div>
+                            <div class="lx2-dd-state">{{ ui_text('leads.msg.no_connections_notice', 'Connectez-vous avec des membres pour leur envoyer des leads.') }}<br><a class="link" href="{{ route('connections.index') }}">Explorer le réseau</a></div>
                         @else
                             <div class="search"><input class="input" id="destSearch" placeholder="Rechercher une connexion" autocomplete="off"></div>
                             @foreach($connections as $c)
@@ -171,16 +171,16 @@
             <div><h2>Conformité</h2><p>Obligatoire avant tout partage de données personnelles.</p></div>
             <div class="consent">
                 <label class="check"><input type="checkbox" id="cRgpd" name="rgpd_consent" value="1" required @checked(old('rgpd_consent'))><span class="box"></span>
-                    <span><b>Consentement RGPD</b><span class="t">Je certifie avoir obtenu le consentement du prospect ou disposer d'une base légale (art. 6 RGPD) pour partager ses données personnelles à des fins de prospection commerciale.</span></span></label>
+                    <span><b>Consentement RGPD</b><span class="t">{{ ui_text('leads.msg.rgpd_consent_text', "Je certifie avoir obtenu le consentement du prospect ou disposer d'une base légale (art. 6 RGPD) pour partager ses données personnelles à des fins de prospection commerciale.") }}</span></span></label>
                 <label class="check"><input type="checkbox" id="cLicite" name="no_sensitive_data" value="1" required @checked(old('no_sensitive_data'))><span class="box"></span>
-                    <span><b>Données licites</b><span class="t">Ce lead ne contient aucune donnée sensible (santé, opinions politiques…), aucune donnée de mineur, ni d'information couverte par un accord de confidentialité.</span></span></label>
+                    <span><b>Données licites</b><span class="t">{{ ui_text('leads.msg.no_sensitive_data_text', 'Ce lead ne contient aucune donnée sensible (santé, opinions politiques…), aucune donnée de mineur, ni d\'information couverte par un accord de confidentialité.') }}</span></span></label>
                 <p class="field-err" id="consentErr" hidden>Cochez les deux déclarations pour envoyer le lead.</p>
             </div>
         </section>
 
         <div class="sticky-foot" style="margin:0 -24px;border-radius:0 0 var(--radius-lg) var(--radius-lg)">
-            <a class="btn btn-outline" href="{{ route('leads.index') }}">Annuler</a>
-            <button class="btn btn-primary" type="submit" id="sendBtn"><x-lx2-icon name="lx-send" />Envoyer le lead</button>
+            <a class="btn btn-outline" href="{{ route('leads.index') }}">{{ ui_text('leads.btn.cancel', 'Annuler') }}</a>
+            <button class="btn btn-primary" type="submit" id="sendBtn"><x-lx2-icon name="lx-send" />{{ ui_text('leads.btn.send_lead', 'Envoyer le lead') }}</button>
         </div>
     </form>
 
@@ -193,7 +193,7 @@
                         @if($ratings[$selectedDest->id] ?? null)<span class="stars"><x-lx2-icon name="star" />{{ round($ratings[$selectedDest->id]) }}</span>@endif
                     </div><div class="role">{{ $selectedDest->profile?->job_title ?? 'Membre LeadXchange' }}</div></div></div>
                 @else
-                    <div style="color:var(--muted-fg);font-size:13px">Aucun destinataire sélectionné.</div>
+                    <div style="color:var(--muted-fg);font-size:13px">{{ ui_text('leads.msg.no_recipient_selected', 'Aucun destinataire sélectionné.') }}</div>
                 @endif
             </div>
         </div>
