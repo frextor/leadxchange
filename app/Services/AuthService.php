@@ -315,6 +315,23 @@ class AuthService
             $user->adjustPoints($basicPlan->initial_points, 'initial_balance');
         }
 
+        // Essai « Full Access » : si activé, accorde Premium dès l'inscription via une
+        // ligne de subscription dédiée (source=trial), révoquée automatiquement à expiration
+        // par la commande premium:sync-grants.
+        if (SystemSetting::get('trial.enabled', false)) {
+            $premiumPlan = Plan::where('name', 'premium')->first();
+            $trialEndsAt = $user->fullAccessTrialEndsAt();
+            if ($premiumPlan && $trialEndsAt) {
+                Subscription::create([
+                    'user_id'       => $user->id,
+                    'plan_id'       => $premiumPlan->id,
+                    'status'        => 'active',
+                    'source'        => 'trial',
+                    'trial_ends_at' => $trialEndsAt,
+                ]);
+            }
+        }
+
         return $subscription;
     }
 

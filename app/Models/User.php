@@ -484,7 +484,28 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function subscription()
     {
-        return $this->hasOne(Subscription::class)->where('status', 'active')->latest();
+        return $this->hasOne(Subscription::class)->where('status', 'active')->latest('id');
+    }
+
+    /**
+     * True if the user has a REAL (Stripe/admin) active subscription ranked at least as
+     * high as the given plan. Ignores trial/promo-code grant rows (source IS NOT NULL),
+     * so a genuine paid plan is never shadowed/downgraded by a temporary free grant.
+     */
+    public function hasRealPlanAtLeast(string $planName): bool
+    {
+        $target = \App\Models\Plan::where('name', $planName)->first();
+        if (! $target) return false;
+        $targetRank = (float) ($target->sort_order ?: $target->price);
+
+        return $this->subscriptions()
+            ->where('status', 'active')
+            ->whereNull('source')
+            ->with('plan')
+            ->get()
+            ->pluck('plan')
+            ->filter()
+            ->contains(fn ($plan) => (float) ($plan->sort_order ?: $plan->price) >= $targetRank);
     }
 
     /**

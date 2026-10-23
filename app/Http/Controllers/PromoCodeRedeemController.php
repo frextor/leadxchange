@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Plan;
 use App\Models\PromoCode;
+use App\Models\Subscription;
 use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,7 +49,20 @@ class PromoCodeRedeemController extends Controller
                 ? $user->promo_premium_until
                 : now();
 
-            $user->forceFill(['promo_premium_until' => $base->copy()->addDays($code->premium_days)])->save();
+            $until = $base->copy()->addDays($code->premium_days);
+            $user->forceFill(['promo_premium_until' => $until])->save();
+
+            // Reflète l'accès dans subscriptions (source=promo_code) pour que le plan Premium
+            // soit visible partout (mobile, admin…), sans jamais rétrograder un plan payant réel.
+            if (! $user->hasRealPlanAtLeast('premium')) {
+                $premiumPlan = Plan::where('name', 'premium')->first();
+                if ($premiumPlan) {
+                    Subscription::updateOrCreate(
+                        ['user_id' => $user->id, 'source' => 'promo_code'],
+                        ['plan_id' => $premiumPlan->id, 'status' => 'active', 'trial_ends_at' => $until],
+                    );
+                }
+            }
         });
 
         ActivityLogger::log('promo_code.redeemed', "Code promo \"{$code->code}\" utilisé ({$code->premium_days} jours de Premium)", $user->id);

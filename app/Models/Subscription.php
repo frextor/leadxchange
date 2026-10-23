@@ -20,6 +20,7 @@ class Subscription extends Model
         'stripe_subscription_id',
         'billing_period',
         'status',
+        'source',
         'billing_period',
         'stripe_status',
         'trial_ends_at',
