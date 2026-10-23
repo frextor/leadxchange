@@ -188,6 +188,18 @@ class EmailTemplate extends Model
             ],
         ],
 
+        // ── Codes promo ──────────────────────────────────────────────────────
+        'promo_code_invitation' => [
+            'name'            => 'Code promo offert',
+            'default_subject' => '{{premium_days}} jours de Premium vous sont offerts — LeadXchange',
+            'variables'       => ['code', 'premium_days', 'redeem_url'],
+            'sample'          => [
+                'code'         => 'MP386C27',
+                'premium_days' => '30',
+                'redeem_url'   => '#',
+            ],
+        ],
+
         // ── Points ────────────────────────────────────────────────────────────
         'buy_points_reminder' => [
             'name'            => 'Rappel achat de points',

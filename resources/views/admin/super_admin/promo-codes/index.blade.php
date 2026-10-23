@@ -94,6 +94,9 @@
                 <td class="px-5 py-3 text-gray-400">{{ $promoCode->created_at->format('d/m/Y') }}</td>
                 <td class="px-5 py-3 text-right whitespace-nowrap">
                     @unless($promoCode->isUsed())
+                    <button type="button" onclick="openSendModal('{{ route('admin.super.promo-codes.send', $promoCode) }}', '{{ $promoCode->code }}')" class="text-xs font-semibold text-indigo-500 hover:text-indigo-700 transition mr-3">
+                        Envoyer
+                    </button>
                     <form method="POST" action="{{ route('admin.super.promo-codes.toggle', $promoCode) }}" class="inline">
                         @csrf
                         <button type="submit" class="text-xs font-semibold text-gray-400 hover:text-gray-700 transition mr-3">
@@ -119,6 +122,26 @@
 
 <div class="mt-5">{{ $codes->links() }}</div>
 
+{{-- Send-by-email modal --}}
+<div id="send-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+        <h3 class="text-base font-bold text-gray-900 mb-1">Envoyer le code par email</h3>
+        <p id="send-modal-code" class="text-xs text-gray-400 mb-4 font-mono"></p>
+        <form id="send-form" method="POST">
+            @csrf
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5" for="send-email">Adresse email du destinataire</label>
+                <input type="email" name="email" id="send-email" required placeholder="prenom.nom@exemple.com"
+                       class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-50 transition">
+            </div>
+            <div class="flex gap-3">
+                <button type="submit" class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition">Envoyer</button>
+                <button type="button" onclick="closeSendModal()" class="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition">Annuler</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -132,5 +155,18 @@ document.querySelectorAll('.copy-code').forEach(function (btn) {
         });
     });
 });
+
+function openSendModal(url, code) {
+    document.getElementById('send-form').action = url;
+    document.getElementById('send-modal-code').textContent = 'Code : ' + code;
+    document.getElementById('send-email').value = '';
+    const m = document.getElementById('send-modal');
+    m.classList.remove('hidden'); m.classList.add('flex');
+}
+function closeSendModal() {
+    const m = document.getElementById('send-modal');
+    m.classList.add('hidden'); m.classList.remove('flex');
+}
+document.getElementById('send-modal').addEventListener('click', function (e) { if (e.target === this) closeSendModal(); });
 </script>
 @endpush

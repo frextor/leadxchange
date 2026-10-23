@@ -261,6 +261,7 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
     Route::post('promo-codes',                 [PromoCodeController::class, 'store'])->name('promo-codes.store');
     Route::delete('promo-codes/{promoCode}',    [PromoCodeController::class, 'destroy'])->name('promo-codes.destroy');
     Route::post('promo-codes/{promoCode}/toggle', [PromoCodeController::class, 'toggle'])->name('promo-codes.toggle');
+    Route::post('promo-codes/{promoCode}/send',   [PromoCodeController::class, 'sendEmail'])->name('promo-codes.send');
 
     Route::get('settings/menu',               [SettingsController::class, 'menuSettings'])->name('settings.menu');
     Route::put('settings/menu',               [SettingsController::class, 'updateMenuSettings'])->name('settings.menu.update');

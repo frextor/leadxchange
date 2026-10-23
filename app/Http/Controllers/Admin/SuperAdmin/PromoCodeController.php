@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendQueuedEmailJob;
+use App\Mail\PromoCodeInvitationMail;
 use App\Models\PromoCode;
 use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
@@ -50,6 +52,39 @@ class PromoCodeController extends Controller
         return back()->with('success', $quantity > 1
             ? "{$quantity} codes promo créés."
             : "Code promo \"{$created[0]->code}\" créé.");
+    }
+
+    public function sendEmail(Request $request, PromoCode $promoCode): RedirectResponse
+    {
+        if (! $promoCode->isRedeemable()) {
+            return back()->with('error', "Ce code n'est plus disponible.");
+        }
+
+        $data = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ], [
+            'email.required' => "L'adresse email est requise.",
+            'email.email'    => 'Adresse email invalide.',
+        ]);
+
+        $email = trim($data['email']);
+
+        try {
+            SendQueuedEmailJob::dispatch(
+                to:       $email,
+                subject:  "{$promoCode->premium_days} jours de Premium vous sont offerts — LeadXchange",
+                type:     'promo_code_invitation',
+                mailable: new PromoCodeInvitationMail($promoCode),
+                toName:   $email,
+                metadata: ['promo_code_id' => $promoCode->id],
+            );
+        } catch (\Exception $e) {
+            return back()->with('error', "Échec de l'envoi de l'email : " . $e->getMessage());
+        }
+
+        ActivityLogger::log('admin.promo_code.emailed', "Code promo \"{$promoCode->code}\" envoyé par email à {$email}");
+
+        return back()->with('success', "Code envoyé par email à {$email}.");
     }
 
     public function destroy(PromoCode $promoCode): RedirectResponse
