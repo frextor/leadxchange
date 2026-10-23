@@ -506,7 +506,7 @@ class AnalyticsService
         return [
             'new_users'       => User::where('role', 'user')->whereDate('created_at', today())->count(),
             'new_leads'       => Lead::whereDate('created_at', today())->count(),
-            'new_connections' => Connection::whereDate('created_at', today())->count(),
+            'new_connections' => Connection::where('status', 'accepted')->whereDate('updated_at', today())->count(),
             'new_events'      => Event::whereDate('created_at', today())->count(),
             'new_groups'      => Group::whereDate('created_at', today())->count(),
         ];

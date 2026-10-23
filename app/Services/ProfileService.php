@@ -32,6 +32,14 @@ class ProfileService
 
         $user->loadMissing('subscription.plan');
 
+        // Essai « Full Access » ou Premium offert par code promo : aucune ligne de
+        // subscription réelle n'existe, donc on reflète l'accès temporaire ici pour
+        // que l'app mobile affiche le bon plan (sinon elle le voit comme "Basic").
+        $effectivePlan = $user->effectivePlan();
+        $temporaryPlan = (! $user->subscription && $effectivePlan && $effectivePlan->name !== 'basic')
+            ? $effectivePlan
+            : null;
+
         return [
             'id'              => $user->id,
             'first_name'      => $user->first_name,
@@ -68,7 +76,15 @@ class ProfileService
                     'label' => $user->subscription->plan->label,
                     'price' => $user->subscription->plan->price,
                 ] : null,
-            ] : null,
+            ] : ($temporaryPlan ? [
+                'status' => 'active',
+                'plan'   => [
+                    'id'    => $temporaryPlan->id,
+                    'name'  => $temporaryPlan->name,
+                    'label' => $temporaryPlan->label,
+                    'price' => $temporaryPlan->price,
+                ],
+            ] : null),
         ];
     }
 

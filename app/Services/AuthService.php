@@ -374,6 +374,14 @@ class AuthService
 
         $rating = $this->ratingPayload($user);
 
+        // Essai « Full Access » ou Premium offert par code promo : aucune ligne de
+        // subscription réelle n'existe, donc on reflète l'accès temporaire ici pour
+        // que l'app mobile affiche le bon plan (sinon elle le voit comme "Basic").
+        $effectivePlan = $user->effectivePlan();
+        $temporaryPlan = (! $user->subscription && $effectivePlan && $effectivePlan->name !== 'basic')
+            ? $effectivePlan
+            : null;
+
         return [
             'user' => [
                 'id'                 => $user->id,
@@ -429,14 +437,26 @@ class AuthService
                 'trial_ends_at' => $user->subscription->trial_ends_at,
                 'ends_at'       => $user->subscription->ends_at,
                 'on_trial'      => $user->subscription->onTrial(),
-            ] : null,
+            ] : ($temporaryPlan ? [
+                'id'            => null,
+                'status'        => 'active',
+                'trial_ends_at' => null,
+                'ends_at'       => null,
+                'on_trial'      => false,
+            ] : null),
             'plan' => $user->subscription?->plan ? [
                 'id'       => $user->subscription->plan->id,
                 'name'     => $user->subscription->plan->name,
                 'price'    => $user->subscription->plan->price,
                 'features' => $user->subscription->plan->features,
                 'is_enterprise_owner' => $this->isEnterpriseOwnerSubscription($user->subscription),
-            ] : null,
+            ] : ($temporaryPlan ? [
+                'id'       => $temporaryPlan->id,
+                'name'     => $temporaryPlan->name,
+                'price'    => $temporaryPlan->price,
+                'features' => $temporaryPlan->features,
+                'is_enterprise_owner' => false,
+            ] : null),
             'ambassador_status' => $user->ambassador_status ?? 'none',
             'ambassador_city'  => $user->ambassador_city_id ? [
                 'id'   => $user->ambassador_city_id,
