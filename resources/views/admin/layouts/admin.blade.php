@@ -446,6 +446,13 @@
                 </a>
                 @break
 
+            @case('promo_codes')
+                <a href="{{ route('admin.super.promo-codes.index') }}" class="nav-item sa {{ request()->routeIs('admin.super.promo-codes*') ? 'active' : '' }}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m20.59 13.41-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/><circle cx="7" cy="7" r="1"/></svg>
+                    {{ $navAdm['label'] }}
+                </a>
+                @break
+
             @case('smtp')
                 <a href="{{ route('admin.super.smtp.index') }}" class="nav-item sa {{ request()->routeIs('admin.super.smtp*') ? 'active' : '' }}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>

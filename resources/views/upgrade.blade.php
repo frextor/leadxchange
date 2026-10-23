@@ -200,6 +200,10 @@
     @endforeach
 </div>
 
+<p style="text-align:center;margin:18px 0 0;font-size:13px;color:var(--muted-fg)">
+    Vous avez un code promo ? <a class="link" href="{{ route('promo.redeem') }}">Activez-le ici</a>
+</p>
+
 {{-- Formulaire devis Entreprise (masqué par défaut) --}}
 <div id="enterprise-form" class="card" style="max-width:520px;margin:28px auto 0;overflow:hidden;display:none">
     <div style="padding:20px 24px;background:linear-gradient(135deg,var(--purple-soft),#F1EAFE);display:flex;align-items:center;gap:14px">

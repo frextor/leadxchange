@@ -424,4 +424,7 @@ Route::get('/referral/{token}', function (string $token) {
 Route::middleware(['auth', 'user', 'email.verified', 'cgu'])->group(function () {
     Route::get('/parrainage',        [\App\Http\Controllers\ReferralWebController::class, 'index'])->name('referral.index');
     Route::post('/parrainage/send',  [\App\Http\Controllers\ReferralWebController::class, 'send'])->name('referral.send');
+
+    Route::get('/code-promo',  [\App\Http\Controllers\PromoCodeRedeemController::class, 'show'])->name('promo.redeem');
+    Route::post('/code-promo', [\App\Http\Controllers\PromoCodeRedeemController::class, 'redeem'])->name('promo.redeem.submit');
 });

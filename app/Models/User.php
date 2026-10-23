@@ -63,6 +63,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'trial_reminder_sent_at',
         'password_set_at',
         'linkedin_id',
+        'promo_premium_until',
     ];
 
     /**
@@ -89,6 +90,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'notifications'        => 'boolean',
         'password'                   => 'string',
         'password_set_at'            => 'datetime',
+        'promo_premium_until'        => 'datetime',
         'points_balance'             => 'integer',
         'points_negative_since'      => 'datetime',
         'ambassador_requested_at'    => 'datetime',
@@ -191,9 +193,10 @@ class User extends Authenticatable implements MustVerifyEmail
         } else {
             $plan = $this->subscription?->plan ?? \App\Models\Plan::where('name', 'basic')->first();
 
-            // Essai « Full Access » (accès Premium offert à l'inscription) : uniquement tant que
-            // l'utilisateur n'a pas souscrit un plan payant (reste sur Basic) et que l'essai court encore.
-            if ($plan?->name === 'basic' && $this->isOnFullAccessTrial()) {
+            // Essai « Full Access » (accès Premium offert à l'inscription) ou Premium offert par
+            // un code promo : uniquement tant que l'utilisateur n'a pas souscrit un plan payant
+            // (reste sur Basic) et que la période offerte court encore.
+            if ($plan?->name === 'basic' && ($this->isOnFullAccessTrial() || $this->isOnPromoPremium())) {
                 $plan = \App\Models\Plan::where('name', 'premium')->first() ?? $plan;
             }
         }
@@ -228,6 +231,19 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         if (! $this->isOnFullAccessTrial()) return 0;
         return max(0, (int) ceil(now()->diffInHours($this->fullAccessTrialEndsAt()) / 24));
+    }
+
+    /** True tant que le Premium offert par un code promo (voir PromoCode) court encore. */
+    public function isOnPromoPremium(): bool
+    {
+        return $this->promo_premium_until !== null && now()->lt($this->promo_premium_until);
+    }
+
+    /** Nombre de jours restants de Premium offert par code promo (0 si terminé/non applicable). */
+    public function promoPremiumDaysRemaining(): int
+    {
+        if (! $this->isOnPromoPremium()) return 0;
+        return max(0, (int) ceil(now()->diffInHours($this->promo_premium_until) / 24));
     }
 
     /**

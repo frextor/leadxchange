@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\SuperAdmin\DashboardController as SuperDashboardC
 use App\Http\Controllers\Admin\SuperAdmin\EventCategoryController;
 use App\Http\Controllers\Admin\SuperAdmin\InterestController;
 use App\Http\Controllers\Admin\SuperAdmin\PlanController;
+use App\Http\Controllers\Admin\SuperAdmin\PromoCodeController;
 use App\Http\Controllers\Admin\SuperAdmin\SectorController;
 use App\Http\Controllers\Admin\SuperAdmin\EmailTemplateController;
 use App\Http\Controllers\Admin\SuperAdmin\SettingsController;
@@ -255,6 +256,11 @@ Route::middleware(['auth', 'super_admin'])->prefix('super')->name('admin.super.'
 
     Route::get('settings/ui-texts',            [SettingsController::class, 'uiTexts'])->name('settings.ui-texts');
     Route::put('settings/ui-texts',            [SettingsController::class, 'updateUiTexts'])->name('settings.ui-texts.update');
+
+    Route::get('promo-codes',                  [PromoCodeController::class, 'index'])->name('promo-codes.index');
+    Route::post('promo-codes',                 [PromoCodeController::class, 'store'])->name('promo-codes.store');
+    Route::delete('promo-codes/{promoCode}',    [PromoCodeController::class, 'destroy'])->name('promo-codes.destroy');
+    Route::post('promo-codes/{promoCode}/toggle', [PromoCodeController::class, 'toggle'])->name('promo-codes.toggle');
 
     Route::get('settings/menu',               [SettingsController::class, 'menuSettings'])->name('settings.menu');
     Route::put('settings/menu',               [SettingsController::class, 'updateMenuSettings'])->name('settings.menu.update');

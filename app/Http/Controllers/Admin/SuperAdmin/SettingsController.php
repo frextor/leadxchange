@@ -519,6 +519,7 @@ class SettingsController extends Controller
             ['key' => 'geo_block',        'label' => 'Blocage géographique','visible' => true],
             ['key' => 'dashboard_titles', 'label' => 'Titres du dashboard', 'visible' => true],
             ['key' => 'ui_texts',         'label' => "Textes de l'interface", 'visible' => true],
+            ['key' => 'promo_codes',      'label' => 'Codes promo',          'visible' => true],
         ];
     }
 

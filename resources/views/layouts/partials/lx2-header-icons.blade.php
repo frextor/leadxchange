@@ -58,6 +58,7 @@
                     <span class="lx2-menu-meta">{{ (int) ($lx2User->points_balance ?? 0) }} pts</span></a>
                 <a href="{{ route('billing.index') }}"><x-lx2-icon name="credit-card" />Abonnement</a>
                 <a href="{{ route('referral.index') }}"><x-lx2-icon name="user-round-plus" />Parrainage</a>
+                <a href="{{ route('promo.redeem') }}"><x-lx2-icon name="gem" />Code promo</a>
                 <a href="{{ route('support.index') }}"><x-lx2-icon name="life-buoy" />Support</a>
                 @if($lx2User->isAmbassador())
                     <a href="{{ route('ambassador.dashboard') }}"><x-lx2-icon name="star" />Espace Ambassadeur</a>

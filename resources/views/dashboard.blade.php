@@ -331,6 +331,16 @@
 </div>
 @endif
 
+{{-- ── Fin du Premium offert par code promo proche (≤ 7 jours) ── --}}
+@php $promoDaysLeft = auth()->user()->promoPremiumDaysRemaining(); @endphp
+@if($promoDaysLeft > 0 && $promoDaysLeft <= 7)
+<div class="banner">
+    <span class="ring" style="background:none;display:grid;place-items:center"><x-lx2-icon name="gem" /></span>
+    <div class="tx"><b>Votre Premium offert se termine bientôt</b><small>Il reste {{ $promoDaysLeft }} jour{{ $promoDaysLeft > 1 ? 's' : '' }} — passez à un plan payant pour ne rien perdre.</small></div>
+    <a class="btn" href="{{ route('upgrade') }}">Voir les plans</a>
+</div>
+@endif
+
 {{-- ══════════════════════════════════════════════════════════════
      ACTIONS RAPIDES
 ════════════════════════════════════════════════════════════════ --}}
