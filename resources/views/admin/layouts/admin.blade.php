@@ -100,6 +100,15 @@
             </div>
         </div>
 
+        {{-- Recherche rapide dans le menu --}}
+        <div class="px-3 pt-3 pb-1">
+            <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2" style="color:#AEB7C4;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="search" id="adminNavSearch" placeholder="Rechercher un menu…" autocomplete="off"
+                       class="w-full pl-9 pr-3 py-2 text-[13px] rounded-xl border border-gray-200 focus:outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-50 transition">
+            </div>
+        </div>
+
         {{-- Navigation (order & visibility from admin menu settings) --}}
         @php
             use App\Http\Controllers\Admin\SuperAdmin\SettingsController as SC;
@@ -590,6 +599,45 @@ function swalDelete(btn, name) {
         focusCancel: true,
     }).then(function(r) { if (r.isConfirmed) btn.closest('form').submit(); });
 }
+</script>
+<script>
+(function () {
+    var input = document.getElementById('adminNavSearch');
+    var nav = document.getElementById('sidebar-nav');
+    if (!input || !nav) return;
+
+    function apply() {
+        var q = input.value.trim().toLowerCase();
+
+        nav.querySelectorAll('a.nav-item').forEach(function (el) {
+            var match = !q || el.textContent.toLowerCase().indexOf(q) !== -1;
+            el.style.display = match ? '' : 'none';
+        });
+
+        // Masque les en-têtes de section (Plateforme / Super Admin) sans résultat
+        nav.querySelectorAll(':scope > .nav-section').forEach(function (section) {
+            var sib = section.nextElementSibling;
+            var hasVisible = false;
+            while (sib && !sib.classList.contains('nav-section')) {
+                if (sib.querySelector('a.nav-item') && Array.prototype.some.call(sib.querySelectorAll('a.nav-item'), function (a) { return a.style.display !== 'none'; })) {
+                    hasVisible = true;
+                } else if (sib.classList.contains('nav-item') && sib.style.display !== 'none') {
+                    hasVisible = true;
+                }
+                sib = sib.nextElementSibling;
+            }
+            section.style.display = (!q || hasVisible) ? '' : 'none';
+        });
+
+        // Masque les sous-groupes encadrés (ex. « Plans & Permissions ») sans résultat
+        nav.querySelectorAll(':scope > div').forEach(function (wrapper) {
+            var anyVisible = Array.prototype.some.call(wrapper.querySelectorAll('a.nav-item'), function (a) { return a.style.display !== 'none'; });
+            wrapper.style.display = (!q || anyVisible) ? '' : 'none';
+        });
+    }
+
+    input.addEventListener('input', apply);
+})();
 </script>
 <style>
 .swal-lx-popup  { border-radius:20px!important; padding:2rem!important; font-family:'Inter',sans-serif!important; box-shadow:0 20px 60px rgba(0,0,0,.12)!important; }
