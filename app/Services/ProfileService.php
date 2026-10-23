@@ -137,7 +137,14 @@ class ProfileService
             'email_verified_at' => null,
         ])->save();
 
-        $user->sendEmailVerificationNotification();
+        try {
+            $user->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            \Log::warning('Could not send email verification after email change', [
+                'user_id' => $user->id,
+                'error'   => $e->getMessage(),
+            ]);
+        }
     }
 
     public function updateAvatar(User $user, UploadedFile $file): string
