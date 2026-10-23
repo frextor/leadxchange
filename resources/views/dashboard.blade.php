@@ -214,13 +214,21 @@
 ════════════════════════════════════════════════════════════════ --}}
 @php
     $effectivePlan = $user->effectivePlan();
-    $isPaidPlan    = $effectivePlan && in_array($effectivePlan->name, ['premium', 'enterprise'], true);
-    // Image envoyée dans Admin > Icônes & Visuels pour ce plan précis (enterprise a son propre slot).
-    $dashPlanImgKey = $effectivePlan->name ?? 'premium';
+    // Image envoyée dans Admin > Icônes & Visuels pour ce plan précis (même mapping que le profil :
+    // basic/premium/enterprise/consul/ambassadeur ont chacun leur visuel, pas seulement les plans payants).
+    $dashPlanImgKey = $effectivePlan->name ?? 'basic';
+    $dashPlanVisuals = [
+        'basic'       => ['icon' => 'user',   'bg' => 'var(--muted)',       'fg' => 'var(--muted-fg)'],
+        'premium'     => ['icon' => 'gem',    'bg' => 'var(--primary-soft)','fg' => 'var(--primary)'],
+        'enterprise'  => ['icon' => 'users',  'bg' => 'var(--purple-soft)', 'fg' => 'var(--purple)'],
+        'consul'      => ['icon' => 'shield', 'bg' => 'var(--ok-soft)',     'fg' => 'var(--ok-fg)'],
+        'ambassadeur' => ['icon' => 'star',   'bg' => 'var(--warm-soft)',   'fg' => 'var(--warm-fg)'],
+    ];
+    $dashPlanVisual = $dashPlanVisuals[$dashPlanImgKey] ?? $dashPlanVisuals['basic'];
 @endphp
 <div class="ph">
-    @if($isPaidPlan)
-    <span class="ph-plan-ico" id="phPlanIcoFallback" style="display:none{{ $effectivePlan->name === 'enterprise' ? ';background:var(--purple-soft);color:var(--purple)' : '' }}"><x-lx2-icon :name="$effectivePlan->name === 'enterprise' ? 'users' : 'gem'" /></span>
+    @if($effectivePlan)
+    <span class="ph-plan-ico" id="phPlanIcoFallback" style="display:none;background:{{ $dashPlanVisual['bg'] }};color:{{ $dashPlanVisual['fg'] }}"><x-lx2-icon :name="$dashPlanVisual['icon']" /></span>
     <img src="{{ asset('images/plans/' . $dashPlanImgKey . '.jpg') }}" alt="{{ $effectivePlan->label }}"
          style="width:107px;height:87px;object-fit:contain;border-radius:14px" class="hide-m"
          onerror="this.style.display='none';document.getElementById('phPlanIcoFallback').style.display='grid'">
