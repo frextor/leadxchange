@@ -61,6 +61,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Auth Routes
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/auth/resend-verification', [AuthController::class, 'resendVerificationEmail']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/profile', [AuthController::class, 'updateProfile']);
     Route::post('/company', [AuthController::class, 'createCompany']);

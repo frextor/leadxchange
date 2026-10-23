@@ -240,6 +240,27 @@ class AuthController extends Controller
         ]);
     }
 
+    public function resendVerificationEmail(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->json(['message' => 'Email already verified.'], 422);
+        }
+
+        try {
+            $user->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            \Log::warning('Could not send verification email', [
+                'user_id' => $user->id,
+                'error'   => $e->getMessage(),
+            ]);
+            return response()->json(['message' => 'Failed to send verification email. Please try again.'], 500);
+        }
+
+        return response()->json(['message' => 'Verification email sent.']);
+    }
+
     /**
      * Get authenticated user details.
      *
