@@ -348,7 +348,7 @@ class UserService
     public function getUserById(int $userId, int $currentUserId): ?array
     {
         $user = User::with(['company:id,name,siret,sector_id,website', 'company.sector:id,name', 'city:id,name', 'profile:user_id,avatar,job_title,sector_ids,looking_for,services_offered,bio,open_to_network,presentation_video,presentation_video_status,website,linkedin,market_addressed_id,market_target_id', 'nationality:id,name,flag', 'subscription.plan:id,name,label,max_users', 'consulRequests'])
-            ->select(['id', 'first_name', 'last_name', 'email', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'ambassador_status', 'consul_status', 'onboarding_completed', 'created_at'])
+            ->select(['id', 'first_name', 'last_name', 'email', 'email_verified_at', 'gender', 'city_id', 'nationality_id', 'birthday', 'phone', 'phone_country_code', 'company_id', 'points_balance', 'badge_level', 'ambassador_status', 'consul_status', 'onboarding_completed', 'created_at'])
             ->find($userId);
 
         if (!$user) return null;
@@ -359,6 +359,7 @@ class UserService
         $base['rank'] = $this->rankPayload($user);
         $base['onboarding_completed'] = (bool) ($user->onboarding_completed ?? false);
         $base['profile_completed']    = (bool) $user->hasCompletedProfile();
+        $base['email_verified_at']  = $user->email_verified_at;
 
         return $base;
     }
