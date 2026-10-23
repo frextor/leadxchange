@@ -171,8 +171,10 @@
         <tbody class="divide-y divide-gray-50">
             @forelse($users as $u)
             @php
-                $planName  = $u->subscription?->plan?->name ?? 'basic';
-                $planLabel = $u->subscription?->plan?->label ?? 'Basic';
+                $uEffectivePlan = $u->effectivePlan();
+                $planName  = $uEffectivePlan?->name ?? 'basic';
+                $planLabel = $uEffectivePlan?->label ?? 'Basic';
+                $isTemporaryPlan = ! $u->subscription && $planName !== 'basic';
                 $planStyle = match($planName) {
                     'premium'       => 'bg-indigo-50 text-indigo-600',
                     'consul'        => 'bg-teal-50 text-teal-700',
@@ -220,6 +222,9 @@
                         <span class="w-1.5 h-1.5 rounded-full {{ $planDot }}"></span>
                         {{ $planLabel }}
                     </span>
+                    @if($isTemporaryPlan)
+                    <span class="block text-[9px] font-semibold text-gray-400 mt-0.5">{{ $u->isOnPromoPremium() ? 'offert (code promo)' : 'offert (essai)' }}</span>
+                    @endif
                 </td>
 
                 {{-- Points --}}
