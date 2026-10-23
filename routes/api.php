@@ -174,6 +174,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/payments/subscription',                [PaymentController::class, 'cancelSubscription']);
     Route::get('/payments/status',                         [PaymentController::class, 'status']);
 
+    // Promo Code Routes
+    Route::post('/promo-codes/redeem', [\App\Http\Controllers\Api\PromoCodeController::class, 'redeem']);
+
     // Enterprise invitation Routes
     Route::get('/enterprise/invitations',                  [EnterpriseInvitationController::class, 'index']);
     Route::post('/enterprise/invitations',                 [EnterpriseInvitationController::class, 'store']);
